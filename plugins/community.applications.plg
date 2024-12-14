@@ -1,7 +1,7 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
-<!ENTITY author    "Andrew Zawadzki">
+<!ENTITY author    "Lime Technology">
 <!ENTITY version   "2024.12.14">
 <!ENTITY md5       "92a6a2ec642c6d731605317e4df42f56">
 <!ENTITY launch    "Apps">
@@ -2314,6 +2314,7 @@ echo ""
 echo "----------------------------------------------------"
 echo " &name; has been installed."
 echo " Copyright 2015-2024, Andrew Zawadzki"
+echo " Copyright 2024, Lime Technology"
 echo " Version: &version;"
 echo "----------------------------------------------------"
 echo ""
