@@ -35,6 +35,8 @@ require_once "$docroot/webGui/include/Markdown.php";
 $caSettings = parse_plugin_cfg("community.applications");
 $dynamixSettings = parse_plugin_cfg("dynamix");
 
+exec("tail {$caPaths['PHPErrorLog']}",$initialPHPErrors);
+
 $caSettings['dockerSearch']  = "yes";
 $caSettings['unRaidVersion'] = $unRaidSettings['version'];
 $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";

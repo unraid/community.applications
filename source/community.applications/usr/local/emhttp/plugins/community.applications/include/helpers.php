@@ -612,7 +612,7 @@ function formatTags($leadTemplate,$rename="false") {
 # handles the POST return #
 ###########################
 function postReturn($retArray) {
-  global $caSettings, $caPaths;
+  global $caSettings, $caPaths, $initialPHPErrors;
 
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
@@ -624,6 +624,14 @@ function postReturn($retArray) {
   flush();
   debug("POST RETURN ({$_POST['action']})\n".var_dump_ret($retArray));
   debug("POST RETURN Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
+
+  exec("tail {$caPaths['PHPErrorLog']}",$newPHPErrors);
+
+  if ($initialPHPErrors != $newPHPErrors) {
+    debug("NEW PHP ERRORS");
+    debug(implode("\n",$newPHPErrors));
+  }
+
 }
 ####################################
 # Translation backwards compatible #
@@ -723,6 +731,11 @@ function debug($str) {
     $lingo = $_SESSION['locale'] ?? "en_US";
     debug("Language: $lingo");
     debug("Settings:\n".print_r($caSettings,true));
+
+    if (boolval($phpErrors['display_errors']??false)) {
+      debug("PHP errors set to be displayed!");
+    }
+
   }
   @file_put_contents($caPaths['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
 }

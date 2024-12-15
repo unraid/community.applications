@@ -99,6 +99,7 @@ $caPaths['pluginPending']                       = "/tmp/plugins/pluginPending/";
 $caPaths['phpErrorSettings']                    = "/etc/php.d/errors-php.ini";
 $caPaths['pluginProxy']                         = "https://ca.unraid.net/dl/";
 $caPaths['RepositoryAssets']                    = "http://ca.unraid.net/dl/https://assets.ca.unraid.net/feed/repositories/";
+$caPaths['PHPErrorLog']                         = "/var/log/phplog";
 
 $dynamixSettings = parse_plugin_cfg("dynamix");
 $caPaths['SpotlightIcon-backup']								= "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png";

@@ -894,7 +894,7 @@ function getPopupDescriptionSkin($appNumber) {
   $template['supportContext'] = $supportContext;
   @unlink($caPaths['pluginTempDownload']);
 
-  return ["description"=>displayPopup($template),"trendData"=>$template['trends'],"trendLabel"=>$chartLabel ?? "","downloadtrend"=>$down ?? "","downloadLabel"=>$downloadLabel ?? "","totaldown"=>$totalDown ?? "","totaldownLabel"=>$downloadLabel ?? "","supportContext"=>$supportContext,"actionsContext"=>$actionsContext,"ID"=>$template['ID']];
+  return ["description"=>displayPopup($template),"trendData"=>$template['trends'],"trendLabel"=>$chartLabel ?? "","downloadtrend"=>$down ?? "","downloadLabel"=>$downloadLabel ?? "","totaldown"=>$totalDown ?? "","totaldownLabel"=>$downloadLabel ?? "","supportContext"=>$supportContext,"actionsContext"=>$actionsContext,"ID"=>$template['ID']??false];
 }
 
 #####################################

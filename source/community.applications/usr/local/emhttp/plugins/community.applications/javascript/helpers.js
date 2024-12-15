@@ -227,7 +227,7 @@ function post(options,callback) {
       myCloseSpinner();
       swal({
         title: tr("Browser failed to communicate with Unraid Server"),
-        text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.'),
+        text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
         html: true,
         type: 'error',
         showCancelButton: true,
