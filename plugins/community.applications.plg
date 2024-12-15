@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2024.12.14a">
-<!ENTITY md5       "1d599b25f7674c206b5b5257ca7e1136">
+<!ENTITY version   "2024.12.15">
+<!ENTITY md5       "84947a244bd4bd072a550319014c750c">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,11 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2024.12.15
+- Fixed: PHP8 Warning
+- Added: Threshold for wheel mouse page changes
+- Changed: PHP Warning banner now cannot be dismissed but will autoclose in 15 seconds
+
 ###2024.12.14
 - Changed: Relocate GitHub repository to unraid
 - Added: Display TailScale WebUI if present

@@ -737,7 +737,7 @@ function portsUsed($template) {
     $template['Config'] = ['@attributes'=>$template['Config']];
   if ( is_array($template['Config']) ) {
     foreach ($template['Config'] as $config) {
-      if ( $config['@attributes']['Type'] !== "Port" )
+      if ( ($config['@attributes']['Type'] ?? null) !== "Port" )
         continue; 
       $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'];
     }

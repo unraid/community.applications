@@ -375,7 +375,10 @@ $(function(){
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
   <?if ( boolval($phpErrors['display_errors']??false) ):?>
-    addBannerWarning("PHP errors displayed in Tools-PHP Settings may impact operation of Community Applications");
+    var PHP_Errors = addBannerWarning("PHP errors displayed in Tools-PHP Settings may adversely impact operation of Community Applications",true,true);
+    setTimeout(function() {
+      removeBannerWarning(PHP_Errors);}
+    ,15000);
   <?endif;?>
   context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
 
@@ -1047,10 +1050,6 @@ function swalBackground(color) {
   $(".sweet-alert").css("background-color",color);
 }
 
-
-
-
-
 function myCloseAlert() {
   swal.close();
   $("div.spinner, .sweet-alert").hide();
@@ -1134,8 +1133,6 @@ function doSearch(button,newSearch) {
     });
   });
 }
-
-
 
 function changeSortOrder(button,buttonClass,previousApps) {
   var pageNumber = data.currentpage;
@@ -2013,7 +2010,6 @@ function installMultiPluginUpdatesAfterDocker() {
   },1000);
 }
 
-
 function installMulti() {
   var docker = new Array();
   var pluginArray = new Array();
@@ -2184,8 +2180,6 @@ function updateDisplay(content) {
   }
 }
 
-
-
 function saveState() {
   console.log("Save State");
   $.cookie("ca_categoryText",$("#Category").html(),{path:"/;SameSite=Lax"});
@@ -2246,7 +2240,6 @@ function restoreState() {
 
 }
 
-
 function showCredits() {
   $(".multi_installDiv,.dockerSearch").hide();
   clearCategory(); clearSearchBox();
@@ -2272,7 +2265,6 @@ function caChangeLog() {
     updateDisplay(result.changelog);
   });
 }
-
 
 function addDockerWarning(enableDisable) {
   if (enableDisable) {
@@ -3012,9 +3004,6 @@ function postCheckForUpdates() {
   setupActionCentre();
   $(".selectedMenu").click();
 }
-
-
-
 
 </script>
 

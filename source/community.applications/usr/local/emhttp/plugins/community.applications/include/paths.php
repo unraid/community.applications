@@ -101,6 +101,6 @@ $caPaths['pluginProxy']                         = "https://ca.unraid.net/dl/";
 $caPaths['RepositoryAssets']                    = "http://ca.unraid.net/dl/https://assets.ca.unraid.net/feed/repositories/";
 
 $dynamixSettings = parse_plugin_cfg("dynamix");
-$caPaths['SpotlightIcon-backup']								= "https://github.com/Squidly271/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png";
+$caPaths['SpotlightIcon-backup']								= "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png";
 $caPaths['SpotlightIcon']                       = "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png";
 ?>

@@ -143,8 +143,6 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
       }
       $installComment = $template['ModeratorComment'] ? "<span class=ca_bold>{$template['ModeratorComment']}</span>" : $template['CAComment'];
 
-      
-
       if ( $template['Requires'] ) {
         $template['Requires'] = markdown(strip_tags(str_replace(["\r","\n","&#xD;","'"],["","<br>","","&#39;"],trim($template['Requires'])),"<br>"));
         preg_match_all("/\/\/(.*?)&#92;/m",$template['Requires'],$searchMatches);
