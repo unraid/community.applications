@@ -1,11 +1,14 @@
 <?PHP
-###############################################################
-#                                                             #
-# Community Applications copyright 2015-2024, Andrew Zawadzki #
-#                   Licenced under GPLv2                      #
-#                                                             #
-###############################################################
-//error_reporting(E_ALL);
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2024, Lime Technology #
+# Copyright 2015-2024, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
+
 ini_set('memory_limit','256M');  // REQUIRED LINE
 
 $unRaidSettings = parse_ini_file("/etc/unraid-version");

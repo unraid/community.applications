@@ -1,10 +1,13 @@
 <?PHP
-###############################################################
-#                                                             #
-# Community Applications copyright 2015-2024, Andrew Zawadzki #
-#                   Licenced under GPLv2                      #
-#                                                             #
-###############################################################
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2024, Lime Technology #
+# Copyright 2015-2024, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 
 $login_locale = true;
