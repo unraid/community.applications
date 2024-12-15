@@ -19,10 +19,11 @@ $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
 
-$cfg = parse_plugin_cfg($plugin);
-$cfg['dockerSearch'] = "yes";
-$cfg['unRaidVersion'] = $var['version'];
-$caSettings = $cfg;
+$caSettings = parse_plugin_cfg($plugin);
+$caSettings['dockerSearch'] = "yes";
+$caSettings['unRaidVersion'] = $var['version'];
+$caSettings['wheelThreshold'] = abs(intval($caSettings['wheelThreshold']));
+$caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] == 0 ? 50 : $caSettings['wheelThreshold'];
 
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 require_once "$docroot/plugins/$plugin/include/paths.php";
@@ -41,7 +42,7 @@ exec("rm $docroot/CA-Logging*.zip");
 
 $diagnosticsFile = htmlspecialchars(str_replace(' ','_',strtolower($var['NAME'])));
 
-if ( $cfg['maxPerPage'] < 24 ) $cfg['maxPerPage'] = 24;
+if ( $caSettings['maxPerPage'] < 24 ) $caSettings['maxPerPage'] = 24;
 
 $firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
 $pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
@@ -103,7 +104,7 @@ $dockerSearchActive = is_file($caPaths['dockerSearchActive']);
 
 // Only check for updates to containers / plugins max once per hour
 exec("mkdir -p {$caPaths['tempFiles']}");
-if ( ($cfg['updateCheck'] == "yes") && ( (time() - @filemtime($caPaths['updateTime']) ) > 3600 ) ) {
+if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime($caPaths['updateTime']) ) > 3600 ) ) {
   touch($caPaths['updateTime']);
   exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
 }
@@ -378,9 +379,9 @@ $(function(){
   <?endif;?>
   context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
 
-  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$cfg['maxPerPage']?>"));
+  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$caSettings['maxPerPage']?>"));
 
-  context.attach("#maxPerPage",getPerPageOpts(<?=$cfg['maxPerPage']?>));
+  context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
@@ -820,7 +821,7 @@ $(function(){
     var name = $(this).data("name");
     removeApp(path,name);
   });
-  <?if ($cfg['wheelPage'] == "no"):?>
+  <?if ($caSettings['wheelPage'] == "no"):?>
   addEventListener("wheel",function(event){
     if (wheelActive)
       return;
@@ -830,7 +831,7 @@ $(function(){
     event.stopPropagation();
 
     if ( $(".pageRight").is(":visible") ) {
-      if (event.deltaX >50) {
+      if (event.deltaX >=<?=$caSettings['wheelThreshold']?>) {
         if ( !$(".pageRight").hasClass("pageNavNoClick")) {
           wheelActive = true;
           setTimeout(function() {
@@ -839,7 +840,7 @@ $(function(){
           $(".pageRight").click();
         }
       }
-      if (event.deltaX < -50) {
+      if (event.deltaX <= -<?=$caSettings['wheelThreshold']?>) {
         if (! $(".pageLeft").hasClass("pageNavNoClick")) {
           wheelActive = true;
 
@@ -854,7 +855,7 @@ $(function(){
   });
   <?endif;?>
 
-  <? if ($cfg['sidebarOpen'] == "yes"):?>
+  <? if ($caSettings['sidebarOpen'] == "yes"):?>
     $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
       var icon = this;
       iconHoverTimer = setTimeout(function() {
