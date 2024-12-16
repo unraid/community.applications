@@ -10,6 +10,15 @@
 ########################################
 */
 
+function isValidURL(url) {
+  try {
+    var ret = new URL(url);
+    return ret;
+  } catch (err) {
+    return false;
+  }
+}
+
 String.prototype.escapeHTML = function() {
   return this.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }

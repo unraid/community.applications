@@ -205,14 +205,7 @@ var ca_done_override = false;
   });
 ?>
 
-function isValidURL(url) {
-  try {
-    var ret = new URL(url);
-    return ret;
-  } catch (err) {
-    return false;
-  }
-}
+
 
 $('body').on("click","a,.ca_href", function(e) {
   if ($(this).hasClass("ca_href") ) {
@@ -293,7 +286,7 @@ $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
-    <? if ( $CArequirementsNOTmet ) : ?>
+  <? if ( $CArequirementsNOTmet ) : ?>
     $(".ca_templatesDisplay").hide();
     swal({
       title: "<?tr("Not Enough Memory")?>",
@@ -332,8 +325,8 @@ $(function(){
       }
     });
     return;
-});
-  <?else:?>
+
+    <?else:?>
   // don't run this through the wrapper so that if it hangs up it won't delay anything else
   $.post(execURL,{action:'getPortsInUse'},function(data) {
     console.log(data);
@@ -945,8 +938,9 @@ $(function(){
       actionCentreRestoreState = true;
     setupActionCentre();
   }
-});
   <?endif;?>
+});
+  
 function disableSort() {
   hideSortIcons();
 }

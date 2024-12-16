@@ -1213,8 +1213,8 @@ function displayCard($template) {
     $Name = str_replace(["' Repository","'s Repository"," Repository"],"",html_entity_decode($author,ENT_QUOTES));
 
     $Name = str_replace(["&apos;s","'s"],"",$Name);
-    $author = "";
-    $Path = $Repository = $Plugin = $IconFA = $ModeratorComment = $RecommendedDate = $UpdateAvailable = $Blacklist = $Official = $Trusted = $Pinned = $actionsContext = $Deprecated = $Removable = $CAComment = $Installed = $Uninstalled = $Uninstall = $fav = $Beta = $Requires = $caTemplateExists = $actionCentre = $Overview = $imageNoClick = "";
+    $actionsContext= [];
+    $Path = $author = $Repository = $Plugin = $IconFA = $ModeratorComment = $RecommendedDate = $UpdateAvailable = $Blacklist = $Official = $Trusted = $Pinned = $Deprecated = $Removable = $CAComment = $Installed = $Uninstalled = $Uninstall = $fav = $Beta = $Requires = $caTemplateExists = $actionCentre = $Overview = $imageNoClick = "";
   }
 
   $bottomClass = "ca_bottomLineSpotLight";
