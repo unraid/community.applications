@@ -656,7 +656,7 @@ function appOfDay($file) {
             continue;
           }
         }
-        if ( $template['PluginURL'] && is_file("/var/log/plugins/".basename($template['PluginURL'])) && ! $template['UninstallOnly'])
+        if ( $template['PluginURL'] && is_file("/var/log/plugins/".basename($template['PluginURL'])) && ! ($template['UninstallOnly']??false) )
           continue;
         // Don't show it if the container is installed
         if ( ! $template['PluginURL'] ) {
