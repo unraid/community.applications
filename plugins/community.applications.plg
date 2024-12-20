@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2024.12.16">
-<!ENTITY md5       "a6086cd1a52b40d73ad0f9fae9f0052a">
+<!ENTITY version   "2024.12.20">
+<!ENTITY md5       "5d1f5753eeb1327510d3559a6944366a">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,11 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2024.12.20
+- Fixed: Various issues if PHP Warnings were set to be displayed
+- Fixed: Certain v1 templates could not be installed
+- Fixed: Context menu would always appear at bottom of element necessitating a scroll down to view in certain circumstances
+
 ###2024.12.16
 - Updated: Magnific Library
 - Fixed: Intellisense issue

@@ -648,7 +648,7 @@ function appOfDay($file) {
           break;
           // Don't show it if the plugin is installed
 
-        if ( $template['PluginURL'] && is_file("/var/log/plugins/".basename($template['PluginURL'])) ) {
+        if ( ($template['PluginURL']??false) && is_file("/var/log/plugins/".basename($template['PluginURL'])) ) {
           if ( checkPluginUpdate($template['PluginURL']) ) {
             $appOfDay[] = $template['ID'];
             if ( count($appOfDay) == $max )
@@ -656,10 +656,10 @@ function appOfDay($file) {
             continue;
           }
         }
-        if ( $template['PluginURL'] && is_file("/var/log/plugins/".basename($template['PluginURL'])) && ! ($template['UninstallOnly']??false) )
+        if ( ($template['PluginURL']??false) && is_file("/var/log/plugins/".basename($template['PluginURL'])) && ! ($template['UninstallOnly']??false) )
           continue;
         // Don't show it if the container is installed
-        if ( ! $template['PluginURL'] ) {
+        if ( ! ($template['PluginURL']??false) ) {
           if ( $caSettings['dockerRunning'] ) {
             $selected = false;
 
@@ -2037,6 +2037,9 @@ function createXML() {
       $testarray = $template['Data']['Volume'];
       if ( ( ! isset($testarray[0]) ) || ( ! is_array($testarray[0]) ) ) $testarray = [$testarray];
       foreach ($testarray as &$volume) {
+        if ( ! ($volume['HostDir'] ?? false) )
+          continue;
+        
         $diskReferenced = array_values(array_filter(explode("/",$volume['HostDir'])));
         if ( $diskReferenced[0] == "mnt" && $diskReferenced[1] && ! in_array($diskReferenced[1],$disksPresent) ) {
           $volume['HostDir'] = str_replace("/mnt/{$diskReferenced[1]}/","/mnt/{$disksPresent[0]}/",$volume['HostDir']);

@@ -2101,7 +2101,7 @@ function updateDisplay(content) {
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });
-  context.init();
+  context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
   $('.supportButtonCardContext').each(function() {
     var supportContext = $(this).data("context");
     if (supportContext) {
