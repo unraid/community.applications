@@ -739,7 +739,7 @@ $(function(){
     var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
     var filename='CA-Logging-'+localISOTime.substr(0,16).replace(/[-:]/g,'').replace('T','-')+'.zip';
 
-    $.post('/webGui/include/Download.php',{cmd:'save',file:filename,source:"<?=$caPaths['logging']?>"},function(zip) {
+    $.post('/plugins/community.applications/scripts/debugging.php',{file:filename},function(zip) {
       location = zip;
     });
   });
@@ -2101,7 +2101,7 @@ function updateDisplay(content) {
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });
-  context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
+  context.init();
   $('.supportButtonCardContext').each(function() {
     var supportContext = $(this).data("context");
     if (supportContext) {

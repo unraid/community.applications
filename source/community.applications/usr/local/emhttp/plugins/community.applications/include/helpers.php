@@ -612,7 +612,7 @@ function formatTags($leadTemplate,$rename="false") {
 # handles the POST return #
 ###########################
 function postReturn($retArray) {
-  global $caSettings, $caPaths, $initialPHPErrors;
+  global $caSettings, $caPaths;
 
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
@@ -624,14 +624,6 @@ function postReturn($retArray) {
   flush();
   debug("POST RETURN ({$_POST['action']})\n".var_dump_ret($retArray));
   debug("POST RETURN Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
-
-  exec("tail {$caPaths['PHPErrorLog']}",$newPHPErrors);
-
-  if ($initialPHPErrors != $newPHPErrors) {
-    debug("NEW PHP ERRORS");
-    debug(implode("\n",$newPHPErrors));
-  }
-
 }
 ####################################
 # Translation backwards compatible #

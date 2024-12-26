@@ -35,8 +35,6 @@ require_once "$docroot/webGui/include/Markdown.php";
 $caSettings = parse_plugin_cfg("community.applications");
 $dynamixSettings = parse_plugin_cfg("dynamix");
 
-exec("tail {$caPaths['PHPErrorLog']}",$initialPHPErrors);
-
 $caSettings['dockerSearch']  = "yes";
 $caSettings['unRaidVersion'] = $unRaidSettings['version'];
 $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";
@@ -2039,7 +2037,7 @@ function createXML() {
       foreach ($testarray as &$volume) {
         if ( ! ($volume['HostDir'] ?? false) )
           continue;
-        
+
         $diskReferenced = array_values(array_filter(explode("/",$volume['HostDir'])));
         if ( $diskReferenced[0] == "mnt" && $diskReferenced[1] && ! in_array($diskReferenced[1],$disksPresent) ) {
           $volume['HostDir'] = str_replace("/mnt/{$diskReferenced[1]}/","/mnt/{$disksPresent[0]}/",$volume['HostDir']);

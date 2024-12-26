@@ -1,0 +1,23 @@
+<?
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2024, Lime Technology #
+# Copyright 2015-2024, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
+$docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
+
+require_once "$docroot/plugins/community.applications/include/paths.php";
+
+$file = $_POST['file'];
+if (! $file ) {
+  return;
+}
+@copy("/var/log/phplog", "/tmp/phplog.txt");
+exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg($caPaths['logging'])." /tmp/phplog.txt");
+@unlink("/tmp/phplog.txt");
+echo "/$file";
+?>

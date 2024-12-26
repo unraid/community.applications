@@ -1,11 +1,11 @@
-5323f779550ef2b57279874986363594  ./Apps.page
+b1946ca1f24526c4ac62143590e803dc  ./Apps.page
 51083bd06368f63f97b72e350d667f99  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
-0bc0a785f4824b29c09bf784ff4e0b99  ./ca_settings.page
+7841d3f5c220cb2a702eec0acdc7aeab  ./ca_settings.page
 4f9e0aa37575c918a1239d2f649d0912  ./default.cfg
 c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
-6df6f1ea38da565ed0f24f6c315f7304  ./include/exec.php
-d654c62e57027e2b16a2aea99a14479b  ./include/helpers.php
+9606219ede16abcb34b82481486761b9  ./include/exec.php
+ca64ba151499d9f89f9e05081ecb15e2  ./include/helpers.php
 02a5a67e2e80d1e191e3de04cffc5a40  ./include/paths.php
 f089a6879bbd0ac8ebc7343daf37bc17  ./javascript/helpers.js
 12049834f17ede1227ac8eeaf498bdcf  ./javascript/libraries.js
@@ -22,6 +22,7 @@ b65f25afb4b80025f7460792944c0673  ./scripts/notices.php
 f87c9d5f11a1536c7656c12b85ff4fd7  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 c3986c50cc12274c6bb08fbba0a768a1  ./scripts/updatePluginSupport.php
+340a9c61756068b96d154f9974c43114  ./scripts/debugging.php
 339b6d5ca334176218b16786a610ecaf  ./skins/Narrow/css.php
 84867d5c1ef18b625310992d461c80fb  ./skins/Narrow/skin.html
 795ef05a3f93e3dad822b93154b9d0ff  ./skins/Narrow/skin.php
