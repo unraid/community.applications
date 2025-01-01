@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2024.12.20">
-<!ENTITY md5       "5d1f5753eeb1327510d3559a6944366a">
+<!ENTITY version   "2024.12.31">
+<!ENTITY md5       "8f478b15634d43f0ecabf47ecda94e58">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2024.12.31
+- Fixed: If sidebar never opened after clearing cookies, plugins couldn't be installed from the main screen
+
 ###2024.12.20
 - Fixed: Various issues if PHP Warnings were set to be displayed
 - Fixed: Certain v1 templates could not be installed

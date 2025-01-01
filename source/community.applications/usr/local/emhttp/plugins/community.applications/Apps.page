@@ -1404,7 +1404,7 @@ function OpenSidebarAndRefreshDisplay() {
       var apppath = $.cookie("sidebarAppPath");
       var appname = $.cookie("sidebarAppName");
 
-      appname = appname.stripTags();
+      appname = appname ? appname.stripTags() : "";
 
       refreshDisplay();
       if ( $.trim(apppath) ) {
