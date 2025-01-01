@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2024.12.31">
-<!ENTITY md5       "8f478b15634d43f0ecabf47ecda94e58">
+<!ENTITY version   "2025.01.01">
+<!ENTITY md5       "b1b052cb4f30a2e3d5fdd87ac695b161">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.01.01
+- Fixed: Prevent h1 tags in sidebar coming via markdown on template overviews
+
 ###2024.12.31
 - Fixed: If sidebar never opened after clearing cookies, plugins couldn't be installed from the main screen
 
@@ -2331,8 +2334,8 @@ if [[ ! -e /usr/local/emhttp/plugins/dynamix/styles/font-cases.ttf ]]; then sed 
 echo ""
 echo "----------------------------------------------------"
 echo " &name; has been installed."
-echo " Copyright 2015-2024, Andrew Zawadzki"
-echo " Copyright 2024, Lime Technology"
+echo " Copyright 2015-2025, Andrew Zawadzki"
+echo " Copyright 2024-2025, Lime Technology"
 echo " Version: &version;"
 echo "----------------------------------------------------"
 echo ""

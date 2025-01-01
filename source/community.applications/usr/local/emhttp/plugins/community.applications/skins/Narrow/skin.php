@@ -617,7 +617,12 @@ function getPopupDescriptionSkin($appNumber) {
   $ovr = str_replace(["[","]"],["<",">"],$ovr);
   $ovr = str_replace("\n","<br>",$ovr);
   $ovr = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$ovr);
+  $ovr = trim($ovr);
+  while (startsWith($ovr,"#")) {
+    $ovr = first_str_replace($ovr,"#","");
+  }
   $ovr = markdown(strip_tags($ovr,"<br>"));
+ 
   $template['display_ovr'] = $ovr;
 
   if ( $template['Plugin'] ) {
