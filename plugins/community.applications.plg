@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.01a">
-<!ENTITY md5       "c933e97b3aadada3601d9afa70cfa2e0">
+<!ENTITY version   "2025.01.06">
+<!ENTITY md5       "ee262f213c70a1f0b74e539567e011db">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,10 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.01.06
+- Fixed: Issue with internal searches
+- Reverted: Code change that possibly caused issues for some users with malbehaved browser extensions
+
 ###2025.01.01
 - Fixed: Prevent h1 tags in sidebar coming via markdown on template overviews
 

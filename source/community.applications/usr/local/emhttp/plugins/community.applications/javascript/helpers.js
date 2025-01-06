@@ -37,11 +37,11 @@ String.prototype.basename = function() {
   return this.split('/').reverse()[0];
 }
 
-String.prototype.stripTags = function() {
-  if ( ! this )
+function stripTags(str) {
+  if ( ! str )
     return "";
 
-  return this.replace(/(<([^>]+)>)/ig,"");
+  return str.replace(/(<([^>]+)>)/ig,"");
 }
 
 function mySpinner() {

@@ -133,6 +133,8 @@ if ( $CArequirementsNOTmet && isset($_COOKIE['ca_memoryOverride']) && $_COOKIE['
 
 $ServerDateCorrect = checkServerDate() ? "true": "false";
 
+$startupSearch = htmlspecialchars($_GET['search']??"");
+
 function tr($string,$ret=false) {
   $string = str_replace('"',"&#34;",str_replace("'","&#39;",_($string)));
   if ( $ret )
@@ -190,7 +192,7 @@ var repoBanner = false;
 var repoBannerTimer = false;
 var resizeTimer;
 var portsInUse = [];
-var startupSearch = "<?=$_GET['search'] ?? ""?>";
+var startupSearch = "<?=$startupSearch?>";
 var iconHoverTimer;
 var wheelActive = false;
 var ca_done_override = false;
@@ -563,7 +565,7 @@ $(function(){
 
       var apppath = $(this).data("apppath");
       var appname = $(this).data("appname");
-      appname = appname.stripTags();
+      appname = stripTags(appname);
       if ( !apppath || !appname ) return;
       showSidebarApp(apppath,appname);
     }
@@ -1069,7 +1071,7 @@ function doSearch(button,newSearch) {
   }
   var filter = $('#searchBox').val();
   filter = $.trim(filter);
-  filter = filter.stripTags();
+  filter = stripTags(filter);
   if ( ! filter ) {
     $("#searchBox").val(filter);
     data.searchInProgress = false;
@@ -1404,7 +1406,7 @@ function OpenSidebarAndRefreshDisplay() {
       var apppath = $.cookie("sidebarAppPath");
       var appname = $.cookie("sidebarAppName");
 
-      appname = appname ? appname.stripTags() : "";
+      appname = stripTags(appname);
 
       refreshDisplay();
       if ( $.trim(apppath) ) {
