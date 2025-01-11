@@ -2046,14 +2046,23 @@ function createXML() {
       $template['Data']['Volume'] = $testarray;
     }
 
+    $foundTSDir = false;
     if ( $template['Config'] ?? false ) {
       $testarray = $template['Config'] ?: [];
       if (!($testarray[0]??false)) $testarray = [$testarray];
-
+      
       foreach ($testarray as &$config) {
         if ( is_array($config['@attributes']) ) {
           if ( $config['@attributes']['Type'] == "Path" ) {
             // handles where a container path is effectively a config path but it doesn't begin with /config
+            if ( startsWith($config['value'],$caPaths['defaultAppdataPath']) || startsWith($config['@attributes']['Default'],$caPaths['defaultAppdataPath']) ) {
+              if ( ! in_array($config['@attributes']['Target'],["/config","/data"]) ) {
+                $TSFallBackDir  = $config['@attributes']['Target'] ?? "";
+              } else {
+                $foundTSDir = true;
+                $TSFallBackDir = "";
+              }
+            }
             $config['value'] = str_replace($caPaths['defaultAppdataPath'],$dockerSettings['DOCKER_APP_CONFIG_PATH'],$config['value']);
             $config['@attributes']['Default'] = str_replace($caPaths['defaultAppdataPath'],$dockerSettings['DOCKER_APP_CONFIG_PATH'],$config['@attributes']['Default']);
             $defaultReferenced = array_values(array_filter(explode("/",$config['@attributes']['Default'])));
@@ -2117,7 +2126,6 @@ function createXML() {
           }
         }
       }
-      $template['Config'] = $testarray;
     }
     $template['Name'] = str_replace(" ","-",$template['Name']);
     $alreadyInstalled = getAllInfo();
@@ -2135,10 +2143,18 @@ function createXML() {
         $template['Name'] .= "-1";
       } else break;
     }
-    if (! isset($template['Environment']) )
-      $template['Environment']['Variable'] = ["Name"=>"test","Value"=>"yes"];
+
     if ( empty($template['Config']) ) // handles extra garbage entry being created on templates that are v1 only
       unset($template['Config']);
+    
+    // Add in TSStateDir
+
+    if ( version_compare($caSettings['unRaidVersion'],"6.999.999",">") && isTailScaleInstalled() ) {
+      if ( isset($template['Config']) && (! $foundTSDir) && ($TSFallBackDir ?? false) ) {
+        $template['Config'][] = ["@attributes"=>["Display"=>"advanced","Description"=>"Fallback container directory for tailscale state information - Added By Community Applications","Default"=>$TSFallBackDir,"Name"=>"TailScale Fallback State Directory","Target"=>"TAILSCALE_FALLBACK_DIR","Type"=>"Variable"],"value"=>$TSFallBackDir];
+      }
+    }
+    
     $xml = makeXML($template);
     @mkdir(dirname($xmlFile),0777,true);
     ca_file_put_contents($xmlFile,$xml);

@@ -121,13 +121,13 @@ function postNoSpin(options,callback) {
     console.log(msg+JSON.stringify(options));
   }
 
-  if ( typeof options === "function" ) {
-    callback = options;
-  }
+
   if ( typeof callback === "function" ) {
     $.post(execURL,options,function(retval){
+      console.log(retval);
       try {
-        var result = JSON.parse(retval);
+        var result = jsonExtract(retval);
+        
         if (result.error) {
           alert(result.error);
         }
@@ -143,13 +143,14 @@ function postNoSpin(options,callback) {
           alert(tr("You have been logged out"));
           window.location.reload();
         }	else {
+
           $("#templates_content").html(sprintf(tr("Something really wrong went on during %s"),options.action)+"<br>"+tr("Post the resulting file when you click debugging on the left")+"  <a href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'>https://forums.unraid.net/topic/38582-plug-in-community-applications/</a><br><br>");
           throw new Error("Something went badly wrong!"+options.action);
         }
       }
 
       try {
-        eval(callback(result));
+        callback(result);
       } catch(e) {
         if ( ! data.loggedOut ) {
           post({action:'javascriptError',postCall:options.action,retval:result});
@@ -184,8 +185,11 @@ function post(options,callback) {
   console.log("Post Count: "+postCount);
   if ( typeof callback === "function" ) {
     $.post(execURL,options,function(retval){
+      console.log(retval);
       try {
-        var result = JSON.parse(retval);
+
+        var result = jsonExtract(retval);
+        
         if (result.error) {
           alert(result.error);
         }
@@ -206,7 +210,7 @@ function post(options,callback) {
       }
 
       try {
-        eval(callback(result));
+        callback(result);
       } catch(e) {
         if ( ! data.loggedOut ) {
           post({action:'javascriptError',postCall:options.action,retval:result});
@@ -291,3 +295,8 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
   });
 }
 
+function jsonExtract(str) {
+	var start = str.indexOf("{");
+	var end = str.lastIndexOf("}");
+	return JSON.parse(str.substring(start,end+1));
+}

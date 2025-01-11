@@ -782,6 +782,14 @@ function ca_explode($split,$text,$count=2) {
 function plain($ip) {
   return str_replace(['[',']'],'',$ip);
 }
+
+###################################################
+# Tests whether the tailscale plugin is installed #
+###################################################
+function isTailScaleInstalled() {
+  return is_file("/var/log/plugins/tailscale-preview.plg") || is_file("/var/log/plugins/tailscale.plg");
+}
+
 ###########################################
 # Checks server date against CA's version #
 ###########################################
