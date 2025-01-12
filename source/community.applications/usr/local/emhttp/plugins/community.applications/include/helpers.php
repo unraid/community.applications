@@ -617,7 +617,7 @@ function postReturn($retArray) {
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
       $retArray['globalScript'] = $GLOBALS['script'];
-
+    debug("** - ".json_encode($retArray));
     echo json_encode($retArray);
   }	else
     echo $retArray;

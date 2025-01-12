@@ -296,5 +296,18 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
 }
 
 function jsonExtract(str) {
-  return JSON.parse(str);
+	var start = str.indexOf("{");
+  var start1 = str.indexOf("[");
+	var end = str.lastIndexOf("}");
+  var end1 = str.lastIndexOf("]");
+  if ( start1 < 0 ) {
+    return JSON.parse(str.substring(start,end+1));
+  }
+  if ( start < 0 )
+    return JSON.parse(str.substring(start1,end1+1));
+
+  if ( start1 < start ) {
+    return JSON.parse(str.substring(start1,end1+1));
+  }
+  return JSON.parse(str.substring(start,end+1));
 }

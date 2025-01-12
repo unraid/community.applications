@@ -375,7 +375,7 @@ a.popUpLink:hover{color:<?=$unRaid66color?>;}
 .popupTable td {width:30%;text-align:left;}
 .popupTable{font-size:1.5rem;width:55rem;margin-top:0px;margin-left:auto;}
 .popupTableLeft{vertical-align:top;padding-right:15px;}
-.popupTableRight{overflow:hidden;}
+.popupTableRight{overflow:hidden;text-wrap:auto;}
 .popupTitle{margin:auto;text-align:center;font-weight:bold;font-size:2rem;line-height}
 .popup{margin:1.5rem;margin-top:-2rem;}
 a.popup-donate{text-decoration:none;font-style:italic;color:black;font-size:1.5rem;}
