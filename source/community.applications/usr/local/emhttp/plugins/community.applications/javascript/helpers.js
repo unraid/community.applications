@@ -296,7 +296,5 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
 }
 
 function jsonExtract(str) {
-	var start = str.indexOf("{");
-	var end = str.lastIndexOf("}");
-	return JSON.parse(str.substring(start,end+1));
+  return JSON.parse(str);
 }
