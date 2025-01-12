@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.11b">
-<!ENTITY md5       "118fbda2db0d8fb07617d98e84ad4b60">
+<!ENTITY version   "2025.01.12">
+<!ENTITY md5       "065a2a0478ed941119e4389404458193">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.01.12
+- Fixed: NordVPN injecting code into communication JSON in the incorrect format
+
 ###2025.01.11
 - Test Fix: Drop extra characters before and after JSON communication (if extensions decide to add information to the POST)
 - Added: Unraid 7.x - If tailscale plugin installed and no /config or /data container mapping add in additional environment variable for a failback tailscale state directory

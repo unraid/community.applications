@@ -124,7 +124,6 @@ function postNoSpin(options,callback) {
 
   if ( typeof callback === "function" ) {
     $.post(execURL,options,function(retval){
-      console.log(retval);
       try {
         var result = jsonExtract(retval);
         
@@ -296,6 +295,9 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
 }
 
 function jsonExtract(str) {
+ // Fix Nord Messing with the JSON 
+  str = str.replace('script type="text/javascript" src="',"script type='text/javascript' src='");
+  str = str.replace('"></script>',"'></script>");
 	var start = str.indexOf("{");
   var start1 = str.indexOf("[");
 	var end = str.lastIndexOf("}");
