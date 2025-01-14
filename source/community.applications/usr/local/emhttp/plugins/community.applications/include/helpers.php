@@ -614,10 +614,16 @@ function formatTags($leadTemplate,$rename="false") {
 function postReturn($retArray) {
   global $caSettings, $caPaths;
 
+  if ( $test ) return;
+  
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
       $retArray['globalScript'] = $GLOBALS['script'];
-    debug("** - ".json_encode($retArray));
+    
+    ob_start();
+    ob_clean();
+    header_remove();
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode($retArray);
   }	else
     echo $retArray;

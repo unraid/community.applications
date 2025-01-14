@@ -10,6 +10,7 @@
 ########################################
 
 ini_set('memory_limit','256M');  // REQUIRED LINE
+ini_set('display_errors', 'Off'); // All display errors wind up breaking CA
 
 $unRaidSettings = parse_ini_file("/etc/unraid-version");
 
@@ -2154,7 +2155,7 @@ function createXML() {
         $template['Config'][] = ["@attributes"=>["Display"=>"advanced","Description"=>"Fallback container directory for tailscale state information - Added By Community Applications","Default"=>$TSFallBackDir,"Name"=>"TailScale Fallback State Directory","Target"=>"TAILSCALE_FALLBACK_DIR","Type"=>"Variable"],"value"=>$TSFallBackDir];
       }
     }
-    
+
     $xml = makeXML($template);
     @mkdir(dirname($xmlFile),0777,true);
     ca_file_put_contents($xmlFile,$xml);

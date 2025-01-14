@@ -207,8 +207,6 @@ var ca_done_override = false;
   });
 ?>
 
-
-
 $('body').on("click","a,.ca_href", function(e) {
   if ($(this).hasClass("ca_href") ) {
     var ca_href = true;
@@ -369,12 +367,7 @@ $(function(){
   <?if ( $caPaths['localONLY'] == true ):?>
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
-  <?if ( boolval($phpErrors['display_errors']??false) ):?>
-    var PHP_Errors = addBannerWarning("PHP errors displayed in Tools-PHP Settings may adversely impact operation of Community Applications",true,true);
-    setTimeout(function() {
-      removeBannerWarning(PHP_Errors);}
-    ,15000);
-  <?endif;?>
+
   context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$caSettings['maxPerPage']?>"));
@@ -447,7 +440,6 @@ $(function(){
     var container = $(this).attr("data-name");
     updateDocker(container);
   });
-
 
   $('body').on("click",".fav,.nonfav",function() {
     setFavourite(this);

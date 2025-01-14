@@ -121,33 +121,8 @@ function postNoSpin(options,callback) {
     console.log(msg+JSON.stringify(options));
   }
 
-
   if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(retval){
-      try {
-        var result = jsonExtract(retval);
-        
-        if (result.error) {
-          alert(result.error);
-        }
-      } catch(e) {
-        myCloseAlert();
-        myCloseSpinner();
-        var retvalTest = $.trim(retval);
-        if ( ! retvalTest ) {
-          retval = tr("No data was returned.  It is probable that another browser session has rebooted your server.  Reloading this browser tab will probably fix this error");
-        }
-        if ( retvalTest.indexOf("<!DOCTYPE html>") === 0 ) {
-          data.loggedOut = true;
-          alert(tr("You have been logged out"));
-          window.location.reload();
-        }	else {
-
-          $("#templates_content").html(sprintf(tr("Something really wrong went on during %s"),options.action)+"<br>"+tr("Post the resulting file when you click debugging on the left")+"  <a href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'>https://forums.unraid.net/topic/38582-plug-in-community-applications/</a><br><br>");
-          throw new Error("Something went badly wrong!"+options.action);
-        }
-      }
-
+    $.post(execURL,options,function(result){
       try {
         callback(result);
       } catch(e) {
@@ -183,32 +158,8 @@ function post(options,callback) {
   postCount++;
   console.log("Post Count: "+postCount);
   if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(retval){
-      console.log(retval);
-      try {
-
-        var result = jsonExtract(retval);
-        
-        if (result.error) {
-          alert(result.error);
-        }
-      } catch(e) {
-        myCloseAlert();
-        myCloseSpinner();
-        var retvalTest = $.trim(retval);
-        if ( ! retvalTest ) {
-          retval = tr("No data was returned.  It is probable that another browser session has rebooted your server.  Reloading this browser tab will probably fix this error");
-        }
-        if ( retvalTest.indexOf("<!DOCTYPE html>") === 0 ) {
-          data.loggedOut = true;
-          window.location.reload();
-        }	else {
-          $("#templates_content").html(sprintf(tr("Something really wrong went on during %s"),options.action)+"<br>"+tr("Post the resulting file when you click debugging on the left")+"  <a href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'>https://forums.unraid.net/topic/38582-plug-in-community-applications/</a><br><br>");
-          throw new Error("Something went badly wrong!"+options.action);
-        }
-      }
-
-      try {
+    $.post(execURL,options,function(result){
+       try {
         callback(result);
       } catch(e) {
         if ( ! data.loggedOut ) {
@@ -292,24 +243,4 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     animation: false,
     html: true
   });
-}
-
-function jsonExtract(str) {
- // Fix Nord Messing with the JSON 
-  str = str.replace('script type="text/javascript" src="',"script type='text/javascript' src='");
-  str = str.replace('"></script>',"'></script>");
-	var start = str.indexOf("{");
-  var start1 = str.indexOf("[");
-	var end = str.lastIndexOf("}");
-  var end1 = str.lastIndexOf("]");
-  if ( start1 < 0 ) {
-    return JSON.parse(str.substring(start,end+1));
-  }
-  if ( start < 0 )
-    return JSON.parse(str.substring(start1,end1+1));
-
-  if ( start1 < start ) {
-    return JSON.parse(str.substring(start1,end1+1));
-  }
-  return JSON.parse(str.substring(start,end+1));
 }
