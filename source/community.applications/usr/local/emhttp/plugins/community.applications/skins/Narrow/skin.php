@@ -1166,7 +1166,7 @@ function displayCard($template) {
   $Category = explode(":",$Category)[0];
 
   if ( ! $DockerHub )
-    $author = $RepoShort ?? $RepoName;
+  $author = $Plugin ? $Author : ($RepoShort ?? $RepoName);
   else
     $author = $Author;
 
