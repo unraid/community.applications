@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.15">
-<!ENTITY md5       "8b48af4fdc25b442e280bbea6b7bbc99">
+<!ENTITY version   "2025.01.15a">
+<!ENTITY md5       "313d01fd81add3bba95f123b5260e54d">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -16,6 +16,7 @@
 ###2025.01.15
 - Changed: Permanent fix for extensions interfering with communication
 - Changed: Display author name instead of repository on plugin's cards
+- Changed: Display "Limetech" instead of "Official" on applications directly supported by Lime Technology
 
 ###2025.01.12
 - Fixed: NordVPN injecting code into communication JSON in the incorrect format

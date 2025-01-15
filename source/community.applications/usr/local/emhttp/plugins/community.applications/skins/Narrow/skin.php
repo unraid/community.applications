@@ -1422,7 +1422,7 @@ function displayCard($template) {
   } elseif ( $LTOfficial ?? false ) {
     $card .= "
       <div class='LTOfficialCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("OFFICIAL")."</div>
+        <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("LIMETECH")."</div>
       </div>
     ";
   } elseif ( $Beta ) {
