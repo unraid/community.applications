@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.15a">
-<!ENTITY md5       "313d01fd81add3bba95f123b5260e54d">
+<!ENTITY version   "2025.01.15b">
+<!ENTITY md5       "14200536cc05b51998b8462f2166b9da">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -14,6 +14,7 @@
 
 <CHANGES>
 ###2025.01.15
+- Changed: Tailscale fallback state directory environment variable (No ENV will be added unless OS version later than 7.0.0
 - Changed: Permanent fix for extensions interfering with communication
 - Changed: Display author name instead of repository on plugin's cards
 - Changed: Display "Limetech" instead of "Official" on applications directly supported by Lime Technology

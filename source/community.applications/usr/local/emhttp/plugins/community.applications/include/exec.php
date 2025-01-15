@@ -2058,7 +2058,9 @@ function createXML() {
             // handles where a container path is effectively a config path but it doesn't begin with /config
             if ( startsWith($config['value'],$caPaths['defaultAppdataPath']) || startsWith($config['@attributes']['Default'],$caPaths['defaultAppdataPath']) ) {
               if ( ! in_array($config['@attributes']['Target'],["/config","/data"]) ) {
-                $TSFallBackDir  = $config['@attributes']['Target'] ?? "";
+                if ( ! ($TSFallBackDir ?? false) ) {
+                  $TSFallBackDir  = $config['@attributes']['Target'] ?? "";
+                }
               } else {
                 $foundTSDir = true;
                 $TSFallBackDir = "";
@@ -2150,9 +2152,9 @@ function createXML() {
     
     // Add in TSStateDir
 
-    if ( version_compare($caSettings['unRaidVersion'],"6.999.999",">") && isTailScaleInstalled() ) {
+    if ( version_compare($caSettings['unRaidVersion'],"7.0.0",">") && isTailScaleInstalled() ) {
       if ( isset($template['Config']) && (! $foundTSDir) && ($TSFallBackDir ?? false) ) {
-        $template['Config'][] = ["@attributes"=>["Display"=>"advanced","Description"=>"Fallback container directory for tailscale state information - Added By Community Applications","Default"=>$TSFallBackDir,"Name"=>"TailScale Fallback State Directory","Target"=>"TAILSCALE_FALLBACK_DIR","Type"=>"Variable"],"value"=>$TSFallBackDir];
+        $template['Config'][] = ["@attributes"=>["Display"=>"advanced","Description"=>"Fallback container directory for tailscale state information - Added By Community Applications","Default"=>$TSFallBackDir,"Name"=>"TailScale Fallback State Directory","Target"=>"CA_TS_FALLBACK_DIR","Type"=>"Variable"],"value"=>$TSFallBackDir];
       }
     }
 
