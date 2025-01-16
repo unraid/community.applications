@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.15b">
-<!ENTITY md5       "14200536cc05b51998b8462f2166b9da">
+<!ENTITY version   "2025.01.16">
+<!ENTITY md5       "d43edd11b919b87087027acd124bb55f">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.01.16
+- Fixed: Reversion causing action centre and port in use detection to not work
+
 ###2025.01.15
 - Changed: Tailscale fallback state directory environment variable (No ENV will be added unless OS version later than 7.0.0
 - Changed: Permanent fix for extensions interfering with communication

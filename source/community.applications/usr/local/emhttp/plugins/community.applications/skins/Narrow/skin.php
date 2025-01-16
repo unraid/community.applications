@@ -387,7 +387,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
         $template['Installed'] = is_dir("{$caPaths['languageInstalled']}{$template['LanguagePack']}") && ! $template['Uninstall'];
       }
 
-      if ( startsWith($template['Repository'],"library/") || startsWith($template['Repository'],"registry.hub.docker.com/library/") || strpos($template['Repository'],"/") === false)
+      if ( startsWith($template['Repository'],["library/","registry.hub.docker.com/library/"]) || strpos($template['Repository'],"/") === false)
         $template['Official'] = true;
 
   # Entries created.  Now display it

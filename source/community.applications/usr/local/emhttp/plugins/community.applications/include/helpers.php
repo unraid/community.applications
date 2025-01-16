@@ -137,6 +137,13 @@ function var_dump_ret($mixed = null) {
 # Determine if $haystack begins with $needle #
 ##############################################
 function startsWith($haystack, $needle) {
+  if ( is_array($needle) ) {
+    foreach ($needle as $need) {
+      if ( startsWith($haystack,$need) )
+        return true;
+    }
+    return false;
+  }
   if ( !is_string($haystack) || ! is_string($needle) ) return false;
   return $needle === "" || strripos($haystack, $needle, -strlen($haystack)) !== FALSE;
 }
@@ -144,6 +151,13 @@ function startsWith($haystack, $needle) {
 # Determine if $string ends with $endstring #
 #############################################
 function endsWith($string, $endString) {
+  if ( is_array($endString) ) {
+    foreach ($endString as $end) {
+      if (endsWith($string,$end) )
+        return true;
+    }
+    return false;
+  }
   $len = strlen($endString);
   if ($len == 0) {
     return true;
@@ -614,8 +628,6 @@ function formatTags($leadTemplate,$rename="false") {
 function postReturn($retArray) {
   global $caSettings, $caPaths;
 
-  if ( $test ) return;
-  
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
       $retArray['globalScript'] = $GLOBALS['script'];

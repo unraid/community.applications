@@ -940,7 +940,7 @@ function get_content() {
 
   foreach ($file as $template) {
     $template['NoInstall'] = $noInstallComment;
-
+ 
     if ( $displayBlacklisted ) {
       if ( $template['Blacklist'] ) {
         $display[] = $template;
