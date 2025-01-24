@@ -816,13 +816,6 @@ function get_content() {
     if ( count($file) > 200) {
       $startupTypes = [
         [
-          "type"=>"featured",
-          "text1"=>tr("Featured Applications"),
-          "text2"=>"",
-          "sortby"=>"Name",
-          "sortdir"=>"Up"
-        ],
-        [
           "type"=>"onlynew",
           "text1"=>tr("Recently Added"),
           "text2"=>tr("Check out these newly added applications from our awesome community"),
@@ -871,6 +864,17 @@ function get_content() {
           "sortdir"=>"Down"
         ]
       ];
+      if ( $caSettings['featuredDisable'] !== "yes" ) {
+        array_unshift($startupTypes,
+          [
+            "type"=>"featured",
+            "text1"=>tr("Featured Applications"),
+            "text2"=>"",
+            "sortby"=>"Name",
+            "sortdir"=>"Up"
+          ]
+        );
+      }
       $o['display'] = "";
       foreach ($startupTypes as $type) {
         $display = [];

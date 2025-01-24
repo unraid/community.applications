@@ -125,6 +125,14 @@ _(Allow CA to send any emergency notifications)_:
 > <?tr("2. Critical security vulnerabilities within Unraid OS");?><br>
 > <?tr("3. Any installed applications which may seriously hinder the operation of your server");?>
 
+_(Disable Featured Applications)_:
+: <select name='featuredDisable' size='1'>
+  <?=mk_option($cfg['featuredDisable'],"no",tr("No",true))?>
+  <?=mk_option($cfg['featuredDisable'],"yes",tr("Yes",true))?>
+</select>
+
+> <?tr("This setting will disable Featured applications appearing on the home screen");?>
+
 _(Enable developer mode)_:
 : <select name='dev' size='1'>
   <?=mk_option($cfg['dev'],"no",tr("No",true))?>
