@@ -595,6 +595,11 @@ function appOfDay($file) {
       foreach ($file as $template) {
         if ( !isset($template['PluginURL']) ) continue;
         if ( ! $template['downloads'] ?? false ) continue;
+
+        // don't show patch within top installs on home page if it's already installed and featured is displayed
+
+        if ( $template['Name'] == "Unraid Patch" && ($caSettings['featuredDisable'] == "no" || is_file("/var/log/plugins/unraid.patch.plg")) ) continue;
+
         if ( checkRandomApp($template) ) {
           $repos[] = $template['Repository'];
           $appOfDay[] = $template['ID'];
