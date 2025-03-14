@@ -9,6 +9,12 @@
 #                                      #
 ########################################
 
+########################################
+# Sanitize output from plugin function #
+########################################
+function ca_plugin($method, $arg = ''){
+  return strip_tags(html_entity_decode(@plugin($method,$arg)));
+}
 ##################################################################################################################
 # Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
 ##################################################################################################################
@@ -23,11 +29,11 @@ function checkPluginUpdate($filename) {
 
   $filename = basename($filename);
   if ( ! is_file("/var/log/plugins/$filename") ) return false;
-  $upgradeVersion = (is_file("/tmp/plugins/$filename")) ? plugin("version","/tmp/plugins/$filename") : "0";
-  $installedVersion = $upgradeVersion ? plugin("version","/var/log/plugins/$filename") : 0;
+  $upgradeVersion = (is_file("/tmp/plugins/$filename")) ? ca_plugin("version","/tmp/plugins/$filename") : "0";
+  $installedVersion = $upgradeVersion ? ca_plugin("version","/var/log/plugins/$filename") : 0;
 
   if ( $installedVersion < $upgradeVersion ) {
-    $unRaid = plugin("unRAID","/tmp/plugins/$filename");
+    $unRaid = ca_plugin("unRAID","/tmp/plugins/$filename");
     return ( $unRaid === false || version_compare($caSettings['unRaidVersion'],$unRaid,">=") ) ? true : false;
   }
   return false;
@@ -264,7 +270,7 @@ function fixTemplates($template) {
 
   if ( $template['Config']??null ) {
     if ( $template['Config']['@attributes'] ?? false ) {
-      if (preg_match("/^(Container Path:|Container Port:|Container Label:|Container Variable:|Container Device:)/",$template['Config']['@attributes']['Description']) ) {
+      if (preg_match("/^(Container Path:|Container Port:|Container Label:|Container Variable:|Container Device:)/",$template['Config']['@attributes']['Description'])??"" ) {
         $template['Config']['@attributes']['Description'] = "";
       }
     } else {
@@ -491,7 +497,7 @@ function checkInstalledPlugin($template) {
   if ( ! file_exists("/var/log/plugins/$pluginName") ) return false;
   $dupeList = readJsonFile($caPaths['pluginDupes']);
   if ( ! isset($dupeList[$pluginName]) ) return true;
-  return strtolower(trim(plugin("pluginURL","/var/log/plugins/$pluginName"))) == strtolower(trim($template['PluginURL']));
+  return strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$pluginName"))) == strtolower(trim($template['PluginURL']));
 }
 
 ###########################################################
@@ -733,7 +739,7 @@ function debug($str) {
 
   if ( ! is_file($caPaths['logging']) ) {
     touch($caPaths['logging']);
-    $caVersion = plugin("version","/var/log/plugins/community.applications.plg");
+    $caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
 
     debug("Community Applications Version: $caVersion");
     debug("Unraid version: {$caSettings['unRaidVersion']}");

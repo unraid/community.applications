@@ -442,7 +442,7 @@ function updatePluginSupport($templates) {
   $plugins = glob("/boot/config/plugins/*.plg");
 
   foreach ($plugins as $plugin) {
-    $pluginURL = @plugin("pluginURL",$plugin);
+    $pluginURL = @ca_plugin("pluginURL",$plugin);
     $pluginEntry = searchArray($templates,"PluginURL",$pluginURL);
     if ( $pluginEntry === false ) {
       $pluginEntry = searchArray($templates,"PluginURL",str_replace("https://raw.github.com/","https://raw.githubusercontent.com/",$pluginURL));
@@ -452,9 +452,9 @@ function updatePluginSupport($templates) {
       if ( ! $templates[$pluginEntry]['Support'] ) {
         continue;
       }
-      if ( @plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {
+      if ( @ca_plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {
         // remove existing support attribute if it exists
-        if ( @plugin("support",$plugin) ) {
+        if ( @ca_plugin("support",$plugin) ) {
           $existing_support = $xml->xpath("//PLUGIN/@support");
           foreach ($existing_support as $node) {
             unset($node[0]);
@@ -1398,13 +1398,13 @@ function previous_apps($enableActionCentre=false) {
           $template['Uninstall'] = true;
 
           if ( $installed == "action" && $template['PluginURL'] && $template['Name'] !== "Community Applications") {
-            $installedVersion = plugin("version","/var/log/plugins/$filename");
+            $installedVersion = ca_plugin("version","/var/log/plugins/$filename");
             if ( ( strcmp($installedVersion,$template['pluginVersion']) < 0 || ($template['UpdateAvailable']??null)) ) {
               $template['actionCentre'] = true;
               $template['UpdateAvailable'] = true;
               $updateCount++;
             }
-            if ( is_file("/tmp/plugins/$filename") && strcmp($installedVersion,plugin("version","/tmp/plugins/$filename")) < 0 ) {
+            if ( is_file("/tmp/plugins/$filename") && strcmp($installedVersion,ca_plugin("version","/tmp/plugins/$filename")) < 0 ) {
               $template['actionCentre'] = true;
               $template['UpdateAvailable'] = true;
               $updateCount++;
@@ -1445,7 +1445,7 @@ function previous_apps($enableActionCentre=false) {
           if ( basename($oldplug) == basename($template['Repository']) ) {
             if ( ! file_exists("/boot/config/plugins/".basename($oldplug)) ) {
               if ( $template['Blacklist'] || ( ($caSettings['hideIncompatible'] == "true") && (! $template['Compatible']) ) ) continue;
-              $oldPlugURL = trim(plugin("pluginURL",$oldplug));
+              $oldPlugURL = trim(ca_plugin("pluginURL",$oldplug));
               if ( ! $oldPlugURL )
                 continue;
               if ( strtolower(trim($template['PluginURL'])) != strtolower(trim($oldPlugURL)) ) {
@@ -1899,7 +1899,7 @@ function populateAutoComplete() {
 function caChangeLog() {
   $o = "<div style='margin:auto;width:500px;'>";
   $o .= "<div class='ca_center'><font size='4rem'>".tr("Community Applications Changelog")."</font></div><br><br>";
-  postReturn(["changelog"=>$o.Markdown(plugin("changes","/var/log/plugins/community.applications.plg"))."<br><br>"]);
+  postReturn(["changelog"=>$o.Markdown(ca_plugin("changes","/var/log/plugins/community.applications.plg"))."<br><br>"]);
 }
 
 ###############################

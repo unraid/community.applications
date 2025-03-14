@@ -33,7 +33,7 @@ if ( ! $templates ) {
 
 echo "\n<b>".tr("Updating Support Links")."</b>\n\n";
 foreach ($plugins as $plugin) {
-  $pluginURL = plugin("pluginURL",$plugin);
+  $pluginURL = ca_plugin("pluginURL",$plugin);
   $pluginEntry = searchArray($templates,"PluginURL",$pluginURL);
   if ( $pluginEntry === false ) {
     $pluginEntry = searchArray($templates,"PluginURL",str_replace("https://raw.github.com/","https://raw.githubusercontent.com/",$pluginURL));
@@ -43,9 +43,9 @@ foreach ($plugins as $plugin) {
     if ( ! $templates[$pluginEntry]['Support'] ) {
       continue;
     }
-    if ( @plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {
+    if ( @ca_plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {
       // remove existing support attribute if it exists
-      if ( @plugin("support",$plugin) ) {
+      if ( @ca_plugin("support",$plugin) ) {
         $existing_support = $xml->xpath("//PLUGIN/@support");
         foreach ($existing_support as $node) {
           unset($node[0]);
@@ -57,7 +57,7 @@ foreach ($plugins as $plugin) {
       $dom->formatOutput = true;
       $dom->loadXML($xml->asXML());
       file_put_contents($plugin, $dom->saveXML()); 
-      echo "<b>".plugin("name",$plugin)."</b> --> <a href='{$templates[$pluginEntry]['Support']}' target='_blank'>{$templates[$pluginEntry]['Support']}</a>\n";
+      echo "<b>".ca_plugin("name",$plugin)."</b> --> <a href='{$templates[$pluginEntry]['Support']}' target='_blank'>{$templates[$pluginEntry]['Support']}</a>\n";
     }
   }
 }

@@ -233,13 +233,13 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
             $pluginName = basename($template['PluginURL']);
             $template['Installed'] = file_exists("/var/log/plugins/$pluginName");
             if ( $template['Installed'] )  {
-              $pluginInstalledVersion = plugin("version","/var/log/plugins/$pluginName");
+              $pluginInstalledVersion = ca_plugin("version","/var/log/plugins/$pluginName");
               if ( file_exists("/tmp/plugins/$pluginName") ) {
-                $tmpPluginVersion = plugin("version","/tmp/plugins/$pluginName");
+                $tmpPluginVersion = ca_plugin("version","/tmp/plugins/$pluginName");
                 if (strcmp($template['pluginVersion'],$tmpPluginVersion) < 0)
                   $template['pluginVersion'] = $tmpPluginVersion;
               }
-              $template['pluginVersion'] = plugin("version","/tmp/plugins/$pluginName");
+              $template['pluginVersion'] = ca_plugin("version","/tmp/plugins/$pluginName");
 
               if ( ( strcmp($pluginInstalledVersion,$template['pluginVersion']) < 0 || $template['UpdateAvailable']) && $template['Name'] !== "Community Applications" && ( ! ($template['UninstallOnly'] ?? false) ) ) {
                 @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
@@ -249,7 +249,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
                 if ( ! $template['UpdateAvailable'] ) # this handles if the feed hasn't caught up to the update yet
                   $template['UpdateAvailable'] = false;
               }
-              $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : plugin("launch","/var/log/plugins/$pluginName");
+              $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
               if ( $pluginSettings ) {
                 $actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
               }
@@ -626,9 +626,9 @@ function getPopupDescriptionSkin($appNumber) {
   if ( $template['Plugin'] ) {
     $templateURL = $template['PluginURL'];
     download_url($templateURL,$caPaths['pluginTempDownload'],"",5);
-    $template['Changes'] = @plugin("changes",$caPaths['pluginTempDownload']) ?: $template['Changes'];
+    $template['Changes'] = @ca_plugin("changes",$caPaths['pluginTempDownload']) ?: $template['Changes'];
 
-    $template['pluginVersion'] = @plugin("version",$caPaths['pluginTempDownload']) ?: $template['pluginVersion'];
+    $template['pluginVersion'] = @ca_plugin("version",$caPaths['pluginTempDownload']) ?: $template['pluginVersion'];
 
   } else {
     if ( ! $template['Changes'] && $template['ChangeLogPresent']) {
@@ -736,8 +736,8 @@ function getPopupDescriptionSkin($appNumber) {
       } else {
         if ( file_exists("/var/log/plugins/$pluginName") ) {
           $template['Installed'] = true;
-          $template['installedVersion'] = plugin("version","/var/log/plugins/$pluginName");
-          if ( ($template['installedVersion'] != $template['pluginVersion'] || $template['installedVersion'] != plugin("version","/tmp/plugins/$pluginName") ) && $template['Name'] !== "Community Applications") {
+          $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
+          if ( ($template['installedVersion'] != $template['pluginVersion'] || $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) && $template['Name'] !== "Community Applications") {
             if (is_file($caPaths['pluginTempDownload'])) {
               @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
               $template['UpdateAvailable'] = true;
@@ -746,7 +746,7 @@ function getPopupDescriptionSkin($appNumber) {
           } else {
             $template['UpdateAvailable'] = false;
           }
-          $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : plugin("launch","/var/log/plugins/$pluginName");
+          $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
           if ( $pluginSettings ) {
             $actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
           }
