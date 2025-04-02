@@ -98,7 +98,6 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
   curl_setopt($ch,CURLOPT_CONNECTTIMEOUT,$timeout);
   curl_setopt($ch,CURLOPT_TIMEOUT,$timeout);
-  curl_setopt($ch,CURLOPT_ENCODING,"");
   curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
   curl_setopt($ch,CURLOPT_FOLLOWLOCATION, true);
   curl_setopt($ch,CURLOPT_FAILONERROR,true);
@@ -110,6 +109,12 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     curl_setopt($ch, CURLOPT_PROXY,$proxyCFG['proxy']);
   }
   $out = curl_exec($ch);
+
+  if ( ! $out ) {
+    curl_setopt($ch,CURLOPT_ENCODING,"");
+    $out = curl_exec($ch);
+  }
+
   if ( curl_errno($ch) == 23 ) {
     curl_setopt($ch,CURLOPT_ENCODING,"deflate");
     $out = curl_exec($ch);
