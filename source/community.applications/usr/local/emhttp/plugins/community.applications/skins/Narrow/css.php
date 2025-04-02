@@ -303,9 +303,9 @@ a.initDockerSearch{cursor:pointer;text-decoration:none;color:unset;}
 .installedCardText{text-transform:uppercase;position:absolute;transform:rotate(45deg);-webkit-transform:rotate(45deg);-moz-transform:rotate(45deg);-o-transform: rotate(45deg);color:white;font-size:2rem;position:absolute;top:2rem;right:0rem;width:6rem;overflow:hidden;height:2.5rem; display:inline;}
 input[type=checkbox]{width:2rem;height:2rem;margin-left:0rem;}
 input[type=button]{background:none;font-size:1.5rem;}
-input:hover[type=button]{color:<?=$unRaid66color?>;background:none !important;}
-input:hover[type=button][disabled]{background:none !important;color:currentColor !important;font-size:1.5rem;}
-input[type=button][disabled]{background:none;}
+input:hover[type=button]{color:<?=$unRaid66color?> !important;background:none !important;background-color:none !important;}
+input:hover[type=button][disabled]{background:none !important;color:currentColor !important;background-color:none !important;}
+input[type=button][disabled]{background:none !important;background-color:none !important;}
 .installedPopup{clip-path: polygon(0 0,100% 0, 100% 100%);background-color: clip-path: polygon(0 0,100% 0, 100% 100%);background-color: #322fff;top:<?=$betaPopupOffset?>;height:9rem;width:9rem;position: absolute;right: 0;;top:<?=$betaPopupOffset?>;height:9rem;width:9rem;position: absolute;right: 0;}
 .installedPopupText{position:absolute;transform:rotate(45deg);-webkit-transform:rotate(45deg);-moz-transform:rotate(45deg);-o-transform: rotate(45deg);color:white;font-size:2rem;position:absolute;top:2.5rem;right:-1rem;width:100%;overflow:hidden;height:2rem;}
 .linkButton{color:<?=$supportPopupText?>!important;background: <?=$supportPopupBackground?>;background: -webkit-linear-gradient(top, transparent 0%, rgba(0,0,0,0.4) 100%),-webkit-linear-gradient(left, lighten(<?=$donateBackground?>, 15%) 0%, <?=$donateBackground?> 50%, lighten(<?=$donateBackground?>, 15%) 100%);  background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 100%),linear-gradient(to right, lighten(#E68321, 15%) 0%, #E68321 50%, lighten(#E68321, 15%) 100%);  background-position: 0 0;  background-size: 200% 100%;  border-radius: 15px;  color: #000000;  padding: 1px 10px 1px 10px;}

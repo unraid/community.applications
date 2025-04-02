@@ -366,7 +366,7 @@ $(function(){
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
 
-  context.init({preventDoubleContext:false,left:false,right:false,bottom:true,above:true});
+  context.init({preventDoubleContext:false,left:false,right:false,above:'auto'});
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$caSettings['maxPerPage']?>"));
 
@@ -2093,7 +2093,7 @@ function updateDisplay(content) {
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });
-  context.init();
+  context.init({preventDoubleContext:false,left:false,right:false,above:'auto'});
   $('.supportButtonCardContext').each(function() {
     var supportContext = $(this).data("context");
     if (supportContext) {

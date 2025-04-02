@@ -270,7 +270,7 @@ function fixTemplates($template) {
 
   if ( $template['Config']??null ) {
     if ( $template['Config']['@attributes'] ?? false ) {
-      if (preg_match("/^(Container Path:|Container Port:|Container Label:|Container Variable:|Container Device:)/",$template['Config']['@attributes']['Description'])??"" ) {
+      if (preg_match("/^(Container Path:|Container Port:|Container Label:|Container Variable:|Container Device:)/",$template['Config']['@attributes']['Description']??"") ) {
         $template['Config']['@attributes']['Description'] = "";
       }
     } else {
