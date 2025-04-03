@@ -366,7 +366,7 @@ $(function(){
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
 
-  context.init({preventDoubleContext:false,left:false,right:false,above:'auto'});
+  context.init({preventDoubleContext:false,left:true,above:'auto'});
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$caSettings['maxPerPage']?>"));
 
@@ -1245,7 +1245,7 @@ function closeSidebar(cookie=false,visible=false) {
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
   $("#sidenavContent").html("");
-  $(".back_to_top").removeClass("back_to_top_hide");
+  $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
   $(".sidebar").fadeOut();
   $(".nav-user.show").show();
@@ -2093,7 +2093,7 @@ function updateDisplay(content) {
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });
-  context.init({preventDoubleContext:false,left:false,right:false,above:'auto'});
+  context.init({preventDoubleContext:false,left:true,above:'auto'});
   $('.supportButtonCardContext').each(function() {
     var supportContext = $(this).data("context");
     if (supportContext) {
@@ -2728,7 +2728,7 @@ function showSidebarApp(apppath,appname) {
   $(".nav-user.show").hide();
   $("#sidenavContent").html("");
   $(".sidebar").fadeIn();
-  $(".back_to_top").addClass("back_to_top_hide");
+  $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
