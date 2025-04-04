@@ -2759,7 +2759,7 @@ function showSidebarApp(apppath,appname) {
             closeSidebar();
           },
           close: function() {
-            $('body').removeClass("dimScreenShot");
+            $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
             showSidebarApp(data.sidebarapppath,data.sidebarappname);
           }
         }
@@ -2860,12 +2860,12 @@ function showRepoPopup(repository) {
           closeSidebar();
         },
         close: function() {
-          $('body').removeClass("dimScreenShot");
+          $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
-          showRepoPopup(data.repository);
-        }
+          showRepoPopup(data.repository);  
+        }  
       }
     });
   });
