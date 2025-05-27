@@ -11,9 +11,12 @@
 */
 
 function isValidURL(url) {
+  try {
     var ret = new URL(url);
     return ret;
-
+  } catch (err) {
+    return false;
+  }
 }
 
 String.prototype.escapeHTML = function() {

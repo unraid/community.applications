@@ -9,7 +9,6 @@
 #                                      #
 ########################################
 
-
 ini_set('memory_limit','256M');  // REQUIRED LINE
 ini_set('display_errors', 'Off'); // All display errors wind up breaking CA
 
