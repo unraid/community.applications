@@ -244,3 +244,7 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     html: true
   });
 }
+
+function guiSearchOnUnload() {
+  saveState();
+}
