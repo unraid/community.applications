@@ -52,6 +52,12 @@ function randomFile() {
 function readJsonFile($filename) {
   static $cache = [];
 
+  if ( ! is_file($filename) ) {
+    unset($cache[$filename]);
+    debug("$filename not found");
+    return [];
+  }
+
   if (isset($cache[$filename]) && filemtime($filename) <= $cache[$filename]['time']) {
     debug("CA Cached JSON read $filename");
     return $cache[$filename]['data'];
@@ -59,6 +65,7 @@ function readJsonFile($filename) {
 
   debug("CA Read JSON file $filename");
 
+  
   $json = json_decode(@file_get_contents($filename),true);
   if ( $json === false ) {
     if ( ! is_file($filename) ){
@@ -69,6 +76,7 @@ function readJsonFile($filename) {
     return [];
     }
   }
+  
   $cache[$filename] = ['data'=>$json,'time'=>filemtime($filename)];
 
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
