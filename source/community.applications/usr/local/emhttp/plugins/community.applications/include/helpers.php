@@ -110,9 +110,8 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
 
   static $proxycfg = false;
   if ($proxycfg === false) {
-    $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : false;
+    $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
   }
-  static $proxyflag = false;
   static $timeoutStatic = 0;
 
   debug("DOWNLOAD starting $url\n");
@@ -126,7 +125,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     CURLOPT_FAILONERROR=>true
   ]);
 
-  if ( $proxycfg && ! $proxyflag ) {
+  if ( $proxycfg ) {
     curl_setopt_array($ch,[
       CURLOPT_PROXYPORT=>intval($proxycfg['port']),
       CURLOPT_HTTPPROXYTUNNEL=>intval($proxycfg['tunnel']),
