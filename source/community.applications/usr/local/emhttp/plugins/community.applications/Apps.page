@@ -5,6 +5,7 @@ Tabs="true"
 Code="f0db"
 ---
 <?
+/*
 ########################################
 #                                      #
 # Community Applications               #
@@ -14,6 +15,7 @@ Code="f0db"
 # Licenced under GPLv2                 #
 #                                      #
 ########################################
+*/
 
 $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
@@ -23,7 +25,7 @@ $caSettings = parse_plugin_cfg($plugin);
 $caSettings['dockerSearch'] = "yes";
 $caSettings['unRaidVersion'] = $var['version'];
 $caSettings['wheelThreshold'] = abs(intval($caSettings['wheelThreshold']));
-$caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] == 0 ? 50 : $caSettings['wheelThreshold'];
+$caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] ?: 50;
 
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 require_once "$docroot/plugins/$plugin/include/paths.php";
@@ -33,7 +35,7 @@ require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php"
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
 
-// Restart logging over at start of every session (save old log) 
+// Restart logging over at start of every session (save old log)
 exec("mkdir -p {$caPaths['CA_logs']}");
 @copy($caPaths['logging'],$caPaths['logging'].".old");
 @unlink($caPaths['logging']);
@@ -145,14 +147,17 @@ function tr($string,$ret=false) {
 
 ?>
 <style>
-<?include "/$docroot/plugins/$plugin/skins/Narrow/css.php"?>
+
+<?
+ include ("/$docroot/plugins/$plugin/skins/Narrow/css.php");
+?>
 </style>
 <? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
-  <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css")?>'>
-<? endif; ?>
-<script src='<?autov("/plugins/community.applications/javascript/helpers.js")?>'></script>
-<script src='<?autov("/plugins/community.applications/javascript/libraries.js")?>'></script>
-<script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js")?>'></script>
+  <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'>
+<? endif;?>
+<script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
+<script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
+<script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
 <script>
 
@@ -198,13 +203,14 @@ var wheelActive = false;
 var ca_done_override = false;
 
 // handle 3rd party links on older versions of OS
-<? if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ):?>
-  var gui_pages_available = [];
 <?
+if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
+  echo "var gui_pages_available = [];";
   $gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
-  array_walk($gui_pages,function($value,$key){ ?>
-    gui_pages_available.push('<?=basename($value,".page")?>'); <?
+  array_walk($gui_pages,function($value,$key){
+    echo "gui_pages_available.push('".basename($value,".page")."');";
   });
+}
 ?>
 
 $('body').on("click","a,.ca_href", function(e) {
@@ -224,7 +230,7 @@ $('body').on("click","a,.ca_href", function(e) {
         window.open(href,target);
       }
       return;
-    } 
+    }
 
     if (href !== "#" && href.indexOf("javascript") !== 0) {
       var dom = isValidURL(href);
@@ -254,14 +260,14 @@ $('body').on("click","a,.ca_href", function(e) {
 
       e.preventDefault();
       swal({
-        title: "<?=_('External Link')?>",
-        text: "<span title='"+href+"'><?=_('Clicking OK will take you to a 3rd party website not associated with Limetech')?><br><br><b>"+href+"<br><br><input id='Link_Always_Allow' type='checkbox'></input><?=_('Always Allow')?> "+dom.hostname+"</span>",
+        title: "<?=_('External Link');?>",
+        text: "<span title='"+href+"'><?=_('Clicking OK will take you to a 3rd party website not associated with Limetech');?><br><br><b>"+href+"<br><br><input id='Link_Always_Allow' type='checkbox'></input><?=_('Always Allow');?> "+dom.hostname+"</span>",
         html: true,
         type: 'warning',
         showCancelButton: true,
         showConfirmButton: true,
-        cancelButtonText: "<?=_('Cancel')?>",
-        confirmButtonText: "<?=_('OK')?>"
+        cancelButtonText: "<?=_('Cancel');?>",
+        confirmButtonText: "<?=_('OK');?>"
       },function(isConfirm) {
         if (isConfirm) {
           if ( $("#Link_Always_Allow").is(":checked") ) {
@@ -280,23 +286,22 @@ $('body').on("click","a,.ca_href", function(e) {
     }
   }
 });
-<?endif;?>
 
 $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
-  <? if ( $CArequirementsNOTmet ) : ?>
+  <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
     swal({
-      title: "<?tr("Not Enough Memory")?>",
+      title: "<?tr("Not Enough Memory");?>",
       text: '<?tr('Community Applications (and Unraid OS) have a minimum required memory of 4G.  CA cannot run without those mimimums being met');?>',
       html: true,
       type: 'error',
       showCancelButton: true,
       showConfirmButton: true,
-      cancelButtonText: "<?tr('Run Anyways')?>",
-      confirmButtonText: "<?tr('I Understand')?>"
+      cancelButtonText: "<?tr('Run Anyways');?>",
+      confirmButtonText: "<?tr('I Understand');?>"
     }, function (isConfirm) {
       if ( isConfirm ) {
         $.cookie("ca_memoryOverride","");
@@ -307,18 +312,18 @@ $(function(){
       }
     });
     return;
-  <? endif; ?>
-  <? if ( ! is_file($caPaths['docker_cfg']) ): ?>
+  <? endif;?>
+  <? if ( ! is_file($caPaths['docker_cfg']) ):?>
     // This file is guaranteed to exist on the flash drive.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with a flash offline / corrupted.
     $(".mainArea,.menuItems").html("");
     swal({
-      title: "<?tr("Fatal Flash Drive Error")?>",
-      text: '<?tr('This usually means your flash drive is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues')?>',
+      title: "<?tr("Fatal Flash Drive Error");?>",
+      text: '<?tr('This usually means your flash drive is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
       html: true,
       type: 'error',
       showCancelButton: false,
       showConfirmButton: true,
-      confirmButtonText: "<?tr('OK')?>"
+      confirmButtonText: "<?tr('OK');?>"
     }, function (isConfirm) {
       if ( isConfirm ) {
         location.replace("/Main");
@@ -356,19 +361,19 @@ $(function(){
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
 
-  if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family")?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
-  if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family")?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
-  if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!")?>",false);
-  if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!")?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly")?>",false);
-  if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time")?>",true,true);
-  if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result")?>");
+  if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
+  if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
+  if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
+  if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
+  if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
+  if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
   <?if ( $caPaths['localONLY'] == true ):?>
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
 
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
-  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>","<?=$caSettings['maxPerPage']?>"));
+  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
 
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
@@ -860,14 +865,14 @@ $(function(){
   if ( "<?=$firstRun?>" == "true" ) {
     $(".ca_templatesDisplay").hide();
     swal({
-      title: "<?tr("Disclaimer")?>",
-      text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here')?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present')?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application Policy')?></a>',
+      title: "<?tr("Disclaimer");?>",
+      text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here');?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present');?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application / Privacy Policy');?></a>',
       html: true,
       type: 'warning',
       showCancelButton: true,
       showConfirmButton: true,
-      cancelButtonText: "<?tr('Cancel')?>",
-      confirmButtonText: "<?tr('I Understand')?>"
+      cancelButtonText: "<?tr('Cancel');?>",
+      confirmButtonText: "<?tr('I Understand');?>"
     }, function (isConfirm) {
       if ( isConfirm ) {
         post({action:'dismiss_warning'},function(result) {
@@ -875,20 +880,20 @@ $(function(){
         });
       } else {
       $(".ca_templatesDisplay").show();
-        addBannerWarning("<?tr("Installations of apps disabled.  You must accept the warning to be able to install applications.")?>   <a onclick='window.location.reload();' style='cursor:pointer;'><?tr("Click here")?></a>",true,true);
+        addBannerWarning("<?tr("Installations of apps disabled.  You must accept the warning to be able to install applications.");?>   <a onclick='window.location.reload();' style='cursor:pointer;'><?tr("Click here");?></a>",true,true);
         updateContent();
       }
     });
   } else if ( "<?=$pluginWarning?>" == "false" ) {
     $(".ca_templatesDisplay").hide();
     swal({
-      title: "<?tr('Plugins')?>",
-      text: '<?tr('Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.')?><br><br><ceter><a href="https://forums.unraid.net/topic/87144-ca-application-policies-notes/?tab=comments#comment-817555" target="_blank"><?tr('Plugin Note')?></a></center>',
+      title: "<?tr('Plugins');?>",
+      text: '<?tr('Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.');?><br><br><ceter><a href="https://forums.unraid.net/topic/87144-ca-application-policies-notes/?tab=comments#comment-817555" target="_blank"><?tr('Plugin Note');?></a></center>',
       type: 'warning',
       html: true,
       showCancelButton: false,
       showConfirmButton: true,
-      confirmButtonText: "<?tr("I Understand")?>"
+      confirmButtonText: "<?tr("I Understand");?>"
     }, function (isConfirm) {
       if (isConfirm) {
         post({action:'dismiss_plugin_warning'},function(result) {
@@ -901,9 +906,9 @@ $(function(){
       initialStartup = false;
       getCategories();
       restoreState();
-      <? if ( $dockerSearchActive ): ?>
+      <? if ( $dockerSearchActive ):?>
         dockerSearch(data.currentpage);
-      <? else: ?>
+      <? else:?>
         actionCentreRestoreState = true;
         refreshDisplay();
         searchBoxAwesomplete.close();
@@ -913,7 +918,7 @@ $(function(){
         if ( $.trim(apppath) ) {
           showSidebarApp(apppath,appname);
         }
-      <? endif; ?>
+      <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
         updateContent();
@@ -932,7 +937,7 @@ $(function(){
   }
   <?endif;?>
 });
-  
+
 function disableSort() {
   hideSortIcons();
 }
@@ -980,7 +985,7 @@ function updateContent(button) {
       $.removeCookie("ca_plugininstallpending");
       myCloseAlert();
       post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
-        ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications')?>",'','refresh');
+        ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
       });
     }
   });
@@ -1157,11 +1162,11 @@ function getContent(init,category,description,newApp,startupDisplay) {
     var el_tr = $.find(".sortIcons[data-sortby='trending']");
 
     if ( category == "repos" ) {
-      $(el_dl).html("<?=tr("Number Of Apps")?>");
-      $(el_tr).html("<?=tr("Average Trend")?>");
+      $(el_dl).html("<?=tr("Number Of Apps");?>");
+      $(el_tr).html("<?=tr("Average Trend");?>");
     } else {
-      $(el_dl).html("<?=tr("Downloads")?>");
-      $(el_tr).html("<?=tr("Trend")?>");
+      $(el_dl).html("<?=tr("Downloads");?>");
+      $(el_tr).html("<?=tr("Trend");?>");
     }
 
     var filter = $('#searchBox').val();
@@ -1255,13 +1260,13 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
   post({action:"checkPluginInProgress"},function(data) {
     if (data.inProgress) {
       swal({
-        title: "<?tr("Installation already in progress")?>",
-        text: "<?tr("Another plugin installation or update is already in progress, and this one cannot start.  Wait until the current installation or update is completed and try again")?>",
+        title: "<?tr("Installation already in progress");?>",
+        text: "<?tr("Another plugin installation or update is already in progress, and this one cannot start.  Wait until the current installation or update is completed and try again");?>",
         allowOutsideClick: false,
         showConfirmButton: true,
         showCancelButton: true,
-        confirmButtonText: "<?tr("OK")?>",
-        cancelButtonText: "<?tr("Clear Flag")?>",
+        confirmButtonText: "<?tr("OK");?>",
+        cancelButtonText: "<?tr("Clear Flag");?>",
         type: "warning"
       },function(isConfirm) {
         if ( isConfirm ) {
@@ -1279,12 +1284,12 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
         post({action:"checkRequirements",requires:requires},function(data) {
           if (! data.met) {
             swal({
-              title: "<?tr("Requirements not met")?>",
-              text: "<?tr("The requirements for this upgrade have not been met on your system")?><br><br>"+comment,
+              title: "<?tr('Requirements not met');?>",
+              text: "<?tr('The requirements for this upgrade have not been met on your system');?><br><br>"+comment,
               allowOutsideClick: false,
               showConfirmButton: true,
               showCancelButton: false,
-              confirmButtonText: "<?tr("OK")?>",
+              confirmButtonText: "<?tr('OK');?>",
               type: "error",
               html: true
             },function(isConfirm) {
@@ -1300,23 +1305,24 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
     }
   });
 }
+
 function actuallyInstallPlugin(pluginURL,update=false,comment="") {
-  type = update ? "update" : "install";
+  var type = update ? "update" : "install";
   if ( ! update ) {
     pluginURL = "<?=$caPaths['pluginProxy']?>" + pluginURL;
   }
-  title = update ? "<?tr("Update Plugin")?>" : "<?tr("Install Plugin")?>";
+  title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
   closeSidebar(true);
 //	disableSearch();
   if ( $.trim(comment) ) {
     swal({
-      title: "<?tr("Attention")?>",
+      title: "<?tr("Attention");?>",
       text: comment,
       allowOutsideClick: true,
       showConfirmButton: true,
       showCancelButton: true,
-      confirmButtonText: "<?tr("OK")?>",
-      cancelButtonText: "<?tr("CANCEL")?>",
+      confirmButtonText: "<?tr('OK');?>",
+      cancelButtonText: "<?tr('CANCEL');?>",
       animation: false,
       type: "warning",
       html: true
@@ -1519,11 +1525,11 @@ function removeApp(application, humanName) {
   closeSidebar();
   disableSearch();
   swal({
-    title: "<?tr("Delete Template?")?>",
+    title: "<?tr("Delete Template?");?>",
     text: sprintf(tr("Are you sure you want to delete %s from the list of previously installed applications?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
     type: "warning",
-    confirmButtonText: "<?tr("Yes, delete it!")?>",
-    cancelButtonText: "<?tr("Cancel")?>",
+    confirmButtonText: "<?tr("Yes, delete it!");?>",
+    cancelButtonText: "<?tr("Cancel");?>",
     showCancelButton: true,
     showConfirmButton: true,
     allowOutsideClick: true,
@@ -1550,25 +1556,25 @@ function uninstallApp(application,humanName) {
   post({action:"checkPluginInProgress"},function(data) {
     if (data.inProgress) {
       swal({
-        title: "<?tr("Installation already in progress")?>",
-        text: "<?tr("Another plugin installation or update is already in progress and this one cannot start.  Wait until the current installation or update is completed and try again")?>",
+        title: "<?tr('Installation already in progress');?>",
+        text: "<?tr('Another plugin installation or update is already in progress and this one cannot start.  Wait until the current installation or update is completed and try again');?>",
         allowOutsideClick: false,
         showConfirmButton: true,
         showCancelButton: false,
-        confirmButtonText: "<?tr("OK")?>",
+        confirmButtonText: "<?tr('OK');?>",
         type: "error"
       },function(isConfirm) {
         enableSearch();
       });
     } else {
       swal({
-        title: "<?tr("Uninstall Application?")?>",
+        title: "<?tr("Uninstall Application?");?>",
         text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
         type: "warning",
         showCancelButton: true,
         showConfirmButton: true,
-        cancelButtonText: "<?tr("Cancel")?>",
-        confirmButtonText: "<?tr("Yes uninstall it")?>",
+        cancelButtonText: "<?tr("Cancel");?>",
+        confirmButtonText: "<?tr("Yes uninstall it");?>",
         closeOnConfirm: true,
         showLoaderOnConfirm: false,
         allowOutsideClick: true,
@@ -1577,7 +1583,7 @@ function uninstallApp(application,humanName) {
         if (isConfirm) {
           application = application.basename();
           hidePluginPending(application);
-          ca_openPlugin('plugin remove '+application,"<?tr('Uninstall Plugin')?>",'','postUninstallPlugin');
+          ca_openPlugin('plugin remove '+application,"<?tr('Uninstall Plugin');?>",'','postUninstallPlugin');
         } else {
           enableSearch();
         }
@@ -1596,13 +1602,13 @@ function uninstallDocker(application,humanName) {
   closeSidebar();
   disableSearch();
   swal({
-    title: "<?tr("Uninstall Application?")?>",
+    title: "<?tr("Uninstall Application?");?>",
     text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
     type: "warning",
     showCancelButton: true,
     showConfirmButton: true,
-    cancelButtonText: "<?tr("Cancel")?>",
-    confirmButtonText: "<?tr("Yes uninstall it")?>",
+    cancelButtonText: "<?tr("Cancel");?>",
+    confirmButtonText: "<?tr("Yes uninstall it");?>",
     closeOnConfirm: false,
     showLoaderOnConfirm: true,
     allowOutsideClick: true,
@@ -1656,11 +1662,11 @@ function checkPLGupdate() {
 
 function pinApp(button,repository,name) {
   $(button).toggleClass("pinned unpinned");
-  var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application")?>" : "<?tr("Click to unpin this application")?>";
-  
+  var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application");?>" : "<?tr("Click to unpin this application");?>";
+
   var pin1 = $(button).text();
   var pin2 = $(button).data('pinnedalt');
-  
+
   $(button).text(pin2);
   $(button).data('pinnedalt',pin1);
 
@@ -1732,18 +1738,18 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
       });
     }
     if (flag) {
-      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template")?>");
+      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
     }
   }
   if (comment) {
     swal({
-      title: "<?tr("Attention")?>",
+      title: "<?tr("Attention");?>",
       text: comment,
       allowOutsideClick: true,
       showConfirmButton: true,
       showCancelButton: true,
-      confirmButtonText: "<?tr("OK")?>",
-      cancelButtonText: "<?tr("Cancel")?>",
+      confirmButtonText: "<?tr("OK");?>",
+      cancelButtonText: "<?tr("Cancel");?>",
       animation: false,
       type: "warning",
       html: true,
@@ -1753,13 +1759,13 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
         post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
           disableSearch();
           swal({
-            title: "<?tr("Choose A Branch To Install")?>",
+            title: "<?tr("Choose A Branch To Install");?>",
             text: result.tags,
             html: true,
             type: "warning",
             showCancelButton: true,
             showConfirmButton: false,
-            cancelButtonText: "<?tr("Cancel")?>",
+            cancelButtonText: "<?tr("Cancel");?>",
             allowOutsideClick: true
           }, function(isConfirm) {
             if ( ! isConfirm ) {
@@ -1773,13 +1779,13 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
     post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
       disableSearch();
       swal({
-        title: "<?tr("Choose A Branch To Install")?>",
+        title: "<?tr("Choose A Branch To Install");?>",
         text: result.tags,
         html: true,
         type: "warning",
         showCancelButton: true,
         showConfirmButton: false,
-        cancelButtonText: "<?tr("Cancel")?>",
+        cancelButtonText: "<?tr("Cancel");?>",
         allowOutsideClick: true
       }, function(isConfirm) {
         if ( ! isConfirm ) {
@@ -1887,11 +1893,11 @@ function clearMultiInstall() {
 function deleteMulti() {
   var selected = getSelectedApps();
   swal({
-    title: "<?tr("Delete Template?")?>",
+    title: "<?tr("Delete Template?");?>",
     text: sprintf(tr("Are you sure you want to delete %s applications from the previously installed list?"),"<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
     type: "warning",
-    confirmButtonText: "<?tr("Delete")?>",
-    cancelButtonText: "<?tr("Cancel")?>",
+    confirmButtonText: "<?tr("Delete");?>",
+    cancelButtonText: "<?tr("Cancel");?>",
     showCancelButton: true,
     showConfirmButton: true,
     allowOutsideClick: true,
@@ -1947,13 +1953,13 @@ function updateMulti() {
   }
 
   swal({
-    title: "<?tr("Update Applications")?>",
+    title: "<?tr("Update Applications");?>",
     text: sprintf(tr("Are you sure you want to update %s applications?"),languageCount+dockerCount+pluginCount),
     type: "info",
     showCancelButton: true,
-    cancelButtonText: "<?tr("Cancel")?>",
+    cancelButtonText: "<?tr("Cancel");?>",
     showConfirmButton: true,
-    confirmButtonText: "<?tr("OK")?>",
+    confirmButtonText: "<?tr("OK");?>",
     closeOnConfirm: false,
     showLoaderOnConfirm: true,
     allowOutsideClick: true,
@@ -2025,22 +2031,22 @@ function installMulti() {
   disableSearch();
   if ( ! cookiesEnabled() && dockerCount && pluginCount ) {
     pluginCount = 0;
-    cookieWarning = "<br><?tr("Cookies not enabled.  Plugins must be separately installed from docker applications")?>";
+    cookieWarning = "<br><?tr("Cookies not enabled.  Plugins must be separately installed from docker applications");?>";
   }
   if ( (dockerCount + pluginCount) > 1 ) {
-    var buttonText = "<?tr("Yes, install them")?>";
+    var buttonText = "<?tr("Yes, install them");?>";
   } else {
-    var buttonText = "<?tr("Yes, install it")?>";
+    var buttonText = "<?tr("Yes, install it");?>";
   }
   var text = sprintf(tr("Are you sure you want to install %s docker and %s plugin application(s)?"),dockerCount,pluginCount);
-  text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part")?></span>" : "");
+  text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part");?></span>" : "");
   text = text.concat(cookieWarning ? "<br><span class='caHighlight>"+cookieWarning+"</span>" : "");
   swal({
     title: dockerCount+pluginCount > 1 ? tr("Install Applications") : tr("Install Application"),
     text: text,
     type: "info",
     showCancelButton: true,
-    cancelButtonText: "<?tr("Cancel")?>",
+    cancelButtonText: "<?tr("Cancel");?>",
     showConfirmButton: true,
     confirmButtonText: buttonText,
     closeOnConfirm: false,
@@ -2123,7 +2129,7 @@ function updateDisplay(content) {
   });
   $(".cardDesc").each(function() {
     var description = $(this).html();
-    var readMoreText = $(".dockerHubHolder").length ? "" : "<?=tr("Read more")?>" // Don't show READ MORE on dockerHub searches
+    var readMoreText = $(".dockerHubHolder").length ? "" : "<?=tr("Read more");?>" // Don't show READ MORE on dockerHub searches
     while (isOverflown(this)) {
       description = description.slice(0,-5);
       if ( description.length < 5 ) // Safari under certain circumstances thinks that non-displayed cards are always overflown
@@ -2150,7 +2156,7 @@ function updateDisplay(content) {
     }
   });
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
-    data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result")?>");
+    data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
   }	else {
     removeBannerWarning(data.translationBanner);
   }
@@ -2256,13 +2262,13 @@ function addDockerWarning(enableDisable) {
   if (enableDisable) {
     switch (enableDisable) {
       case 1:
-        var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed')?>";
+        var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed');?>";
         break;
       case 2:
-        var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed')?>";
+        var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed');?>";
         break;
       case 3:
-        var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed')?>";
+        var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed');?>";
         break;
       default:
         var msg = "Docker apps not available to install - Unknown reason why";
@@ -2348,10 +2354,10 @@ function getCategories() {
 function feedWarning(currentServer) {
   if ( currentServer != "Primary Server" ) {
     if ( currentServer == "" ) {
-      addBannerWarning("<?tr("Unknown error happened.  Please post a screenshot in the support thread of the Statistics screen")?>");
+      addBannerWarning("<?tr("Unknown error happened.  Please post a screenshot in the support thread of the Statistics screen");?>");
     } else {
         if ( !backupServerWarning ) {
-        backupServerWarning = addBannerWarning("<?tr("Backup Server Active.  Some icons may not appear, and plugin installations may be affected")?>",true,true);
+        backupServerWarning = addBannerWarning("<?tr("Backup Server Active.  Some icons may not appear, and plugin installations may be affected");?>",true,true);
       } else {
         removeBannerWarning(backupServerWarning);
         backupServerWarning = false;
@@ -2383,14 +2389,14 @@ function CAswitchLanguage(language) {
 function installLanguage(languageURL,language) {
   hideLanguagePending(language);
   disableSearch();
-  ca_openPlugin('language install '+languageURL,"<?tr('Install Language Pack')?>",'','postLanguageRefresh');
+  ca_openPlugin('language install '+languageURL,"<?tr('Install Language Pack');?>",'','postLanguageRefresh');
 }
 
 function updateLanguage(language) {
   hideLanguagePending(language);
   disableSearch();
   $.cookie("updateLanguage",language,{SameSite:'Lax'});
-  ca_openPlugin('language update '+language,"<?tr('Update Language Pack')?>",'','postUpdateLanguage');
+  ca_openPlugin('language update '+language,"<?tr('Update Language Pack');?>",'','postUpdateLanguage');
 }
 
 function postUpdateLanguage() {
@@ -2413,7 +2419,7 @@ function postUpdateLanguage() {
 function removeLanguage(language) {
   hideLanguagePending(language);
   closeSidebar();
-  ca_openPlugin('language remove '+language,"<?tr('Remove Language Pack')?>",'','postLanguageRemove');
+  ca_openPlugin('language remove '+language,"<?tr('Remove Language Pack');?>",'','postLanguageRemove');
 }
 
 function postLanguageRefresh() {
@@ -2437,7 +2443,7 @@ function updateDocker(container) {
   } else {
     var postFunction = "refreshDisplay";
   }
-  openDocker('update_container '+container,'<?tr('Update Application')?>','',postFunction);
+  openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
 
  /*
   openBox('/plugins/community.applications/scripts/installUpdate.php?ct[]='+encodeURIComponent(container),tr('Update Container'),600,1100,true,postFunction);
@@ -2500,18 +2506,18 @@ function popupInstallXML(xml,type,comment="",ports="") {
       });
     }
     if (flag) {
-      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template")?>");
+      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
     }
   }
   if ( $.trim(comment) ) {
     swal({
-      title: "<?tr("Attention")?>",
+      title: "<?tr("Attention");?>",
       text: comment,
       allowOutsideClick: true,
       showConfirmButton: true,
       showCancelButton: true,
-      confirmButtonText: "<?tr("OK")?>",
-      cancelButtonText: "<?tr("Cancel")?>",
+      confirmButtonText: "<?tr("OK");?>",
+      cancelButtonText: "<?tr("Cancel");?>",
       animation: false,
       type: "warning",
       html: true
@@ -2629,7 +2635,7 @@ function popUpChart(descData) {
         },
         title: {
           display: true,
-          text: "<?tr("Downloads Per Month")?>",
+          text: "<?tr("Downloads Per Month");?>",
           fontSize: 16,
           fontColor: '<?=$tooltipsterContent?>'
         },
@@ -2764,7 +2770,7 @@ function showSidebarApp(apppath,appname) {
           }
         }
       });
-      $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE")?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS")?></i>"})
+      $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
       if ( result.supportContext ) {
         var opts = [];
@@ -2839,7 +2845,7 @@ function showRepoPopup(repository) {
 
   post({action:'getRepoDescription',repository:repository},function(result) {
     $("#sidenavContent").html(result.description);
-    $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE")?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS")?></i>"});
+    $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
     if (fromCard) {
       $(".popUpBack").hide();
     }
@@ -2864,8 +2870,8 @@ function showRepoPopup(repository) {
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
-          showRepoPopup(data.repository);  
-        }  
+          showRepoPopup(data.repository);
+        }
       }
     });
   });
@@ -2915,14 +2921,14 @@ function dockerSearch(pageNumber) {
 function dockerConvert(dockerID) {
   saveState();
   swal({
-    title: "<?tr("Determine configuration?")?>",
-    text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.')?>',
+    title: "<?tr("Determine configuration?");?>",
+    text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.');?>',
     html: true,
     type: 'info',
     showCancelButton: true,
     showConfirmButton: true,
-    confirmButtonText: "<?tr('Yes')?>",
-    cancelButtonText: "<?tr('No')?>"
+    confirmButtonText: "<?tr('Yes');?>",
+    cancelButtonText: "<?tr('No');?>"
   }, function (isConfirm) {
     if ( isConfirm ) {
       $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
@@ -2939,7 +2945,7 @@ function dockerConvert(dockerID) {
 }
 
 function changeMax(max) {
-  $("#maxPerPage").html(sprintf("<?tr("Results Per Page: %s")?>",max));
+  $("#maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>",max));
   context.destroy("#maxPerPage");
   context.attach("#maxPerPage",getPerPageOpts(max));
   post({action:"changeMaxPerPage",max:max},function(done) {
@@ -2957,9 +2963,9 @@ function getPerPageOpts(value) {
   var maxPerPageOpts = [];
   perPage.forEach(function(entry) {
     if ( entry != value ) {
-      maxPerPageOpts.push({icon:" ",text:sprintf("<?tr("%s Results Per Page")?>",entry),action:function(){ changeMax(entry);}});
+      maxPerPageOpts.push({icon:" ",text:sprintf("<?tr("%s Results Per Page");?>",entry),action:function(){ changeMax(entry);}});
     } else {
-      maxPerPageOpts.push({icon:"ca_fa-checkmark",text:"<span class='ca_green'>"+sprintf("<?tr("%s Results Per Page")?>",entry)+"</span>",action:function(){ changeMax(entry);}});
+      maxPerPageOpts.push({icon:"ca_fa-checkmark",text:"<span class='ca_green'>"+sprintf("<?tr("%s Results Per Page");?>",entry)+"</span>",action:function(){ changeMax(entry);}});
     }
   });
 
@@ -2973,7 +2979,7 @@ function setupActionCentre() {
     if ( ret.status == "action" ) {
       if ( !$(".actionCentre").is(":visible") ) {
         if ( ! actionCentreRestoreState ) {
-          acBanner = addBannerWarning("<?tr("Action Centre Enabled")?>",false);
+          acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
           setTimeout(function() {
             removeBannerWarning(acBanner);
           },10000);

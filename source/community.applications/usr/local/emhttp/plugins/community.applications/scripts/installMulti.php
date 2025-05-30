@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -13,7 +13,7 @@
 .logLine{color:black !important;font-size:12px !important;}
 body{font-size:12px !important;}
 </style>
-<?php
+<?
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 
 $_SERVER['REQUEST_URI'] = "docker/apps";
@@ -51,7 +51,7 @@ if ( $_GET['docker'] ) {
   $_GET['ct'] = $dockers;
   $_GET['communityApplications'] = true;
   $_GET['mute'] = false;
-  @include($exeFile); # under new GUI, this line returns a duplicated session_start() error.  
+  @include($exeFile); # under new GUI, this line returns a duplicated session_start() error.
   echo "</div>";
 ?>
 
@@ -87,7 +87,7 @@ function addLog(logLine) {
   }
 }
 function addCloseButton() {
-  addLog("<p class='centered'><button class='logLine' type='button' onclick='" + (top.Shadowbox ? "top.Shadowbox" : "window") + ".close()'><?=tr("Done")?></button></p>");
+  addLog("<p class='centered'><button class='logLine' type='button' onclick='" + (top.Shadowbox ? "top.Shadowbox" : "window") + ".close()'><?=tr("Done");?></button></p>");
 }
 </script>
 <?
@@ -115,7 +115,7 @@ function addCloseButton() {
     $autostartFile = implode("\n",array_keys($autostart));
     file_put_contents("/var/lib/docker/unraid-autostart",$autostartFile);
   }
-  
+
   echo "<br>".tr("Downloading docker icons")."<br>";
   $DockerTemplates->getAllInfo();
   exec("$docroot/plugins/dynamix.docker.manager/scripts/dockerupdate check nonotify > /dev/null 2>&1");

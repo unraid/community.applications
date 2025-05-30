@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -108,7 +108,7 @@ switch ($action) {
         $search = explode(":",$app);
         if ( ! ($search[1] ?? false) )
           $app .= ":latest";
-        
+
         foreach($info as $container) {
           if ( ($search[1] ?? "") == "*" ) {
             if ( explode(":",$container['Image'])[0] == $search[0])
@@ -220,7 +220,7 @@ switch ($action) {
         debug1("Executing {$notice['Conditions']['code']}");
         conditionsMet(eval($notice['Conditions']['code']));
       }
-  
+
       $unRaidNotifications = [];
       if ($conditionsMet) {
         debug1("Conditions Met.  Send the notification!\n");

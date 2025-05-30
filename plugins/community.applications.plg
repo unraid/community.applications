@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.01.28">
-<!ENTITY md5       "eaf70e59d29264dab35134738296dab8">
+<!ENTITY version   "2025.05.29">
+<!ENTITY md5       "b42e90662f71a438dbc5251921ba4ee4">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,19 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.05.29
+- Fixed: PHP8 Warnings
+- Fixed: Under certain circumstances, a plugin not installed could be displayed as installed / update available
+- Fixed: After opening a screenshot or video from sidebar, the main body would be scrollable with the sidebar open
+- Fixed: Back to top arrow would appear with the sidebar open
+- Fixed: Changed default and fallback curl encoding methods for better compatibility
+- Changed: Allow context menus to appear either above or below the button
+- Fixed: CSS issues with Azure / Gray themes when running Unraid 7.1.x
+- Improved: Security system
+- Improved: Performance improvements
+- Removed: Flashing warning symbol on action centre
+- Removed: Ability to dismiss Action Centre enabled banner (automatically removes itself after 10 seconds)
+
 ###2025.01.28
 - Added: Ability to disable featured apps
 - Changed: Only show patch plugin within top plugins under certain circumstances

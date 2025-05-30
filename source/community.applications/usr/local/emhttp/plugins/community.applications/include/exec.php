@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -215,7 +215,7 @@ switch ($_POST['action']) {
   # Return an error if the action doesn't exist #
   ###############################################
   default:
-    postReturn(["error"=>"Unknown post action {$_POST['action']}"]);
+    postReturn(["error"=>"Unknown post action ".htmlspecialchars($_POST['action'])]);
     break;
 }
 #  DownloadApplicationFeed MUST BE CALLED prior to DownloadCommunityTemplates in order for private repositories to be merged correctly.
@@ -949,7 +949,7 @@ function get_content() {
 
   foreach ($file as $template) {
     $template['NoInstall'] = $noInstallComment;
- 
+
     if ( $displayBlacklisted ) {
       if ( $template['Blacklist'] ) {
         $display[] = $template;
@@ -1168,7 +1168,7 @@ function display_content() {
  /* concept of a backup server no longer relevant
   $o['script'] = "feedWarning('$currentServer');";
   */
-  
+
   postReturn($o);
 }
 
@@ -1207,7 +1207,7 @@ function previous_apps($enableActionCentre=false) {
     @unlink($caPaths['dockerSearchActive']);
   }
   $info = getAllInfo();
-  
+
   $file = &$GLOBALS['templates'];
   $extraBlacklist = readJsonFile($caPaths['extraBlacklist']);
   $extraDeprecated = readJsonFile($caPaths['extraDeprecated']);
@@ -1398,6 +1398,9 @@ function previous_apps($enableActionCentre=false) {
           $template['Uninstall'] = true;
 
           if ( $installed == "action" && $template['PluginURL'] && $template['Name'] !== "Community Applications") {
+            if ( ca_plugin("pluginURL","/var/log/plugins/$filename") !== $template['PluginURL'] ) {
+              continue;
+            }
             $installedVersion = ca_plugin("version","/var/log/plugins/$filename");
             if ( ( strcmp($installedVersion,$template['pluginVersion']) < 0 || ($template['UpdateAvailable']??null)) ) {
               $template['actionCentre'] = true;
@@ -1464,11 +1467,11 @@ function previous_apps($enableActionCentre=false) {
       }
     }
   }
- 
+
   if ( $enableActionCentre ) {
     if ( ! $displayed || empty($displayed) )
       return false;
-    else 
+    else
       return true;
   }
 
@@ -1577,8 +1580,12 @@ function areAppsPinned() {
 function pinnedApps() {
   global $caPaths, $caSettings;
 
+
   $pinnedApps = readJsonFile($caPaths['pinnedV2']);
+  debug("pinned apps memory usage before: ".round(memory_get_usage()/1048576,2)." MB");
   $file = &$GLOBALS['templates'];
+  debug("pinned apps memory usage after: ".round(memory_get_usage()/1048576,2)." MB");
+
   @unlink($caPaths['community-templates-allSearchResults']);
   @unlink($caPaths['community-templates-catSearchResults']);
   @unlink($caPaths['repositoriesDisplayed']);
@@ -2060,7 +2067,7 @@ function createXML() {
     if ( $template['Config'] ?? false ) {
       $testarray = $template['Config'] ?: [];
       if (!($testarray[0]??false)) $testarray = [$testarray];
-      
+
       foreach ($testarray as &$config) {
         if ( is_array($config['@attributes']) ) {
           if ( $config['@attributes']['Type'] == "Path" ) {
@@ -2158,7 +2165,7 @@ function createXML() {
 
     if ( empty($template['Config']) ) // handles extra garbage entry being created on templates that are v1 only
       unset($template['Config']);
-    
+
     // Add in TSStateDir
 
     if ( version_compare($caSettings['unRaidVersion'],"7.0.0",">") && isTailScaleInstalled() ) {

@@ -55,58 +55,58 @@ function debug() {
 
 _(Hide Deprecated Applications)_:
 : <select name='hideDeprecated' size='1'>
-  <?=mk_option($cfg['hideDeprecated'], "true", tr("Yes",true))?>
-  <?=mk_option($cfg['hideDeprecated'], "false", tr("No",true))?>
+  <?=mk_option($cfg['hideDeprecated'], "true", tr("Yes",true));?>
+  <?=mk_option($cfg['hideDeprecated'], "false", tr("No",true));?>
   </select>
 
 > <?tr("This setting hides deprecated applications from the list of available apps.  Deprecated apps will still however display within the installed and previous apps sections.");?>
 
 _(Hide Incompatible Applications)_:
 : <select name='hideIncompatible' size='1'>
-  <?=mk_option($cfg['hideIncompatible'], "true", tr("Yes",true))?>
-  <?=mk_option($cfg['hideIncompatible'], "false", tr("No",true))?>
+  <?=mk_option($cfg['hideIncompatible'], "true", tr("Yes",true));?>
+  <?=mk_option($cfg['hideIncompatible'], "false", tr("No",true));?>
   </select>
 
 > <?tr("This setting will hide applications that are listed as being incompatible with your version of Unraid");?>
 
 _(Allow install of second instance)_:
 : <select name='defaultReinstall' size='1'>
-  <?=mk_option($cfg['defaultReinstall'],'false',tr("No",true))?>
-  <?=mk_option($cfg['defaultReinstall'],'true',tr("Yes",true))?>
+  <?=mk_option($cfg['defaultReinstall'],'false',tr("No",true));?>
+  <?=mk_option($cfg['defaultReinstall'],'true',tr("Yes",true));?>
   </select>
 
 > <?tr("This option enables another button on the cards and popups which will allow you to reinstall an installed application using it's default template values.  This option can be confusing at times, and is only generally used if you wish to install and have an application running twice simultaneously");?>
 
 _(Automatically open the sidebar)_:
 : <select name='sidebarOpen' size='1'>
-  <?=mk_option($cfg['sidebarOpen'],'yes',tr("Yes",true))?>
-  <?=mk_option($cfg['sidebarOpen'],'no',tr("No",true))?>
+  <?=mk_option($cfg['sidebarOpen'],'yes',tr("Yes",true));?>
+  <?=mk_option($cfg['sidebarOpen'],'no',tr("No",true));?>
   </select>
 
 > <?tr("Allows CA to automatically open the sidebar for more information when hovering over an application's icon");?>
 
 _(Allow CA to check for updates to applications)_:
 : <select name="updateCheck" size="1">
-  <?=mk_option($cfg['updateCheck'],"yes",tr("Yes",true))?>
-  <?=mk_option($cfg['updateCheck'],"no",tr("No",true))?>
+  <?=mk_option($cfg['updateCheck'],"yes",tr("Yes",true));?>
+  <?=mk_option($cfg['updateCheck'],"no",tr("No",true));?>
   </select>
-  
+
 > <?tr("This setting enables CA to check for updates to applications");?>
 
 _(Disable Mouse Wheel Page Changes)_:
 : <select name="wheelPage" size="1">
-  <?=mk_option($cfg['wheelPage'],"no",tr("No",true))?>
-  <?=mk_option($cfg['wheelPage'],"yes",tr("Yes",true))?>
+  <?=mk_option($cfg['wheelPage'],"no",tr("No",true));?>
+  <?=mk_option($cfg['wheelPage'],"yes",tr("Yes",true));?>
   </select>
-  
+
 > <?tr("This setting disables using left or right on a mouse wheel to change the page");?>
 
 _(Mouse wheel threshold)_:
 : <input type='number' name='wheelThreshold' class='narrow' min='1' value='<?=$cfg['wheelThreshold']?>'></input>
 _(Browser returned value:)_ <span id='wheelValue'></span>
 
-> <?tr("If you tilt the mouse wheel left or right, the browser returned value will change.  Set the threshold to the value returned.  Note that different browsers and operating systems may return different values")?>
-> <?tr("This is a global value for all devices.  If it causes issues, then disable Mouse Wheel Page Changes")?>
+> <?tr("If you tilt the mouse wheel left or right, the browser returned value will change.  Set the threshold to the value returned.  Note that different browsers and operating systems may return different values");?>
+> <?tr("This is a global value for all devices.  If it causes issues, then disable Mouse Wheel Page Changes");?>
 
 <script>
 addEventListener("wheel",function(event){
@@ -116,8 +116,8 @@ addEventListener("wheel",function(event){
 
 _(Allow CA to send any emergency notifications)_:
 : <select name='notifications' size='1'>
-  <?=mk_option($cfg['notifications'],"yes",tr("Yes",true))?>
-  <?=mk_option($cfg['notifications'],"no",tr("No",true))?>
+  <?=mk_option($cfg['notifications'],"yes",tr("Yes",true));?>
+  <?=mk_option($cfg['notifications'],"no",tr("No",true));?>
   </select>
 
 > <?tr("This setting allows CA to periodically scan your system and alert you to the presence of:");?><br>
@@ -127,19 +127,19 @@ _(Allow CA to send any emergency notifications)_:
 
 _(Disable Featured Applications)_:
 : <select name='featuredDisable' size='1'>
-  <?=mk_option($cfg['featuredDisable'],"no",tr("No",true))?>
-  <?=mk_option($cfg['featuredDisable'],"yes",tr("Yes",true))?>
+  <?=mk_option($cfg['featuredDisable'],"no",tr("No",true));?>
+  <?=mk_option($cfg['featuredDisable'],"yes",tr("Yes",true));?>
 </select>
 
 > <?tr("This setting will disable Featured applications appearing on the home screen");?>
 
 _(Enable developer mode)_:
 : <select name='dev' size='1'>
-  <?=mk_option($cfg['dev'],"no",tr("No",true))?>
-  <?=mk_option($cfg['dev'],"yes",tr("Yes",true))?>
+  <?=mk_option($cfg['dev'],"no",tr("No",true));?>
+  <?=mk_option($cfg['dev'],"yes",tr("Yes",true));?>
   </select>
-  
-> <?tr("This unlocks some extra features within CA generally only used by developers.  Not recommended to enable")?>
+
+> <?tr("This unlocks some extra features within CA generally only used by developers.  Not recommended to enable");?>
 
 
 &nbsp;

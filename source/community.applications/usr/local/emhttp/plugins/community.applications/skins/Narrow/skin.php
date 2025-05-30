@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -124,14 +124,14 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     } else {
       $actionsContext = [];
       $selected = false;
-      
+
       if ( $template['ModeratorComment'] ) {
         preg_match_all("/\/\/(.*?)&#92;/m",$template['ModeratorComment'],$searchMatches);
         if ( count($searchMatches[1]) ) {
           foreach ($searchMatches[1] as $searchResult) {
             $template['ModeratorComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['ModeratorComment']);
           }
-        }     
+        }
       }
       if ( $template['CAComment'] ) {
         preg_match_all("/\/\/(.*?)&#92;/m",$template['CAComment'],$searchMatches);
@@ -139,7 +139,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
           foreach ($searchMatches[1] as $searchResult) {
             $template['CAComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['CAComment']);
           }
-        }        
+        }
       }
       $installComment = $template['ModeratorComment'] ? "<span class=ca_bold>{$template['ModeratorComment']}</span>" : $template['CAComment'];
 
@@ -231,7 +231,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
             }
           } else {
             $pluginName = basename($template['PluginURL']);
-            $template['Installed'] = file_exists("/var/log/plugins/$pluginName");
+            $template['Installed'] = checkInstalledPlugin($template);
             if ( $template['Installed'] )  {
               $pluginInstalledVersion = ca_plugin("version","/var/log/plugins/$pluginName");
               if ( file_exists("/tmp/plugins/$pluginName") ) {
@@ -651,14 +651,14 @@ function getPopupDescriptionSkin($appNumber) {
     $template['Icon'] = $template["Icon-{$caSettings['dynamixTheme']}"] ?? $template['Icon'];  // remove if clause post 4/1
     $template['display_icon'] = "<img class='popupIcon screenshot' href='{$template['Icon']}' src='{$template['Icon']}' alt='Application Icon'>";
   }
-  
+
   if ( $template['ModeratorComment'] ) {
     preg_match_all("/\/\/(.*?)&#92;/m",$template['ModeratorComment'],$searchMatches);
     if ( count($searchMatches[1]) ) {
       foreach ($searchMatches[1] as $searchResult) {
         $template['ModeratorComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['ModeratorComment']);
       }
-    }     
+    }
   }
   if ( $template['CAComment'] ) {
     preg_match_all("/\/\/(.*?)&#92;/m",$template['CAComment'],$searchMatches);
@@ -666,7 +666,7 @@ function getPopupDescriptionSkin($appNumber) {
       foreach ($searchMatches[1] as $searchResult) {
         $template['CAComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['CAComment']);
       }
-    }        
+    }
   }
   if ( $template['Requires'] ) {
     $template['Requires'] = Markdown(strip_tags(str_replace(["\r","\n","&#xD;"],["","<br>",""],trim($template['Requires'])),"<br>"));
@@ -734,7 +734,7 @@ function getPopupDescriptionSkin($appNumber) {
           }
         }
       } else {
-        if ( file_exists("/var/log/plugins/$pluginName") ) {
+        if ( checkInstalledPlugin($template) ) {
           $template['Installed'] = true;
           $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
           if ( ($template['installedVersion'] != $template['pluginVersion'] || $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) && $template['Name'] !== "Community Applications") {
@@ -1600,7 +1600,7 @@ function displayPopup($template) {
     if ($downloadText)
       $card .= "<tr><td class='popupTableLeft'>".tr("Downloads")."</td><td class='popupTableRight'>$downloadText</td></tr>";
   }
-  
+
   if (!$Plugin && !$LanguagePack)
     $card .= "<tr><td class='popupTableLeft'>".tr("Repository")."</td><td class='popupTableRight' style='white-space:nowrap;'>$Repository</td></tr>";
   if ($stars)
@@ -1633,7 +1633,7 @@ function displayPopup($template) {
   if ( $Licence ) {
     if ( validURL($Licence) )
       $Licence = "<img class='licence' src='$Licence' onerror='this.outerHTML=&quot;<a href=$Licence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
-    
+
     $card .= "<tr><td class='popupTableLeft'>".tr("Licence")."</td><td class='popupTableRight'>$Licence</td></tr>";
   }
   $card .= "</table>";

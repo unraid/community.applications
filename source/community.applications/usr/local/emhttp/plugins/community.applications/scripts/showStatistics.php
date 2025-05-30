@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -53,7 +53,7 @@ div.spinner .unraid_mark_7{animation:mark_7 1.5s ease infinite}
 @keyframes mark_6{50% {transform:translateY(40px)} 100% {transform:translateY(0px)}}
 @keyframes mark_7{50% {transform:translateY(62px)} 100% {transform: translateY(0px)}}
 </style>
-<div class='spinner fixed' id='spinner'><?readfile("/usr/local/emhttp/plugins/dynamix/images/animated-logo.svg")?></div>
+<div class='spinner fixed' id='spinner'><?readfile("/usr/local/emhttp/plugins/dynamix/images/animated-logo.svg");?></div>
 <?
 $repositories = readJsonFile($caPaths['repositoryList']);
 switch ($_GET['arg1']) {

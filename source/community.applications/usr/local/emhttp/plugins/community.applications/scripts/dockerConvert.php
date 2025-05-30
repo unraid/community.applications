@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -12,7 +12,7 @@
 <style>
 .logLine{color:black !important;}
 </style>
-<?php
+<?
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 
 $_SERVER['REQUEST_URI'] = "docker/apps";
@@ -48,8 +48,8 @@ if ( $_GET['ID'] !== false) {
   $dockerfile['Networking']['Mode'] = "bridge";
   $dockerXML = makeXML($dockerfile);
   file_put_contents("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB.xml",$dockerXML);
-  
-  
+
+
   echo "<div id='output'>";
   $dockers = ["CA_TEST_CONTAINER_DOCKERHUB"];
   echo sprintf(tr("Installing test container"),str_replace(",",", ",$_GET['docker'] ?? ""))."<br>";
@@ -57,7 +57,7 @@ if ( $_GET['ID'] !== false) {
   $_GET['ct'] = $dockers;
   $_GET['communityApplications'] = true;
   $_GET['mute'] = false;
-  @include($exeFile); # under new GUI, this line returns a duplicated session_start() error.  
+  @include($exeFile); # under new GUI, this line returns a duplicated session_start() error.
   echo "</div>";
 ?>
 
@@ -92,23 +92,23 @@ function addLog(logLine) {
   }
 }
 function addCloseButton() {
-  addLog("<p class='centered'><button class='logLine' type='button' onclick='" + (parent.Shadowbox ? "parent.Shadowbox" : "window") + ".close()'><?=tr("Done")?></button></p>");
+  addLog("<p class='centered'><button class='logLine' type='button' onclick='" + (parent.Shadowbox ? "parent.Shadowbox" : "window") + ".close()'><?=tr("Done");?></button></p>");
 }
 </script>
 <?
   $output = shell_exec("docker inspect CA_TEST_CONTAINER_DOCKERHUB");
   echo "<br>".tr("Removing test installation")."<br>";
   exec("docker rm CA_TEST_CONTAINER_DOCKERHUB");
-  
+
   exec("docker rmi {$docker['Repository']}");
   @unlink("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB.xml");
-  
+
   $json = json_decode($output,true);
   if ( $json ) {
     $paths = isset($json[0]['Mounts']) ? $json[0]['Mounts'] : [];
     $ports = isset($json[0]['Config']['ExposedPorts']) ? $json[0]['Config']['ExposedPorts'] : [];
     $vars = isset($json[0]['Config']['Env']) ? $json[0]['Config']['Env'] : [];
-    
+
     $count = 1;
     $Config = [];
     foreach ($paths as $path) {
@@ -152,20 +152,20 @@ function addCloseButton() {
 
   $existing_templates = array_diff(scandir($dockerManPaths['templates-user']),[".",".."]);
   foreach ( $existing_templates as $template ) {
-    if ( strtolower($dockerfile['Name']) == strtolower(str_replace(["my-",".xml"],["",""],$template)) ) 
+    if ( strtolower($dockerfile['Name']) == strtolower(str_replace(["my-",".xml"],["",""],$template)) )
       $dockerfile['Name'] .= "-1";
   }
-    
-  file_put_contents($caPaths['dockerSearchInstall'],makeXML($dockerfile));	
+
+  file_put_contents($caPaths['dockerSearchInstall'],makeXML($dockerfile));
 }
 ?>
 <script>
-  <? if ( $json ): ?>
+  <? if ( $json ):?>
     window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=$caPaths['dockerSearchInstall']?>";
 
-  <? else: ?>
+  <? else:?>
     alert("<?=$error?>");
     window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=$caPaths['dockerSearchInstall']?>";
-  
-  <? endif; ?>
+
+  <? endif;?>
 </script>

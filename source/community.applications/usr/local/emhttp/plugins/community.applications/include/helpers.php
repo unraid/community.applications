@@ -1,4 +1,4 @@
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -50,20 +50,31 @@ function randomFile() {
 # 7 Functions to avoid typing the same lines over and over again #
 ##################################################################
 function readJsonFile($filename) {
-  global $caSettings, $caPaths;
+  static $cache = [];
+
+  if (isset($cache[$filename]) && filemtime($filename) <= $cache[$filename]['time']) {
+    debug("CA Cached JSON read $filename");
+    return $cache[$filename]['data'];
+  }
 
   debug("CA Read JSON file $filename");
 
   $json = json_decode(@file_get_contents($filename),true);
   if ( $json === false ) {
-    if ( ! is_file($filename) )
+    if ( ! is_file($filename) ){
       debug("$filename not found");
-
-    debug("JSON Read Error ($filename)");
+      return [];
+    } else {
+      debug("JSON Read Error ($filename)");
+    return [];
+    }
   }
+  $cache[$filename] = ['data'=>$json,'time'=>filemtime($filename)];
+
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
-  return is_array($json) ? $json : array();
+  return $json;
 }
+
 function writeJsonFile($filename,$jsonArray) {
   global $caSettings, $caPaths;
 
@@ -78,7 +89,7 @@ function ca_file_put_contents($filename,$data,$flags=0) {
   if ( $result === strlen($data) ) {
     @rename($filename."~",$filename);
   }
-  
+
   if ( $result === false ) {
     @unlink($filename."~");
     debug("Failed to write to $filename");
@@ -89,37 +100,45 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
   global $caSettings, $caPaths;
 
+  static $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? parse_ini_file("/boot/config/plugins/community.applications/proxy.
+  cfg") : false;
+  static $proxyflag = false;
+  static $timeoutStatic = 0;
+
   debug("DOWNLOAD starting $url\n");
   $startTime = time();
 
   $ch = curl_init();
-  curl_setopt($ch,CURLOPT_URL,$url);
-  curl_setopt($ch,CURLOPT_FRESH_CONNECT,true);
-  curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-  curl_setopt($ch,CURLOPT_CONNECTTIMEOUT,$timeout);
-  curl_setopt($ch,CURLOPT_TIMEOUT,$timeout);
-  curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-  curl_setopt($ch,CURLOPT_FOLLOWLOCATION, true);
-  curl_setopt($ch,CURLOPT_FAILONERROR,true);
+  curl_setopt_array($ch,[
+    CURLOPT_FRESH_CONNECT=>true,
+    CURLOPT_RETURNTRANSFER=>true,
+    CURLOPT_FOLLOWLOCATION=>true,
+    CURLOPT_FAILONERROR=>true
+  ]);
 
-  if ( !getenv("http_proxy") && is_file("/boot/config/plugins/community.applications/proxy.cfg") ) {
-    $proxyCFG = parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg");
-    curl_setopt($ch, CURLOPT_PROXYPORT,intval($proxyCFG['port']));
-    curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL,intval($proxyCFG['tunnel']));
-    curl_setopt($ch, CURLOPT_PROXY,$proxyCFG['proxy']);
+  if ( $proxycfg && ! $proxyflag ) {
+    curl_setopt_array($ch,[
+      CURLOPT_PROXYPORT=>intval($proxycfg['port']),
+      CURLOPT_HTTPPROXYTUNNEL=>intval($proxycfg['tunnel']),
+      CURLOPT_PROXY=>$proxycfg['proxy'],
+    ]);
   }
+  if ( $timeout !== $timeoutStatic ) {
+    curl_setopt_array($ch, [
+      CURLOPT_CONNECTTIMEOUT=>$timeout,
+      CURLOPT_TIMEOUT=>$timeout
+    ]);
+    $timeoutStatic = $timeout;
+  }
+  curl_setopt($ch,CURLOPT_URL,$url);
   $out = curl_exec($ch);
 
-  if ( ! $out ) {
-    curl_setopt($ch,CURLOPT_ENCODING,"");
-    $out = curl_exec($ch);
-  }
-
   if ( curl_errno($ch) == 23 ) {
+    debug("cURL error 23.  Switching encoding to deflate");
     curl_setopt($ch,CURLOPT_ENCODING,"deflate");
     $out = curl_exec($ch);
+    curl_setopt($ch,CURLOPT_ENCODING,null);
   }
-  curl_close($ch);
   if ( $path )
     ca_file_put_contents($path,$out);
 
@@ -131,7 +150,7 @@ function download_json($url,$path="",$bg=false,$timeout=45) {
   return json_decode(download_url($url,$path,$bg,$timeout),true);
 }
 function getPost($setting,$default) {
-  return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
+  return isset($_POST[$setting]) ? htmlspecialchars($_POST[$setting],ENT_QUOTES) : $default;
 }
 function getPostArray($setting) {
   return $_POST[$setting];
@@ -500,8 +519,8 @@ function checkInstalledPlugin($template) {
 
   $pluginName = basename($template['PluginURL']);
   if ( ! file_exists("/var/log/plugins/$pluginName") ) return false;
-  $dupeList = readJsonFile($caPaths['pluginDupes']);
-  if ( ! isset($dupeList[$pluginName]) ) return true;
+
+  if ( isset($template['hideFromCA']) ) return false;
   return strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$pluginName"))) == strtolower(trim($template['PluginURL']));
 }
 
@@ -642,7 +661,7 @@ function postReturn($retArray) {
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
       $retArray['globalScript'] = $GLOBALS['script'];
-    
+
     ob_start();
     ob_clean();
     header_remove();
@@ -772,7 +791,7 @@ function portsUsed($template) {
   if ( is_array($template['Config']) ) {
     foreach ($template['Config'] as $config) {
       if ( ($config['@attributes']['Type'] ?? null) !== "Port" )
-        continue; 
+        continue;
       $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'];
     }
   }
@@ -1419,7 +1438,7 @@ class TypeConverter {
    * Decode a resource object for UTF-8.
    *
    * @access public
-   * @param mixed $data 
+   * @param mixed $data
    * @return array|string
    * @static
    */

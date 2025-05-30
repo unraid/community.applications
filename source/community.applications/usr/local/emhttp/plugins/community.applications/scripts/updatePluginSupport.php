@@ -1,5 +1,5 @@
 #!/usr/bin/php
-<?PHP
+<?
 ########################################
 #                                      #
 # Community Applications               #
@@ -56,7 +56,7 @@ foreach ($plugins as $plugin) {
       $dom->preserveWhiteSpace = false;
       $dom->formatOutput = true;
       $dom->loadXML($xml->asXML());
-      file_put_contents($plugin, $dom->saveXML()); 
+      file_put_contents($plugin, $dom->saveXML());
       echo "<b>".ca_plugin("name",$plugin)."</b> --> <a href='{$templates[$pluginEntry]['Support']}' target='_blank'>{$templates[$pluginEntry]['Support']}</a>\n";
     }
   }
