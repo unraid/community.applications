@@ -108,8 +108,10 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
   global $caSettings, $caPaths;
 
-  static $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? parse_ini_file("/boot/config/plugins/community.applications/proxy.
-  cfg") : false;
+  static $proxycfg = false;
+  if ($proxycfg === false) {
+    $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : false;
+  }
   static $proxyflag = false;
   static $timeoutStatic = 0;
 

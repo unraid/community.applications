@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.05.29a">
-<!ENTITY md5       "8bce062767874a32957a5e20c894e2b6">
+<!ENTITY version   "2025.05.30">
+<!ENTITY md5       "1fa9fbe64d1dccc8f8735eb1e957da74">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.05.30
+- Fixed: Crash at startup when using Unraid version 6.12.x
+
 ###2025.05.29a
 - Fixed: PHP errors if no apps pinned
 

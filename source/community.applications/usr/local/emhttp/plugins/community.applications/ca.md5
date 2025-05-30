@@ -5,7 +5,7 @@ fa1da171ddee5aa96135b4398fcb8fb9  ./ca_settings.page
 5019679978e11e43549f03ed66c9db6a  ./default.cfg
 c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
 044a3c011c57860acb1b97d356d0347c  ./include/exec.php
-e8218cc674cc03af0c5e2718cb983d9a  ./include/helpers.php
+374d74d7fbc186fba3c7bd601520403f  ./include/helpers.php
 183ed1d263b9fc5237a093e2af8e3ef7  ./include/paths.php
 39f273c83c6b950798ff995f49a34aa1  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
