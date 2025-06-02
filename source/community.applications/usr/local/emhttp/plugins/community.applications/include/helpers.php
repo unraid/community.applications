@@ -691,10 +691,10 @@ if ( ! function_exists("tr") ) {
     if ( ! trim($translated) )
       $translated = $string;
 
-    if ( startsWith($translated,"&#34;") && endsWith($translated,"&#34;") )
-      $translated = first_str_replace(last_str_replace($translated,"&#34;",""),"&#34;","");
+    if ( $translated == $string ) 
+      return $string;
 
-    $translated =  str_replace(['"',"'"],["&#34;","&#39;"],$translated);
+    $translated =  htmlentities($translated, ENT_QUOTES);
 
     return $translated;
   }
