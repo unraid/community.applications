@@ -138,7 +138,7 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
 function tr($string,$ret=false) {
-  $string = htmlentities(_($string), ENT_QUOTES);
+  $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
   if ( $ret )
     return $string;
   else

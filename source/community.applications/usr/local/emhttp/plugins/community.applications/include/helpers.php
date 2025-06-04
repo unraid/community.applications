@@ -694,7 +694,7 @@ if ( ! function_exists("tr") ) {
     if ( $translated == $string ) 
       return $string;
 
-    $translated =  htmlentities($translated, ENT_QUOTES);
+    $translated =  str_replace(['"',"'"],["&#34;","&#39;"],$translated);
 
     return $translated;
   }
