@@ -396,13 +396,13 @@ a.popup-donate:hover{color:<?=$donateText?>;background-color:<?=$unRaid66color?>
 .screenshot{cursor:pointer;}
 .searchArea{z-index:2;width:auto;position:static;}
 .searchSubmit{font-family:'FontAwesome';width:2rem;min-width:2rem;height:3.4rem;font-size:1.1rem;position:relative;padding-top:1.1rem;padding-bottom:1rem;padding-right:1rem;background:<?=$templateHoverBackground?>;border:none;cursor:pointer;background:<?=$templateHoverBackground?>;}
-#searchBox{margin-left:0rem;margin-right:0;margin-bottom:1rem;top:-.6rem;border:none;padding:0.6rem;background:<?=$templateHoverBackground?>;padding-right:0.5rem;}
+#searchBox{margin-left:0rem;margin-right:0;margin-bottom:1rem;top:-.6rem;border:none;padding:0.6rem;background:<?=$templateHoverBackground?>;padding-right:0.5rem;width:300px}
 #searchButton:hover{color:<?=$unRaid66color?>;}
 .sidebar{z-index:998;position:fixed;top:0;right:0;bottom:1.6rem;margin-bottom:10px;width:100%;height:100vh;display:none;background-color:<?=$sidebarCloseBackground?>;}
 .sidebarClose{width: 100%;height: 100vh;position: fixed;top: 0;left: 0;}
 .selectedMenu{color:<?=$unRaid66color?>;font-weight:bold;}
 .sidenavHide{width:0px;}
-.sidenavShow{width:70rem; }
+.sidenavShow{width:90%; max-width: 70rem; }
 .sidenav{position:fixed;top:0;right:0;bottom:1.6rem;margin-bottom:10px;background-color:<?=$sidebarBackground?>;color:<?=$sidebarText?>;overflow-x:hidden;transition:0.5s;padding-top:60px;overflow-y:scroll;}
 #sortIconArea{padding-bottom:1rem;}
 .sortIcons{font-size:1.2rem;margin-right:10px;margin-left:10px;cursor:pointer;text-decoration:none !important;color:<?=$sidebarText?>;}

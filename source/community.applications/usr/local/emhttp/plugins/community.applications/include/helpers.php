@@ -159,7 +159,7 @@ function download_json($url,$path="",$bg=false,$timeout=45) {
   return json_decode(download_url($url,$path,$bg,$timeout),true);
 }
 function getPost($setting,$default) {
-  return isset($_POST[$setting]) ? htmlspecialchars($_POST[$setting],ENT_QUOTES) : $default;
+  return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
 }
 function getPostArray($setting) {
   return $_POST[$setting];
