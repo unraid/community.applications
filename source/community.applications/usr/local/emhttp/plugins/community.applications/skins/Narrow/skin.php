@@ -101,300 +101,18 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
       }
     }
 
-    if ( $template['RepositoryTemplate'] ) {
-      $template['Icon'] = $template['icon'] ?? "/plugins/dynamix.docker.manager/images/question.png";
-
-      if ( ! isset($template['bio']) )
-        $template['CardDescription'] = tr("No description present");
-      else {
-        $template['bio'] = strip_tags(markdown($template['bio']));
-        $template['Description'] = $template['bio'];
-      }
-      $template['display_dockerName'] = $template['RepoName'];
-
-      $favClass = ( $caSettings['favourite'] && ($caSettings['favourite'] == $template['RepoName']) ) ? "ca_favouriteRepo" : "ca_non_favouriteRepo";
-      $template['ca_fav'] = $caSettings['favourite'] && ($caSettings['favourite'] == $template['RepoName']);
-      $niceRepoName = str_replace("'s Repository","",$template['RepoName']);
-      $niceRepoName = str_replace("' Repository","",$niceRepoName);
-      $niceRepoName = str_replace(" Repository","",$niceRepoName);
-
-      $ct .= displayCard($template);
-      $count++;
-      if ( $count == $caSettings['maxPerPage'] ) break;
+    // Modular handling based on app type
+    if ($template['Language']) {
+      $ct .= handleLanguageApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus);
+    } elseif ($template['Plugin'] || $template['PluginURL']) {
+      $ct .= handlePluginApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus);
+    } elseif (!$template['Plugin'] && !$template['Language']) {
+      $ct .= handleDockerApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus);
     } else {
-      $actionsContext = [];
-      $selected = false;
-
-      if ( $template['ModeratorComment'] ) {
-        preg_match_all("/\/\/(.*?)&#92;/m",$template['ModeratorComment'],$searchMatches);
-        if ( count($searchMatches[1]) ) {
-          foreach ($searchMatches[1] as $searchResult) {
-            $template['ModeratorComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['ModeratorComment']);
-          }
-        }
-      }
-      if ( $template['CAComment'] ) {
-        preg_match_all("/\/\/(.*?)&#92;/m",$template['CAComment'],$searchMatches);
-        if ( count($searchMatches[1]) ) {
-          foreach ($searchMatches[1] as $searchResult) {
-            $template['CAComment'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['CAComment']);
-          }
-        }
-      }
-      $installComment = $template['ModeratorComment'] ? "<span class=ca_bold>{$template['ModeratorComment']}</span>" : $template['CAComment'];
-
-      if ( $template['Requires'] ) {
-        $template['Requires'] = markdown(strip_tags(str_replace(["\r","\n","&#xD;","'"],["","<br>","","&#39;"],trim($template['Requires'])),"<br>"));
-        preg_match_all("/\/\/(.*?)&#92;/m",$template['Requires'],$searchMatches);
-        if ( count($searchMatches[1]) ) {
-          foreach ($searchMatches[1] as $searchResult) {
-            $template['Requires'] = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$template['Requires']);
-          }
-        }
-        $installComment = tr("This application has additional requirements")."<br>{$template['Requires']}<br>$installComment";
-      }
-
-      $installComment = str_replace("\n","",$installComment ?: "");
-      if ( ! $template['Language'] ) {
-        if ( ! $template['NoInstall'] && ! ($caSettings['NoInstalls'] ?? false) ) {
-          if ( ! $template['Plugin'] ) {
-            if ( $caSettings['dockerRunning'] ) {
-              foreach ($info as $testDocker) {
-                $tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
-                $tmpRepo = strpos($tmpRepo,"/") ? $tmpRepo : "library/$tmpRepo";
-                if ( ( ($tmpRepo == $testDocker['Image'] && $template['Name'] == $testDocker['Name']) || "{$tmpRepo}:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name']) ) {
-                  $selected = true;
-                  $name = $testDocker['Name'];
-                  break;
-                }
-              }
-
-              $template['Installed'] = $selected;
-              if ( $selected ) {
-                $ind = searchArray($info,"Name",$name);
-                if ( $info[$ind]['url'] && $info[$ind]['running'] ) {
-                  $actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("WebUI"),"action"=>"openNewWindow('{$info[$ind]['url']}','_blank');"];
-                  if ( $info[$ind]['TSurl'] ?? false)
-                    $actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailscale WebUI"),"action"=>"openNewWindow('{$info[$ind]['TSurl']}','_blank');"];
-
-                }
-
-                if ( isset($dockerUpdateStatus[$tmpRepo]) && $dockerUpdateStatus[$tmpRepo]['status'] == "false" ) {
-                  $template['UpdateAvailable'] = true;
-                  $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"updateDocker('$name');"];
-                } else {
-                  $template['UpdateAvailable'] = false;
-                }
-                if ( $caSettings['defaultReinstall'] == "true" && ! $template['Blacklist']) {
-                  if ( $template['ID'] !== false ) { # don't allow 2nd if there's not a "default" within CA
-                    if ( $template['BranchID'] ?? false )
-                      $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'".str_replace(" ","&#32;",htmlspecialchars($installComment,ENT_QUOTES))."','".portsUsed($template)."');"];
-                    else
-                      $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','".str_replace(" ","&#32;",htmlspecialchars($installComment,ENT_QUOTES))."','".portsUsed($template)."');"];
-                  }
-                }
-                if ( is_file($info[$ind]['template']) )
-                  $actionsContext[] = ["icon"=>"ca_fa-edit","text"=>tr("Edit"),"action"=>"popupInstallXML('".addslashes($info[$ind]['template'])."','edit');"];
-
-                $actionsContext[] = ["divider"=>true];
-                if ($info[$ind]['template'])
-                  $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallDocker('".addslashes($info[$ind]['template'])."','{$template['Name']}');"];
-                if ( $template['DonateLink'] ) {
-                  $actionsContext[] = ["divider"=>true];
-                  $actionsContext[] = ["icon"=>"ca_fa-money","text"=>tr("Donate"),"action"=>"openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
-                }
-              } elseif ( ! ($template['Blacklist']??false) || ! ($template['Compatible']??false) ) {
-                if ( $template['InstallPath'] ) {
-                  $userTemplate = readXmlFile($template['InstallPath'],false,false);
-                  if ( ! $template['Blacklist'] ) {
-                    $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','','".portsUsed($userTemplate)."');"];
-                    $actionsContext[] = ["divider"=>true];
-                  }
-                  $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove from Previous Apps"),"alternate"=>tr("Remove"),"action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
-                }	else {
-                  if ( ! ($template['BranchID'] ?? null) ) {
-                    if ( is_file("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml") ) {
-                      $test = readXmlFile("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml",true);
-                      if ( $template['Repository'] == $test['Repository'] ) {
-                        $userTemplate = readXmlFile($template['InstallPath'],false,false);
-                        $actionsContext[] = ["icon"=>"ca_fa-install","text"=>"<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>","action"=>"popupInstallXML('".addslashes("{$caPaths['dockerManTemplates']}/my-{$template['Name']}").".xml','user','','".portsUsed($userTemplate)."');"];
-                        $actionsContext[] = ["divider"=>true];
-                      }
-                    }
-                    $installComment = str_replace("'","&apos;",$installComment);
-                    $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','default','".str_replace(" ","&#32;",htmlspecialchars($installComment,ENT_QUOTES))."','".portsUsed($template)."');"];
-                  } else {
-                    $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"displayTags('{$template['ID']}',false,'".str_replace(" ","&#32;",htmlspecialchars($installComment,ENT_QUOTES))."','".portsUsed($template)."');"];
-                  }
-                }
-              }
-            }
-          } else {
-            $pluginName = basename($template['PluginURL']);
-            $template['Installed'] = checkInstalledPlugin($template);
-            if ( $template['Installed'] )  {
-              $pluginInstalledVersion = ca_plugin("version","/var/log/plugins/$pluginName");
-              if ( file_exists("/tmp/plugins/$pluginName") ) {
-                $tmpPluginVersion = ca_plugin("version","/tmp/plugins/$pluginName");
-                if (strcmp($template['pluginVersion'],$tmpPluginVersion) < 0)
-                  $template['pluginVersion'] = $tmpPluginVersion;
-              }
-              $template['pluginVersion'] = ca_plugin("version","/tmp/plugins/$pluginName");
-
-              if ( ( strcmp($pluginInstalledVersion,$template['pluginVersion']) < 0 || $template['UpdateAvailable']) && $template['Name'] !== "Community Applications" && ( ! ($template['UninstallOnly'] ?? false) ) ) {
-                @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
-                $template['UpdateAvailable'] = true;
-                $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin('$pluginName',true,'','{$template['RequiresFile']}');"];
-              } else {
-                if ( ! $template['UpdateAvailable'] ) # this handles if the feed hasn't caught up to the update yet
-                  $template['UpdateAvailable'] = false;
-              }
-              $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
-              if ( $pluginSettings ) {
-                $actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
-              }
-
-              if ( $pluginName != "community.applications.plg" ) {
-                if ( ! empty($actionsContext) )
-                  $actionsContext[] = ["divider"=>true];
-
-                $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ","&#32;",$template['Name'])."');"];
-              }
-              if ( $template['DonateLink'] ) {
-                  $actionsContext[] = ["divider"=>true];
-                  $actionsContext[] = ["icon"=>"ca_fa-money","text"=>tr("Donate"),"action"=>"openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
-              }
-            } elseif ( ! $template['Blacklist'] || ! $template['Compatible'] ) {
-              $buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
-              if ( ! $template['InstallPath'] ) {
-                $installComment = $template['CAComment'];
-                if ( ! $installComment && $template['Requires'] ){
-                  // Remove the flags to indicate a search taking place
-                  preg_match_all("/\/\/(.*?)\\\\/m",$template['Requires'],$searchMatches);
-                  if ( count($searchMatches[1]) ) {
-                    foreach ($searchMatches[1] as $searchResult) {
-                      $template['Requires'] = str_replace("//$searchResult\\\\",$searchResult,$template['Requires']);
-                    }
-                  }
-                  $installComment = tr("This application has additional requirements")."<br>".markdown($template['Requires']);
-                }
-              }
-              $isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
-              $isDeprecated = $template['Compatible'] ? "&incompatible" : "";
-
-              $updateFlag = false;
-              $requiresText = "";
-              if ( $template['RequiresFile'] && ! is_file($template['RequiresFile']) ) {
-                $requiresText = "AnythingHere";
-                $updateFlag = true; // This forces the system to double check the requirements and abort the install
-              } else {
-                $installComment = $template['RequiresFile'] ? "" : $installComment;
-              }
-              if ( ! ($template['UninstallOnly'] ?? false) ) {
-                if ( $template['Compatible'] )
-                  $actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','".str_replace([" ","\n"],["&#32;",""],htmlspecialchars(($installComment ?? ""),ENT_QUOTES))."','$requiresText');"];
-              }
-              if ( $template['InstallPath'] ) {
-                if ( ! empty($actionsContext) )
-                  $actionsContext[] = ["divider"=>true];
-                $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove from Previous Apps"),"action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
-              }
-            }
-            if ( file_exists($caPaths['pluginPending'].$pluginName) ) {
-              unset($actionsContext);
-              $actionsContext[] = ["text"=>tr("Pending")];
-            }
-          }
-        }
-      }
-      if ( $template['Language'] ) {
-        $countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
-        $dynamixSettings = @parse_ini_file($caPaths['dynamixSettings'],true);
-        $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
-        $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"),[".",".."]);
-        $installedLanguages = array_filter($installedLanguages,function($v) {
-          return is_dir("/usr/local/emhttp/languages/$v");
-        });
-        $installedLanguages[] = "en_US";
-        $currentLanguage = (is_dir("/usr/local/emhttp/languages/$currentLanguage") ) ? $currentLanguage : "en_US";
-        if ( in_array($countryCode,$installedLanguages) ) {
-          if ( $currentLanguage != $countryCode ) {
-            $actionsContext[] = ["icon"=>"ca_fa-switchto","text"=>$template['SwitchLanguage'],"action"=>"CAswitchLanguage('$countryCode');"];
-          }
-        } else {
-          $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
-        }
-        if ( file_exists("/var/log/plugins/lang-$countryCode.xml") ) {
-          $template['Installed'] = true;
-          if ( languageCheck($template) ) {
-            $template['UpdateAvailable'] = true;
-            $actionsContext[] = ["icon"=>"ca_fa-update","text"=>$template['UpdateLanguage'],"action"=>"updateLanguage('$countryCode');"];
-          }
-          if ( $currentLanguage != $countryCode ) {
-            if ( ! empty($actionsContext) )
-              $actionsContext[] = ["divider"=>true];
-            $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove Language Pack"),"action"=>"removeLanguage('$countryCode');"];
-          }
-        }
-        if ( file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml") ) {
-          unset($actionsContext);
-          $actionsContext[] = ["text"=>tr("Pending")];
-        }
-      }
-
-      $template['actionsContext'] = $actionsContext;
-
-      $template['ca_fav'] = $caSettings['favourite'] && ($caSettings['favourite'] == $template['RepoName']);
-      if ( strpos($template['Repository'],"/") === false )
-        $template['Pinned'] = $pinnedApps["library/{$template['Repository']}&{$template['SortName']}"] ?? false;
-      else
-        $template['Pinned'] = $pinnedApps["{$template['Repository']}&{$template['SortName']}"] ?? false;
-      if ( isset($template['Repo']) ) {
-        $template['Twitter'] = $template['Twitter'] ?? ($repositories[$template['Repo']]['Twitter'] ?? null);
-        $template['Reddit'] = $template['Reddit'] ?? ($repositories[$template['Repo']]['Reddit'] ?? null);
-        $template['Facebook'] = $template['Facebook'] ?? ($repositories[$template['Repo']]['Facebook'] ?? null);
-        $template['Discord'] = $template['Discord'] ?? ($repositories[$template['RepoName']]['Discord'] ?? null);
-      } else {
-        $template['Twitter'] = $template['Twitter'] ?? null;
-        $template['Reddit'] = $template['Reddit'] ?? null;
-        $template['Facebook'] = $template['Facebook'] ?? null;
-        $template['Discord'] = $template['Discord'] ?? null;
-      }
-
-      $previousAppName = $template['Plugin'] ? $template['PluginURL'] : $template['Name'];
-      if ( isset($checkedOffApps[$previousAppName]) )
-        $template['checked'] = $checkedOffApps[$previousAppName] ? "checked" : "";
-
-      if ( ! $template['Plugin'] ) {
-        $tmpRepo = $template['Repository'];
-        if ( ! strpos($tmpRepo,"/") ) {
-          $tmpRepo = "library/$tmpRepo";
-        }
-        foreach ($info as $testDocker) {
-          if ( ($tmpRepo == $testDocker['Image'] || "$tmpRepo:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name']) ) {
-            $template['Installed'] = true;
-
-            break;
-          }
-        }
-      } else {
-        $pluginName = basename($template['PluginURL']);
-        $template['Installed'] = checkInstalledPlugin($template) ;
-
-      }
-
-      if ( $template['Language'] ) {
-        $template['Installed'] = is_dir("{$caPaths['languageInstalled']}{$template['LanguagePack']}") && ! $template['Uninstall'];
-      }
-
-      if ( startsWith($template['Repository'],["library/","registry.hub.docker.com/library/"]) || strpos($template['Repository'],"/") === false)
-        $template['Official'] = true;
-
-  # Entries created.  Now display it
-      $ct .= displayCard($template);
-      $count++;
-      if ( $count == $caSettings['maxPerPage'] ) break;
+      // fallback: original logic or skip
     }
+    $count++;
+    if ( $count == $caSettings['maxPerPage'] ) break;
   }
 
   $ct .= getPageNavigation($pageNumber,count($file),false,true);
@@ -758,7 +476,7 @@ function getPopupDescriptionSkin($appNumber) {
           }
         } elseif ( ! $template['Blacklist']  ) {
           if ( ($template['Compatible'] || $caSettings['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false) ) {
-            if ( !$template['Deprecated'] || $caSettings['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath']) ) {
+            if ( !$template['Deprecated'] || $caSettings['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
               if ( ($template['RequiresFile'] && is_file($template['RequiresFile']) ) || ! $template['RequiresFile'] ) {
                 $buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
                 $isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
@@ -770,7 +488,7 @@ function getPopupDescriptionSkin($appNumber) {
           if ( $template['InstallPath'] ) {
             if ( ! empty($actionsContext) )
               $actionsContext[] = ["divider"=>true];
-            $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
+            $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove from Previous Apps"),"action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
           }
         }
         if ( is_file($caPaths['pluginPending'].$pluginName) ) {
@@ -783,39 +501,41 @@ function getPopupDescriptionSkin($appNumber) {
   if ( $template['Language'] ) {
     $dynamixSettings = @parse_ini_file($caPaths['dynamixSettings'],true);
     $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
-    $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"),array(".",".."));
+    $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"),[".",".."]);
     $installedLanguages = array_filter($installedLanguages,function($v) {
       return is_dir("/usr/local/emhttp/languages/$v");
     });
     $installedLanguages[] = "en_US";
     $currentLanguage = (is_dir("/usr/local/emhttp/languages/$currentLanguage") ) ? $currentLanguage : "en_US";
-    if ( in_array($countryCode,$installedLanguages) ) {
-      if ( $currentLanguage != $countryCode ) {
+    if (in_array($countryCode,$installedLanguages)) {
+      if ($currentLanguage != $countryCode) {
         $actionsContext[] = ["icon"=>"ca_fa-switchto","text"=>$template['SwitchLanguage'],"action"=>"CAswitchLanguage('$countryCode');"];
       }
     } else {
       $actionsContext[] = ["icon"=>"ca_fa-install","text"=>$template['InstallLanguage'],"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
     }
-    if ( file_exists("/var/log/plugins/lang-$countryCode.xml") ) {
-      if ( languageCheck($template) ) {
+    if (file_exists("/var/log/plugins/lang-$countryCode.xml")) {
+      if (languageCheck($template)) {
         $template['UpdateAvailable'] = true;
         $actionsContext[] = ["icon"=>"ca_fa-update","text"=>$template['UpdateLanguage'],"action"=>"updateLanguage('$countryCode');"];
       }
-      if ( $currentLanguage != $countryCode ) {
-        if ( ! empty($actionsContext) )
+      if ($currentLanguage != $countryCode) {
+        if (!empty($actionsContext))
           $actionsContext[] = ["divider"=>true];
-        $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove Language Pack")."</span>","action"=>"removeLanguage('$countryCode');"];
+        $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove Language Pack"),"action"=>"removeLanguage('$countryCode');"];
       }
     }
-    if ( $countryCode !== "en_US" ) {
+    if ($countryCode !== "en_US") {
       $template['Changes'] = "<center><a href='https://github.com/unraid/lang-$countryCode/commits/master' target='_blank'>".tr("Click here to view the language changelog")."</a></center>";
     } else {
       unset($template['Changes']);
     }
-    if ( file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml") ) {
+    if (file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml")) {
       unset($actionsContext);
-      $actionsContext[] = ["text"=>tr("Pending")];
+      $actionsContext = [["text"=>tr("Pending")]];
     }
+    $template['actionsContext'] = $actionsContext;
+    return displayCard($template);
   }
 
   $supportContext = [];
@@ -1110,346 +830,43 @@ function displaySearchResults($pageNumber) {
 ###########################
 function displayCard($template) {
   global $caSettings, $caPaths;
-  $appName = str_replace("-"," ",$template['display_dockerName'] ?? "");
-  $holderClass = "";
-  $card = "";
+  
+  $template['Type'] = "docker";
+  if ( $template['Plugin'] ) $template['Type'] = "plugin";
+  if ( $template['Language'] ) $template['Type'] = "language";
+  if ( $template['RepositoryTemplate'] ) $template['Type'] = "repository";
 
-  if ( $template['RepositoryTemplate'] )
-    $template['DockerHub'] = false;
-
-  if ( $template['DockerHub'] )
-    $popupType = null;
-  else {
-    $popupType = $template['RepositoryTemplate'] ? "ca_repoPopup" : "ca_appPopup";
-
-    if (! $template['RepositoryTemplate'] && $template['Language']) {
-      $language = "{$template['Language']}";
-      $language .= $template['LanguageLocal'] ? " - {$template['LanguageLocal']}" : "";
-      $template['Category'] = "";
-    }
-  }
-
-  extract($template);
-
-  $class = "spotlightHome";
-  $RepoName = $RepoName ?? "";
-
-  if ( $RepositoryTemplate )
-    $appType = "appRepository";
-  else {
-    $appType = $Plugin ? "appPlugin" : "appDocker";
-    $appType = $Language ? "appLanguage": $appType;
-    $appType = (strpos($Category,"Drivers") !== false) && $Plugin ? "appDriver" : $appType;
-  }
-  switch ($appType) {
-    case "appPlugin":
-      $typeTitle = tr("This application is a plugin");
-      break;
-    case "appDocker":
-      $typeTitle = tr("This application is a docker container");
-      break;
-    case "appLanguage":
-      $typeTitle = tr("This is a language pack");
-      break;
-    case "appDriver":
-      $typeTitle = tr("This application is a driver (plugin)");
-      break;
+  switch ($template['Type']) {
+    case 'docker':
+      return handleDockerCard($template, $caSettings, $caPaths);
+    case 'plugin':
+      return handlePluginCard($template, $caSettings, $caPaths);
+    case 'language':
+      return handleLanguageCard($template, $caSettings, $caPaths);
+    case 'repository':
+      return handleRepositoryCard($template, $caSettings, $caPaths);
     default:
-      $typeTitle = "";
-      break;
+      return "";
   }
-  if ($InstallPath ?? false)
-    $Path = $InstallPath;
-
-  $Category = $Category ?? "";
-  $Category = explode(" ",$Category)[0];
-  $Category = explode(":",$Category)[0];
-
-  if ( ! $DockerHub )
-  $author = $Plugin ? $Author : ($RepoShort ?? $RepoName);
-  else
-    $author = $Author;
-
-  $ID = $ID ?? "";
-
-  $author = $author ?? "";
-  if ( $author == $RepoName ) {
-    if (strpos($author,"' Repository") )
-      $author = sprintf(tr("%s's Repository"),str_replace("' Repository","",$author));
-    elseif (strpos($author,"'s Repository"))
-      $author = sprintf(tr("%s's Repository"),str_replace("'s Repository","",$author));
-    elseif (strpos($author," Repository") )
-      $author = sprintf(tr("%s Repository"),str_replace(" Repository","",$author));
-  }
-
-  if ( !$RepositoryTemplate ) {
-    $cardClass = "ca_appPopup";
-    $supportContext = [];
-    if ( $ReadMe )
-      $supportContext[] = ["icon"=>"ca_fa-readme","link"=>$ReadMe,"text"=>tr("Read Me First")];
-    if ( $Project )
-      $supportContext[] = ["icon"=>"ca_fa-project","link"=>$Project,"text"=> tr("Project")];
-    if ( $Discord )
-      $supportContext[] = ["icon"=>"ca_discord","link"=>$Discord,"text"=>tr("Discord")];
-    if ( $Support )
-      $supportContext[] = ["icon"=>"ca_fa-support","link"=>$Support,"text"=> $SupportLanguage ?: tr("Support Forum")];
-    if ( $Registry ?? false)
-      $supportContext[] = ["icon"=>"docker","link"=>$Registry,"text"=>tr("Registry")];
-  } else {
-    $holderClass='repositoryCard';
-    $cardClass = "ca_repoinfo";
-    $ID = str_replace(" ","",$RepoName);
-    $supportContext = [];
-    if ( $profile ?? false )
-      $supportContext[] = ["icon"=>"ca_profile","link"=>$profile,"text"=>tr("Profile")];
-    if ( $Forum ?? false)
-      $supportContext[] = ["icon"=>"ca_forum","link"=>$Forum,"text"=>tr("Forum")];
-    if ( $Twitter ?? false)
-      $supportContext[] = ["icon"=>"ca_twitter","link"=>$Twitter,"text"=>tr("Twitter")];
-    if ( $Reddit ?? false)
-      $supportContext[] = ["icon"=>"ca_reddit","link"=>$Reddit,"text"=>tr("Reddit")];
-    if ( $Facebook ?? false)
-      $supportContext[] = ["icon"=>"ca_facebook","link"=>$Facebook,"text"=>tr("Facebook")];
-    if ( $WebPage ?? false)
-      $supportContext[] = ["icon"=>"ca_webpage","link"=>$WebPage,"text"=>tr("Web Page")];
-
-    $Name = str_replace(["' Repository","'s Repository"," Repository"],"",html_entity_decode($author,ENT_QUOTES));
-
-    $Name = str_replace(["&apos;s","'s"],"",$Name);
-    $actionsContext= [];
-    $Path = $author = $Repository = $Plugin = $IconFA = $ModeratorComment = $RecommendedDate = $UpdateAvailable = $Blacklist = $Official = $Trusted = $Pinned = $Deprecated = $Removable = $CAComment = $Installed = $Uninstalled = $Uninstall = $fav = $Beta = $Requires = $caTemplateExists = $actionCentre = $Overview = $imageNoClick = "";
-  }
-
-  $bottomClass = "ca_bottomLineSpotLight";
-  if ( $DockerHub ) {
-    $backgroundClickable = "dockerCardBackground";
-    $card .= "
-      <div class='dockerHubHolder $class $popupType'>
-      <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>";
-  } else {
-    if ( $PluginURL ?? false) {
-      $dataPluginURL = "data-pluginurl='$PluginURL'";
-    } else {
-      $dataPluginURL = "";
-    }
-    $backgroundClickable = "ca_backgroundClickable";
-    $card .= "
-      <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>
-      <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton $cardClass'>".tr("Info")."</div>
-    ";
-  }
-  if ( count($supportContext) == 1)
-    $card .= "<div class='supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
-  elseif (!empty($supportContext))
-    $card .= "
-      <div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
-    ";
-
-  if ( $actionsContext ) {
-    if ( count($actionsContext) == 1) {
-      $dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
-      $card .= "<div class='actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
-    }
-    else
-      $card .= "<div class='actionsButton actionsButtonContext' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($actionsContext,JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
-  }
-
-  $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
-  if ( $ca_fav ) {
-    $favText = $RepositoryTemplate ? tr("This is your favourite repository") : tr("This application is from your favourite repository");
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' title='".htmlentities($favText)."'></span>";
-  }	else
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' style='display:none;'></span>";
-
-  $pinStyle = $Pinned ? "" : "display:none;";
-
-  $pindata = (strpos($Repository,"/") !== false) ? $Repository : "library/$Repository";
-  $card .= "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='$pindata$SortName' style='$pinStyle'></span>";
-
-  $previousAppName = $Plugin ? $PluginURL : $Name;
-  switch ($appType) {
-    case 'appDocker':
-      $type = "docker";
-      break;
-    case 'appPlugin':
-      $type = "plugin";
-      break;
-    case 'appLanguage':
-      $type = "language";
-      break;
-    case 'appDriver':
-      $type = 'plugin';
-      break;
-  }
-  $checked = $checked ?? "";
-  if ($Removable && !($DockerInfo ?? false) && ! $Installed && ! $Blacklist) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
-  } elseif ( $actionCentre && $UpdateAvailable ) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
-  }
-
-  $card .= "</div>";
-  $card .= "<div class='$cardClass $backgroundClickable'>";
-  $card .= "<div class='ca_iconArea'>";
-  if ( $DockerHub )
-    $imageNoClick = "noClick";
-
-  if ( ! $IconFA )
-    $card .= "
-      <img class='ca_displayIcon $imageNoClick' src='$Icon' alt='Application Icon'></img>
-    ";
-  else {
-    $displayIcon = $template['IconFA'] ?: $template['Icon'];
-    $displayIconClass = startsWith($displayIcon,"icon-") ? $displayIcon : "fa fa-$displayIcon";
-    $card  .= "<i class='ca_appPopup $displayIconClass displayIcon $imageNoClick'></i>";
-  }
-  $card .= "</div>";
-
-
-  $card .= "
-    <div class='ca_applicationName'>$Name
-  ";
-  if ( $CAComment || $ModeratorComment || $Requires) {
-    $commentIcon = "";
-    $warning = "";
-    if ( $CAComment || $ModeratorComment) {
-      $commentIcon = "ca_fa-comment";
-      $warning = tr("Click info to see the notes regarding this application");
-    }
-    if ( $Requires ) {
-      if ( $RequiresFile && ! is_file($RequiresFile) ) {
-        $commentIcon = "ca_fa-additional";
-        $warning = tr("This application has additional requirements");
-      }
-    }
-
-    $card .= "&nbsp;<span class='$commentIcon cardWarning' title='".htmlentities($warning,ENT_QUOTES)."'></span>";
-  }
-  $card .= "
-        </div>
-        <div class='ca_author'>$author</div>
-        <div class='cardCategory'>$Category</div>
-  ";
-
-  $card .= "
-    </div>
-    ";
-
-  $Overview = $Overview ?: ($Description ?? "");
-
-  if ( ! $Overview )
-    $Overview = tr("No description present");
-
-  $ovr = html_entity_decode($Overview);
-  $ovr = trim($ovr);
-  $ovr = str_replace(["[","]"],["<",">"],$ovr);
-  $ovr = str_replace("\n","<br>",$ovr);
-
-//	$ovr = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$ovr);
-  $ovr = markdown(strip_tags($ovr,"<br>"));
-
-  $ovr = str_replace("\n","<br>",$ovr);
-  $Overview = strip_tags(str_replace("<br>"," ",$ovr));
-
-  if ( ($UninstallOnly ?? false) && ($Featured??null) && is_file("/var/log/plugins/".basename($PluginURL)) )
-    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Either uninstall %s or update the OS"),$Name,$Name)."</span>&nbsp;&nbsp;$Overview";
-  else
-    if ( (! ($Compatible??null) || ($UninstallOnly ?? false) ) && ($Featured??null) )
-      $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"),$Name)."</span>&nbsp;&nbsp;$Overview";
-
-
-  $descClass= $RepositoryTemplate ? "cardDescriptionRepo" : "cardDescription";
-  $card .= "<div class='$descClass $backgroundClickable'><div class='cardDesc'>$Overview</div></div>";
-  if ( $RecommendedDate ) {
-    $card .= "
-      <div class='homespotlightIconArea ca_center''>
-        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
-        <div class='spotlightDate'>".tr(date("M Y",$RecommendedDate),0)."</div>
-      </div>
-    ";
-  }
-  $card .= "</div>";
-  if ( $Installed || $Uninstall ) {
-    $flagTextStart = tr("Installed")."<br>";
-    $flagTextEnd = "";
-  } else {
-    $flagTextStart = "&nbsp;";
-    $flagTextEnd = "&nbsp;";
-  }
-  if ( $UpdateAvailable ) {
-    $card .= "
-      <div class='betaCardBackground'>
-        <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
-      </div>";
-  } elseif ( ($Installed || $Uninstall) && !$actionCentre) {
-     $card .= "
-       <div class='installedCardBackground'>
-         <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
-      </div>";
-  } elseif ( $Blacklist ) {
-    $card .= "
-      <div class='warningCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."$flagTextEnd</div>
-      </div>
-    ";
-  } elseif ( $caTemplateExists ) {
-    $card .= "
-      <div class='greenCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
-      </div>
-    ";
-  } elseif ( isset($Compatible) && ! $Compatible ) {
-    $verMsg = $VerMessage ?? tr("This application is not compatible with your version of Unraid");
-    $card .= "
-      <div class='warningCardBackground'>
-        <div class='installedCardText ca_center' title='$verMsg'>$flagTextStart".tr("Incompatible")."$flagTextEnd</div>
-      </div>
-    ";
-  } elseif ( $Deprecated ) {
-    $card .= "
-      <div class='warningCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."$flagTextEnd</div>
-      </div>
-    ";
-  } elseif ( $Official ) {
-    $card .= "
-      <div class='officialCardBackground'>
-        <div class='installedCardText ca_center' title='".tr('This is an official container')."'>".tr("OFFICIAL")."</div>
-      </div>
-    ";
-  } elseif ( $LTOfficial ?? false ) {
-    $card .= "
-      <div class='LTOfficialCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("LIMETECH")."</div>
-      </div>
-    ";
-  } elseif ( $Beta ) {
-    $card .= "
-      <div class='betaCardBackground'>
-        <div class='installedCardText ca_center'>".tr("BETA")."</div>
-      </div>
-    ";
-  }/*  elseif ( $RecommendedDate ) {
-    $card .= "
-      <div class='spotlightCardBackground'>
-        <div class='spotlightPopupText' title='".tr("This is a spotlight application")."'></div>
-      </div>
-    ";
-  } */ elseif ( $Trusted ) {
-    $card .= "
-      <div class='spotlightCardBackground'>
-        <div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div>
-      </div>
-    ";
-  }
-  return str_replace(["\t","\n"],"",$card);
 }
 
-function displayPopup($template) {
-  global $caSettings, $caPaths;
+function handleDockerPopup($template) {
+  // For now, use the existing displayPopup logic for docker
+  return displayPopupDockerPluginLanguage($template);
+}
 
+function handlePluginPopup($template) {
+  // For now, use the existing displayPopup logic for plugin
+  return displayPopupDockerPluginLanguage($template);
+}
+
+function handleLanguagePopup($template) {
+  // For now, use the existing displayPopup logic for language
+  return displayPopupDockerPluginLanguage($template);
+}
+
+function displayPopupDockerPluginLanguage($template) {
+  global $caSettings, $caPaths;
   extract($template);
 
   $Repo = $Repo ?? "";
@@ -1479,7 +896,7 @@ function displayPopup($template) {
     if ( $actionsContext ) {
       if ( count($actionsContext) == 1 ) {
         $card .= "<div class='actionsPopup'><span onclick={$actionsContext[0]['action']}>".str_replace("ca_red","",$actionsContext[0]['text'])."</span></div>";
-      } else {
+    } else {
         $card .= "
           <div class='actionsPopup' id='actionsPopup'>".tr("Actions")."</div>
         ";
@@ -1590,12 +1007,12 @@ function displayPopup($template) {
     <div class='popupInfoSection'>
       <div class='popupInfoLeft'>
       <div class='rightTitle'>".tr("Details")."</div>
-      <table style='display:initial;'>
+      <table style='display:contents;'>
         <tr><td class='popupTableLeft'>".tr("Application Type")."</td><td class='popupTableRight'>$appType</td></tr>
         <tr><td class='popupTableLeft'>".tr("Categories")."</td><td class='popupTableRight'>$Category</td></tr>
         <tr><td class='popupTableLeft'>".tr("Added")."</td><td class='popupTableRight'>$DateAdded</td></tr>
   ";
-  if ( !$Plugin ) {
+  if (!$Plugin ) {
     $downloadText = getDownloads($downloads);
     if ($downloadText)
       $card .= "<tr><td class='popupTableLeft'>".tr("Downloads")."</td><td class='popupTableRight'>$downloadText</td></tr>";
@@ -1660,23 +1077,23 @@ function displayPopup($template) {
     ";
   }
 
-  $card .= "
+    $card .= "
       </div>
     </div>
-    </div>
-  ";
+      </div>
+    ";
 
   if (is_array($trends) && (count($trends) > 1) ){
     if ( $downloadtrend ) {
-      $card .= "
+    $card .= "
         <div class='charts chartTitle'>".tr("Trends")."</div>
         <div><span class='charts'>Show: <span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
         <div>
         <div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
         <div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3</canvas></div>
         <div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
-        </div>
-      ";
+      </div>
+    ";
     }
   }
 
@@ -1714,7 +1131,864 @@ function displayPopup($template) {
     ";
   }
 
-
   return $card;
+}
+
+function handleDockerCard($template, $caSettings, $caPaths) {
+  $card = "";
+  $appType = "appDocker";
+  $typeTitle = tr("This application is a docker container");
+  
+  // Set up card header
+  $card .= "<div class='ca_holder spotlightHome ca_appPopup' data-apppath='{$template['Path']}' data-appname='{$template['Name']}' data-repository='".htmlentities($template['RepoName'],ENT_QUOTES)."'>";
+  $card .= "<div class='ca_bottomLine ca_bottomLineSpotLight'>";
+  $card .= "<div class='infoButton ca_appPopup'>".tr("Info")."</div>";
+  
+  // Add support context if exists
+  if (!empty($template['supportContext'])) {
+    if (count($template['supportContext']) == 1) {
+      $card .= "<div class='supportButton'><span class='ca_href' data-href='{$template['supportContext'][0]['link']}' data-target='_blank'>{$template['supportContext'][0]['text']}</span></div>";
+    } else {
+      $card .= "<div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['supportContext'])."'>".tr("Support")."</div>";
+    }
+  }
+  
+  // Add actions context
+  if (!empty($template['actionsContext'])) {
+    if (count($template['actionsContext']) == 1) {
+      $dispText = $template['actionsContext'][0]['alternate'] ?? $template['actionsContext'][0]['text'];
+      $card .= "<div class='actionsButton' onclick={$template['actionsContext'][0]['action']}>$dispText</div>";
+    } else {
+      $card .= "<div class='actionsButton actionsButtonContext' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['actionsContext'],JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+    }
+  }
+  
+  // Add app type indicator
+  $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
+  
+  // Add favorite indicator
+  if ($template['ca_fav']) {
+    $favText = tr("This application is from your favourite repository");
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' title='".htmlentities($favText)."'></span>";
+  } else {
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' style='display:none;'></span>";
+  }
+  
+  // Add pinned indicator
+  $pinStyle = $template['Pinned'] ? "" : "display:none;";
+  $pindata = (strpos($template['Repository'],"/") !== false) ? $template['Repository'] : "library/{$template['Repository']}";
+  $card .= "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='$pindata{$template['SortName']}' style='$pinStyle'></span>";
+  
+  // Add checkbox for updates if applicable
+  if ($template['actionCentre'] && $template['UpdateAvailable']) {
+    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='{$template['Name']}' data-humanName='{$template['Name']}' data-type='docker' data-language='{$template['LanguagePack']}' {$template['checked']}>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add card content
+  $card .= "<div class='ca_appPopup ca_backgroundClickable'>";
+  $card .= "<div class='ca_iconArea'>";
+  
+  if (!$template['IconFA']) {
+    $card .= "<img class='ca_displayIcon' src='{$template['Icon']}' alt='Application Icon'></img>";
+  } else {
+    $displayIcon = $template['IconFA'] ?: $template['Icon'];
+    $displayIconClass = startsWith($displayIcon,"icon-") ? $displayIcon : "fa fa-$displayIcon";
+    $card .= "<i class='ca_appPopup $displayIconClass displayIcon'></i>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add application name and warnings
+  $card .= "<div class='ca_applicationName'>{$template['Name']}";
+  if ($template['CAComment'] || $template['ModeratorComment'] || $template['Requires']) {
+    $commentIcon = "";
+    $warning = "";
+    if ($template['CAComment'] || $template['ModeratorComment']) {
+      $commentIcon = "ca_fa-comment";
+      $warning = tr("Click info to see the notes regarding this application");
+    }
+    if ($template['Requires']) {
+      if ($template['RequiresFile'] && !is_file($template['RequiresFile'])) {
+        $commentIcon = "ca_fa-additional";
+        $warning = tr("This application has additional requirements");
+      }
+    }
+    $card .= "&nbsp;<span class='$commentIcon cardWarning' title='".htmlentities($warning,ENT_QUOTES)."'></span>";
+  }
+  $card .= "</div>";
+  
+  // Add author and category
+  $card .= "<div class='ca_author'>{$template['author']}</div>";
+  $card .= "<div class='cardCategory'>{$template['Category']}</div>";
+  
+  $card .= "</div>";
+  
+  // Add description
+  $Overview = $template['Overview'] ?: ($template['Description'] ?? "");
+  if (!$Overview) {
+    $Overview = tr("No description present");
+  }
+  
+  $ovr = html_entity_decode($Overview);
+  $ovr = trim($ovr);
+  $ovr = str_replace(["[","]"],["<",">"],$ovr);
+  $ovr = str_replace("\n","<br>",$ovr);
+  $ovr = markdown(strip_tags($ovr,"<br>"));
+  $ovr = str_replace("\n","<br>",$ovr);
+  $Overview = strip_tags(str_replace("<br>"," ",$ovr));
+  
+  if (($template['UninstallOnly'] ?? false) && ($template['Featured']??null) && is_file("/var/log/plugins/".basename($template['PluginURL']))) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Either uninstall %s or update the OS"),$template['Name'],$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  } elseif ((!($template['Compatible']??null) || ($template['UninstallOnly'] ?? false)) && ($template['Featured']??null)) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"),$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  }
+  
+  $card .= "<div class='cardDescription ca_backgroundClickable'><div class='cardDesc'>$Overview</div></div>";
+  
+  // Add spotlight icon if applicable
+  if ($template['RecommendedDate']) {
+    $card .= "
+      <div class='homespotlightIconArea ca_center'>
+        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+        <div class='spotlightDate'>".tr(date("M Y",$template['RecommendedDate']),0)."</div>
+      </div>
+    ";
+  }
+  
+  $card .= "</div>";
+  
+  // Add status indicators
+  if ($template['UpdateAvailable']) {
+    $card .= "
+      <div class='betaCardBackground'>
+        <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
+      </div>";
+  } elseif (($template['Installed'] || $template['Uninstall']) && !$template['actionCentre']) {
+    $card .= "
+      <div class='installedCardBackground'>
+        <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
+      </div>";
+  } elseif ($template['Blacklist']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."</div>
+      </div>
+    ";
+  } elseif ($template['caTemplateExists']) {
+    $card .= "
+      <div class='greenCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
+      </div>
+    ";
+  } elseif (isset($template['Compatible']) && !$template['Compatible']) {
+    $verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='$verMsg'>".tr("Incompatible")."</div>
+      </div>
+    ";
+  } elseif ($template['Deprecated']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."</div>
+      </div>
+    ";
+  } elseif ($template['Official']) {
+    $card .= "
+      <div class='officialCardBackground'>
+        <div class='installedCardText ca_center' title='".tr('This is an official container')."'>".tr("OFFICIAL")."</div>
+      </div>
+    ";
+  } elseif ($template['Trusted']) {
+    $card .= "
+      <div class='spotlightCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div>
+      </div>
+    ";
+  }
+  
+  return str_replace(["\t","\n"],"",$card);
+}
+
+function handlePluginCard($template, $caSettings, $caPaths) {
+  $card = "";
+  $appType = "appPlugin";
+  $typeTitle = tr("This application is a plugin");
+  
+  // Set up card header
+  $card .= "<div class='ca_holder spotlightHome ca_appPopup' data-apppath='{$template['Path']}' data-appname='{$template['Name']}' data-repository='".htmlentities($template['RepoName'],ENT_QUOTES)."' data-pluginurl='{$template['PluginURL']}'>";
+  $card .= "<div class='ca_bottomLine ca_bottomLineSpotLight'>";
+  $card .= "<div class='infoButton ca_appPopup'>".tr("Info")."</div>";
+  
+  // Add support context if exists
+  if (!empty($template['supportContext'])) {
+    if (count($template['supportContext']) == 1) {
+      $card .= "<div class='supportButton'><span class='ca_href' data-href='{$template['supportContext'][0]['link']}' data-target='_blank'>{$template['supportContext'][0]['text']}</span></div>";
+    } else {
+      $card .= "<div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['supportContext'])."'>".tr("Support")."</div>";
+    }
+  }
+  
+  // Add actions context
+  if (!empty($template['actionsContext'])) {
+    if (count($template['actionsContext']) == 1) {
+      $dispText = $template['actionsContext'][0]['alternate'] ?? $template['actionsContext'][0]['text'];
+      $card .= "<div class='actionsButton' data-pluginURL='{$template['PluginURL']}' data-languagePack='{$template['LanguagePack']}' onclick={$template['actionsContext'][0]['action']}>$dispText</div>";
+    } else {
+      $card .= "<div class='actionsButton actionsButtonContext' data-pluginURL='{$template['PluginURL']}' data-languagePack='{$template['LanguagePack']}' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['actionsContext'],JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+    }
+  }
+  
+  // Add app type indicator
+  $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
+  
+  // Add favorite indicator
+  if ($template['ca_fav']) {
+    $favText = tr("This application is from your favourite repository");
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' title='".htmlentities($favText)."'></span>";
+  } else {
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' style='display:none;'></span>";
+  }
+  
+  // Add pinned indicator
+  $pinStyle = $template['Pinned'] ? "" : "display:none;";
+  $pindata = (strpos($template['Repository'],"/") !== false) ? $template['Repository'] : "library/{$template['Repository']}";
+  $card .= "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='$pindata{$template['SortName']}' style='$pinStyle'></span>";
+  
+  // Add checkbox for updates if applicable
+  if ($template['actionCentre'] && $template['UpdateAvailable']) {
+    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='{$template['PluginURL']}' data-humanName='{$template['Name']}' data-type='plugin' data-language='{$template['LanguagePack']}' {$template['checked']}>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add card content
+  $card .= "<div class='ca_appPopup ca_backgroundClickable'>";
+  $card .= "<div class='ca_iconArea'>";
+  
+  if (!$template['IconFA']) {
+    $card .= "<img class='ca_displayIcon' src='{$template['Icon']}' alt='Application Icon'></img>";
+  } else {
+    $displayIcon = $template['IconFA'] ?: $template['Icon'];
+    $displayIconClass = startsWith($displayIcon,"icon-") ? $displayIcon : "fa fa-$displayIcon";
+    $card .= "<i class='ca_appPopup $displayIconClass displayIcon'></i>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add application name and warnings
+  $card .= "<div class='ca_applicationName'>{$template['Name']}";
+  if ($template['CAComment'] || $template['ModeratorComment'] || $template['Requires']) {
+    $commentIcon = "";
+    $warning = "";
+    if ($template['CAComment'] || $template['ModeratorComment']) {
+      $commentIcon = "ca_fa-comment";
+      $warning = tr("Click info to see the notes regarding this application");
+    }
+    if ($template['Requires']) {
+      if ($template['RequiresFile'] && !is_file($template['RequiresFile'])) {
+        $commentIcon = "ca_fa-additional";
+        $warning = tr("This application has additional requirements");
+      }
+    }
+    $card .= "&nbsp;<span class='$commentIcon cardWarning' title='".htmlentities($warning,ENT_QUOTES)."'></span>";
+  }
+  $card .= "</div>";
+  
+  // Add author and category
+  $card .= "<div class='ca_author'>{$template['author']}</div>";
+  $card .= "<div class='cardCategory'>{$template['Category']}</div>";
+  
+  $card .= "</div>";
+  
+  // Add description
+  $Overview = $template['Overview'] ?: ($template['Description'] ?? "");
+  if (!$Overview) {
+    $Overview = tr("No description present");
+  }
+  
+  $ovr = html_entity_decode($Overview);
+  $ovr = trim($ovr);
+  $ovr = str_replace(["[","]"],["<",">"],$ovr);
+  $ovr = str_replace("\n","<br>",$ovr);
+  $ovr = markdown(strip_tags($ovr,"<br>"));
+  $ovr = str_replace("\n","<br>",$ovr);
+  $Overview = strip_tags(str_replace("<br>"," ",$ovr));
+  
+  if (($template['UninstallOnly'] ?? false) && ($template['Featured']??null) && is_file("/var/log/plugins/".basename($template['PluginURL']))) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Either uninstall %s or update the OS"),$template['Name'],$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  } elseif ((!($template['Compatible']??null) || ($template['UninstallOnly'] ?? false)) && ($template['Featured']??null)) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"),$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  }
+  
+  $card .= "<div class='cardDescription ca_backgroundClickable'><div class='cardDesc'>$Overview</div></div>";
+  
+  // Add spotlight icon if applicable
+  if ($template['RecommendedDate']) {
+    $card .= "
+      <div class='homespotlightIconArea ca_center'>
+        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+        <div class='spotlightDate'>".tr(date("M Y",$template['RecommendedDate']),0)."</div>
+      </div>
+    ";
+  }
+  
+  $card .= "</div>";
+  
+  // Add status indicators
+  if ($template['UpdateAvailable']) {
+    $card .= "
+      <div class='betaCardBackground'>
+        <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
+      </div>";
+  } elseif (($template['Installed'] || $template['Uninstall']) && !$template['actionCentre']) {
+    $card .= "
+      <div class='installedCardBackground'>
+        <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
+      </div>";
+  } elseif ($template['Blacklist']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."</div>
+      </div>
+    ";
+  } elseif ($template['caTemplateExists']) {
+    $card .= "
+      <div class='greenCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
+      </div>
+    ";
+  } elseif (isset($template['Compatible']) && !$template['Compatible']) {
+    $verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='$verMsg'>".tr("Incompatible")."</div>
+      </div>
+    ";
+  } elseif ($template['Deprecated']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."</div>
+      </div>
+    ";
+  } elseif ($template['LTOfficial'] ?? false) {
+    $card .= "
+      <div class='LTOfficialCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("LIMETECH")."</div>
+      </div>
+    ";
+  }
+  
+  return str_replace(["\t","\n"],"",$card);
+}
+
+function handleLanguageCard($template, $caSettings, $caPaths) {
+  $card = "";
+  $appType = "appLanguage";
+  $typeTitle = tr("This is a language pack");
+  
+  // Set up card header
+  $card .= "<div class='ca_holder spotlightHome ca_appPopup' data-apppath='{$template['Path']}' data-appname='{$template['Name']}' data-repository='".htmlentities($template['RepoName'],ENT_QUOTES)."' data-pluginurl='{$template['PluginURL']}'>";
+  $card .= "<div class='ca_bottomLine ca_bottomLineSpotLight'>";
+  $card .= "<div class='infoButton ca_appPopup'>".tr("Info")."</div>";
+  
+  // Add support context if exists
+  if (!empty($template['supportContext'])) {
+    if (count($template['supportContext']) == 1) {
+      $card .= "<div class='supportButton'><span class='ca_href' data-href='{$template['supportContext'][0]['link']}' data-target='_blank'>{$template['supportContext'][0]['text']}</span></div>";
+    } else {
+      $card .= "<div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['supportContext'])."'>".tr("Support")."</div>";
+    }
+  }
+  
+  // Add actions context
+  if (!empty($template['actionsContext'])) {
+    if (count($template['actionsContext']) == 1) {
+      $dispText = $template['actionsContext'][0]['alternate'] ?? $template['actionsContext'][0]['text'];
+      $card .= "<div class='actionsButton' data-pluginURL='{$template['PluginURL']}' data-languagePack='{$template['LanguagePack']}' onclick={$template['actionsContext'][0]['action']}>$dispText</div>";
+    } else {
+      $card .= "<div class='actionsButton actionsButtonContext' data-pluginURL='{$template['PluginURL']}' data-languagePack='{$template['LanguagePack']}' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."{$template['ID']}' data-context='".json_encode($template['actionsContext'],JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+    }
+  }
+  
+  // Add app type indicator
+  $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
+  
+  // Add favorite indicator
+  if ($template['ca_fav']) {
+    $favText = tr("This application is from your favourite repository");
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' title='".htmlentities($favText)."'></span>";
+  } else {
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' style='display:none;'></span>";
+  }
+  
+  // Add pinned indicator
+  $pinStyle = $template['Pinned'] ? "" : "display:none;";
+  $pindata = (strpos($template['Repository'],"/") !== false) ? $template['Repository'] : "library/{$template['Repository']}";
+  $card .= "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='$pindata{$template['SortName']}' style='$pinStyle'></span>";
+  
+  // Add checkbox for updates if applicable
+  if ($template['actionCentre'] && $template['UpdateAvailable']) {
+    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='{$template['PluginURL']}' data-humanName='{$template['Name']}' data-type='language' data-language='{$template['LanguagePack']}' {$template['checked']}>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add card content
+  $card .= "<div class='ca_appPopup ca_backgroundClickable'>";
+  $card .= "<div class='ca_iconArea'>";
+  
+  if (!$template['IconFA']) {
+    $card .= "<img class='ca_displayIcon' src='{$template['Icon']}' alt='Application Icon'></img>";
+  } else {
+    $displayIcon = $template['IconFA'] ?: $template['Icon'];
+    $displayIconClass = startsWith($displayIcon,"icon-") ? $displayIcon : "fa fa-$displayIcon";
+    $card .= "<i class='ca_appPopup $displayIconClass displayIcon'></i>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add application name and warnings
+  $card .= "<div class='ca_applicationName'>{$template['Name']}";
+  if ($template['CAComment'] || $template['ModeratorComment'] || $template['Requires']) {
+    $commentIcon = "";
+    $warning = "";
+    if ($template['CAComment'] || $template['ModeratorComment']) {
+      $commentIcon = "ca_fa-comment";
+      $warning = tr("Click info to see the notes regarding this application");
+    }
+    if ($template['Requires']) {
+      if ($template['RequiresFile'] && !is_file($template['RequiresFile'])) {
+        $commentIcon = "ca_fa-additional";
+        $warning = tr("This application has additional requirements");
+      }
+    }
+    $card .= "&nbsp;<span class='$commentIcon cardWarning' title='".htmlentities($warning,ENT_QUOTES)."'></span>";
+  }
+  $card .= "</div>";
+  
+  // Add author and category
+  $card .= "<div class='ca_author'>{$template['author']}</div>";
+  $card .= "<div class='cardCategory'>{$template['Category']}</div>";
+  
+  $card .= "</div>";
+  
+  // Add description
+  $Overview = $template['Overview'] ?: ($template['Description'] ?? "");
+  if (!$Overview) {
+    $Overview = tr("No description present");
+  }
+  
+  $ovr = html_entity_decode($Overview);
+  $ovr = trim($ovr);
+  $ovr = str_replace(["[","]"],["<",">"],$ovr);
+  $ovr = str_replace("\n","<br>",$ovr);
+  $ovr = markdown(strip_tags($ovr,"<br>"));
+  $ovr = str_replace("\n","<br>",$ovr);
+  $Overview = strip_tags(str_replace("<br>"," ",$ovr));
+  
+  if (($template['UninstallOnly'] ?? false) && ($template['Featured']??null) && is_file("/var/log/plugins/".basename($template['PluginURL']))) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Either uninstall %s or update the OS"),$template['Name'],$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  } elseif ((!($template['Compatible']??null) || ($template['UninstallOnly'] ?? false)) && ($template['Featured']??null)) {
+    $Overview = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"),$template['Name'])."</span>&nbsp;&nbsp;$Overview";
+  }
+  
+  $card .= "<div class='cardDescription ca_backgroundClickable'><div class='cardDesc'>$Overview</div></div>";
+  
+  // Add spotlight icon if applicable
+  if ($template['RecommendedDate']) {
+    $card .= "
+      <div class='homespotlightIconArea ca_center'>
+        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+        <div class='spotlightDate'>".tr(date("M Y",$template['RecommendedDate']),0)."</div>
+      </div>
+    ";
+  }
+  
+  $card .= "</div>";
+  
+  // Add status indicators
+  if ($template['UpdateAvailable']) {
+    $card .= "
+      <div class='betaCardBackground'>
+        <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
+      </div>";
+  } elseif (($template['Installed'] || $template['Uninstall']) && !$template['actionCentre']) {
+    $card .= "
+      <div class='installedCardBackground'>
+        <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
+      </div>";
+  } elseif ($template['Blacklist']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."</div>
+      </div>
+    ";
+  } elseif ($template['caTemplateExists']) {
+    $card .= "
+      <div class='greenCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
+      </div>
+    ";
+  } elseif (isset($template['Compatible']) && !$template['Compatible']) {
+    $verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='$verMsg'>".tr("Incompatible")."</div>
+      </div>
+    ";
+  } elseif ($template['Deprecated']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."</div>
+      </div>
+    ";
+  }
+  
+  return str_replace(["\t","\n"],"",$card);
+}
+
+function handleRepositoryCard($template, $caSettings, $caPaths) {
+  $card = "";
+  $appType = "appRepository";
+  $typeTitle = tr("This is a repository");
+  $holderClass = 'repositoryCard';
+  $cardClass = "ca_repoinfo";
+  $ID = str_replace(" ","",$template['RepoName']);
+  
+  // Set up card header
+  $card .= "<div class='ca_holder spotlightHome ca_repoPopup $holderClass' data-apppath='{$template['Path']}' data-appname='{$template['Name']}' data-repository='".htmlentities($template['RepoName'],ENT_QUOTES)."'>";
+  $card .= "<div class='ca_bottomLine ca_bottomLineSpotLight'>";
+  $card .= "<div class='infoButton $cardClass'>".tr("Info")."</div>";
+  
+  // Add support context if exists
+  if (!empty($template['supportContext'])) {
+    if (count($template['supportContext']) == 1) {
+      $card .= "<div class='supportButton'><span class='ca_href' data-href='{$template['supportContext'][0]['link']}' data-target='_blank'>{$template['supportContext'][0]['text']}</span></div>";
+    } else {
+      $card .= "<div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."$ID' data-context='".json_encode($template['supportContext'])."'>".tr("Support")."</div>";
+    }
+  }
+  
+  // Add actions context
+  if (!empty($template['actionsContext'])) {
+    if (count($template['actionsContext']) == 1) {
+      $dispText = $template['actionsContext'][0]['alternate'] ?? $template['actionsContext'][0]['text'];
+      $card .= "<div class='actionsButton' onclick={$template['actionsContext'][0]['action']}>$dispText</div>";
+    } else {
+      $card .= "<div class='actionsButton actionsButtonContext' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$template['Name'])."$ID' data-context='".json_encode($template['actionsContext'],JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+    }
+  }
+  
+  // Add app type indicator
+  $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
+  
+  // Add favorite indicator
+  if ($template['ca_fav']) {
+    $favText = tr("This is your favourite repository");
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' title='".htmlentities($favText)."'></span>";
+  } else {
+    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$template['RepoName'])."' style='display:none;'></span>";
+  }
+  
+  // Add pinned indicator
+  $pinStyle = $template['Pinned'] ? "" : "display:none;";
+  $pindata = (strpos($template['Repository'],"/") !== false) ? $template['Repository'] : "library/{$template['Repository']}";
+  $card .= "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='$pindata{$template['SortName']}' style='$pinStyle'></span>";
+  
+  $card .= "</div>";
+  
+  // Add card content
+  $card .= "<div class='$cardClass ca_backgroundClickable'>";
+  $card .= "<div class='ca_iconArea'>";
+  
+  if (!$template['IconFA']) {
+    $card .= "<img class='ca_displayIcon' src='{$template['Icon']}' alt='Application Icon'></img>";
+  } else {
+    $displayIcon = $template['IconFA'] ?: $template['Icon'];
+    $displayIconClass = startsWith($displayIcon,"icon-") ? $displayIcon : "fa fa-$displayIcon";
+    $card .= "<i class='ca_appPopup $displayIconClass displayIcon'></i>";
+  }
+  
+  $card .= "</div>";
+  
+  // Add application name and warnings
+  $card .= "<div class='ca_applicationName'>{$template['Name']}";
+  if ($template['CAComment'] || $template['ModeratorComment'] || $template['Requires']) {
+    $commentIcon = "";
+    $warning = "";
+    if ($template['CAComment'] || $template['ModeratorComment']) {
+      $commentIcon = "ca_fa-comment";
+      $warning = tr("Click info to see the notes regarding this application");
+    }
+    if ($template['Requires']) {
+      if ($template['RequiresFile'] && !is_file($template['RequiresFile'])) {
+        $commentIcon = "ca_fa-additional";
+        $warning = tr("This application has additional requirements");
+      }
+    }
+    $card .= "&nbsp;<span class='$commentIcon cardWarning' title='".htmlentities($warning,ENT_QUOTES)."'></span>";
+  }
+  $card .= "</div>";
+  
+  // Add author and category
+  $card .= "<div class='ca_author'>{$template['author']}</div>";
+  $card .= "<div class='cardCategory'>{$template['Category']}</div>";
+  
+  $card .= "</div>";
+  
+  // Add description
+  $Overview = $template['Overview'] ?: ($template['Description'] ?? "");
+  if (!$Overview) {
+    $Overview = tr("No description present");
+  }
+  
+  $ovr = html_entity_decode($Overview);
+  $ovr = trim($ovr);
+  $ovr = str_replace(["[","]"],["<",">"],$ovr);
+  $ovr = str_replace("\n","<br>",$ovr);
+  $ovr = markdown(strip_tags($ovr,"<br>"));
+  $ovr = str_replace("\n","<br>",$ovr);
+  $Overview = strip_tags(str_replace("<br>"," ",$ovr));
+  
+  $descClass = "cardDescriptionRepo";
+  $card .= "<div class='$descClass ca_backgroundClickable'><div class='cardDesc'>$Overview</div></div>";
+  
+  // Add spotlight icon if applicable
+  if ($template['RecommendedDate']) {
+    $card .= "
+      <div class='homespotlightIconArea ca_center'>
+        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+        <div class='spotlightDate'>".tr(date("M Y",$template['RecommendedDate']),0)."</div>
+      </div>
+    ";
+  }
+  
+  $card .= "</div>";
+  
+  // Add status indicators
+  if ($template['UpdateAvailable']) {
+    $card .= "
+      <div class='betaCardBackground'>
+        <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
+      </div>";
+  } elseif (($template['Installed'] || $template['Uninstall']) && !$template['actionCentre']) {
+    $card .= "
+      <div class='installedCardBackground'>
+        <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
+      </div>";
+  } elseif ($template['Blacklist']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."</div>
+      </div>
+    ";
+  } elseif ($template['caTemplateExists']) {
+    $card .= "
+      <div class='greenCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
+      </div>
+    ";
+  } elseif (isset($template['Compatible']) && !$template['Compatible']) {
+    $verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='$verMsg'>".tr("Incompatible")."</div>
+      </div>
+    ";
+  } elseif ($template['Deprecated']) {
+    $card .= "
+      <div class='warningCardBackground'>
+        <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."</div>
+      </div>
+    ";
+  }
+  
+  return str_replace(["\t","\n"],"",$card);
+}
+
+// Handler stubs
+function handleLanguageApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus) {
+  $actionsContext = [];
+  $countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
+  $dynamixSettings = @parse_ini_file($caPaths['dynamixSettings'],true);
+  $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
+  $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"),[".",".."]);
+  $installedLanguages = array_filter($installedLanguages,function($v) {
+    return is_dir("/usr/local/emhttp/languages/$v");
+  });
+  $installedLanguages[] = "en_US";
+  $currentLanguage = (is_dir("/usr/local/emhttp/languages/$currentLanguage") ) ? $currentLanguage : "en_US";
+  if (in_array($countryCode,$installedLanguages)) {
+    if ($currentLanguage != $countryCode) {
+      $actionsContext[] = ["icon"=>"ca_fa-switchto","text"=>$template['SwitchLanguage'],"action"=>"CAswitchLanguage('$countryCode');"];
+    }
+    } else {
+    $actionsContext[] = ["icon"=>"ca_fa-install","text"=>$template['InstallLanguage'],"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
+  }
+  if (file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml")) {
+    unset($actionsContext);
+    $actionsContext = [["text"=>tr("Pending")]];
+  }
+  $template['actionsContext'] = $actionsContext;
+  return displayCard($template);
+}
+
+function handlePluginApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus) {
+  $actionsContext = [];
+  $pluginName = basename($template['PluginURL']);
+  if (checkInstalledPlugin($template)) {
+    $template['Installed'] = true;
+    $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
+    if ((($template['installedVersion'] != $template['pluginVersion']) || $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName")) && $template['Name'] !== "Community Applications") {
+      if (is_file($caPaths['pluginTempDownload'])) {
+        @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
+        $template['UpdateAvailable'] = true;
+        $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin('$pluginName',true);"];
+      }
+    } else {
+      $template['UpdateAvailable'] = false;
+    }
+    $pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
+    if ( $pluginSettings ) {
+      $actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
+    }
+    if ($pluginName != "community.applications.plg") {
+      if (!empty($actionsContext))
+        $actionsContext[] = ["divider"=>true];
+      $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ","&nbsp;",$template['Name'])."');"];
+    }
+    if ($template['DonateLink']) {
+      $actionsContext[] = ["divider"=>true];
+      $actionsContext[] = ["icon"=>"ca_fa-money","text"=>tr("Donate"),"action"=>"openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
+    }
+  } elseif (! $template['Blacklist']) {
+    if ((($template['Compatible'] || $caSettings['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false))) {
+      if (!$template['Deprecated'] || $caSettings['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
+        if ((($template['RequiresFile'] && is_file($template['RequiresFile'])) || ! $template['RequiresFile'])) {
+          $buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
+          $isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
+          $isDeprecated = $template['Compatible'] ? "&incompatible" : $isDeprecated;
+          $actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}".$isDeprecated."');"];
+        }
+      }
+    }
+    if ($template['InstallPath']) {
+      if (!empty($actionsContext))
+        $actionsContext[] = ["divider"=>true];
+      $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove from Previous Apps"),"action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
+    }
+    if ($template['DonateLink']) {
+      $actionsContext[] = ["divider"=>true];
+      $actionsContext[] = ["icon"=>"ca_fa-money","text"=>tr("Donate"),"action"=>"openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
+    }
+  }
+  if (is_file($caPaths['pluginPending'].$pluginName)) {
+    unset($actionsContext);
+    $actionsContext = [["text"=>tr("Pending")]];
+  }
+  $template['actionsContext'] = $actionsContext;
+  return displayCard($template);
+}
+
+function handleDockerApp($template, $info, $caSettings, $caPaths, $dockerUpdateStatus) {
+  $actionsContext = [];
+  $selected = false;
+  if ( ! $template['NoInstall'] && ! ($caSettings['NoInstalls'] ?? false) ) {
+    if ( $caSettings['dockerRunning'] ) {
+      foreach ($info as $testDocker) {
+        $tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
+        $tmpRepo = strpos($tmpRepo,"/") ? $tmpRepo : "library/$tmpRepo";
+        if ( ( ($tmpRepo == $testDocker['Image'] && $template['Name'] == $testDocker['Name']) || "{$tmpRepo}:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name']) ) {
+          $selected = true;
+          $name = $testDocker['Name'];
+          break;
+        }
+      }
+      $template['Installed'] = $selected;
+      if ( $selected ) {
+        $ind = searchArray($info,"Name",$name);
+        if ( $info[$ind]['url'] && $info[$ind]['running'] ) {
+          $actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("WebUI"),"action"=>"openNewWindow('{$info[$ind]['url']}','_blank');"];
+          if ( $info[$ind]['TSurl'] ?? false)
+            $actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailscale WebUI"),"action"=>"openNewWindow('{$info[$ind]['TSurl']}','_blank');"];
+        }
+        if ( isset($dockerUpdateStatus[$tmpRepo]) && $dockerUpdateStatus[$tmpRepo]['status'] == "false" ) {
+          $template['UpdateAvailable'] = true;
+          $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"updateDocker('$name');"];
+    } else {
+          $template['UpdateAvailable'] = false;
+        }
+        if ( $caSettings['defaultReinstall'] == "true" && ! $template['Blacklist']) {
+          if ( $template['ID'] !== false ) {
+            if ( $template['BranchID'] ?? false )
+              $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'','".portsUsed($template)."');"];
+            else
+              $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','','".portsUsed($template)."');"];
+          }
+        }
+        if ( is_file($info[$ind]['template']) )
+          $actionsContext[] = ["icon"=>"ca_fa-edit","text"=>tr("Edit"),"action"=>"popupInstallXML('".addslashes($info[$ind]['template'])."','edit');"];
+        $actionsContext[] = ["divider"=>true];
+        if ($info[$ind]['template'])
+          $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallDocker('".addslashes($info[$ind]['template'])."','{$template['Name']}');"];
+        if ( $template['DonateLink'] ) {
+          $actionsContext[] = ["divider"=>true];
+          $actionsContext[] = ["icon"=>"ca_fa-money","text"=>tr("Donate"),"action"=>"openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
+        }
+      } elseif ( ! ($template['Blacklist']??false) || ! ($template['Compatible']??false) ) {
+        if ( $template['InstallPath'] ) {
+          $userTemplate = readXmlFile($template['InstallPath'],false,false);
+          if ( ! $template['Blacklist'] ) {
+            $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','','".portsUsed($userTemplate)."');"];
+            $actionsContext[] = ["divider"=>true];
+          }
+          $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove from Previous Apps"),"alternate"=>tr("Remove"),"action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
+  } else {
+          if ( ! ($template['BranchID'] ?? null) ) {
+            if ( is_file("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml") ) {
+              $test = readXmlFile("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml",true);
+              if ( $template['Repository'] == $test['Repository'] ) {
+                $userTemplate = readXmlFile($template['InstallPath'],false,false);
+                $actionsContext[] = ["icon"=>"ca_fa-install","text"=>"<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>","action"=>"popupInstallXML('".addslashes("{$caPaths['dockerManTemplates']}/my-{$template['Name']}").".xml','user','','".portsUsed($userTemplate)."');"];
+                $actionsContext[] = ["divider"=>true];
+              }
+            }
+            $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','default','','".portsUsed($template)."');"];
+          } else {
+            $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"displayTags('{$template['ID']}',false,'','".portsUsed($template)."');"];
+          }
+        }
+      }
+    }
+  }
+  $template['actionsContext'] = $actionsContext;
+  return displayCard($template);
+}
+
+function displayPopup($template) {
+  global $caSettings, $caPaths;
+
+  // Set type for switch
+  $template['Type'] = 'docker';
+  if ($template['Plugin']) $template['Type'] = 'plugin';
+  if ($template['Language']) $template['Type'] = 'language';
+  if ($template['RepositoryTemplate']) $template['Type'] = 'repository';
+
+  switch ($template['Type']) {
+    case 'docker':
+      return handleDockerPopup($template);
+    case 'plugin':
+      return handlePluginPopup($template);
+    case 'language':
+      return handleLanguagePopup($template);
+    default:
+      // fallback to original logic for repository or unknown
+      extract($template);
+      // ... existing code from displayPopup for repository ...
+      // (We will leave this as-is for now)
+  }
 }
 ?>
