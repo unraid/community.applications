@@ -146,12 +146,8 @@ function tr($string,$ret=false) {
 }
 
 ?>
-<style>
-
-<?
- include ("/$docroot/plugins/$plugin/skins/Narrow/css.php");
-?>
-</style>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'>
 <? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
   <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'>
 <? endif;?>

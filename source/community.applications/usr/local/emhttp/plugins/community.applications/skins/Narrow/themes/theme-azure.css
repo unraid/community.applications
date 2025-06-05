@@ -1,0 +1,21 @@
+:root {
+    --donate-background: #606e7f;
+    --donate-text: #e4e2e4;
+    --template-background: transparent;
+    --template-hover-background: #edeaef;
+    --template-favourite: #e0e0e0;
+    --hr-color: #606e7f;
+    --border-color: #9794a7;
+    --watermark-color: rgba(96, 110, 127, 0.1);
+    --a-color: #486dba;
+    --sidebar-background: #edeaef;
+    --sidebar-text: #606e7f;
+    --beta-popup-offset: 1.5rem;
+    --support-popup-text: #1b1d1b;
+    --support-popup-background: #ffffff;
+    --mod-comment-border: #cf3131;
+    --sidebar-close-background: rgba(0,0,0,0.7);
+    --unraid-66-color: #FF8C2F;
+    --link-color: #486dba;
+    --startup-color: #FF8C2F;
+} 

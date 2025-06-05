@@ -1590,7 +1590,7 @@ function displayPopup($template) {
     <div class='popupInfoSection'>
       <div class='popupInfoLeft'>
       <div class='rightTitle'>".tr("Details")."</div>
-      <table style='display:initial;'>
+      <table style='display:contents;'>
         <tr><td class='popupTableLeft'>".tr("Application Type")."</td><td class='popupTableRight'>$appType</td></tr>
         <tr><td class='popupTableLeft'>".tr("Categories")."</td><td class='popupTableRight'>$Category</td></tr>
         <tr><td class='popupTableLeft'>".tr("Added")."</td><td class='popupTableRight'>$DateAdded</td></tr>
