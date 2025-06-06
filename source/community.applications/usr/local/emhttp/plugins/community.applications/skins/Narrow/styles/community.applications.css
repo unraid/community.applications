@@ -349,10 +349,7 @@ body {
   }
   
   /* Utility Classes */
-  
-  .ca_href {
-    cursor: pointer;
-  }
+
   
   .ca_multiselect {
     float: right;
@@ -409,7 +406,7 @@ body {
     box-shadow: 0.05em 0.2em 0.6em rgba(0, 0, 0, 0.2);
     list-style: none;
     text-shadow: none;
-    font-size: 1.5rem;;
+    font-size: 1.5rem;
   }
   
   .awesomplete > ul:empty {
@@ -551,9 +548,6 @@ body {
   }
   
   /* Base link styles */
-  a {
-    color: var(--a-color);
-  }  
   
   .additionalRequirements {
     margin-left: 2rem;
@@ -589,35 +583,6 @@ body {
     text-decoration: none;
     color: inherit;
   }
-  
-  .appDocker {
-    float: right;
-    font-size: 2rem;
-    opacity: 0.7;
-    margin-left: 1rem;
-  }
-  
-  .appLanguage {
-    float: right;
-    font-size: 2rem;
-    opacity: 0.7;
-    margin-left: 1rem;
-  }
-  
-  .appDriver {
-    float: right;
-    font-size: 1.8rem;
-    opacity: 0.7;
-    margin-left: 1rem;
-  }
-  
-  .appPlugin {
-    float: right;
-    font-size: 2rem;
-    opacity: 0.7;
-    margin-left: 1rem;
-  }
-  
   
   .appRepository::before {
     font-family: 'fontAwesome';
@@ -662,11 +627,6 @@ body {
     width: 100%;
     overflow: hidden;
     height: 2.5rem;
-  }
-  
-  body {
-    scrollbar-gutter: stable;
-    cursor: default !important;
   }
   
   .caChangeLog {
@@ -878,9 +838,8 @@ body {
     font-size: 2rem;
     cursor: pointer;
     margin-left: 2.5rem !important;
-    padding-right: .5rem;
     cursor: pointer;
-    padding: .3rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.3rem;
   }
   
   .ca_non_favouriteRepo::before {
@@ -946,10 +905,7 @@ body {
   .ca_repoSearch {
     font-size: 2rem;
     cursor: pointer;
-    padding-left: .5rem;
-    padding-right: .5rem;
-    cursor: pointer;
-    padding: .3rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.5rem;
   }
   
   .ca_repoSearch::after {
