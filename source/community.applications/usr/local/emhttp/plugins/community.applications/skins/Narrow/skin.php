@@ -953,17 +953,17 @@ function getRepoDescriptionSkin($repository) {
       </div>
       <div class='popupInfo'>
         <div class='popupName'>$repository</div>
-        <div class='ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
-        <div class='ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
+        <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
+        <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
       </div>
     </div>
-    <div class='popupRepoDescription'><br>".strip_tags($repo['bio'])."</div>
+    <div class='caButtonpopupRepoDescription'><br>".strip_tags($repo['bio'])."</div>
   ";
   if ( isset($repo['DonateLink']) ) {
     $t .= "
       <div class='donateArea'>
         <div class='repoDonateText'>{$repo['DonateText']}</div>
-        <a class='donate' href='{$repo['DonateLink']}' target='_blank'>".tr("Donate")."</a>
+        <a class='caButton donate' href='{$repo['DonateLink']}' target='_blank'>".tr("Donate")."</a>
       </div>
     ";
   }
@@ -1226,7 +1226,7 @@ function displayCard($template) {
     $card .= "
       <div class='dockerHubHolder $class $popupType'>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>";
+      <div class='caButton infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>";
   } else {
     if ( $PluginURL ?? false) {
       $dataPluginURL = "data-pluginurl='$PluginURL'";
@@ -1237,23 +1237,23 @@ function displayCard($template) {
     $card .= "
       <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton $cardClass'>".tr("Info")."</div>
+      <div class='caButton infoButton $cardClass'>".tr("Info")."</div>
     ";
   }
   if ( count($supportContext) == 1)
-    $card .= "<div class='supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
+    $card .= "<div class='caButton supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
   elseif (!empty($supportContext))
     $card .= "
-      <div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
+      <div class='caButton supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
     ";
 
   if ( $actionsContext ) {
     if ( count($actionsContext) == 1) {
       $dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
-      $card .= "<div class='actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
+      $card .= "<div class='caButton actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
     }
     else
-      $card .= "<div class='actionsButton actionsButtonContext' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($actionsContext,JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+      $card .= "<div class='caButton actionsButton actionsButtonContext' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($actionsContext,JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
   }
 
   $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
@@ -1478,21 +1478,21 @@ function displayPopup($template) {
 
     if ( $actionsContext ) {
       if ( count($actionsContext) == 1 ) {
-        $card .= "<div class='actionsPopup'><span onclick={$actionsContext[0]['action']}>".str_replace("ca_red","",$actionsContext[0]['text'])."</span></div>";
+        $card .= "<div class='caButton actionsPopup'><span onclick={$actionsContext[0]['action']}>".str_replace("ca_red","",$actionsContext[0]['text'])."</span></div>";
       } else {
         $card .= "
-          <div class='actionsPopup' id='actionsPopup'>".tr("Actions")."</div>
+          <div class='caButton actionsPopup' id='actionsPopup'>".tr("Actions")."</div>
         ";
       }
     }
 
     if ( count($supportContext) == 1 )
-      $card .= "<div class='supportPopup'><a href='{$supportContext[0]['link']}' target='_blank'><span class='{$supportContext[0]['icon']}'> {$supportContext[0]['text']}</span></a></div>";
+      $card .= "<div class='caButton supportPopup'><a href='{$supportContext[0]['link']}' target='_blank'><span class='{$supportContext[0]['icon']}'> {$supportContext[0]['text']}</span></a></div>";
     elseif ( count($supportContext) )
-      $card.= "<div class='supportPopup' id='supportPopup'><span class='ca_fa-support'> ".tr("Support")."</div>";
+      $card.= "<div class='caButton supportPopup' id='supportPopup'><span class='ca_fa-support'> ".tr("Support")."</div>";
 
     $NoPin = $NoPin ?? false;
-    $card .= ($LanguagePack != "en_US" && ! $Blacklist && ! $NoPin) ? "<div class='pinPopup $pinnedClass' title='$pinnedTitle' data-pinnedalt='$pinnedAlt' data-repository='$Repository' data-name='$SortName'><span>$pinned</span></div>" : "";
+    $card .= ($LanguagePack != "en_US" && ! $Blacklist && ! $NoPin) ? "<div class='caButton pinPopup $pinnedClass' title='$pinnedTitle' data-pinnedalt='$pinnedAlt' data-repository='$Repository' data-name='$SortName'><span>$pinned</span></div>" : "";
     if ( ! $caSettings['dockerRunning'] && (! $Plugin && ! $Language) ) {
       $card .= "<div class='ca_red'>".tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed")."</div>";
     }
@@ -1576,7 +1576,7 @@ function displayPopup($template) {
       $card .= "<div>";
       $count = 1;
       foreach ( $Video as $vid ) {
-        $card .= "<a class='screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
+        $card .= "<a class='caButton screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
         $count++;
       }
       $card .= "</div>";
@@ -1647,16 +1647,16 @@ function displayPopup($template) {
           <div><div class='popupAuthor'>$RepoName</div>
           <div class='popupAuthorIcon'>$remoteIconPrefix<img class='popupAuthorIcon' src='$ProfileIcon' alt='Repository Icon'></img>$remoteIconPostfix</div>
           </div>
-          <div class='ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("All Apps")."</div>
-          <div class='repoPopup' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Profile")."</div>
-          <div class='ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Favourite")."</div>
+          <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("All Apps")."</div>
+          <div class='caButton repoPopup' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Profile")."</div>
+          <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Favourite")."</div>
     ";
   }
 
   if ( $DonateLink ) {
     $card .= "
       <div class='donateText'>$DonateText</div>
-      <div class='donateDiv'><span class='donate'><a href='$DonateLink' target='_blank'>".tr("Donate")."</a></span></div>
+      <div class='donateDiv'><span class='caButton donate'><a href='$DonateLink' target='_blank'>".tr("Donate")."</a></span></div>
     ";
   }
 
