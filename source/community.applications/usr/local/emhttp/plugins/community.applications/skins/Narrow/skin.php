@@ -1329,7 +1329,7 @@ function displayCard($template) {
   }
   $card .= "
         </div>
-        <div class='ca_author'>$author</div>
+        <div class='ca_author'>".($Official ? tr("Official Container") : $author)."</div>
         <div class='cardCategory'>$Category</div>
   ";
 
@@ -1590,7 +1590,7 @@ function displayPopup($template) {
     <div class='popupInfoSection'>
       <div class='popupInfoLeft'>
       <div class='rightTitle'>".tr("Details")."</div>
-      <table style='display:contents;'>
+      <table class='popupTable contents'>
         <tr><td class='popupTableLeft'>".tr("Application Type")."</td><td class='popupTableRight'>$appType</td></tr>
         <tr><td class='popupTableLeft'>".tr("Categories")."</td><td class='popupTableRight'>$Category</td></tr>
         <tr><td class='popupTableLeft'>".tr("Added")."</td><td class='popupTableRight'>$DateAdded</td></tr>
@@ -1672,9 +1672,9 @@ function displayPopup($template) {
         <div class='charts chartTitle'>".tr("Trends")."</div>
         <div><span class='charts'>Show: <span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
         <div>
-        <div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
-        <div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3</canvas></div>
-        <div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
+          <div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
+          <div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
+          <div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
         </div>
       ";
     }

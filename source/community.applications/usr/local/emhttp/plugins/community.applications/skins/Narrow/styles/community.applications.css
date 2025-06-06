@@ -61,7 +61,7 @@ body {
     height: 20rem;
     min-width: 24rem;
     max-width: 24rem;
-    padding: 20px;
+    padding: 20px 10px 20px 20px;
     margin: 0 1rem 1rem 0;
     
     /* Visual */
@@ -634,7 +634,8 @@ body {
   }
   
   .caChart {
-    display: none;
+    height: 1px;
+    width: 3px;
     border: none;
   }
   
@@ -995,6 +996,12 @@ body {
     margin-top: 1.5rem;
   }
   
+  .chartContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
   .chartMenu {
     padding-left: 2rem;
     cursor: pointer;
@@ -1002,6 +1009,11 @@ body {
   
   .chartMenu:hover {
     color: var(--unraid-66-color);
+  }
+  
+  .chartMenu.selectedMenu {
+    color: var(--unraid-66-color);
+    font-weight: bold;
   }
   
   .charts {
@@ -1630,6 +1642,10 @@ body {
     width: 55rem;
     margin-top: 0px;
     margin-left: auto;
+  }
+  
+  .popupTable.contents {
+    display: contents;
   }
   
   .popupTableLeft {
