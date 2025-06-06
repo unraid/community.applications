@@ -209,11 +209,17 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-$('body').on("click","a,.ca_href", function(e) {
+$('body').on("click","a,.ca_href,.dockerPopup", function(e) {
+  var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {
     var ca_href = true;
     var href=$(this).attr("data-href");
     var target=$(this).attr("data-target");
+  } else if ( $(this).hasClass("dockerPopup") ) {
+    var ca_href = false;
+    var href=$(this).data("dockerhub");
+    var target="_blank";
+    var dockerHub = true;
   } else {
     var ca_href = false;
     var href = $(this).attr("href");
@@ -251,6 +257,15 @@ $('body').on("click","a,.ca_href", function(e) {
       $.cookie("allowedDomains",JSON.stringify(domainsAllowed),{expires:3650}); // rewrite cookie to further extend expiration by 400 days
 
       if ( domainsAllowed[dom.hostname] ) {
+        if ( dockerHub ) {
+          var popupOpen = window.open(href,target);
+          if ( !popupOpen || popupOpen.closed || typeof popupOpen == "undefined" ) {
+            var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
+            setTimeout(function() {
+              removeBannerWarning(popupWarning);}
+            ,10000);
+          }
+        }
         return;
       }
 
@@ -560,11 +575,6 @@ $(function(){
       if ( !apppath || !appname ) return;
       showSidebarApp(apppath,appname);
     }
-  });
-
-  $('body').on("click",".dockerPopup", function() {
-    var url = $(this).data("dockerhub");
-    openNewWindow(url,'_blank');
   });
 
   $('.menuItems').on("click",'.categoryMenu',function() {
