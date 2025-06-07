@@ -145,7 +145,42 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
+$font = $display['font'] ?: "62.5";
+$themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $font + 10 : 0;
+
+switch ($font) {
+  case "50":
+    $doubleRow = 827;
+    $noMenu = 500;
+    break;
+  case "56.25":
+    $doubleRow = 922;
+    $noMenu = 558;
+    break;
+  case "62.5":
+    $doubleRow = 1016;
+    $noMenu = 608;
+    break;
+  case "68.75":
+    $doubleRow = 1111;
+    $noMenu = 653;
+    break;
+  case "75":
+    $doubleRow = 1205;
+    $noMenu = 719;
+    break;
+  case "80":
+    $doubleRow = 1281;
+    $noMenu = 763;
+    break;
+    
+}
+$doubleRow += $themeOffset;
+$noMenu += $themeOffset;
 ?>
+
+
+
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'>
 <? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
@@ -155,7 +190,25 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
+<style>
+@media (max-width:<?=$doubleRow?>px) {
+  .caHomeSpotlight {
+    height: 55.5rem !important;
+  }
+}
+
+@media (max-width:<?=$noMenu?>px) {
+  .menuItems {
+    display: none;
+  }
+  .mainArea {
+    left: 0;
+  }
+}
+</style>
+
 <script>
+
 
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
