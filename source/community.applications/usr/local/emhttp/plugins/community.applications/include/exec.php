@@ -906,7 +906,7 @@ function get_content() {
           $o['display'] .= "</div>";
           $homeClass = "caHomeSpotlight";
 
-          $o['display'] .= "<div class='ca_homeTemplates $homeClass'>".my_display_apps($display,"1")."</div>";
+          $o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1")."</div>";
           $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();$('.ca_holder').addClass('mobileHolderFix');";
 
         } else {

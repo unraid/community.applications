@@ -642,7 +642,12 @@ body {
   .caHomeSpotlight {
     height: 29rem !important;
   }
-  
+  @media (max-width: 101.5rem) {
+    .caHomeSpotlight {
+      height: 58rem !important;
+    }
+  }
+
   .ca_author {
     font-size: 1rem;
     margin-left: 0.75rem;
@@ -1893,7 +1898,7 @@ body {
   #warningNotAccepted {
     display: none;
   }
-  
+
   @keyframes cycleRed {
     0% { color: inherit; }
     50% { color: #882626; }
