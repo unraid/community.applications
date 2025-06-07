@@ -145,13 +145,44 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
-?>
-<style>
+$font = $display['font'] ?: "62.5";
+$themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $font + 10 : 0;
 
-<?
- include ("/$docroot/plugins/$plugin/skins/Narrow/css.php");
+switch ($font) {
+  case "50":
+    $doubleRow = 827;
+    $noMenu = 500;
+    break;
+  case "56.25":
+    $doubleRow = 922;
+    $noMenu = 558;
+    break;
+  case "62.5":
+    $doubleRow = 1016;
+    $noMenu = 608;
+    break;
+  case "68.75":
+    $doubleRow = 1111;
+    $noMenu = 653;
+    break;
+  case "75":
+    $doubleRow = 1205;
+    $noMenu = 719;
+    break;
+  case "80":
+    $doubleRow = 1281;
+    $noMenu = 763;
+    break;
+    
+}
+$doubleRow += $themeOffset;
+$noMenu += $themeOffset;
 ?>
-</style>
+
+
+
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'>
 <? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
   <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'>
 <? endif;?>
@@ -159,7 +190,25 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
+<style>
+@media (max-width:<?=$doubleRow?>px) {
+  .caHomeSpotlight {
+    height: 55.5rem !important;
+  }
+}
+
+@media (max-width:<?=$noMenu?>px) {
+  .menuItems {
+    display: none;
+  }
+  .mainArea {
+    left: 0;
+  }
+}
+</style>
+
 <script>
+
 
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -213,11 +262,17 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-$('body').on("click","a,.ca_href", function(e) {
+$('body').on("click","a,.ca_href,.dockerPopup", function(e) {
+  var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {
     var ca_href = true;
     var href=$(this).attr("data-href");
     var target=$(this).attr("data-target");
+  } else if ( $(this).hasClass("dockerPopup") ) {
+    var ca_href = false;
+    var href=$(this).data("dockerhub");
+    var target="_blank";
+    var dockerHub = true;
   } else {
     var ca_href = false;
     var href = $(this).attr("href");
@@ -255,6 +310,15 @@ $('body').on("click","a,.ca_href", function(e) {
       $.cookie("allowedDomains",JSON.stringify(domainsAllowed),{expires:3650}); // rewrite cookie to further extend expiration by 400 days
 
       if ( domainsAllowed[dom.hostname] ) {
+        if ( dockerHub ) {
+          var popupOpen = window.open(href,target);
+          if ( !popupOpen || popupOpen.closed || typeof popupOpen == "undefined" ) {
+            var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
+            setTimeout(function() {
+              removeBannerWarning(popupWarning);}
+            ,10000);
+          }
+        }
         return;
       }
 
@@ -564,11 +628,6 @@ $(function(){
       if ( !apppath || !appname ) return;
       showSidebarApp(apppath,appname);
     }
-  });
-
-  $('body').on("click",".dockerPopup", function() {
-    var url = $(this).data("dockerhub");
-    openNewWindow(url,'_blank');
   });
 
   $('.menuItems').on("click",'.categoryMenu',function() {
