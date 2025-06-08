@@ -406,9 +406,10 @@ $(function(){
     $.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
   }
 
-  caPluginUpdateCheck("community.applications.plg",{
+  addBannerWarning("DO NOT RELEASE AS IS - update check requires filename change");
+  caPluginUpdateCheck("community.applications-css.plg",{
       noDismiss:true,
-      name:"Community Applications",
+      name:"Community Applications CSS",
       debug:false,
       priority:true
     },function(result) {
