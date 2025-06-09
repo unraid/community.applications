@@ -211,6 +211,9 @@ switch ($_POST['action']) {
   case 'networkAlreadyCreated':
     networkAlreadyCreated();
     break;
+  case 'clearStartUpDisplayed':
+    clearStartUpDisplayed();
+    break;
   ###############################################
   # Return an error if the action doesn't exist #
   ###############################################
@@ -2746,6 +2749,16 @@ function networkAlreadyCreated() {
 }
 
 #######################################
+# Clears the startup displayed flag   #
+# in case of weird error              #
+#######################################
+function clearStartUpDisplayed() {
+  global $caPaths;
+
+  @unlink($caPaths['startupDisplayed']);
+  postReturn(['done']);
+}
+
 # Logs Javascript errors being caught #
 #######################################
 function javascriptError() {

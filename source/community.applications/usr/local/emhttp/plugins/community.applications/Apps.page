@@ -2264,9 +2264,16 @@ function restoreState() {
     $(".multi_installDiv").hide();
   }
   $.removeCookie("ca_categoryText");
-
-  data = JSON.parse($.cookie("ca_data"));
-  $.removeCookie("ca_data");
+  try {
+    data = JSON.parse($.cookie("ca_data"));
+    $.removeCookie("ca_data");
+  } catch (e) {
+    console.log("Unable to restore state - reloading to clear errors");
+    $.removeCookie("ca_data");
+    post({action:"clearStartUpDisplayed"},function(result) {
+      window.location.reload();
+    });
+  }
   data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
   restoreStateMenu = $.cookie("ca_selectedMenu");
   $(".categoryMenuName").html($.cookie("ca_categoryName"));
