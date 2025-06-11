@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.06.08">
-<!ENTITY md5       "6f3dc20c7240fa9a79ebfb37403efa31">
+<!ENTITY version   "2025.06.11">
+<!ENTITY md5       "91f9212e10f49519dc8e600fdadc8510">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
