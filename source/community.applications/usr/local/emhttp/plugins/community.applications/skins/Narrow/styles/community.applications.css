@@ -214,11 +214,13 @@ body {
   }
   
   .maxPerPage {
-    float: right;
+    position: absolute;
+    right: 0;
   }
   
   #dropdown-maxPerPage {
-    position: sticky;
+    position: absolute;
+    right: 0;
   }
 
   
@@ -279,11 +281,12 @@ body {
   }
   
   .menuItems {
-    position: absolute;
+    position: relative;
     top: 2rem;
-    left: 10px;
-    width: 14rem;
     height: auto;
+    align-items: stretch;
+    min-width: 14rem;
+    max-width: 14rem;
   }
   
   .selectedMenu {
@@ -305,7 +308,9 @@ body {
     width: 100%;
     height: 100vh;
     margin-bottom: 10px;
-    z-index: 998;
+    /* Display over any banner warning */
+    z-index: 1000;
+    opacity: 0.9;
     
     /* Visual */
     background-color: var(--sidebar-close-background);
@@ -374,12 +379,8 @@ body {
       margin-bottom: 2rem !important;
     }
   }
-  /* Override footer style */
-  #footer {
-    position: fixed !important;
-    bottom: 0;
-  }
-  
+
+
   /* Awesomplete Autocomplete Component */
   .awesomplete {
     /* Layout */
@@ -1124,7 +1125,8 @@ body {
   
   .dockerSearch {
     display: inline-block;
-    float: right;
+    position: absolute;
+    right: 0;
   }
   
   
@@ -1308,14 +1310,18 @@ body {
     height: 2rem;
   }
 
+  .ca_display_area {
+    display: flex;
+  }
+
   .mainArea {
-    position: absolute;
-    left: 18.5rem;
     right: 0px;
     top: 2rem;
     display: block;
     overflow-x: hidden;
     min-height: 90vh;
+    padding-left: 4.5rem;
+    align-items: stretch;
   }
 
   .mobileHolderFix {
@@ -1904,6 +1910,7 @@ body {
     0% { color: inherit; }
     50% { color: #882626; }
   }
+
 
 /* Magnific Popup CSS */
 .mfp-bg {
