@@ -374,6 +374,11 @@ body {
       margin-bottom: 2rem !important;
     }
   }
+  /* Override footer style */
+  #footer {
+    position: fixed !important;
+    bottom: 0;
+  }
   
   /* Awesomplete Autocomplete Component */
   .awesomplete {
