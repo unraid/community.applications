@@ -23,10 +23,10 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 70744c698d2961c8b48109709811fad6  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
-0a69f14b3a3e7e180b484c63d730a705  ./skins/Narrow/styles/community.applications.css
+2eb380fc882f0a52e3c51d0625b8e768  ./skins/Narrow/skin.html
+48f0016de95ce10aa7423f490a59b20c  ./skins/Narrow/skin.php
+68d03baad944ec4d8b934aa8e0fb3303  ./skins/Narrow/styles/community.applications.css
 935678bd93fa574a9856e2708ba90dee  ./skins/Narrow/themes/theme-azure.css
 be84b2fe107709885fa398b342020fd1  ./skins/Narrow/themes/theme-black.css
 48d46c1c92f7b925948c8d300b39b456  ./skins/Narrow/themes/theme-gray.css
 c558668aa340b616b6a064f215b07ce4  ./skins/Narrow/themes/theme-white.css
-2eb380fc882f0a52e3c51d0625b8e768  ./skins/Narrow/skin.html
-48f0016de95ce10aa7423f490a59b20c  ./skins/Narrow/skin.php
