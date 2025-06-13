@@ -869,6 +869,10 @@ $(function(){
     closeSidebar();
   });
 
+  $("#alternateView").on("click",function() {
+    $("#alternateView").hide();
+  });
+
   $("body").on("click",".removeApp",function() {
     var path = $(this).data("path");
     var name = $(this).data("name");
@@ -1486,7 +1490,7 @@ function showDesc_openBox(cmd,title,height,width,load,func) {
 
 function showModeration(script,title) {
   $("#sb-nav-close").css("visisbility","visible");
-  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,false);
+  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,"showStatistics()");
 }
 
 function previousApps(installed,dontClear=false,filter="") {
@@ -2300,20 +2304,15 @@ function restoreState() {
 }
 
 function showCredits() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  $("#alternateView").show();
   var credits = $('#caCredits').html();
-  updateDisplay(credits);
-  $(".maxPerPage").hide();
+  $("#alternateView").html(credits);
 }
 
 function showStatistics() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  $("#alternateView").show();
   post({action:'statistics'},function(result) {
-    updateDisplay(result.statistics);
-    $(".maxPerPage").hide();
-    disableSearch();
+    $("#alternateView").html(result.statistics);
   });
 }
 

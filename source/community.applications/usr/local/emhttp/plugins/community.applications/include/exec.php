@@ -1777,7 +1777,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a onclick='showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
+            <a onclick='event.stopPropagation();showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['repositories']}
@@ -1790,7 +1790,7 @@ function statistics() {
   $o .= "
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['invalidXML']}
@@ -1798,7 +1798,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['caFixed']}+
@@ -1830,7 +1830,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['totalModeration']}+

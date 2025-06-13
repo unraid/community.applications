@@ -60,6 +60,12 @@ a {
   text-align: center;
 }
 
+.invisible {
+  opacity: 0;
+  pointer-events: none; 
+  visibility: hidden;
+}
+
 .ca_href {
   cursor: pointer;
 }
@@ -841,6 +847,10 @@ a.ca_repoPopup:hover {
   color: #cecc31;
 }
 
+#alternateView table {
+  background-color: var(--sidebar-background);
+}
+
 .ca_stat {
   color: coral;
   font-size: 1.5rem;
@@ -849,8 +859,7 @@ a.ca_repoPopup:hover {
 
 .ca_table {
   padding: .5rem 2rem .5rem 0;
-  font-size: 1.5rem;
-}
+  font-size: 1.5rem;}
 
 .ca_template {
   color: #606E7F;
@@ -976,14 +985,43 @@ li.context:hover {
   color: var(--unraid-66-color);
 }
 
-.credits {
-  overflow: scroll;
-  overflow-x: hidden;
-  overflow-y: auto;
-  margin: auto;
-  width: 600px;
-  padding-bottom: 50px;
+#alternateView {
+  /* Layout */
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 1.6rem;
+  margin-bottom: 10px;
+  padding-top: 15rem;
+  width:100%;
+  
+  /* Visual */
+  background-color: var(--sidebar-background);
+  color: var(--sidebar-text);
+  opacity: 0.8;
+  
+  /* Interactive */
+  overflow-x: scroll;
+  overflow-y: scroll;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 li.debugging {
   cursor: pointer;
@@ -1440,7 +1478,8 @@ img.popupAuthorIcon {
   padding-left: 3rem;
 }
 
-.popUpBack:hover {
+.popUpBack:hover,
+.popUpClose:hover {
   color: var(--unraid-66-color);
 }
 
@@ -1451,10 +1490,6 @@ img.popupAuthorIcon {
   font-weight: bold;
   cursor: pointer;
   display: inline-block;
-}
-
-.popUpClose:hover {
-  color: var(--unraid-66-color);
 }
 
 .popUpDeprecated {
