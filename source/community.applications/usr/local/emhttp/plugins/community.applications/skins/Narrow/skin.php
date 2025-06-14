@@ -1073,7 +1073,7 @@ function displaySearchResults($pageNumber) {
   $count = 0;
   $caSettings['NoInstalls'] = is_file($caPaths['warningAccepted']) ? false : true;
 
-  $ct = "<div>".tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")."<span class='templateSearch' style='float:right'>Show CA templates</span></div><br><br>";
+  $ct = "<div class='dockerSearchNote'>".tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")."</div><div class='templateSearch caButton'>".tr("Search Apps")."</div><br><br>";
   $ct .= "<div class='ca_templatesDisplay'>";
 
   $columnNumber = 0;
@@ -1085,6 +1085,8 @@ function displaySearchResults($pageNumber) {
     $result['Compatible'] = true;
     if ( ! $caSettings['NoInstalls'] )
       $result['actionsContext'] = [["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"dockerConvert({$result['ID']});"]];
+   
+    $result['similarSearch'] = $result['Name'];
 
     $templateSearch = searchArray($templates,"Repository",$result['Repository']);
     if ( $templateSearch === false )
@@ -1181,7 +1183,6 @@ function displayCard($template) {
     elseif (strpos($author," Repository") )
       $author = sprintf(tr("%s Repository"),str_replace(" Repository","",$author));
   }
-
   if ( !$RepositoryTemplate ) {
     $cardClass = "ca_appPopup";
     $supportContext = [];
@@ -1226,7 +1227,8 @@ function displayCard($template) {
     $card .= "
       <div class='dockerHubHolder $class $popupType'>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='caButton infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>";
+      <div class='caButton infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>
+      <div class='caButton actionsButton similarSearch' data-search='$similarSearch'>".tr("Similar")."</div>";
   } else {
     if ( $PluginURL ?? false) {
       $dataPluginURL = "data-pluginurl='$PluginURL'";

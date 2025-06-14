@@ -347,7 +347,7 @@ input[type="button"][disabled] {
   margin-bottom: 10px;
   /* Display over any banner warning */
   z-index: 1000;
-  opacity: 0.9;
+  opacity: 0.95;
   
   /* Visual */
   background-color: var(--sidebar-close-background);
@@ -378,7 +378,6 @@ input[type="button"][disabled] {
   /* Interactive */
   overflow-x: hidden;
   overflow-y: scroll;
-  transition: 0.5s;
 }
 
 .sidenavHide {
@@ -388,6 +387,10 @@ input[type="button"][disabled] {
 .sidenavShow {
   width: 90%;
   max-width: 70rem;
+  opacity: 0.8;
+}
+.dim {
+  opacity: 0.3;
 }
 
 /* Utility Classes */
@@ -1005,24 +1008,6 @@ li.context:hover {
   overflow-y: scroll;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 li.debugging {
   cursor: pointer;
 }
@@ -1038,7 +1023,7 @@ li.debugging {
 
 i.displayIcon {
   font-size: 5.5rem;
-  color: #626868;
+  color: #626868; var
   padding-top: 0.25rem;
 }
 
@@ -1077,10 +1062,14 @@ img.displayIcon {
   font-family: Unraid;
 }
 
-.dockerSearch {
+.dockerSearch,
+.templateSearch {
   display: inline-block;
   position: absolute;
   right: 0;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: var(--unraid-66-color);
 }
 
 .donateArea {
