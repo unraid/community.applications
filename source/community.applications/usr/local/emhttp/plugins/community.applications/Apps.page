@@ -919,6 +919,7 @@ $(function(){
     $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
       var icon = this;
       iconHoverTimer = setTimeout(function() {
+        if ( !$("#searchBox").is(":focus") )
         icon.click();
       },3000);
     });
