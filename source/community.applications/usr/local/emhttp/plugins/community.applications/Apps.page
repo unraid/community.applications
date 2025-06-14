@@ -1201,8 +1201,10 @@ function doSearch(button,newSearch) {
   data.searchActive = true;
   if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
     $('.dockerSearch').show();
+    $('.dockerSearchTemplate').hide();
   } else {
     $('.dockerSearch').hide();
+    $('.dockerSearchTemplate').show();
   }
 
   data.searchInProgress = true;
@@ -3030,6 +3032,7 @@ function dockerSearch(pageNumber) {
   var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
+  $(".dockerSearchTemplate").show();
   $("#Category").html(sprintf(tr("DockerHub Search for %s"),filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);

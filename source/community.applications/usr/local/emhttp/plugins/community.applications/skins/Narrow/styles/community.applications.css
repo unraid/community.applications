@@ -393,6 +393,15 @@ input[type="button"][disabled] {
   opacity: 0.3;
 }
 
+.dockerSearchTemplate {
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.dockerSearchNote {
+  display: inline-block;
+  font-size: 1.5rem;
+}
 /* Utility Classes */
 .ca_multiselect {
   float: right;

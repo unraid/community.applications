@@ -1073,7 +1073,6 @@ function displaySearchResults($pageNumber) {
   $count = 0;
   $caSettings['NoInstalls'] = is_file($caPaths['warningAccepted']) ? false : true;
 
-  $ct = "<div class='dockerSearchNote'>".tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")."</div><div class='templateSearch caButton'>".tr("Search Apps")."</div><br><br>";
   $ct .= "<div class='ca_templatesDisplay'>";
 
   $columnNumber = 0;
