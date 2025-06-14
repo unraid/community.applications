@@ -1647,9 +1647,6 @@ function displayTags() {
 function statistics() {
   global $caPaths, $caSettings;
 
-  @unlink($caPaths['community-templates-displayed']);
-  @unlink($caPaths['community-templates-allSearchResults']);
-  @unlink($caPaths['community-templates-catSearchResults']);
   if ( ! is_file($caPaths['statistics']) )
     $statistics = download_json($caPaths['statisticsURL'],$caPaths['statistics']);
   else
