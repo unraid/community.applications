@@ -998,7 +998,7 @@ li.context:hover {
   /* Visual */
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
-  opacity: 0.8;
+  opacity: 0.85;
   
   /* Interactive */
   overflow-x: scroll;

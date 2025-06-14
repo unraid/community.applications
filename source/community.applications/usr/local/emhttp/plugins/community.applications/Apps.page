@@ -150,27 +150,27 @@ $themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $
 
 switch ($font) {
   case "50":
-    $doubleRow = 827;
+    $doubleRow = 796;
     $noMenu = 500;
     break;
   case "56.25":
-    $doubleRow = 922;
+    $doubleRow = 894;
     $noMenu = 558;
     break;
   case "62.5":
-    $doubleRow = 1016;
+    $doubleRow = 994;
     $noMenu = 608;
     break;
   case "68.75":
-    $doubleRow = 1111;
+    $doubleRow = 1092;
     $noMenu = 653;
     break;
   case "75":
-    $doubleRow = 1205;
+    $doubleRow = 1189;
     $noMenu = 719;
     break;
   case "80":
-    $doubleRow = 1281;
+    $doubleRow = 1267;
     $noMenu = 763;
     break;
     
@@ -194,6 +194,9 @@ $noMenu += $themeOffset;
 @media (max-width:<?=$doubleRow?>px) {
   .caHomeSpotlight {
     height: 55.5rem !important;
+  }
+  .maxPerPage {
+    display: none;
   }
 }
 
