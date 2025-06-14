@@ -211,6 +211,9 @@ switch ($_POST['action']) {
   case 'networkAlreadyCreated':
     networkAlreadyCreated();
     break;
+  case 'clearStartUpDisplayed':
+    clearStartUpDisplayed();
+    break;
   ###############################################
   # Return an error if the action doesn't exist #
   ###############################################
@@ -906,7 +909,7 @@ function get_content() {
           $o['display'] .= "</div>";
           $homeClass = "caHomeSpotlight";
 
-          $o['display'] .= "<div class='ca_homeTemplates $homeClass'>".my_display_apps($display,"1")."</div>";
+          $o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1")."</div>";
           $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();$('.ca_holder').addClass('mobileHolderFix');";
 
         } else {
@@ -1644,9 +1647,6 @@ function displayTags() {
 function statistics() {
   global $caPaths, $caSettings;
 
-  @unlink($caPaths['community-templates-displayed']);
-  @unlink($caPaths['community-templates-allSearchResults']);
-  @unlink($caPaths['community-templates-catSearchResults']);
   if ( ! is_file($caPaths['statistics']) )
     $statistics = download_json($caPaths['statisticsURL'],$caPaths['statistics']);
   else
@@ -1774,7 +1774,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a onclick='showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
+            <a onclick='event.stopPropagation();showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['repositories']}
@@ -1787,7 +1787,7 @@ function statistics() {
   $o .= "
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['invalidXML']}
@@ -1795,7 +1795,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['caFixed']}+
@@ -1827,7 +1827,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['totalModeration']}+
@@ -2746,6 +2746,16 @@ function networkAlreadyCreated() {
 }
 
 #######################################
+# Clears the startup displayed flag   #
+# in case of weird error              #
+#######################################
+function clearStartUpDisplayed() {
+  global $caPaths;
+
+  @unlink($caPaths['startupDisplayed']);
+  postReturn(['done']);
+}
+
 # Logs Javascript errors being caught #
 #######################################
 function javascriptError() {

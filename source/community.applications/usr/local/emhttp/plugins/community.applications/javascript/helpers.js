@@ -86,15 +86,15 @@ function isOverflown(el,type=false){
   return (el.scrollHeight > el.clientHeight) || (el.scrollWidth > el.clientWidth)||(el.offsetWidth < el.scrollWidth);
 }
 
-
 function disableSearch() {
+  $(".searchArea").addClass("invisible");
   $("#searchBox").prop("disabled",true);
 }
 
 function enableSearch() {
+  $(".searchArea").removeClass("invisible");
   $("#searchBox").prop("disabled",false);
 }
-
 
 function evaluateBoolean(str) {
   regex=/^\s*(true|1|on)\s*$/i
