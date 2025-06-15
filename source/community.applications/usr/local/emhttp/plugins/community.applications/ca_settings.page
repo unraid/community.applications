@@ -143,7 +143,7 @@ _(Enable developer mode)_:
 
 
 &nbsp;
-: <input id='debugging' type='button' onclick='debug();' value='DOWNLOAD LOG' style='display:none;'></input><input type="submit" name="#apply" value="<?tr("Apply");?>" id='Apply'><input type="button" id="DONE" value="<?tr("Done");?>" onclick="done()">
+: <span><input id='debugging' type='button' onclick='debug();' value='DOWNLOAD LOG' style='display:none;'></input></span><span><input type="submit" name="#apply" value="<?tr("Apply");?>" id='Apply'><input type="button" id="DONE" value="<?tr("Done");?>" onclick="done()"></span>
 
 <center><a href="https://forums.unraid.net/topic/38582-plug-in-community-applications/" target="_blank"><?tr("Support Thread");?></a></center>
 

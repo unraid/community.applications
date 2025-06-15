@@ -145,13 +145,44 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
-?>
-<style>
+$font = $display['font'] ?: "62.5";
+$themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $font + 10 : 0;
 
-<?
- include ("/$docroot/plugins/$plugin/skins/Narrow/css.php");
+switch ($font) {
+  case "50":
+    $doubleRow = 796;
+    $noMenu = 500;
+    break;
+  case "56.25":
+    $doubleRow = 894;
+    $noMenu = 558;
+    break;
+  case "62.5":
+    $doubleRow = 994;
+    $noMenu = 608;
+    break;
+  case "68.75":
+    $doubleRow = 1092;
+    $noMenu = 653;
+    break;
+  case "75":
+    $doubleRow = 1189;
+    $noMenu = 719;
+    break;
+  case "80":
+    $doubleRow = 1267;
+    $noMenu = 763;
+    break;
+    
+}
+$doubleRow += $themeOffset;
+$noMenu += $themeOffset;
 ?>
-</style>
+
+
+
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'>
 <? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
   <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'>
 <? endif;?>
@@ -159,7 +190,38 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
+<style>
+@media (max-width:<?=$doubleRow?>px) {
+  .caHomeSpotlight {
+    height: 55.5rem !important;
+  }
+  .maxPerPage {
+    position: relative;
+  }
+  .dockerSearch,
+  .templateSearch {
+    position: relative;
+  }
+  .dockerSearchNote {
+    display: none;
+  }
+  .maxPerPage {
+    display:none !important;
+  }
+}
+
+@media (max-width:<?=$noMenu?>px) {
+  .menuItems {
+    display: none;
+  }
+  .mainArea {
+    left: 0;
+  }
+}
+</style>
+
 <script>
+
 
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -213,11 +275,17 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-$('body').on("click","a,.ca_href", function(e) {
+$('body').on("click","a,.ca_href,.dockerPopup", function(e) {
+  var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {
     var ca_href = true;
     var href=$(this).attr("data-href");
     var target=$(this).attr("data-target");
+  } else if ( $(this).hasClass("dockerPopup") ) {
+    var ca_href = false;
+    var href=$(this).data("dockerhub");
+    var target="_blank";
+    var dockerHub = true;
   } else {
     var ca_href = false;
     var href = $(this).attr("href");
@@ -255,6 +323,15 @@ $('body').on("click","a,.ca_href", function(e) {
       $.cookie("allowedDomains",JSON.stringify(domainsAllowed),{expires:3650}); // rewrite cookie to further extend expiration by 400 days
 
       if ( domainsAllowed[dom.hostname] ) {
+        if ( dockerHub ) {
+          var popupOpen = window.open(href,target);
+          if ( !popupOpen || popupOpen.closed || typeof popupOpen == "undefined" ) {
+            var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
+            setTimeout(function() {
+              removeBannerWarning(popupWarning);}
+            ,10000);
+          }
+        }
         return;
       }
 
@@ -342,9 +419,10 @@ $(function(){
     $.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
   }
 
-  caPluginUpdateCheck("community.applications.plg",{
+  addBannerWarning("DO NOT RELEASE AS IS - update check requires filename change");
+  caPluginUpdateCheck("community.applications-css.plg",{
       noDismiss:true,
-      name:"Community Applications",
+      name:"Community Applications CSS",
       debug:false,
       priority:true
     },function(result) {
@@ -385,6 +463,7 @@ $(function(){
   });
   $("#searchBox").keydown(function(e) {
     if (e.which === 13) {
+      e.stopPropagation();
       searchBoxAwesomplete.close();
       // this is the check sort order function
       var sortButton = false;
@@ -406,8 +485,35 @@ $(function(){
   });
 
   $('body').keydown(function(e) {
-    if (e.which === 27) {
-      closeSidebar();
+    switch (e.which) {
+      case 27:
+        if ( $("#alternateView").is(":visible") ) {
+          hideAlternateView();
+          return;
+        }
+        if ( $(".sidenav").hasClass("sidenavShow") ) {
+          closeSidebar();
+          return;
+        }
+        break;
+      case 37:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+          return;
+        }
+
+        if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
+          $(".pageLeft").click();
+        }
+        break;
+      case 39:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+          return;
+        }
+
+        if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
+          $(".pageRight").click();
+        }
+        break;
     }
   });
 
@@ -564,11 +670,6 @@ $(function(){
       if ( !apppath || !appname ) return;
       showSidebarApp(apppath,appname);
     }
-  });
-
-  $('body').on("click",".dockerPopup", function() {
-    var url = $(this).data("dockerhub");
-    openNewWindow(url,'_blank');
   });
 
   $('.menuItems').on("click",'.categoryMenu',function() {
@@ -761,7 +862,8 @@ $(function(){
     }
   });
 
-  $(".initDockerSearch").click(function()     { initDockerSearch(); });
+  $(".dockerSearch").click(function()         { initDockerSearch(); });
+  $(".similarSearch").click(function()        { doSearch(false,$(this).data("similarSearch")); });
   $(".multi_installClear").click(function()   { clearMultiInstall(); });
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
@@ -809,6 +911,14 @@ $(function(){
     closeSidebar();
   });
 
+  $("#alternateView").on("click",function() {
+    hideAlternateView();
+  });
+
+  $("body").on("click",".similarSearch",function() {
+    doSearch(false,$(this).data("search")); 
+  });
+
   $("body").on("click",".removeApp",function() {
     var path = $(this).data("path");
     var name = $(this).data("name");
@@ -818,7 +928,7 @@ $(function(){
   addEventListener("wheel",function(event){
     if (wheelActive)
       return;
-    if ( $(".sidebar").is(":visible") )
+    if ( $(".sidebar").is(":visible") || $("#alternateV1iew").is(":visible") )
       return;
     if ($("body").width() < 1260 ) return; // dynamix coding
     event.stopPropagation();
@@ -852,6 +962,7 @@ $(function(){
     $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
       var icon = this;
       iconHoverTimer = setTimeout(function() {
+        if ( !$("#searchBox").is(":focus") )
         icon.click();
       },3000);
     });
@@ -1102,8 +1213,10 @@ function doSearch(button,newSearch) {
   data.searchActive = true;
   if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
     $('.dockerSearch').show();
+    $('.dockerSearchTemplate').hide();
   } else {
     $('.dockerSearch').hide();
+    $('.dockerSearchTemplate').show();
   }
 
   data.searchInProgress = true;
@@ -1241,6 +1354,9 @@ function clearSearchBox() {
 }
 
 function closeSidebar(cookie=false,visible=false) {
+  if ( ! $(".sidenav").hasClass("sidenavShow") ) {
+    return;
+  }
   if ( ! cookie ) {
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
@@ -1249,6 +1365,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+  $(".ca_display_area").removeClass("dim");
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
@@ -1426,7 +1543,7 @@ function showDesc_openBox(cmd,title,height,width,load,func) {
 
 function showModeration(script,title) {
   $("#sb-nav-close").css("visisbility","visible");
-  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,false);
+  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,"showStatistics()");
 }
 
 function previousApps(installed,dontClear=false,filter="") {
@@ -2204,9 +2321,16 @@ function restoreState() {
     $(".multi_installDiv").hide();
   }
   $.removeCookie("ca_categoryText");
-
-  data = JSON.parse($.cookie("ca_data"));
-  $.removeCookie("ca_data");
+  try {
+    data = JSON.parse($.cookie("ca_data"));
+    $.removeCookie("ca_data");
+  } catch (e) {
+    console.log("Unable to restore state - reloading to clear errors");
+    $.removeCookie("ca_data");
+    post({action:"clearStartUpDisplayed"},function(result) {
+      window.location.reload();
+    });
+  }
   data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
   restoreStateMenu = $.cookie("ca_selectedMenu");
   $(".categoryMenuName").html($.cookie("ca_categoryName"));
@@ -2231,30 +2355,36 @@ function restoreState() {
   });
 
 }
+function showAlternateView() {
+  $("#alternateView").show();
+  $("body").addClass("body_sidebarScroll");
+  $("body").css("overflow","hidden !important");
+}
+
+function hideAlternateView() {
+  $("#alternateView").hide();
+  $("body").removeClass("body_sidebarScroll");
+  $("body").css("overflow","auto !important");
+}
 
 function showCredits() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  showAlternateView();
   var credits = $('#caCredits').html();
-  updateDisplay(credits);
-  $(".maxPerPage").hide();
+  $("#alternateView").html(credits);
 }
 
 function showStatistics() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  showAlternateView();
   post({action:'statistics'},function(result) {
-    updateDisplay(result.statistics);
-    $(".maxPerPage").hide();
-    disableSearch();
+    $("#alternateView").html(result.statistics);
   });
 }
 
 function caChangeLog() {
-  $(".multi_installDiv,.dockerSearch").hide();
+  showAlternateView();
   clearCategory(); clearSearchBox();
   post({action:'caChangeLog'},function(result) {
-    updateDisplay(result.changelog);
+    $("#alternateView").html(result.changelog);
   });
 }
 
@@ -2736,6 +2866,7 @@ function showSidebarApp(apppath,appname) {
   $(".sidebar").fadeIn();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+  $(".ca_display_area").addClass("dim");
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
@@ -2838,6 +2969,7 @@ function showRepoPopup(repository) {
   $("#sidenavContent").html("");
 
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+  $(".ca_display_area").addClass("dim");
   $(".sidebar").fadeIn();
   $("body").addClass("body_sidebarScroll");
   $("body").css("overflow","hidden !important");
@@ -2912,6 +3044,7 @@ function dockerSearch(pageNumber) {
   var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
+  $(".dockerSearchTemplate").show();
   $("#Category").html(sprintf(tr("DockerHub Search for %s"),filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);
