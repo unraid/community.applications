@@ -485,23 +485,35 @@ $(function(){
   });
 
   $('body').keydown(function(e) {
-    if ( $("#alternateView").is(":visible") ) {
-      hideAlternateView();
-      return;
-    }
-    if ( $(".sidenav").hasClass("sidenavShow") ) {
-      closeSidebar();
-      return;
-    }
-    if ( e.which === 37 ) {
-      if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
-        $(".pageLeft").click();
-      }
-    }
-    if ( e.which === 39 ) {
-      if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
-        $(".pageRight").click();
-      }
+    switch (e.which) {
+      case 27:
+        if ( $("#alternateView").is(":visible") ) {
+          hideAlternateView();
+          return;
+        }
+        if ( $(".sidenav").hasClass("sidenavShow") ) {
+          closeSidebar();
+          return;
+        }
+        break;
+      case 37:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+          return;
+        }
+
+        if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
+          $(".pageLeft").click();
+        }
+        break;
+      case 39:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+          return;
+        }
+
+        if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
+          $(".pageRight").click();
+        }
+        break;
     }
   });
 
