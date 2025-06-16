@@ -1226,7 +1226,7 @@ function displayCard($template) {
     $card .= "
       <div class='dockerHubHolder $class $popupType'>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='caButton infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>
+      <div class='caButton infoButton_docker ca_href' data-href='$DockerHub'>".tr("Docker Hub")."</div>
       <div class='caButton actionsButton similarSearch' data-search='$similarSearch'>".tr("Similar")."</div>";
   } else {
     if ( $PluginURL ?? false) {
@@ -1241,15 +1241,18 @@ function displayCard($template) {
       <div class='caButton infoButton $cardClass'>".tr("Info")."</div>
     ";
   }
-  if ( count($supportContext) == 1)
+  if ( count($supportContext) == 1) {
+    if ( $supportContext[0]['text'] == tr("Support Forum") ) {
+      $supportContext[0]['text'] = tr("Support");
+    }
     $card .= "<div class='caButton supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
-  elseif (!empty($supportContext))
+  }elseif (!empty($supportContext))
     $card .= "
       <div class='caButton supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
     ";
 
   if ( $actionsContext ) {
-    if ( count($actionsContext) == 1) {
+    if ( count($actionsContext) == 1 && $actionsContext[0]['text'] == tr("Install") ) {
       $dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
       $card .= "<div class='caButton actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
     }

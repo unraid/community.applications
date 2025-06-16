@@ -275,6 +275,7 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
+<? if ( version_compare($unRaidSettings['version'],"6.12.15","<") ) :?>
 $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
   var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {
@@ -295,11 +296,12 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
     href = href.trim();
     if ( href.match('https?://[^\.]*.(my)?unraid.net/') || href.indexOf("https://unraid.net/") == 0 || href == "https://unraid.net" || href.indexOf("http://lime-technology.com") == 0) {
       if ( ca_href ) {
+        e.stopPropagation();
+        e.preventDefault();
         window.open(href,target);
       }
       return;
     }
-
     if (href !== "#" && href.indexOf("javascript") !== 0) {
       var dom = isValidURL(href);
       if ( dom == false ) {
@@ -363,6 +365,7 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
     }
   }
 });
+<?endif;?>
 
 $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
