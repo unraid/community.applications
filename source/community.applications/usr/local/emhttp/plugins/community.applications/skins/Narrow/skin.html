@@ -17,19 +17,17 @@
       <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
       <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' style='display:none;' data-category='action_centre'><?tr("Action Centre");?></li>
       <hr class='onlyShowWithFeed'>
-
-      <ul class='caMenu'>
       <span id='category_list' class='onlyShowWithFeed'></span>
       <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
       <hr class='category_hr'>
       <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
-    <hr class='category_hr onlyShowWithFeed'>
-      <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></a></li>
+      <hr class='category_hr onlyShowWithFeed'>
+      <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
       <li class='caMenuItem statistics' onclick='disableSort();scrollToTop();showStatistics();'><?tr("Statistics");?></li>
       <li class='caMenuItem' onclick='disableSort();scrollToTop();showCredits();'><?tr("Credits");?></li>
       <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
-    <hr class='category_hr'>
-      </ul>
+      <hr class='category_hr'>
+    </ul>
     <ul class='nonselectMenu'>
       <li><?=tr("VERSION");?></li>
       <li><span id='caInstalledVersion'></span></li>
@@ -55,7 +53,7 @@
     <div id="Category" class="categoryLine">&nbsp;</div>
     <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
     <div class='dockerSearchTemplate' style='display:none'><div class='dockerSearchNote'><?tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")?></div><div class='templateSearch caButton'><?tr("Search Apps")?></div></div>
-    <div id='sortIconArea' style='display:none;'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></span></div>
+    <div id='sortIconArea' style='display:none;'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>
     <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></input></div>
     <div id='templates_content'><div class='ca_templatesDisplay'><font size='6'><?tr("Updating Content");?></font></div></div>
     <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></input></div>
