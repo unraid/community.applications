@@ -491,10 +491,14 @@ $(function(){
     switch (e.which) {
       case 27:
         if ( $("#alternateView").is(":visible") ) {
+          e.preventDefault();
+          e.stopPropagation();
           hideAlternateView();
           return;
         }
         if ( $(".sidenav").hasClass("sidenavShow") ) {
+          e.preventDefault();
+          e.stopPropagation();  
           closeSidebar();
           return;
         }
@@ -505,6 +509,8 @@ $(function(){
         }
 
         if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
+          e.preventDefault();
+          e.stopPropagation();
           $(".pageLeft").click();
         }
         break;
@@ -514,6 +520,8 @@ $(function(){
         }
 
         if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
+          e.preventDefault();
+          e.stopPropagation();
           $(".pageRight").click();
         }
         break;
@@ -866,7 +874,6 @@ $(function(){
   });
 
   $(".dockerSearch").click(function()         { initDockerSearch(); });
-  $(".similarSearch").click(function()        { doSearch(false,$(this).data("similarSearch")); });
   $(".multi_installClear").click(function()   { clearMultiInstall(); });
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
@@ -2362,13 +2369,13 @@ function restoreState() {
 function showAlternateView() {
   $("#alternateView").show();
   $("body").addClass("body_sidebarScroll");
-  $("body").css("overflow","hidden !important");
+  $("body").css("overflow","hidden");
 }
 
 function hideAlternateView() {
   $("#alternateView").hide();
   $("body").removeClass("body_sidebarScroll");
-  $("body").css("overflow","auto !important");
+  $("body").css("overflow","auto");
 }
 
 function showCredits() {

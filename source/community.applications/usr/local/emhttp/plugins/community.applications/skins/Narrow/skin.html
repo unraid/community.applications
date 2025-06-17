@@ -45,8 +45,13 @@
   <div class='mainArea'>
     <div class='spinnerBackground'></div>
     <div class='spinner fixed'></div>
-    <strong><font size='3'></strong></font>
-    <div class='searchArea onlyShowWithFeed'><span id='searchFilter'><input type='text' id='searchBox' placeholder='<?tr('Search');?>'><span class='searchSubmit' onclick='doSearch(true)'><i id='searchButton' class='fa fa-search fa-lg'></i></span><span class='caButton maxPerPage' id='maxPerPage' style='display:none;'></span></div>
+    <div class='searchArea onlyShowWithFeed'>
+      <span id='searchFilter'>
+        <input type='text' id='searchBox' placeholder='<?tr('Search');?>'></input>
+        <span class='searchSubmit' onclick='doSearch(true)'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
+        <span class='caButton maxPerPage' id='maxPerPage' style='display:none;'></span>
+      </span>
+    </div>
     <div id="Category" class="categoryLine">&nbsp;</div>
     <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
     <div class='dockerSearchTemplate' style='display:none'><div class='dockerSearchNote'><?tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")?></div><div class='templateSearch caButton'><?tr("Search Apps")?></div></div>
