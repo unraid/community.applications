@@ -931,7 +931,7 @@ $(function(){
   addEventListener("wheel",function(event){
     if (wheelActive)
       return;
-    if ( $(".sidebar").is(":visible") || $("#alternateV1iew").is(":visible") )
+    if ( $(".sidebar").is(":visible") || $("#alternateView").is(":visible") )
       return;
     if ($("body").width() < 1260 ) return; // dynamix coding
     event.stopPropagation();
