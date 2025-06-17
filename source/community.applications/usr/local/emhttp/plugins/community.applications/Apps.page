@@ -1214,12 +1214,13 @@ function doSearch(button,newSearch) {
     return;
   }
   data.searchActive = true;
+
   if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
     $('.dockerSearch').show();
     $('.dockerSearchTemplate').hide();
   } else {
     $('.dockerSearch').hide();
-    $('.dockerSearchTemplate').show();
+    $('.dockerSearchTemplate').hide();
   }
 
   data.searchInProgress = true;
