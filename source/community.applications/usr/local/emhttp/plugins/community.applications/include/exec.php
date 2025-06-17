@@ -1916,7 +1916,7 @@ function get_categories() {
   global $caPaths, $sortOrder, $caSettings, $DockerClient, $DockerTemplates;
   $categories = readJsonFile($caPaths['categoryList']);
   if ( ! is_array($categories) || empty($categories) ) {
-    $cat = "Category list N/A<br><br>";
+    $cat = "<ul><li>Category list N/A</li></ul>";
     postReturn(['categories'=>$cat]);
     return;
   } else {
@@ -1938,7 +1938,7 @@ function get_categories() {
     $sortOrder['sortDir'] = "Up";
     usort($newCat,"mySort"); // Sort it alphabetically according to the language.  May not work right in non-roman charsets
 
-    $cat = "";
+    $cat = "<ul class='caMenu'>";
     foreach ($newCat as $category) {
       $cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$category['Cat']}'>".$category['Des']."</li>";
       if (isset($category['Sub']) && is_array($category['Sub'])) {

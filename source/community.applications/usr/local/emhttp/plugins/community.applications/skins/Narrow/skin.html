@@ -2,7 +2,7 @@
   <div class='menuItems'>
     <ul class='caMenu '>
       <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
-      <hr class='onlyShowWithFeed'>
+      <li><hr class='onlyShowWithFeed'/></li>
       <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?></li>
       <ul class='subCategory onlyShowWithFeed'>
         <li class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></li>
@@ -16,17 +16,19 @@
       <li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
       <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
       <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' style='display:none;' data-category='action_centre'><?tr("Action Centre");?></li>
-      <hr class='onlyShowWithFeed'>
+      <li><hr class='onlyShowWithFeed'/></li>
+    </ul>
       <span id='category_list' class='onlyShowWithFeed'></span>
+    <ul class='caMenu '>
       <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
-      <hr class='category_hr'>
+      <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
       <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
-      <hr class='category_hr onlyShowWithFeed'>
+      <li><hr class='category_hr onlyShowWithFeed'/></li>
       <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
       <li class='caMenuItem statistics' onclick='disableSort();scrollToTop();showStatistics();'><?tr("Statistics");?></li>
       <li class='caMenuItem' onclick='disableSort();scrollToTop();showCredits();'><?tr("Credits");?></li>
       <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
-      <hr class='category_hr'>
+      <li><hr class='category_hr'/></li>
     </ul>
     <ul class='nonselectMenu'>
       <li><?=tr("VERSION");?></li>
@@ -35,7 +37,7 @@
     <?if ($md5Error):?>
       <li><font size='0'>Modified</font></li>
     <?endif;?>
-    <hr>
+      <li><hr/></li>
       <li class='caMenuItem debugging'><?tr("Debugging");?></li>
     </ul>
   </div>

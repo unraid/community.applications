@@ -4,7 +4,7 @@ fe35b3bcd8b94d60a1b6422b95f4a7d0  ./Apps.page
 f77cdf52ef7f2650eb1797e4a0a3bfbe  ./ca_settings.page
 5019679978e11e43549f03ed66c9db6a  ./default.cfg
 c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
-975fc8c30aab6f3217d5a8b3c97edf36  ./include/exec.php
+3b3bc876e2c08b42b18d7afa6a659982  ./include/exec.php
 ffc2ac0518494c7d077039d3db79963c  ./include/helpers.php
 183ed1d263b9fc5237a093e2af8e3ef7  ./include/paths.php
 74234327fe400c23a6974584f496f831  ./javascript/helpers.js
@@ -23,7 +23,7 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 70744c698d2961c8b48109709811fad6  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
-061b964cc7fc72970e969be0ac3579f9  ./skins/Narrow/skin.html
+b877ef92dc80b7ecef6443aa97a15efa  ./skins/Narrow/skin.html
 1913aab2200be79cf145463eabc117ea  ./skins/Narrow/skin.php
 f25ccd42b4486d55959e72c07c9116b2  ./skins/Narrow/styles/community.applications.colors.css
 073172cbf46f1fdfeb86757272179f3b  ./skins/Narrow/styles/community.applications.css
