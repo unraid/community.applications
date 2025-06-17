@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.06.14">
-<!ENTITY md5       "6c4468f5f9aee0e94ebce819ee9bb68d">
+<!ENTITY version   "2025.06.17">
+<!ENTITY md5       "f3d58733a07ca47dfb6566096dd2eaa4">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,20 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+- Changed: Complete overhaul of CSS
+- Added: Responsive at resolutions less than 800px (was always responsive greater, with no limitations)
+- Changed: Credits / Statistics use overlay
+- Added: Left / Right Arrow can be used to switch pages when multiple pages are present
+- Fixed: Searches for similar containers (from dockerHub search) wasn't working
+- Fixed: When only a single support option was available and button stated 'Support Forum', a tab would open twice when clicking
+- Fixed: Clicking 'Docker Hub' to get more information was a docker hub search would bypass the external link warning
+- Fixed: Possible to do a search under certain circumstances if the sidebar was open
+- Fixed: Possible for CA to crash at start up under certain very specific and unlikely circumstances
+
+* Known issue: Responsive at browser widths less than 800px (eg: mobile) when running OS versions earlier than 7.2.x will not operate identically to how CA renders on 7.2.x+  This is due to the responsive behaviour operating in CA on these versions of OS, but the OS itself still has a minimum width of 800px.  Expect display aberations on mobile devices when using earlier OS versions.   This will be fixed at some point in the future.
+* Known issue: 'Change log' button in menu will have a blank display - Entirely due to running the beta CA and won't be present in production version
+
+
 ###2025.06.04a
 - Fixed: Repository searches wouldn't show any results.
 - Changed: CSS tweaks for better responsive experience on mobile devices

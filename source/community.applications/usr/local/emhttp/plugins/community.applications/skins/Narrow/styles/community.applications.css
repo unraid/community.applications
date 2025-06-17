@@ -41,15 +41,15 @@ a {
 }
 
 .ca_note {
-  color: #d67777;
+  color: var(--ca-note-color);
 }
 
 .ca_red {
-  color: #882626;
+  color: var(--ca-red-color);
 }
 
 .ca_green {
-  color: #038503;
+  color: var(--ca-green-color);
 }
 
 /* ==========================================================================
@@ -113,7 +113,7 @@ a {
 .ca_holder:hover,
 .dockerHubHolder:hover {
   background-color: var(--template-hover-background);
-  box-shadow: 5px 5px 5px -3px rgba(255, 140, 47, 0.5);
+  box-shadow: 5px 5px 5px -3px var(--ca-shadow-color);
 }
 
 .ca_holderFav {
@@ -198,7 +198,7 @@ a {
 
 .cardWarning {
   font-size: 1.5rem;
-  color: #bdbd14;
+  color: var(--ca-warning-color);
 }
 
 /* Buttons & Forms
@@ -218,7 +218,7 @@ a {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.4) 100%
+    var(--ca-overlay-color) 100%
   ),
   linear-gradient(
     to right,
@@ -242,12 +242,12 @@ a {
 
 .caButton:hover {
   background: var(--unraid-66-color);
-  color: #fff !important;
+  color: var(--ca-white-color) !important;
 }
 
 .caButton:hover a,
 a.caButton:hover {
-  color: #fff;
+  color: var(--ca-white-color);
   text-decoration: none;
 }
 
@@ -416,7 +416,7 @@ input[type="button"][disabled] {
 /* Animations */
 @keyframes cycleRed {
   0% { color: inherit; }
-  50% { color: #882626; }
+  50% { color: var(--ca-red-color); }
 }
 
 /* Responsive Design */
@@ -497,7 +497,7 @@ li.caMenuItem {
 
 .additionalRequirementsHeader {
   font-size: 1.5rem;
-  color: #d67777;
+  color: var(--ca-note-color);
   font-weight: bold;
 }
 
@@ -562,7 +562,7 @@ a.appIconsPopUp {
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
-  color: white;
+  color: var(--ca-named-white);
   font-size: 2rem;
   top: 2.25rem;
   right: -1rem;
@@ -641,7 +641,7 @@ img.ca_displayIcon {
 }
 
 .ca_fa-checkmark {
-  color: #038503;
+  color: var(--ca-green-color);
 }
 
 .ca_fa-checkmark::before {
@@ -655,7 +655,7 @@ img.ca_displayIcon {
 }
 
 .ca_fa-delete {
-  color: #882626;
+  color: var(--ca-red-color);
 }
 
 .ca_fa-delete::before {
@@ -799,7 +799,7 @@ ul.caMenu {
 }
 
 .ca_private {
-  color: #882626;
+  color: var(--ca-red-color);
 }
 
 .ca_profile::before {
@@ -825,7 +825,7 @@ ul.caMenu {
 
 .ca_readmore:hover {
   text-decoration: none;
-  color: #d67777;
+  color: var(--ca-note-color);
 }
 
 .ca_reddit::before {
@@ -856,7 +856,7 @@ a.ca_repoPopup:hover {
 }
 
 .ca_serverWarning {
-  color: #cecc31;
+  color: var(--ca-yellow-color);
 }
 
 #alternateView table {
@@ -874,7 +874,7 @@ a.ca_repoPopup:hover {
   font-size: 1.5rem;}
 
 .ca_template {
-  color: #606E7F;
+  color: var(--ca-dark-blue-color);
   border-radius: 0px 0px 2rem 2rem;
   display: inline-block;
   text-align: left;
@@ -883,7 +883,7 @@ a.ca_repoPopup:hover {
   width: 36rem;
   padding-left: .5rem;
   padding-right: .5rem;
-  background-color: #DDDADF;
+  background-color: var(--ca-light-bg-color);
 }
 
 .ca_templatesDisplay {
@@ -892,11 +892,11 @@ a.ca_repoPopup:hover {
 }
 
 .ca_template_icon {
-  color: #606E7F;
+  color: var(--ca-dark-blue-color);
   width: 37rem;
   float: left;
   display: inline-block;
-  background-color: #C7C5CB;
+  background-color: var(--ca-lighter-bg-color);
   margin: 0px 0px 0px 0px;
   height: 15rem;
   padding-top: 1rem;
@@ -1026,13 +1026,13 @@ li.debugging {
 }
 
 .disabledIcon {
-  color: #040404;
+  color: var(--ca-dark-grey-color);
   font-size: 2.5rem;
 }
 
 i.displayIcon {
   font-size: 5.5rem;
-  color: #626868;
+  color: var(--ca-grey-color);
   padding-top: 0.25rem;
 }
 
@@ -1098,13 +1098,13 @@ img.displayIcon {
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.4) 100%
+    var(--ca-overlay-color) 100%
   ),
   linear-gradient(
     to right,
-    color-mix(in srgb, #009900 85%, white) 0%,
-    #009900 50%,
-    color-mix(in srgb, #009900 85%, white) 100%
+    color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 0%,
+    var(--ca-dark-orange-color) 50%,
+    color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 100%
   ) !important;
   background-position: 0 0 !important;
   background-size: 100% 100% !important;
@@ -1120,7 +1120,7 @@ img.displayIcon {
 
 .favCardBackground {
   float: right;
-  color: #bb0000;
+  color: var(--ca-light-grey-color);
   padding-top: .25rem;
   margin-left: 1rem;
 }
@@ -1136,7 +1136,7 @@ img.displayIcon {
 
 .greenCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #008100;
+  background-color: var(--ca-dark-green-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1151,7 +1151,7 @@ img.displayIcon {
 }
 
 .homeMore:hover {
-  color: #d67777;
+  color: var(--ca-note-color);
 }
 
 .homespotlightIconArea {
@@ -1180,7 +1180,7 @@ a.initDockerSearch {
 
 .installedCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #322fff;
+  background-color: var(--ca-purple-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1196,7 +1196,7 @@ a.initDockerSearch {
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
-  color: white;
+  color: var(--ca-named-white);
   font-size: 2rem;
   position: absolute;
   top: 2rem;
@@ -1237,7 +1237,7 @@ input[type=button][disabled] {
 
 .installedPopup {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #322fff;
+  background-color: var(--ca-purple-color);
   top: var(--beta-popup-offset);
   height: 9rem;
   width: 9rem;
@@ -1251,7 +1251,7 @@ input[type=button][disabled] {
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
-  color: white;
+  color: var(--ca-named-white);
   font-size: 2rem;
   position: absolute;
   top: 2.5rem;
@@ -1300,7 +1300,7 @@ input[type=button][disabled] {
 }
 
 .myReadmoreButton {
-  color: #6363ca;
+  color: var(--ca-blue-color);
 }
 
 .notice.shift {
@@ -1309,7 +1309,7 @@ input[type=button][disabled] {
 
 .officialCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #854153;
+  background-color: var(--ca-dark-purple-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1324,7 +1324,7 @@ input[type=button][disabled] {
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
-  color: white;
+  color: var(--ca-named-white);
   font-size: 2rem;
   position: absolute;
   top: 2.25rem;
@@ -1336,7 +1336,7 @@ input[type=button][disabled] {
 
 .LTOfficialCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #F15A2C;
+  background-color: var(--ca-orange-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1351,7 +1351,7 @@ input[type=button][disabled] {
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
-  color: white;
+  color: var(--ca-named-white);
   font-size: 2rem;
   position: absolute;
   top: 2.25rem;
@@ -1366,7 +1366,7 @@ input[type=button][disabled] {
 }
 
 .pageDots {
-  color: grey;
+  color: var(--ca-named-grey);
   cursor: default;
 }
 
@@ -1414,7 +1414,7 @@ input[type=button][disabled] {
 
 .pinnedCard {
   float: right;
-  color: #1fa67a;
+  color: var(--ca-teal-color);
   font-size: 1.75rem;
 }
 
@@ -1468,7 +1468,7 @@ img.popupAuthorIcon {
 
 .popUpBack {
   font-size: 1.5rem;
-  color: #f34646;
+  color: var(--ca-red-error-color);
   font-weight: bold;
   cursor: pointer;
   top: -2rem;
@@ -1484,7 +1484,7 @@ img.popupAuthorIcon {
 .popUpClose {
   margin-top: 2rem;
   font-size: 1.5rem;
-  color: #f34646;
+  color: var(--ca-red-error-color);
   font-weight: bold;
   cursor: pointer;
   display: inline-block;
@@ -1514,7 +1514,7 @@ img.popupAuthorIcon {
 }
 
 i.popupIcon {
-  color: #626868;
+  color: var(--ca-grey-color);
   font-size: 10rem;
   padding-left: 1rem;
   padding-top: 2.2rem;
@@ -1612,7 +1612,7 @@ a.popUpLink:hover {
 }
 
 .readmore-js-collapsed {
-  -webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(rgba(0,0,0,1)), to(rgba(0,0,0,0.1)));
+  -webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(var(--ca-white-overlay)), to(var(--ca-white-overlay-light)));
 }
 
 .repoDonateText {
@@ -1742,7 +1742,7 @@ a.popUpLink:hover {
 
 .spotlightCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #009900;
+  background-color: var(--ca-dark-orange-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1810,7 +1810,7 @@ a.popUpLink:hover {
 }
 
 .spotlightMessage a:hover {
-  color: #d67777;
+  color: var(--ca-note-color);
 }
 
 ul.subCategory {
@@ -1823,7 +1823,7 @@ ul.subCategory {
 
 .warningCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: #810000;
+  background-color: var(--ca-dark-red-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1838,7 +1838,7 @@ ul.subCategory {
 
 @keyframes cycleRed {
   0% { color: inherit; }
-  50% { color: #882626; }
+  50% { color: var(--ca-red-color); }
 }
 
 /* ==========================================================================
@@ -1850,9 +1850,8 @@ ul.subCategory {
   /* Layout */
   display: inline-block;
   position: relative;
-  
   /* Typography */
-  color: red;
+  color: var(--ca-named-red);
 }
 
 .awesomplete > input {
@@ -1868,12 +1867,11 @@ ul.subCategory {
   box-sizing: border-box;
   margin: 0.2em 0 0;
   padding: 0;
-  
   /* Visual */
-  background: linear-gradient(to bottom right, white, hsla(0, 0%, 100%));
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  background: linear-gradient(to bottom right, var(--ca-named-white), var(--ca-hsl-white));
+  border: 1px solid var(--ca-medium-overlay-color);
   border-radius: 0.3em;
-  box-shadow: 0.05em 0.2em 0.6em rgba(0, 0, 0, 0.2);
+  box-shadow: 0.05em 0.2em 0.6em var(--ca-medium-overlay-color);
   list-style: none;
   text-shadow: none;
   font-size: 1.5rem;
@@ -1917,7 +1915,7 @@ ul.subCategory {
   width: 0;
   height: 0;
   padding: 0.4em;
-  background: white;
+  background: var(--ca-named-white);
   border: inherit;
   border-right: 0;
   border-bottom: 0;
@@ -1932,27 +1930,28 @@ ul.subCategory {
 }
 
 .awesomplete > ul > li:hover {
-  background: hsl(200, 40%, 80%);
-  color: black;
+  background: var(--ca-hsl-light-blue);
+  color: var(--ca-named-black);
 }
 
 .awesomplete > ul > li[aria-selected="true"] {
-  background: hsl(205, 40%, 40%);
-  color: white;
+  background: var(--ca-hsl-dark-blue);
+  color: var(--ca-named-white);
 }
 
 .awesomplete mark {
-  background: hsl(65, 100%, 50%);
+  background: var(--ca-hsl-yellow);
 }
 
 .awesomplete li:hover mark {
-  background: hsl(68, 100%, 41%);
+  background: var(--ca-hsl-light-yellow);
 }
 
 .awesomplete li[aria-selected="true"] mark {
-  background: hsl(86, 100%, 21%);
+  background: var(--ca-hsl-green);
   color: inherit;
 }
+
 /* Magnific Popup
   -------------------------------------------------------------------------- */
 .mfp-bg {
@@ -1963,7 +1962,7 @@ ul.subCategory {
   z-index: 1042;
   overflow: hidden;
   position: fixed;
-  background: #0b0b0b;
+  background: var(--ca-dark-bg-color);
   opacity: 0.8;
 }
 
@@ -2055,7 +2054,7 @@ ul.subCategory {
 }
 
 .mfp-preloader {
-  color: #CCC;
+  color: var(--ca-medium-text-color);
   position: absolute;
   top: 50%;
   width: auto;
@@ -2067,11 +2066,11 @@ ul.subCategory {
 }
 
 .mfp-preloader a {
-  color: #CCC;
+  color: var(--ca-medium-text-color);
 }
 
 .mfp-preloader a:hover {
-  color: #FFF;
+  color: var(--ca-named-white);
 }
 
 .mfp-s-ready .mfp-preloader {
@@ -2114,7 +2113,7 @@ button::-moz-focus-inner {
   text-align: center;
   opacity: 0.65;
   padding: 0 0 18px 10px;
-  color: #f34646;
+  color: var(--ca-red-error-color);
   font-style: normal;
   font-size: 2rem;
   font-family: Arial, Baskerville, monospace;
@@ -2129,12 +2128,12 @@ button::-moz-focus-inner {
 }
 
 .mfp-close-btn-in .mfp-close {
-  color: #333;
+  color: var(--ca-dark-text-color);
 }
 
 .mfp-image-holder .mfp-close,
 .mfp-iframe-holder .mfp-close {
-  color: #f34646;
+  color: var(--ca-red-error-color);
   font-weight: bold;
   right: -6px;
   text-align: center;
@@ -2145,7 +2144,7 @@ button::-moz-focus-inner {
   position: absolute;
   top: 0;
   right: 0;
-  color: #CCC;
+  color: var(--ca-medium-text-color);
   font-size: 12px;
   line-height: 18px;
   white-space: nowrap;
@@ -2203,13 +2202,13 @@ button::-moz-focus-inner {
 }
 
 .mfp-arrow-left:after {
-  border-right: 17px solid #FFF;
+  border-right: 17px solid var(--ca-named-white);
   margin-left: 31px;
 }
 
 .mfp-arrow-left:before {
   margin-left: 25px;
-  border-right: 27px solid #3F3F3F;
+  border-right: 27px solid var(--ca-medium-dark-color);
 }
 
 .mfp-arrow-right {
@@ -2217,12 +2216,12 @@ button::-moz-focus-inner {
 }
 
 .mfp-arrow-right:after {
-  border-left: 17px solid #FFF;
+  border-left: 17px solid var(--ca-named-white);
   margin-left: 39px;
 }
 
 .mfp-arrow-right:before {
-  border-left: 27px solid #3F3F3F;
+  border-left: 27px solid var(--ca-medium-dark-color);
 }
 
 .mfp-iframe-holder {
@@ -2254,8 +2253,8 @@ button::-moz-focus-inner {
   left: 0;
   width: 100%;
   height: 100%;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-  background: #000;
+  box-shadow: 0 0 8px var(--ca-dark-overlay-color);
+  background: var(--ca-named-black);
 }
 
 /* Main image in popup */
@@ -2286,12 +2285,12 @@ img.mfp-img {
   width: auto;
   height: auto;
   z-index: -1;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-  background: #444;
+  box-shadow: 0 0 8px var(--ca-dark-overlay-color);
+  background: var(--ca-medium-bg-color);
 }
 
 .mfp-figure small {
-  color: #BDBDBD;
+  color: var(--ca-light-text-color);
   display: block;
   font-size: 12px;
   line-height: 14px;
@@ -2313,7 +2312,7 @@ img.mfp-img {
 .mfp-title {
   text-align: left;
   line-height: 18px;
-  color: #F3F3F3;
+  color: var(--ca-lighter-text-color);
   word-wrap: break-word;
   padding-right: 36px;
 }
@@ -2349,7 +2348,7 @@ img.mfp-img {
   }
   
   .mfp-img-mobile .mfp-bottom-bar {
-      background: rgba(0, 0, 0, 0.6);
+      background: var(--ca-dark-overlay-color);
       bottom: 0;
       margin: 0;
       top: auto;
@@ -2373,7 +2372,7 @@ img.mfp-img {
       width: 35px;
       height: 35px;
       line-height: 35px;
-      background: rgba(0, 0, 0, 0.6);
+      background: var(--ca-dark-overlay-color);
       position: fixed;
       text-align: center;
       padding: 0;
