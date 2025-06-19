@@ -238,7 +238,7 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",20);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
       $currentFeed = "Backup Server";
-      $ApplicationFeed = download_json($caPaths['application-feedBackup'],$downloadURL);
+      $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL);
     }
     @unlink($downloadURL);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
@@ -1091,7 +1091,7 @@ function force_update() {
   @unlink($caPaths['lastUpdated']);
   $latestUpdate = download_json($caPaths['application-feed-last-updated'],$caPaths['lastUpdated'],"",5);
   if ( $latestUpdate === false || ! ($latestUpdate['last_updated_timestamp'] ?? false) )
-    $latestUpdate = download_json($caPaths['application-feed-last-updatedBackup'],$caPaths['lastUpdated'],"",5);
+    $latestUpdate = download_json($caPaths['pluginProxy'].$caPaths['application-feed-last-updatedBackup'],$caPaths['lastUpdated'],"",5);
   debug("new appfeed timestamp: {$latestUpdate['last_updated_timestamp']}");
   if ( ! isset($latestUpdate['last_updated_timestamp']) ) {
     $latestUpdate['last_updated_timestamp'] = INF;
@@ -1144,11 +1144,12 @@ function force_update() {
 $script = "$('.statistics').attr('title','{$updateTime}');";
 
 // is CA running on a version of the OS the it no longer supports (ie: no further updates to CA compatible with this OS will be issued)
-  $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/Squidly271/community.applications/master/plugins/community.applications.plg");
+  $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg");
 
-  if ( version_compare($caSettings['unRaidVersion'],$GLOBALS['templates'][$appfeedCA]['MinVer'],"<") )
-    $script .= "addBannerWarning('".tr("Deprecated OS version.  No further updates to Community Applications will be issued for this OS version")."');";
-
+  if ( $appfeedCA !== false ) {
+    if ( version_compare($caSettings['unRaidVersion'],$GLOBALS['templates'][$appfeedCA]['MinVer'],"<") )
+      $script .= "addBannerWarning('".tr("Deprecated OS version.  No further updates to Community Applications will be issued for this OS version")."');";
+  }
   postReturn(['status'=>"ok",'script'=> $script]);
 }
 

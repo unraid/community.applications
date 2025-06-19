@@ -148,11 +148,20 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     $out = curl_exec($ch);
     curl_setopt($ch,CURLOPT_ENCODING,null);
   }
+  if ( curl_error($ch) && startsWith($url,$caPaths['pluginProxy']) ) {
+    debug("Proxy error.  Switching to direct download");
+    file_put_contents("/tmp/pluginProxyError.txt",$url);
+    $url = str_replace($caPaths['pluginProxy'],"",$url);
+    curl_setopt($ch,CURLOPT_URL,$url);
+    $out = curl_exec($ch);
+  }
   if ( $path )
     ca_file_put_contents($path,$out);
 
+    
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT:\n".var_dump_ret($out));
+
   return $out ?: false;
 }
 function download_json($url,$path="",$bg=false,$timeout=45) {
