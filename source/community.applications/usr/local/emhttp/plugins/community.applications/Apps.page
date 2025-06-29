@@ -208,14 +208,25 @@ $noMenu += $themeOffset;
   .maxPerPage {
     display:none !important;
   }
+  .mainArea {
+    width: <?=$doubleRow?>px;
+  }
 }
 
 @media (max-width:<?=$noMenu?>px) {
   .menuItems {
     display: none;
   }
+  .menuItemsHidden {
+    display: block;
+  }
+  .closeMenuButton {
+    display: none;
+  }
+
   .mainArea {
     left: 0;
+    width: <?=$noMenu?>px;
   }
 }
 </style>
@@ -458,6 +469,11 @@ $(function(){
 
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
+  $(".showMenuButton").on("click",function() {
+    showMenu();
+  });
+
+
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
   });
@@ -683,7 +699,8 @@ $(function(){
     }
   });
 
-  $('.menuItems').on("click",'.categoryMenu',function() {
+
+  $('.menuItems,.alternateViewContent').on("click",'.categoryMenu',function() {
     var menu = this;
     if ( $(menu).hasClass("caMenuDisabled") )
       return;
@@ -718,13 +735,13 @@ $(function(){
     }
   });
 
-  $('.menuItems').on("mouseover",".caMenuItem",function() {
+  $('body').on("mouseover",'.caMenuItem',function() {
     if ( $(this).hasClass("caMenuEnabled") ) {
       $(this).addClass("hoverMenu");
     }
   });
 
-  $('.menuItems').on("mouseleave",".caMenuItem",function() {
+  $('body').on("mouseleave",'.caMenuItem',function() {
     $(this).removeClass("hoverMenu");
   });
 
@@ -744,12 +761,13 @@ $(function(){
     showSidebarApp(apppath,appname);
   });
 
-  $('.menuItems').on("click",".caMenuItem",function() {
+  $('body').on("click",".caMenuItem",function() {
     if ( $(this).hasClass("caMenuDisabled") ) {
       return;
     }
-    if ( $(this).attr("onclick") )
+    if ( $(this).attr("onclick") ) {
       return;
+    }
 
     var slideFlag = true;
     var currentCat = $(".selectedMenu").data("category");
@@ -778,12 +796,13 @@ $(function(){
     }
   });
 
-  $(".sectionMenu").on("click",function() {
+  $('body').on("click",".sectionMenu",function() {
     if ( $(this).hasClass("caMenuDisabled") )
       return;
 
     var section = $(this).attr("data-category");
     showSortIcons();
+    hideAlternateView();
     switch (section) {
       case "installed_apps":
         data.previousAppsSection = "";
@@ -843,7 +862,8 @@ $(function(){
     });
   });
 
-  $(".debugging").on("click",function() {
+  $('body').on("click",".debugging",function() {
+    hideAlternateView();
     var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
     var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
     var filename='CA-Logging-'+localISOTime.substr(0,16).replace(/[-:]/g,'').replace('T','-')+'.zip';
@@ -877,7 +897,12 @@ $(function(){
   $(".multi_installClear").click(function()   { clearMultiInstall(); });
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
-  $(".startupButton").click(function()        { $(".maxPerPage").hide();hideSortIcons();updateContent(this); });
+  $("body").on("click",".startupButton",function() { 
+    hideAlternateView();
+    $(".maxPerPage").hide();
+    hideSortIcons();
+    updateContent(this);
+  });
 
   $(".multi_installButton").click(function()  {
     if ( $(".multi_installButton").hasClass("actionCenter") ) {
@@ -922,6 +947,15 @@ $(function(){
   });
 
   $("#alternateView").on("click",function() {
+    if ( $(".alternateViewContent").hasClass("mobileMenu") ) {
+      return;
+    }
+    event.stopPropagation();
+    hideAlternateView();
+  });
+
+  $(".alternateViewClose").on("click",function() {
+    event.stopPropagation();
     hideAlternateView();
   });
 
@@ -1147,6 +1181,7 @@ function changeCategory(button,subSwitch) {
   var description = $(button).text();
   var category = $(button).attr("data-category");
 
+  hideAlternateView();
   $(".multi_installDiv").hide();
   getContent(false,category,description,false);
 }
@@ -1227,10 +1262,10 @@ function doSearch(button,newSearch) {
 
   if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
     $('.dockerSearch').show();
-    $('.dockerSearchTemplate').hide();
+    $('.templateSearch').hide();
   } else {
     $('.dockerSearch').hide();
-    $('.dockerSearchTemplate').hide();
+    $('.templateSearch').hide();
   }
 
   data.searchInProgress = true;
@@ -2377,28 +2412,33 @@ function showAlternateView() {
 
 function hideAlternateView() {
   $("#alternateView").hide();
+  $("#alternateView,.ca_display_area").removeClass("mobileMenu");
   $("body").removeClass("body_sidebarScroll");
   $("body").css("overflow","auto");
 }
 
 function showCredits() {
   showAlternateView();
-  var credits = $('#caCredits').html();
-  $("#alternateView").html(credits);
+  $(".alternateViewContent").html($("#caCredits").html());
 }
 
 function showStatistics() {
   showAlternateView();
   post({action:'statistics'},function(result) {
-    $("#alternateView").html(result.statistics);
+    $(".alternateViewContent").html(result.statistics).show();
   });
+}
+
+function showMenu() {
+  showAlternateView();
+  $(".alternateViewContent").addClass("mobileMenu").html($(".menuItems").html());
+  $(".ca_display_area").addClass("mobileMenu");
 }
 
 function caChangeLog() {
   showAlternateView();
-  clearCategory(); clearSearchBox();
   post({action:'caChangeLog'},function(result) {
-    $("#alternateView").html(result.changelog);
+    $(".alternateViewContent").html(result.changelog);
   });
 }
 
@@ -3058,7 +3098,7 @@ function dockerSearch(pageNumber) {
   var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
-  $(".dockerSearchTemplate").show();
+  $(".templateSearch").show();
   $("#Category").html(sprintf(tr("DockerHub Search for %s"),filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);

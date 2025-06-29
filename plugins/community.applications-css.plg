@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.06.17a">
-<!ENTITY md5       "9675a6908eb1a7f21d5e77e59329eb26">
+<!ENTITY version   "2025.06.29">
+<!ENTITY md5       "abac7f7f5358b2adae2c155e91e18465">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -22,6 +22,8 @@
 - Fixed: Clicking 'Docker Hub' to get more information was a docker hub search would bypass the external link warning
 - Fixed: Possible to do a search under certain circumstances if the sidebar was open
 - Fixed: Possible for CA to crash at start up under certain very specific and unlikely circumstances
+- Fixed: Possible under certain circumstances for banner saying no more updates to CA running on a deprecated OS version to appear mistakenly
+- Changed: If proxy fails on download, retry without proxy
 
 * Known issue: Responsive at browser widths less than 800px (eg: mobile) when running OS versions earlier than 7.2.x will not operate identically to how CA renders on 7.2.x+  This is due to the responsive behaviour operating in CA on these versions of OS, but the OS itself still has a minimum width of 800px.  Expect display aberations on mobile devices when using earlier OS versions.   This will be fixed at some point in the future.
 * Known issue: 'Change log' button in menu will have a blank display - Entirely due to running the beta CA and won't be present in production version

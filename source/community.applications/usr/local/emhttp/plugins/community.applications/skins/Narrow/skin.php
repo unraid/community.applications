@@ -945,8 +945,8 @@ function getRepoDescriptionSkin($repository) {
   }
 
   $t = "
-    <div class='popUpClose'>".tr("CLOSE")."</div>
-    <div class='popUpBack'>".tr("BACK")."</div>
+    <div class='popUpClose caButton'>".tr("CLOSE")."</div>
+    <div class='popUpBack caButton'>".tr("BACK")."</div>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>
         $iconPrefix<img class='popupIcon' src='{$repo['icon']}'>$iconPostfix
@@ -1471,7 +1471,7 @@ function displayPopup($template) {
   $favRepoClass = ($caSettings['favourite'] == $Repo) ? "fav" : "nonfav";
   $card = "
     <div class='popup'>
-    <div><span class='popUpClose'>".tr("CLOSE")."</span></div>
+    <div><span class='popUpClose caButton'>".tr("CLOSE")."</span></div>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>$display_icon</div>
       <div class='popupInfo'>

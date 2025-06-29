@@ -73,6 +73,9 @@ a {
 .ca_display_area {
   display: flex;
 }
+.ca_display_area.mobileMenu {
+  opacity: 0.4;
+}
 
 .mainArea {
   right: 0px;
@@ -315,6 +318,14 @@ input[type="button"][disabled] {
 .menuHeader {
   font-size: 2rem;
   margin: 1rem 0;
+}
+
+.menuItemsHidden {
+  position: relative;
+  top: 1rem;
+  left: 2rem;
+  height: auto;
+  display: none;
 }
 
 .menuItems {
@@ -1010,7 +1021,7 @@ li.context:hover {
   /* Visual */
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
-  opacity: 0.85;
+  opacity: 0.9;
   
   /* Interactive */
   overflow-x: scroll;
@@ -1074,11 +1085,10 @@ img.displayIcon {
 .dockerSearch,
 .templateSearch {
   display: inline-block;
-  position: absolute;
-  right: 0;
   cursor: pointer;
   font-size: 1.5rem;
   color: var(--unraid-66-color);
+  margin-bottom: 1rem;
 }
 
 .donateArea {
@@ -1466,29 +1476,6 @@ img.popupAuthorIcon {
   line-height: 1rem;
 }
 
-.popUpBack {
-  font-size: 1.5rem;
-  color: var(--ca-red-error-color);
-  font-weight: bold;
-  cursor: pointer;
-  top: -2rem;
-  display: inline-block;
-  padding-left: 3rem;
-}
-
-.popUpBack:hover,
-.popUpClose:hover {
-  color: var(--unraid-66-color);
-}
-
-.popUpClose {
-  margin-top: 2rem;
-  font-size: 1.5rem;
-  color: var(--ca-red-error-color);
-  font-weight: bold;
-  cursor: pointer;
-  display: inline-block;
-}
 
 .popUpDeprecated {
   color: var(--unraid-66-color);
@@ -1693,6 +1680,20 @@ a.popUpLink:hover {
 
 #searchButton:hover {
   color: var(--unraid-66-color);
+}
+
+.showMenuButton::before {
+  content: '\f0c9';
+  font-family: fontAwesome;
+  font-size: 2rem;
+}
+
+.mobileMenu {
+  margin-left: 10rem;
+}
+
+.closeMenuButton {
+  display: none;
 }
 
 #sortIconArea {

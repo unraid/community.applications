@@ -86,15 +86,15 @@ function isOverflown(el,type=false){
   return (el.scrollHeight > el.clientHeight) || (el.scrollWidth > el.clientWidth)||(el.offsetWidth < el.scrollWidth);
 }
 
+
 function disableSearch() {
-  $(".searchArea").addClass("invisible");
   $("#searchBox").prop("disabled",true);
 }
 
 function enableSearch() {
-  $(".searchArea").removeClass("invisible");
   $("#searchBox").prop("disabled",false);
 }
+
 
 function evaluateBoolean(str) {
   regex=/^\s*(true|1|on)\s*$/i
@@ -114,34 +114,14 @@ function tr(string) {
 }
 
 function postNoSpin(options,callback) {
+  var msg = "No Spin Post: ";
+  console.log(msg+JSON.stringify(options));
   if ( typeof options === "function" ) {
     callback = options;
-  } else {
-    var msg = "No Spin Post: ";
-    console.log(msg+JSON.stringify(options));
+    options = {};
   }
-
-  if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(result){
-      try {
-        callback(result);
-      } catch(e) {
-        if ( ! data.loggedOut ) {
-          post({action:'javascriptError',postCall:options.action,retval:result});
-          alert("Fatal error during "+options.action+" "+e);
-        }
-      }
-      if (result.script) {
-        try {
-          eval(result.script);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
-    });
-  } else {
-    $.post(execURL,options);
-  }
+  options.noSpinner = true;
+  post(options,callback);
 }
 
 function post(options,callback) {
@@ -151,15 +131,29 @@ function post(options,callback) {
     var msg = postCount > 0 ? "Embedded Post: " : "Post: ";
     console.log(msg+JSON.stringify(options));
   }
-
-  if ( postCount == 0 && ! options.noSpinner ) {
+  if ( ! options.noSpinner ) {
     mySpinner();
+    postCount++;
   }
-  postCount++;
-  console.log("Post Count: "+postCount);
-  if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(result){
-       try {
+  
+    
+  $.post(execURL,options).done(function(result) {
+    if (result.script) {
+      try {
+        eval(result.script);
+      } catch(e) {
+        alert("Could not execute result.script "+e);
+      }
+    }
+    if (result.globalScript) {
+      try {
+        eval(result.globalScript);
+      } catch(e) {
+        alert("Could not execute result.globalScript "+e);
+      }
+    }
+    if ( typeof callback === "function" ) {    
+      try {
         callback(result);
       } catch(e) {
         if ( ! data.loggedOut ) {
@@ -167,62 +161,40 @@ function post(options,callback) {
           alert("Fatal error during "+options.action+" "+e);
         }
       }
-      if (result.script) {
-        try {
-          eval(result.script);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
-      if (result.globalScript) {
-        try {
-          eval(result.globalScript);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
+    }
+
+    
+    if ( ! options.noSpinner ) {
       postCount--;
-      if (postCount < 0) postCount = 0;
-      if ( postCount == 0 && ! options.noSpinner) {
+      if (postCount < 0) {
+        postCount = 0;
+      }
+      if ( postCount == 0 ) {
         myCloseSpinner();
       }
-    }).fail(function(){
-      myCloseSpinner();
-      swal({
-        title: tr("Browser failed to communicate with Unraid Server"),
-        text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
-        html: true,
-        type: 'error',
-        showCancelButton: true,
-        showConfirmButton: true,
-        cancelButtonText: tr("Cancel"),
-        confirmButtonText: tr('Attempt to Fix Via Reload Page')
-      }, function (isConfirm) {
-        if ( isConfirm ) {
-          window.location.reload();
-        } else {
-          history.back();
-        }
-      });
+    }
+
+  }).fail(function(result){
+    myCloseSpinner();
+    swal({
+      title: tr("Browser failed to communicate with Unraid Server"),
+      text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
+      html: true,
+      type: 'error',
+      showCancelButton: true,
+      showConfirmButton: true,
+      cancelButtonText: tr("Cancel"),
+      confirmButtonText: tr('Attempt to Fix Via Reload Page')
+    }, function (isConfirm) {
+      if ( isConfirm ) {
+        window.location.reload();
+      } else {
+        history.back();
+      }
     });
-  } else {
-    $.post(execURL,options);
-    postCount--;
-    if ( postCount < 0 ) postCount = 0;
-    if ( postCount == 0) {
-      myCloseSpinner();
-    }
-  }
-  if ( ! cookiesEnabled() ) {
-    if ( cookieWarning === false) {
-      cookieWarning = addBannerWarning(tr("Community Applications works best when cookies are enabled in your browser.  Certain features may not be available."));
-    }
-  } else {
-    if ( cookieWarning !== false ) {
-      removeBannerWarning(cookieWarning);
-      cookieWarning = false;
-    }
-  }
+  });
+
+
 }
 
 function myAlert(description,textdescription,textimage,imagesize, outsideClick, showCancel, showConfirm, alertType) {
