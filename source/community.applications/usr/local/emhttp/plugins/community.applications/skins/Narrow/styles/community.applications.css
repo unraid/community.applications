@@ -80,6 +80,7 @@ a {
 .ca_display_area {
   display: flex;
   overflow: hidden;
+  min-height: 100rem;
 }
 .ca_display_area.mobileMenu {
   opacity: 0.4;
@@ -90,7 +91,6 @@ a {
   top: 2rem;
   display: block;
   overflow-x: hidden;
-  min-height: 90vh;
   padding-left: 4.5rem;
   align-items: stretch;
 }
@@ -329,9 +329,9 @@ input[type="button"][disabled] {
 }
 
 .menuItemsHidden {
-  position: relative;
-  top: 1rem;
+  top: 1.5 rem;
   left: 2rem;
+  padding-right: 1rem;
   height: auto;
   display: none;
 }
@@ -1682,7 +1682,7 @@ a.popUpLink:hover {
   padding: 0.6rem;
   background: var(--template-hover-background);
   padding-right: 0.5rem;
-  width: 300px;
+  width: 150px;
   font-size: 1.5rem;
 }
 
@@ -1694,10 +1694,6 @@ a.popUpLink:hover {
   content: '\f0c9';
   font-family: fontAwesome;
   font-size: 2rem;
-}
-
-.mobileMenu {
-  margin-left: 10rem;
 }
 
 .closeMenuButton {

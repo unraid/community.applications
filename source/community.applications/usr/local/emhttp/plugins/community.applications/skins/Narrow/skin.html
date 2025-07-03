@@ -1,62 +1,63 @@
 <div class='ca_display_area'>
-  <div class='menuItemsHidden'>
-    <div class='showMenuButton'></div>
+  <div class='mobileMenu'>
+    <div class='menuItems'>
+      <ul class='caMenu '>
+        <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
+        <li><hr class='onlyShowWithFeed'/></li>
+        <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?>
+        <li class='subCategory onlyShowWithFeed'>
+          <ul class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></ul>
+          <ul class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></ul>
+        </li>
+        <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='previous_apps'><?tr("Previous Apps");?></li>
+        <li class='subCategory onlyShowWithFeed'>
+          <ul class='caMenuItem sectionMenu dockerSpecific' data-category='prev_docker'><?tr("Docker");?></ul>
+          <ul class='caMenuItem sectionMenu' data-category='prev_plugins'><?tr("Plugins");?></ul>
+        </li>
+        <li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
+        <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
+        <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' style='display:none;' data-category='action_centre'><?tr("Action Centre");?></li>
+        <li><hr class='onlyShowWithFeed'/></li>
+      </ul>
+        <span id='category_list' class='onlyShowWithFeed'></span>
+      <ul class='caMenu '>
+        <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
+        <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
+        <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
+        <li><hr class='category_hr onlyShowWithFeed'/></li>
+        <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
+        <li class='caMenuItem statistics' onclick='disableSort();scrollToTop();showStatistics();'><?tr("Statistics");?></li>
+        <li class='caMenuItem' onclick='disableSort();scrollToTop();showCredits();'><?tr("Credits");?></li>
+        <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
+        <li><hr class='category_hr'/></li>
+      </ul>
+      <ul class='nonselectMenu'>
+        <li><?=tr("VERSION");?></li>
+        <li><span id='caInstalledVersion'></span></li>
+        <li class='caMenuItem caChangeLog'><?tr("Change Log");?></li>
+      <?if ($md5Error):?>
+        <li><font size='0'>Modified</font></li>
+      <?endif;?>
+        <li><hr/></li>
+        <li class='caMenuItem debugging'><?tr("Debugging");?></li>
+      </ul>
+    </div>
   </div>
-  <div class='menuItems'>
-    <ul class='caMenu '>
-      <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
-      <li><hr class='onlyShowWithFeed'/></li>
-      <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?>
-      <li class='subCategory onlyShowWithFeed'>
-        <ul class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></ul>
-        <ul class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></ul>
-      </li>
-      <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='previous_apps'><?tr("Previous Apps");?></li>
-      <li class='subCategory onlyShowWithFeed'>
-        <ul class='caMenuItem sectionMenu dockerSpecific' data-category='prev_docker'><?tr("Docker");?></ul>
-        <ul class='caMenuItem sectionMenu' data-category='prev_plugins'><?tr("Plugins");?></ul>
-      </li>
-      <li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
-      <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
-      <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' style='display:none;' data-category='action_centre'><?tr("Action Centre");?></li>
-      <li><hr class='onlyShowWithFeed'/></li>
-    </ul>
-      <span id='category_list' class='onlyShowWithFeed'></span>
-    <ul class='caMenu '>
-      <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
-      <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
-      <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
-      <li><hr class='category_hr onlyShowWithFeed'/></li>
-      <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
-      <li class='caMenuItem statistics' onclick='disableSort();scrollToTop();showStatistics();'><?tr("Statistics");?></li>
-      <li class='caMenuItem' onclick='disableSort();scrollToTop();showCredits();'><?tr("Credits");?></li>
-      <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
-      <li><hr class='category_hr'/></li>
-    </ul>
-    <ul class='nonselectMenu'>
-      <li><?=tr("VERSION");?></li>
-      <li><span id='caInstalledVersion'></span></li>
-      <li class='caMenuItem caChangeLog'><?tr("Change Log");?></li>
-    <?if ($md5Error):?>
-      <li><font size='0'>Modified</font></li>
-    <?endif;?>
-      <li><hr/></li>
-      <li class='caMenuItem debugging'><?tr("Debugging");?></li>
-    </ul>
-  </div>
-  </span>
   <div class='mainArea'>
-    <div class='spinnerBackground'></div>
-    <div class='spinner fixed'></div>
     <div class='searchArea onlyShowWithFeed'>
+      <div class='menuItemsHidden'>
+        <div class='showMenuButton'></div>
+      </div>
       <span id='searchFilter'>
         <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
-        <span class='searchSubmit' onclick='doSearch(true)'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
+        <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
         <span class='caButton maxPerPage' id='maxPerPage' style='display:none;'></span>
       </span>
       <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
       <div class='templateSearch caButton' style='display:none'><?tr("Search Apps")?></div>
     </div>
+    <div class='spinnerBackground'></div>
+    <div class='spinner fixed'></div>
     <div id="Category" class="categoryLine">&nbsp;</div>
     <div id='sortIconArea' style='display:none;'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>
     <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></div>

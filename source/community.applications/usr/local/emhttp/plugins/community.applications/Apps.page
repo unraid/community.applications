@@ -216,7 +216,7 @@ $noMenu += $themeOffset;
     display: none;
   }
   .menuItemsHidden {
-    display: block;
+    display: inline-block;
   }
   .closeMenuButton {
     display: none;
@@ -225,6 +225,7 @@ $noMenu += $themeOffset;
   .mainArea {
     left: 0;
     width: <?=$noMenu?>px;
+    padding-left: 1rem;
   }
 }
 </style>
@@ -477,6 +478,9 @@ $(function(){
   });
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
     data.actions = true;
+  });
+  $(".searchSubmit").on("click",function() {
+    doSearch(true);
   });
   $("#searchBox").keydown(function(e) {
     if (e.which === 13) {
