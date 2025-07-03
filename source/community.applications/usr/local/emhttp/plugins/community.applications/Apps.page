@@ -790,7 +790,7 @@ $(function(){
 
     $(this).addClass("selectedMenu");
     if ( slideFlag ) {
-      if ( ! $(this).next().hasClass("actionCentre") ) {
+      if ( ! $(this).parent().hasClass("actionCentre") ) {
         $(this).next().show("fast");
       }
     }
@@ -2486,6 +2486,7 @@ function setFavRepoSearch() {
 function getCategories() {
   post({action:'get_categories'},function(result) {
     $("#category_list").html(result.categories);
+    $(".subCategory").hide();
     $(".caMenuItem").each(function() {
       if ( ! ( $(this).hasClass("favouriteRepo") || $(this).hasClass("caPinnedMenu") ) ) {
         $(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");

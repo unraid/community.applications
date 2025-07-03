@@ -1943,11 +1943,11 @@ function get_categories() {
     foreach ($newCat as $category) {
       $cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$category['Cat']}'>".$category['Des']."</li>";
       if (isset($category['Sub']) && is_array($category['Sub'])) {
-        $cat .= "<ul class='subCategory'>";
+        $cat .= "<li class='subCategory'>";
         foreach($category['Sub'] as $subcategory) {
-          $cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</li>";
+          $cat .= "<ul class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</ul>";
         }
-        $cat .= "</ul>";
+        $cat .= "</li>";
       }
     }
     $templates = &$GLOBALS['templates'];

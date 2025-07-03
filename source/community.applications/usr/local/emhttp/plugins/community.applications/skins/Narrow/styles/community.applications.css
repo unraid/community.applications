@@ -15,6 +15,13 @@ body.stop-scrolling {
   overflow: hidden !important;
 }
 
+.subCategory ul {
+  padding-left: 20px;
+}
+li.subCategory {
+  margin-top: -0.5rem;
+}
+
 p {
   margin: auto;
   text-align: left;
