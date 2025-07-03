@@ -193,7 +193,7 @@ $noMenu += $themeOffset;
 <style>
 @media (max-width:<?=$doubleRow?>px) {
   .caHomeSpotlight {
-    height: 55.5rem !important;
+    height: 54rem !important;
   }
   .maxPerPage {
     position: relative;
@@ -202,9 +202,7 @@ $noMenu += $themeOffset;
   .templateSearch {
     position: relative;
   }
-  .dockerSearchNote {
-    display: none;
-  }
+
   .maxPerPage {
     display:none !important;
   }

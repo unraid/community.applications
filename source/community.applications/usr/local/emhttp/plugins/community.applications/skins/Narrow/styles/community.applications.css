@@ -79,6 +79,7 @@ a {
 
 .ca_display_area {
   display: flex;
+  overflow: hidden;
 }
 .ca_display_area.mobileMenu {
   opacity: 0.4;
@@ -600,7 +601,7 @@ a.appIconsPopUp {
 }
 
 .caHomeSpotlight {
-  height: 28rem !important;
+  height: 27rem !important;
 }
 
 .ca_author {
