@@ -235,10 +235,10 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = json_decode(file_get_contents($caPaths['application-feed-local']),true);
   } else {
     $downloadURL = randomFile();
-    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",20);
+    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",30);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
       $currentFeed = "Backup Server";
-      $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL);
+      $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL,"",-1);
     }
     @unlink($downloadURL);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
@@ -2398,7 +2398,7 @@ function search_dockerhub() {
   $communityTemplates = &$GLOBALS['templates'];
   $filter = str_replace(" ","%20",$filter);
   $filter = str_replace("/","%20",$filter);
-  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber");
+  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber","",false,-1);
   //$jsonPage = shell_exec("curl -s -X GET 'https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber'");
   $pageresults = json_decode($jsonPage,true);
   $num_pages = $pageresults['num_pages'];

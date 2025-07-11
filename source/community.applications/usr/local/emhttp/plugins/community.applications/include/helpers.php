@@ -109,56 +109,63 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   global $caSettings, $caPaths;
 
   static $proxycfg = false;
+  
   if ($proxycfg === false) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
   }
-  static $timeoutStatic = 0;
 
   debug("DOWNLOAD starting $url\n");
   $startTime = time();
-
-  $ch = curl_init();
-  curl_setopt_array($ch,[
+  $curl_options = [
     CURLOPT_FRESH_CONNECT=>true,
     CURLOPT_RETURNTRANSFER=>true,
     CURLOPT_FOLLOWLOCATION=>true,
-    CURLOPT_FAILONERROR=>true
-  ]);
+    CURLOPT_FAILONERROR=>true,
+    CURLOPT_URL=>$url
+  ];
+
+  if ( $timeout > 0 ) {
+    $curl_options[CURLOPT_TIMEOUT] = $timeout;
+    $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
+  }
 
   if ( $proxycfg ) {
-    curl_setopt_array($ch,[
-      CURLOPT_PROXYPORT=>intval($proxycfg['port']),
-      CURLOPT_HTTPPROXYTUNNEL=>intval($proxycfg['tunnel']),
-      CURLOPT_PROXY=>$proxycfg['proxy'],
-    ]);
+    $curl_options[CURLOPT_PROXYPORT] = intval($proxycfg['port']);
+    $curl_options[CURLOPT_HTTPPROXYTUNNEL] = intval($proxycfg['tunnel']);
+    $curl_options[CURLOPT_PROXY] = $proxycfg['proxy'];
   }
-  if ( $timeout !== $timeoutStatic ) {
-    curl_setopt_array($ch, [
-      CURLOPT_CONNECTTIMEOUT=>$timeout,
-      CURLOPT_TIMEOUT=>$timeout
-    ]);
-    $timeoutStatic = $timeout;
-  }
-  curl_setopt($ch,CURLOPT_URL,$url);
+
+  $ch = curl_init();
+  curl_setopt_array($ch,$curl_options);
+
   $out = curl_exec($ch);
 
   if ( curl_errno($ch) == 23 ) {
     debug("cURL error 23.  Switching encoding to deflate");
-    curl_setopt($ch,CURLOPT_ENCODING,"deflate");
-    $out = curl_exec($ch);
-    curl_setopt($ch,CURLOPT_ENCODING,null);
-  }
-  if ( curl_error($ch) && startsWith($url,$caPaths['pluginProxy']) ) {
-    debug("Proxy error.  Switching to direct download");
-    file_put_contents("/tmp/pluginProxyError.txt",$url);
-    $url = str_replace($caPaths['pluginProxy'],"",$url);
-    curl_setopt($ch,CURLOPT_URL,$url);
+    curl_close($ch);
+    $curl_options[CURLOPT_ENCODING] = "deflate";
+    $ch = curl_init();
+    curl_setopt_array($ch,$curl_options);
     $out = curl_exec($ch);
   }
-  if ( $path )
-    ca_file_put_contents($path,$out);
 
-    
+  if ( curl_error($ch) && startsWith($url,$caPaths['pluginProxy']) ) {
+    debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
+    $url = str_replace($caPaths['pluginProxy'],"",$url);
+    $curl_options[CURLOPT_URL] = $url;
+    curl_close($ch);
+    $ch = curl_init();
+    curl_setopt_array($ch,$curl_options);
+    $out = curl_exec($ch);
+  }
+  if ( $path ) {
+    ca_file_put_contents($path,$out);
+  }
+  if ( $out === false ) {
+    debug("cURL error: ".curl_error($ch));
+  }
+  curl_close($ch);
+
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT:\n".var_dump_ret($out));
 

@@ -190,6 +190,7 @@ $noMenu += $themeOffset;
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
+<? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?>
 <style>
 @media (max-width:<?=$doubleRow?>px) {
   .caHomeSpotlight {
@@ -229,6 +230,7 @@ $noMenu += $themeOffset;
   }
 }
 </style>
+<? endif;?>
 
 <script>
 
@@ -467,6 +469,15 @@ $(function(){
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
 
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
+
+  $("body").on("click",".long-loading-abort-button",function() {
+    var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
+    setTimeout(function() {
+      removeBannerWarning(abortBanner);
+    }, 20000);
+    myCloseSpinner();
+    postCount = 0;
+  });
 
   $(".showMenuButton").on("click",function() {
     showMenu();
@@ -1252,7 +1263,7 @@ function doSearch(button,newSearch) {
   scrollToTop();
   if (filter) {
     $("#sortIconArea").show();
-    $("#Category").html(sprintf(tr("Search for %s"),filter));
+    $("#Category").html(sprintf("<?tr("Search for %s")?>",filter));
     data.searchFlag = true;
   } else {
     updateContent();
@@ -1694,7 +1705,7 @@ function removeApp(application, humanName) {
   disableSearch();
   swal({
     title: "<?tr("Delete Template?");?>",
-    text: sprintf(tr("Are you sure you want to delete %s from the list of previously installed applications?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
+    text: sprintf("<?tr("Are you sure you want to delete %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
     type: "warning",
     confirmButtonText: "<?tr("Yes, delete it!");?>",
     cancelButtonText: "<?tr("Cancel");?>",
@@ -1737,7 +1748,7 @@ function uninstallApp(application,humanName) {
     } else {
       swal({
         title: "<?tr("Uninstall Application?");?>",
-        text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+        text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
         type: "warning",
         showCancelButton: true,
         showConfirmButton: true,
@@ -1771,7 +1782,7 @@ function uninstallDocker(application,humanName) {
   disableSearch();
   swal({
     title: "<?tr("Uninstall Application?");?>",
-    text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+    text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
     type: "warning",
     showCancelButton: true,
     showConfirmButton: true,
@@ -1783,7 +1794,7 @@ function uninstallDocker(application,humanName) {
     html: true
   }, function( isConfirm ) {
     if ( isConfirm ) {
-      myAlert("",sprintf(tr("Uninstalling %s"),humanName));
+      myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
       post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
         myCloseAlert();
         enableSearch();
@@ -2042,7 +2053,7 @@ function enableMultiInstall() {
     $(".multi_install,.multi_installClear").attr("disabled",false);
     if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
       $(".multi_deleteButton").css("visibility","visible");
-    var buttonText = (count == 1) ? sprintf(tr(actionText + " %s Selected Application"),count) : sprintf(tr(actionText + " %s Selected Applications"),count);
+    var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
     $(".multi_installButton").val(buttonText);
   }
   getSelectedApps();
@@ -2062,7 +2073,7 @@ function deleteMulti() {
   var selected = getSelectedApps();
   swal({
     title: "<?tr("Delete Template?");?>",
-    text: sprintf(tr("Are you sure you want to delete %s applications from the previously installed list?"),"<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
+    text: sprintf("<?tr("Are you sure you want to delete %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
     type: "warning",
     confirmButtonText: "<?tr("Delete");?>",
     cancelButtonText: "<?tr("Cancel");?>",
@@ -2122,7 +2133,7 @@ function updateMulti() {
 
   swal({
     title: "<?tr("Update Applications");?>",
-    text: sprintf(tr("Are you sure you want to update %s applications?"),languageCount+dockerCount+pluginCount),
+    text: sprintf("<?tr("Are you sure you want to update %s applications?")?>",languageCount+dockerCount+pluginCount),
     type: "info",
     showCancelButton: true,
     cancelButtonText: "<?tr("Cancel");?>",
@@ -2206,7 +2217,7 @@ function installMulti() {
   } else {
     var buttonText = "<?tr("Yes, install it");?>";
   }
-  var text = sprintf(tr("Are you sure you want to install %s docker and %s plugin application(s)?"),dockerCount,pluginCount);
+  var text = sprintf("<?tr("Are you sure you want to install %s docker and %s plugin application(s)?")?>",dockerCount,pluginCount);
   text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part");?></span>" : "");
   text = text.concat(cookieWarning ? "<br><span class='caHighlight>"+cookieWarning+"</span>" : "");
   swal({
@@ -2644,7 +2655,7 @@ function setToolTipForFavourite() {
     } else {
       var repository = $(this).data("repository");
       repository = repository.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      $(this).attr("title",sprintf("Click to set %s as favourite repository",repository));
+      $(this).attr("title",sprintf("<?tr("Click to set %s as favourite repository")?>",repository));
     }
   });
 }
@@ -2659,10 +2670,10 @@ function setFavourite(button) {
       removeBannerWarning(repoBanner);
     if ( data.fav ) {
       var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("%s set as favourite repository",bannerMessage),false,true);
+      repoBanner = addBannerWarning(sprintf("<?tr("%s set as favourite repository")?>",bannerMessage),false,true);
     } else {
       var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("%s removed as favourite repository",bannerMessage),false,true);
+      repoBanner = addBannerWarning(sprintf("<?tr("%s removed as favourite repository")?>",bannerMessage),false,true);
     }
     repoBannerTimer = setTimeout(function() {
       removeBannerWarning(repoBanner);
@@ -3102,7 +3113,7 @@ function dockerSearch(pageNumber) {
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
   $(".templateSearch").show();
-  $("#Category").html(sprintf(tr("DockerHub Search for %s"),filter)+" <span id='pageNumber'></span>");
+  $("#Category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);
   });
@@ -3122,7 +3133,7 @@ function dockerConvert(dockerID) {
   }, function (isConfirm) {
     if ( isConfirm ) {
       $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-      openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,tr('Docker Test Install'),600,1100,true);
+      openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,"<?tr('Docker Test Install')?>",600,1100,true);
     } else {
       post({action:'convert_docker',ID:dockerID},function(result) {
         myCloseAlert();

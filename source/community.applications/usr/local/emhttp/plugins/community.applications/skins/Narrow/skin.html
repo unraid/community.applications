@@ -56,7 +56,18 @@
       <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
       <div class='templateSearch caButton' style='display:none'><?tr("Search Apps")?></div>
     </div>
-    <div class='spinnerBackground'></div>
+    <div class='spinnerBackground'>
+      <div class='long-loading'>
+        <?tr('Taking longer than expected. Please wait...')?>
+      </div>
+      <div class="more-long-loading">
+        <?tr('Taking far longer than expected. Please wait...')?>
+      </div>
+      <div class='long-loading-abort'>
+        <?tr('Something is wrong.  Taking much longer than expected.  Investigate possible network / internet connection hardware issues. Still attempting to load.  Please wait... Aborting will recover, but might cause Community Applications some issues.')?>
+        <div class='long-loading-abort-button caButton'><?tr('Abort');?></div>
+      </div>
+    </div>
     <div class='spinner fixed'></div>
     <div id="Category" class="categoryLine">&nbsp;</div>
     <div id='sortIconArea' style='display:none;'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>

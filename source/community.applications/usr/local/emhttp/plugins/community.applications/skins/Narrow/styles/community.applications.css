@@ -1722,8 +1722,30 @@ a.popUpLink:hover {
 }
 
 .spinner {
-  z-index: 999999 !important;
+  /* z-index: 9999 !important; */
 }
+.long-loading, .more-long-loading, .long-loading-abort {
+  left: auto;
+  width: 50%;
+  top: 30%;
+  text-align: center;
+  border-style: solid;
+  background: tan;
+  padding: 20px;
+  margin: auto;
+  position: relative;
+  z-index: 999999 !important;
+  display: none;
+}
+
+.long-loading-abort {
+  cursor: default;
+}
+.spinnerResetCursor {
+  cursor: default;
+  z-index: 9999 !important;
+}
+
 
 .spinnerBackground {
   position: fixed;
