@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.06.29">
-<!ENTITY md5       "abac7f7f5358b2adae2c155e91e18465">
+<!ENTITY version   "2025.07.11">
+<!ENTITY md5       "0828970a8c91c7c74cc69d7726c186d4">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,11 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+- Changed: Timeouts on downloads
+- Added: Popup and ability to abort post calls if they're taking longer than expected
+- Changed: Close cURL channels when switching options on failures
+- Fixed: Disable responsive when running OS versions earlier than 7.2
+- Fixed: HTML syntax / nesting errors on menus
 - Changed: Complete overhaul of CSS
 - Added: Responsive at resolutions less than 800px (was always responsive greater, with no limitations)
 - Changed: Credits / Statistics use overlay
