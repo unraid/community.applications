@@ -168,7 +168,6 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
 
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT:\n".var_dump_ret($out));
-
   return $out ?: false;
 }
 function download_json($url,$path="",$bg=false,$timeout=45) {

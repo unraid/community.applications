@@ -18,4 +18,9 @@
     --unraid-66-color: #FF8C2F;
     --link-color: #486dba;
     --startup-color: #FF8C2F;
+    --ca-legacy-background-color: #1d1b1b;
+    --search-area-top: 0;
+    --search-area-left: 26.5rem;
+    --search-area-mobile-left: 7rem;
+    --search-area-mobile-top: 0;
 } 

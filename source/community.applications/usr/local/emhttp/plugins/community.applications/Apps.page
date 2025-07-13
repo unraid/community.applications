@@ -50,7 +50,7 @@ $firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
 $pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
 
 if ( ! is_file($caPaths['docker_cfg']) ) {
-  exec("logger -t 'Community Applications' 'Fatal Flash Drive Error: /boot/config/docker.cfg does not exist'");
+  exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
 $unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
@@ -63,27 +63,22 @@ $previousLocale = $_COOKIE["locale"] ?? "";
 
 switch ($theme) {
   case 'black':
-    $swalBackground = "black";
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
   case 'azure':
-    $swalBackground = "white";
     $tooltipsterContent = "#101010";
     $chartGrid = "#dddddd";
     break;
   case 'gray':
-    $swalBackground = "black";
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
   case 'white':
-    $swalBackground = "white";
     $tooltipsterContent = "#101010";
     $chartGrid = "#dddddd";
     break;
   default:
-    $swalBackground = "black"; // default to black.  This should only be when someone adds a new theme.  It is NOT the default that the OS uses
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
@@ -196,23 +191,32 @@ $noMenu += $themeOffset;
   .caHomeSpotlight {
     height: 54rem !important;
   }
-  .maxPerPage {
-    position: relative;
-  }
   .dockerSearch,
   .templateSearch {
     position: relative;
   }
-
-  .maxPerPage {
-    display:none !important;
-  }
   .mainArea {
     width: <?=$doubleRow?>px;
+  }
+  .maxPerPage {
+    display: none !important;
+  }
+  #Category {
+    display: block;
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
   }
 }
 
 @media (max-width:<?=$noMenu?>px) {
+  body {
+    overflow-x: unset !important;
+  }
   .menuItems {
     display: none;
   }
@@ -227,6 +231,32 @@ $noMenu += $themeOffset;
     left: 0;
     width: <?=$noMenu?>px;
     padding-left: 1rem;
+  }
+  #searchFilter {
+    left: 3rem;
+  }
+  .searchArea {
+    margin-left: var(--search-area-mobile-left);
+    top: var(--search-area-mobile-top);
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+}
+@media (max-width: 768px) {
+  .searchArea {
+    top: var(--search-area-mobile-top);
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
   }
 }
 </style>
@@ -380,6 +410,8 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
 <?endif;?>
 
 $(function(){
+  $(".content").addClass("menuAdjust");
+  
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
@@ -406,11 +438,11 @@ $(function(){
     return;
   <? endif;?>
   <? if ( ! is_file($caPaths['docker_cfg']) ):?>
-    // This file is guaranteed to exist on the flash drive.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with a flash offline / corrupted.
+    // This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
     $(".mainArea,.menuItems").html("");
     swal({
-      title: "<?tr("Fatal Flash Drive Error");?>",
-      text: '<?tr('This usually means your flash drive is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
+      title: "<?tr("Fatal Boot Device Error");?>",
+      text: '<?tr('This usually means your Boot Device is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
       html: true,
       type: 'error',
       showCancelButton: false,
@@ -448,8 +480,8 @@ $(function(){
 
 // Override the OS switch language function so that CA can save it's current state when switching via the OS
   $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-
-  $("body").append("<div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
+  $(".searchArea").insertAfter("#menu");
+  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
@@ -475,12 +507,17 @@ $(function(){
     setTimeout(function() {
       removeBannerWarning(abortBanner);
     }, 20000);
+    myCloseAlert(true);
     myCloseSpinner();
     postCount = 0;
   });
 
   $(".showMenuButton").on("click",function() {
     showMenu();
+  });
+
+  $(".menuClose").on("click",function() {
+    closeMenu();
   });
 
 
@@ -531,9 +568,15 @@ $(function(){
           closeSidebar();
           return;
         }
+        if ( $(".menuOverlay").is(":visible") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeMenu();
+          return;
+        }
         break;
       case 37:
-        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
 
@@ -544,7 +587,7 @@ $(function(){
         }
         break;
       case 39:
-        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") ) {
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
 
@@ -636,7 +679,6 @@ $(function(){
   });
 
   $('body').on("click",".templateSearch",function() {
-    $(".maxPerPage").show();
     doSearch(false);
   });
 
@@ -712,8 +754,11 @@ $(function(){
     }
   });
 
+  $('body').on("click",".caMenuItem",function() {
+    closeMenu();
+  });
 
-  $('.menuItems,.alternateViewContent').on("click",'.categoryMenu',function() {
+  $('.menuItems').on("click",'.categoryMenu',function() {
     var menu = this;
     if ( $(menu).hasClass("caMenuDisabled") )
       return;
@@ -985,9 +1030,8 @@ $(function(){
   addEventListener("wheel",function(event){
     if (wheelActive)
       return;
-    if ( $(".sidebar").is(":visible") || $("#alternateView").is(":visible") )
+    if ( $(".sidebar").is(":visible") || $("#alternateView").is(":visible") || $(".menuOverlay").is(":visible") )
       return;
-    if ($("body").width() < 1260 ) return; // dynamix coding
     event.stopPropagation();
 
     if ( $(".pageRight").is(":visible") ) {
@@ -1089,6 +1133,7 @@ $(function(){
       <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
+        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
         updateContent();
         if ("<?=$startupDisplayed?>" == "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
@@ -1119,7 +1164,10 @@ function ca_openPlugin(cmd,title,plg,func) {
   if ( cmd.startsWith("plugin install") ) {
     cmd = "downloadPlugin "+cmd;
   }
-  setTimeout(function(){openPlugin(cmd,title,plg,func,"");},250);
+  setTimeout(function(){
+    openPlugin(cmd,title,plg,func,"");
+    myCloseAlert();
+  },250);
 }
 
 function updateContent(button) {
@@ -1209,14 +1257,12 @@ function changePage(pageNumber) {
   });
 }
 
-function swalBackground(color) {
-  $(".sweet-alert").css("background-color",color);
-}
-
-function myCloseAlert() {
+function myCloseAlert(force=false) {
+  if ( data.section == "AppStore" && initialStartup && ! force ) {
+    return;
+  }
   swal.close();
   $("div.spinner, .sweet-alert").hide();
-  swalBackground("<?=$swalBackground?>");
   enableSearch();
 }
 
@@ -2269,8 +2315,12 @@ function updateDisplay(content) {
     var ID = $(this).attr("id");
     context.destroy("#"+ID);
   });
-
   $("#templates_content").html(content);
+  if ( $(".multi_installDiv").is(":visible") ) {
+    $(".navigationSection").addClass("navigationSectionShift");
+  } else {
+    $(".navigationSection").removeClass("navigationSectionShift");
+  }
   enableSearch();
   $('img').on("error",function() {
     if ( $(this).hasClass("spotlightIcon") )
@@ -2342,13 +2392,13 @@ function updateDisplay(content) {
 //	saveState();
 
   if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
-    $(".maxPerPage").show();
   }
   if ( $(".ca_multiselect").length ) {
       $(".multi_installAll").attr("disabled",false);
   } else {
     $(".multi_installAll").attr("disabled",true);
   }
+  myCloseAlert(true);
 }
 
 function saveState() {
@@ -2371,8 +2421,6 @@ function saveState() {
 }
 
 function restoreState() {
-  swalBackground("transparent");
-
   console.log("Restore State");
   $.removeCookie("ca_languageSwitch",{path:'/'});
 
@@ -2443,9 +2491,12 @@ function showStatistics() {
 }
 
 function showMenu() {
-  showAlternateView();
-  $(".alternateViewContent").addClass("mobileMenu").html($(".menuItems").html());
-  $(".ca_display_area").addClass("mobileMenu");
+  $('.back_to_top').click();
+  $('.menuAdjust').addClass("mobileMenuPopup");
+}
+
+function closeMenu() {
+  $('.menuAdjust').removeClass("mobileMenuPopup");
 }
 
 function caChangeLog() {

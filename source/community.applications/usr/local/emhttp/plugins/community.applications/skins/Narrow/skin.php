@@ -421,23 +421,39 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
   global $caSettings;
 
-  $pageFunction = $dockerSearch ? "dockerSearch": "changePage";
-  if ( $dockerSearch )
-    $caSettings['maxPerPage'] = 25;
-
-  if ( $caSettings['maxPerPage'] < 0 ) return;
   $swipeScript = "<script>";
+  
+  $pageFunction = $dockerSearch ? "dockerSearch": "changePage";
+  if ( $dockerSearch ) {
+    $caSettings['maxPerPage'] = 25;
+    $swipeScript .= "$('.maxPerPage').hide();";
+  } else {
+    $swipeScript .= "$('.maxPerPage').show();";
+  }
+
+  if ( $caSettings['maxPerPage'] < 0 ) {
+    return;
+  }
 
   $totalPages = ceil($totalApps / $caSettings['maxPerPage']);
 
-  if ($totalPages <= 1) return "<script>data.currentpage = 1;</script>";
+  if ( ($dockerSearch && $totalApps <=25) || ($totalApps < 2) ) {
+    return "<script>data.currentpage = 1;$('.maxPerPage').hide();</script>";
+  }
+  if ( $totalPages <= 1) {
+    if ( $totalApps >= 25 ) {
+      return "<script>data.currentpage = 1;$('.maxPerPage').show();</script>";
+    } else {
+      return "<script>data.currentpage = 1;$('.maxPerPage').hide();</script>";
+    }
+  }
 
   $startApp = ($pageNumber - 1) * $caSettings['maxPerPage'] + 1;
   $endApp = $pageNumber * $caSettings['maxPerPage'];
   if ( $endApp > $totalApps )
     $endApp = $totalApps;
 
-  $o = "</div><div class='ca_center'>";
+  $o = "</div><div class='navigationSection'><div class='navigationArea ca_center'>";
   if ($displayCount)
     $o .= "<span class='pageNavigation'>".sprintf(tr("Displaying %s - %s (of %s)"),$startApp,$endApp,$totalApps)."</span><br>";
 
@@ -469,7 +485,7 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
   $o .= ( $pageNumber < $totalPages ) ? "<span class='ca_tooltip pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
   $swipeScript .= ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
   $swipeScript .= "</script>";
-  $o .= "</div></div><script>data.currentpage = $pageNumber;</script>";
+  $o .= "</div></div></div><script>data.currentpage = $pageNumber;</script>";
   return $o.$swipeScript;
 }
 
@@ -945,8 +961,7 @@ function getRepoDescriptionSkin($repository) {
   }
 
   $t = "
-    <div class='popUpClose caButton'>".tr("CLOSE")."</div>
-    <div class='popUpBack caButton'>".tr("BACK")."</div>
+    <div class='popupContent'>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>
         $iconPrefix<img class='popupIcon' src='{$repo['icon']}'>$iconPostfix
@@ -1048,8 +1063,14 @@ function getRepoDescriptionSkin($repository) {
   }
   $t .= "</table>";
   $t .= "</div>";
+  $t .= "</div>";
 
-  $t = "<div class='popup'>$t</div>";
+  $t = "
+  <div class='popupCloseArea'>
+    <span class='popUpClose caButton'>".tr("CLOSE")."</span>
+    <span class='popUpBack caButton'>".tr("BACK")."</span>
+  </div>
+  <div class='popup'>$t</div>";
   return ["description"=>$t];
 }
 
@@ -1470,8 +1491,11 @@ function displayPopup($template) {
   $DateAdded = tr(date("M j, Y",$FirstSeen),0);
   $favRepoClass = ($caSettings['favourite'] == $Repo) ? "fav" : "nonfav";
   $card = "
+    <div class='popupCloseArea'>
+      <span class='popUpClose caButton'>".tr("CLOSE")."</span>
+    </div>
     <div class='popup'>
-    <div><span class='popUpClose caButton'>".tr("CLOSE")."</span></div>
+    <div class='popupContent'>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>$display_icon</div>
       <div class='popupInfo'>
@@ -1717,7 +1741,7 @@ function displayPopup($template) {
       <div class='installedPopupText ca_center'>".tr("INSTALLED")."</div></div>
     ";
   }
-
+  $card .= "</div>";
 
   return $card;
 }

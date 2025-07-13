@@ -1,6 +1,25 @@
+<div class='searchArea onlyShowWithFeed'>
+  <div class='menuItemsHidden menuAdjust'>
+    <div class='showMenuButton'></div>
+  </div>
+  <div class='mobileMenuClose menuAdjust'>
+    <div class="menuClose caButton"><?tr("CLOSE");?></div>
+  </div>
+  <span class='hideWithMenu menuAdjust'>
+    <span id='searchFilter'>
+      <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
+      <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
+      <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
+      <div class='templateSearch caButton' style='display:none'><?tr("Search Apps")?></div>
+      <div id="Category" class="categoryLine"></div>
+    </span>
+    <span class='caButton maxPerPage' id='maxPerPage'></span>
+  </span>
+</div>
 <div class='ca_display_area'>
-  <div class='mobileMenu'>
-    <div class='menuItems'>
+  <div class='mobileMenu menuAdjust'>
+    <div class="mobileMenuOverlay menuAdjust"></div>
+    <div class='menuItems menuAdjust'>
       <ul class='caMenu '>
         <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
         <li><hr class='onlyShowWithFeed'/></li>
@@ -44,35 +63,12 @@
     </div>
   </div>
   <div class='mainArea'>
-    <div class='searchArea onlyShowWithFeed'>
-      <div class='menuItemsHidden'>
-        <div class='showMenuButton'></div>
-      </div>
-      <span id='searchFilter'>
-        <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
-        <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-        <span class='caButton maxPerPage' id='maxPerPage' style='display:none;'></span>
-      </span>
-      <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
-      <div class='templateSearch caButton' style='display:none'><?tr("Search Apps")?></div>
-    </div>
-    <div class='spinnerBackground'>
-      <div class='long-loading'>
-        <?tr('Taking longer than expected. Please wait...')?>
-      </div>
-      <div class="more-long-loading">
-        <?tr('Taking far longer than expected. Please wait...')?>
-      </div>
-      <div class='long-loading-abort'>
-        <?tr('Something is wrong.  Taking much longer than expected.  Investigate possible network / internet connection hardware issues. Still attempting to load.  Please wait... Aborting will recover, but might cause Community Applications some issues.')?>
-        <div class='long-loading-abort-button caButton'><?tr('Abort');?></div>
-      </div>
-    </div>
+    <div class='spinnerBackground'></div>
     <div class='spinner fixed'></div>
-    <div id="Category" class="categoryLine">&nbsp;</div>
-    <div id='sortIconArea' style='display:none;'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>
-    <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></div>
-    <div id='templates_content'><div class='ca_templatesDisplay'><font size='6'><?tr("Updating Content");?></font></div></div>
+    <div id='sortIconArea' class='menuAdjust'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>
+    <div id='templates_content' class='menuAdjust'>
+      <div class='ca_templatesDisplay'></div>
+    </div>
     <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></div>
   </div>
 </div>
@@ -82,8 +78,8 @@
 </div>
 <div id='caCredits' style='display:none;'>
   <div class='credits'>
-    <div class='ca_center'><i class='fa fa-users' style='font-size:5rem;margin-top:2rem;'></i></div>
-    <div class='ca_center'><font size='5'>Community Applications</font></div>
+    <div class='ca_center ca_creditTitle ca_creditLogo'><i class='fa fa-users'></i></div>
+    <div class='ca_center ca_creditTitle'>Community Applications</div>
     <div class='ca_center ca_creditheader'><?tr("Development");?></div>
     <div class='ca_center ca_credit'>Andrew Zawadzki</div>
     <div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
@@ -95,9 +91,15 @@
     <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
     <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
     <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
-    <div class='ca_center ca_credit'>Awesomeplete (Lea Verou)<br>Chart.js (various)<br>chartjs-plugin-trendline (Marcus Alsterfjord)<br>XML2Array/Array2XML (Miles Johnson)<br>Magnific-Popup (Dmytro Semenov)</div>
+    <div class='ca_center ca_credit'>
+      <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
+      <div class='ca_libraries'>Chart.js (various)</div>
+      <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
+      <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
+      <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
+    </div>
     <br>
-    <div class='ca_center ca_italic'><font size='1rem;'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</font></div>
+    <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
   </div>
 </div>
 <span id='debugging'></span>

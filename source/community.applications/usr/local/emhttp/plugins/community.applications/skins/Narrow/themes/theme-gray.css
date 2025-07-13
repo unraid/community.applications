@@ -10,7 +10,7 @@
     --a-color: #00b8d6;
     --sidebar-background: #121510;
     --sidebar-text: #f2f2f2;
-    --beta-popup-offset: 1.5rem;
+    --beta-popup-offset: 5rem;
     --support-popup-text: #1b1d1b;
     --support-popup-background: #ffffff;
     --mod-comment-border: #cf3131;
@@ -18,4 +18,11 @@
     --unraid-66-color: #FF8C2F;
     --link-color: #486dba;
     --startup-color: #FF8C2F;
+    --ca-legacy-background-color: #1d1b1b;
+    --search-area-top: 0;
+    --search-area-left: 26.5rem;
+    --search-area-mobile-left: 7rem;
+    --search-area-mobile-top: 0;
 } 
+
+  

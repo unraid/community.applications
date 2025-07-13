@@ -4,11 +4,7 @@
 body {
   scrollbar-gutter: stable;
   cursor: default !important;
-}
-
-body.stop-scrolling {
-  height: 70%;
-  overflow: inherit;  /* disable SweetAlert killing the scroll bar (stops the wiggle) */
+  overflow-x: hidden!important;
 }
 
 .body_sidebarScroll {
@@ -265,6 +261,8 @@ a.caButton:hover {
 .maxPerPage {
   position: absolute;
   right: 0;
+  top: 0.5rem;
+  display: none;
 }
 
 #dropdown-maxPerPage {
@@ -303,8 +301,9 @@ input[type="button"][disabled] {
   width: 2rem;
   min-width: 2rem;
   height: 3.4rem;
-  padding: 1.1rem 1rem 1rem 0;
+  padding: 1.1rem 1rem 1rem 1rem;
   position: relative;
+  left: -1rem;
   
   /* Typography */
   font-family: 'FontAwesome';
@@ -328,7 +327,7 @@ input[type="button"][disabled] {
   margin: 1rem 0;
 }
 
-.menuItemsHidden {
+.menuItemsHidden, .mobileMenuClose {
   top: 1.5 rem;
   left: 2rem;
   padding-right: 1rem;
@@ -336,13 +335,51 @@ input[type="button"][disabled] {
   display: none;
 }
 
+.menuItems.mobileMenuPopup {
+  display: block !important;
+}
+.mobileMenu.mobileMenuPopup {
+  display: inline-block !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index:5;
+}
+#templates_content.mobileMenuPopup {
+  display:inline-block !important;
+  opacity: 0.2;
+}
+.ca_display_area.mobileMenuPopup {
+  height: 120vh !important;
+  opacity: 1;
+  overflow-y: hidden!important;
+}
+
+.menuItemsHidden {
+  display: none;
+}
+.menuOverlay.mobileMenuPopup {
+  display: block !important;
+}
+.content.mobileMenuPopup {
+  overflow-y: hidden !important;
+  height: 120vh !important;
+}
+.menuItemsHidden.mobileMenuPopup,
+.hideWithMenu.mobileMenuPopup,
+#sortIconArea.mobileMenuPopup {
+  display: none !important;
+}
+.mobileMenuClose.mobileMenuPopup {
+  display: block !important;
+}
 .menuItems {
   position: relative;
-  top: 2rem;
   height: auto;
   align-items: stretch;
   min-width: 14rem;
   max-width: 14rem;
+  z-index: 2;
 }
 
 .selectedMenu {
@@ -355,7 +392,7 @@ input[type="button"][disabled] {
 }
 
 /* Sidebar Navigation */
-.sidebar {
+.sidebar, .menuOverlay {
   /* Layout */
   position: fixed;
   top: 0;
@@ -364,13 +401,17 @@ input[type="button"][disabled] {
   width: 100%;
   height: 100vh;
   margin-bottom: 10px;
-  /* Display over any banner warning */
-  z-index: 1000;
   opacity: 0.95;
   
   /* Visual */
   background-color: var(--sidebar-close-background);
   display: none;
+}
+.sidebar {
+  z-index: 1000;
+}
+.menuOverlay {
+  z-index: 2;
 }
 
 .sidebarClose {
@@ -387,8 +428,8 @@ input[type="button"][disabled] {
   top: 0;
   right: 0;
   bottom: 1.6rem;
-  margin-bottom: 10px;
-  padding-top: 60px;
+  margin-bottom: 1rem;
+  padding-top: 4rem;
   
   /* Visual */
   background-color: var(--sidebar-background);
@@ -406,7 +447,6 @@ input[type="button"][disabled] {
 .sidenavShow {
   width: 90%;
   max-width: 70rem;
-  opacity: 0.8;
 }
 .dim {
   opacity: 0.3;
@@ -809,8 +849,9 @@ ul.caMenu {
 }
 
 .ca_popupIconArea {
-  height: 14.4rem;
-}
+  height: 15.5rem;
+  top: 1rem;
+  position: relative;}
 
 .ca_private::after {
   content: "\f069";
@@ -942,8 +983,11 @@ a.ca_repoPopup:hover {
 }
 
 #Category {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+  margin: auto 2rem auto 2rem;
+  display: inline-block;
+  font-size: 1.5rem;
+  font-style: italic;
+  font-weight: bold;
 }
 
 .changelogTitle {
@@ -1016,6 +1060,10 @@ li.context:hover {
   color: var(--unraid-66-color);
 }
 
+.alternateViewClose {
+  position: fixed;
+}
+
 #alternateView {
   /* Layout */
   position: fixed;
@@ -1025,11 +1073,14 @@ li.context:hover {
   margin-bottom: 10px;
   padding-top: 15rem;
   width:100%;
+  z-index:10;
   
   /* Visual */
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
   opacity: 0.9;
+  display:none;
+
   
   /* Interactive */
   overflow-x: scroll;
@@ -1310,11 +1361,20 @@ input[type=button][disabled] {
   color: var(--link-color);
   font-weight: normal;
 }
+.ca_creditTitle {
+  font-size: 5rem;
+}
+.ca_creditLogo {
+  margin-top: 2rem;
+}
 
 .multi_installDiv {
-  width: 100%;
+  width: auto;
   display: none;
   padding-bottom: 20px;
+  position: fixed;
+  bottom: 0;
+  background-color: var(--backg11round-color,var(--ca-legacy-background-color));
 }
 
 .myReadmoreButton {
@@ -1394,12 +1454,10 @@ input[type=button][disabled] {
 }
 
 .pageNavigation {
-  font-size: 2.5rem;
   margin-bottom: 3rem;
 }
 
 .pageNavNoClick {
-  font-size: 2.5rem;
   cursor: default !important;
   opacity: 0.3;
 }
@@ -1478,12 +1536,26 @@ img.popupAuthorIcon {
   margin-top: 2rem;
   margin-bottom: 2rem;
 }
+.mobileMenuClose {
+  padding-top: 1rem;
+  display: none;
+}
 
 .popupCategory {
   font-size: 1rem;
   line-height: 1rem;
 }
 
+.popupCloseArea {
+    position: fixed;
+    margin-left: 10px;
+    margin-top: -2rem;
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+    width: 100%;
+    background-color: var(--sidebar-background);
+    z-index: 5;
+}
 
 .popUpDeprecated {
   color: var(--unraid-66-color);
@@ -1525,7 +1597,7 @@ img.popupIcon {
 
 .popupInfo {
   position: absolute;
-  top: 10rem;
+  top: 3rem;
   left: 15rem;
 }
 
@@ -1540,6 +1612,9 @@ img.popupIcon {
   font-size: 1.5rem;
 }
 
+#displaybox {
+  margin-top: 0 !important;
+}
 .popUpLink {
   cursor: pointer;
   color: var(--a-color);
@@ -1667,10 +1742,20 @@ a.popUpLink:hover {
   cursor: pointer;
 }
 
+#displayBox {
+  padding-top: 0;
+}
 .searchArea {
-  z-index: 2;
-  width: auto;
-  position: static;
+  z-index: 6;
+  width: 100%;
+  position: sticky;
+  background-color: var(--background-color,var(--ca-legacy-background-color));
+  top: var(--search-area-top);
+}
+
+#searchFilter {
+  position: relative;
+  left: var(--search-area-left);
 }
 
 #searchBox {
@@ -1695,13 +1780,17 @@ a.popUpLink:hover {
   font-family: fontAwesome;
   font-size: 2rem;
 }
-
+.showMenuButton { 
+  position: relative;
+  left: 2rem;
+}
 .closeMenuButton {
   display: none;
 }
 
 #sortIconArea {
   padding-bottom: 1rem;
+  display: none;
 }
 
 .sortIcons {
@@ -1720,32 +1809,6 @@ a.popUpLink:hover {
 .specialCategory {
   font-size: 1.5rem;
 }
-
-.spinner {
-  /* z-index: 9999 !important; */
-}
-.long-loading, .more-long-loading, .long-loading-abort {
-  left: auto;
-  width: 50%;
-  top: 30%;
-  text-align: center;
-  border-style: solid;
-  background: tan;
-  padding: 20px;
-  margin: auto;
-  position: relative;
-  z-index: 999999 !important;
-  display: none;
-}
-
-.long-loading-abort {
-  cursor: default;
-}
-.spinnerResetCursor {
-  cursor: default;
-  z-index: 9999 !important;
-}
-
 
 .spinnerBackground {
   position: fixed;
@@ -1847,7 +1910,20 @@ ul.subCategory {
   cursor: pointer;
   display: none;
 }
-
+.navigationSection {
+  position: fixed;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  margin-left: auto;
+  left: 0;
+  text-align: center;
+  font-size: 1.5rem;
+  background-color: var(--background-color,var(--ca-legacy-background-color));
+}
+.navigationSectionShift {
+  bottom: 5rem !important;
+}
 .warningCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
   background-color: var(--ca-dark-red-color);

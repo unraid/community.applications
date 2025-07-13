@@ -46,7 +46,9 @@ function stripTags(str) {
 
 
 function mySpinner() {
-  $(".long-loading,.more-long-loading,.long-loading-abort").hide()
+  if ( $(".sweet-overlay").is(":visible") ) {
+    return;
+  }
   $("div.spinner,.spinnerBackground").show();
 
 }
@@ -56,6 +58,7 @@ function myCloseSpinner() {
   clearTimeout(ca_veryLongLoading);
   clearTimeout(ca_somethingWrong);
   $("div.spinner,.spinnerBackground").hide();
+  $(".long-loading").html("");
 }
 
 function enableButtons() {
@@ -134,7 +137,6 @@ var ca_veryLongLoading = false;
 var ca_somethingWrong = false;
 
 function post(options,callback) {
-
   if ( typeof options === "function" ) {
     callback = options;
   } else {
@@ -143,31 +145,25 @@ function post(options,callback) {
   }
   if ( ! options.noSpinner ) {
     if ( postCount == 0) {
-      $(".long-loading,.more-long-loading,.long-loading-abort").hide();
-      mySpinner();
+      if ( ! $(".sweet-overlay").is(":visible") ) {
+        mySpinner();
+      }
       ca_longLoading = setTimeout(function() {
-        $(".long-loading").show();
+        slowPost(tr('Taking longer than expected. Please wait...'));
       }, 20000);
       ca_veryLongLoading = setTimeout(function() {
         clearTimeout(ca_longLoading);
-        $(".long-loading").hide();
-        $(".more-long-loading").show();
+        slowPost(tr('Still taking longer than expected. Please wait...'));
       },30000);
   
       ca_somethingWrong = setTimeout(function() {
         clearTimeout(ca_veryLongLoading);
-        $(".more-long-loading").hide();
-        $("div.spinner.fixed").css("z-index","unset"  );
-        $(".long-loading-abort").show();
+        slowPost(tr('Taking far longer than expected.  Investigate possible network / internet connection hardware issues. Still attempting to load.  Please wait... Aborting will recover, but might cause Community Applications some issues.')+"<div class='long-loading-abort-button caButton'>"+tr('Abort')+"</div>");
       }, 40000);
     }
-
-    
-
     postCount++;
   }
   
-    
   $.post(execURL,options).done(function(result) {
     if (result.script) {
       try {
@@ -201,8 +197,7 @@ function post(options,callback) {
         postCount = 0;
       }
       if ( postCount == 0 ) {
- 
-       myCloseSpinner();
+        myCloseSpinner();
       }
     }
 
@@ -225,8 +220,14 @@ function post(options,callback) {
       }
     });
   });
+}
 
-
+function slowPost(message) {
+  $(".updateContent-swal").html(message);
+  // this isn't working quite right
+  if ( $(".spinner").is(":visible") ) {
+    $(".long-loading").html(message);
+  }
 }
 
 function myAlert(description,textdescription,textimage,imagesize, outsideClick, showCancel, showConfirm, alertType) {
