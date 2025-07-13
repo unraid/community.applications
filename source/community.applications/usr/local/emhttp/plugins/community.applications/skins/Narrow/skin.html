@@ -35,30 +35,30 @@
         </li>
         <li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
         <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
-        <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' style='display:none;' data-category='action_centre'><?tr("Action Centre");?></li>
+        <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' data-category='action_centre'><?tr("Action Centre");?></li>
         <li><hr class='onlyShowWithFeed'/></li>
       </ul>
         <span id='category_list' class='onlyShowWithFeed'></span>
-      <ul class='caMenu '>
+      <ul class='caMenu'>
         <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
         <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
         <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
         <li><hr class='category_hr onlyShowWithFeed'/></li>
         <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
-        <li class='caMenuItem statistics' onclick='disableSort();scrollToTop();showStatistics();'><?tr("Statistics");?></li>
-        <li class='caMenuItem' onclick='disableSort();scrollToTop();showCredits();'><?tr("Credits");?></li>
+        <li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
+        <li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
         <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
         <li><hr class='category_hr'/></li>
-      </ul>
-      <ul class='nonselectMenu'>
         <li><?=tr("VERSION");?></li>
-        <li><span id='caInstalledVersion'></span></li>
-        <li class='caMenuItem caChangeLog'><?tr("Change Log");?></li>
-      <?if ($md5Error):?>
-        <li><font size='0'>Modified</font></li>
-      <?endif;?>
+        <li class='caMenuItem caChangeLog noSelect'><span id='caInstalledVersion'></span></li>
+        <li class='caMenuItem caChangeLog noSelect'><?tr("Change Log");?></li>
+        <?if ($md5Error):?>
+        <br>
+        <li><span class='modifiedCode'>Modified Code</span></li>
+        <br>
+        <?endif;?>  
         <li><hr/></li>
-        <li class='caMenuItem debugging'><?tr("Debugging");?></li>
+        <li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
       </ul>
     </div>
   </div>

@@ -4,7 +4,6 @@
 body {
   scrollbar-gutter: stable;
   cursor: default !important;
-  overflow-x: hidden!important;
 }
 
 .body_sidebarScroll {
@@ -317,10 +316,6 @@ input[type="button"][disabled] {
   cursor: pointer;
 }
 
-#searchButton:hover {
-  color: var(--unraid-66-color);
-}
-
 /* Menu and Navigation */
 .menuHeader {
   font-size: 2rem;
@@ -387,10 +382,12 @@ input[type="button"][disabled] {
   font-weight: bold;
 }
 
-.hoverMenu {
-  color: var(--unraid-66-color) !important;
+.caMenuDisabled:hover {
+  color: inherit !important;
 }
-
+.caNonselectMenu:hover {
+  color: inherit !important;
+}
 /* Sidebar Navigation */
 .sidebar, .menuOverlay {
   /* Layout */
@@ -577,7 +574,6 @@ td.appIconsPopUp {
 
 .appIconsPopUp:hover {
   text-decoration: none;
-  color: var(--unraid-66-color);
 }
 
 a.appIconsPopUp {
@@ -900,10 +896,6 @@ ul.caMenu {
   color: inherit;
 }
 
-a.ca_repoPopup:hover {
-  color: var(--unraid-66-color);
-}
-
 .ca_repoSearch {
   font-size: 2rem;
   cursor: pointer;
@@ -978,10 +970,6 @@ a.ca_repoPopup:hover {
   margin-top: 1rem;
 }
 
-.card_readmore {
-  color: var(--unraid-66-color);
-}
-
 #Category {
   margin: auto 2rem auto 2rem;
   display: inline-block;
@@ -1014,9 +1002,6 @@ a.ca_repoPopup:hover {
   cursor: pointer;
 }
 
-.chartMenu:hover {
-  color: var(--unraid-66-color);
-}
 
 .chartMenu.selectedMenu {
   color: var(--unraid-66-color);
@@ -1054,10 +1039,6 @@ li.context {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   font-size: 1.5rem;
-}
-
-li.context:hover {
-  color: var(--unraid-66-color);
 }
 
 .alternateViewClose {
@@ -1158,9 +1139,11 @@ img.displayIcon {
   margin-top: 2rem;
 }
 
-.enabledIcon {
+.enabledIcon,
+.homeMore,
+.card_readmore {
   cursor: pointer;
-  color: var(--unraid-66-color) !important;
+  color: var(--unraid-66-color);
 }
 
 .fav {
@@ -1214,12 +1197,7 @@ img.displayIcon {
   margin-right: -9rem;
 }
 
-.homeMore {
-  color: var(--unraid-66-color);
-  cursor: pointer;
-}
-
-.homeMore:hover {
+.homeMore:hover, {
   color: var(--ca-note-color);
 }
 
@@ -1237,7 +1215,16 @@ img.displayIcon {
   font-size: 1.5rem;
 }
 
-.initDockerSearch:hover {
+.initDockerSearch:hover,
+#searchButton:hover,
+.caMenuItem:hover,
+.appIconsPopUp:hover,
+a.ca_repoPopup:hover,
+a.popUpLink:hover,
+.chartMenu:hover,
+li.context:hover,
+.pageNumber:hover,
+.sortIcons:hover  {
   color: var(--unraid-66-color);
 }
 
@@ -1369,7 +1356,7 @@ input[type=button][disabled] {
 }
 
 .multi_installDiv {
-  width: auto;
+  width: 100%;
   display: none;
   padding-bottom: 20px;
   position: fixed;
@@ -1472,10 +1459,6 @@ input[type=button][disabled] {
   margin-right: 1rem;
   cursor: pointer;
   text-decoration: none !important;
-}
-
-.pageNumber:hover {
-  color: var(--unraid-66-color);
 }
 
 .pageRight::after {
@@ -1624,10 +1607,6 @@ a.popUpLink {
   text-decoration: none;
 }
 
-a.popUpLink:hover {
-  color: var(--unraid-66-color);
-}
-
 .popupName {
   display: block;
   font-size: 3rem;
@@ -1767,12 +1746,8 @@ a.popUpLink:hover {
   padding: 0.6rem;
   background: var(--template-hover-background);
   padding-right: 0.5rem;
-  width: 150px;
+  width: 300px;
   font-size: 1.5rem;
-}
-
-#searchButton:hover {
-  color: var(--unraid-66-color);
 }
 
 .showMenuButton::before {
@@ -1800,10 +1775,6 @@ a.popUpLink:hover {
   cursor: pointer;
   text-decoration: none !important;
   color: var(--sidebar-text);
-}
-
-.sortIcons:hover {
-  color: var(--unraid-66-color);
 }
 
 .specialCategory {
@@ -1934,9 +1905,17 @@ ul.subCategory {
   left: -10rem;
   margin-right: -9rem;
 }
+.actionCentre {
+  display: none;
+}
 
 #warningNotAccepted {
   display: none;
+}
+
+.modifiedCode {
+  margin-bottom: 1rem;
+  animation: cycleRed 1s infinite;
 }
 
 @keyframes cycleRed {

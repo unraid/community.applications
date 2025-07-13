@@ -173,8 +173,6 @@ switch ($font) {
 $doubleRow += $themeOffset;
 $noMenu += $themeOffset;
 ?>
-
-
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
@@ -187,6 +185,10 @@ $noMenu += $themeOffset;
 
 <? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?>
 <style>
+body {
+  overflow-x: hidden!important;
+}
+
 @media (max-width:<?=$doubleRow?>px) {
   .caHomeSpotlight {
     height: 54rem !important;
@@ -210,6 +212,9 @@ $noMenu += $themeOffset;
   .navigationSection {
     bottom: 0 !important;
     position: relative;
+  }
+  #searchBox {
+    width: 150px;
   }
 }
 
@@ -260,11 +265,24 @@ $noMenu += $themeOffset;
   }
 }
 </style>
-<? endif;?>
+<? elseif ($display['theme'] == "black" || $display['theme'] == "white"): ?> 
+<!-- 
+  This is a hack to fix the search area margin on the white/black theme un OS 7.1 and earlier
+ -->
+<style>
+.searchArea {
+  margin: 13rem auto -10rem auto;
+}
+</style>
+<? elseif ($display['theme'] == "azure" || $display['theme'] == "gray"): ?>
+<style>
+.alternateViewClose {
+  left: 8.5rem;
+}
+</style>
+<? endif; ?>
 
 <script>
-
-
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
 var searchBoxInput;
@@ -473,14 +491,22 @@ $(function(){
       debug:false,
       priority:true
     },function(result) {
-      var result = JSON.parse(result);
-      $("#caInstalledVersion").html(result.installedVersion);
+      try {
+        var result = JSON.parse(result);
+        $("#caInstalledVersion").html(result.installedVersion);
+      } catch(e) {
+        $("#caInstalledVersion").html("Unknown");
+      }
     }
   );
 
 // Override the OS switch language function so that CA can save it's current state when switching via the OS
   $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-  $(".searchArea").insertAfter("#menu");
+  <? if ( version_compare($unRaidSettings['version'],"7.1.9999","<") && ($display['theme'] == 'azure' || $display['theme'] == 'gray') ):?>
+    $(".searchArea").css("margin-left","-8.5rem");
+  <? else: ?>
+    $(".searchArea").insertAfter("#menu");
+  <? endif; ?>
   $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
@@ -755,7 +781,20 @@ $(function(){
   });
 
   $('body').on("click",".caMenuItem",function() {
-    closeMenu();
+    if ( $(this).hasClass("caMenuDisabled") || $(this).hasClass("selectedMenu") ) {
+      return;
+    }
+
+    if ( $(this).hasClass("showStatistics") ) {
+      event.stopPropagation();
+      showStatistics();
+    } else if ( $(this).hasClass("showCredits") ) {
+      event.stopPropagation();
+      showCredits();
+    } else {
+      scrollToTop();  
+      closeMenu();
+    }
   });
 
   $('.menuItems').on("click",'.categoryMenu',function() {
@@ -793,16 +832,6 @@ $(function(){
     }
   });
 
-  $('body').on("mouseover",'.caMenuItem',function() {
-    if ( $(this).hasClass("caMenuEnabled") ) {
-      $(this).addClass("hoverMenu");
-    }
-  });
-
-  $('body').on("mouseleave",'.caMenuItem',function() {
-    $(this).removeClass("hoverMenu");
-  });
-
   $(".sidebar").on("click",".chartMenu",function() {
     if ($(this).hasClass("selectedMenu") )
       return;
@@ -821,6 +850,9 @@ $(function(){
 
   $('body').on("click",".caMenuItem",function() {
     if ( $(this).hasClass("caMenuDisabled") ) {
+      return;
+    }
+    if ( $(this).hasClass("noSelect") ) {
       return;
     }
     if ( $(this).attr("onclick") ) {
@@ -912,7 +944,7 @@ $(function(){
       sortOrder.sortDir = sortDir;
       $(".sortIcons").addClass("startupMore");
     }
-    $("#CategoryLine").html($(this).data("des"));
+    $(".CategoryLine").html($(this).data("des"));
     $("#searchBox").val("");
     scrollToTop();
     post({action:"changeSortOrder",sortOrder:sortOrder},function() {
@@ -956,6 +988,8 @@ $(function(){
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
   $("body").on("click",".startupButton",function() { 
+    $("#Category").html("");
+    $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
     hideAlternateView();
     $(".maxPerPage").hide();
     hideSortIcons();
@@ -1002,14 +1036,6 @@ $(function(){
 
   $("body").on("click",".popUpClose",function() {
     closeSidebar();
-  });
-
-  $("#alternateView").on("click",function() {
-    if ( $(".alternateViewContent").hasClass("mobileMenu") ) {
-      return;
-    }
-    event.stopPropagation();
-    hideAlternateView();
   });
 
   $(".alternateViewClose").on("click",function() {
@@ -1193,7 +1219,7 @@ function updateContent(button) {
         doSearch(false,startupSearch);
         populateAutoComplete();
         startupSearch = "";
-        $(".dockerSearch").hide();
+        $(".dockerSearch,.templateSearch").hide();
       } else {
         getContent(true,'INITIALIZE',"","",startupScreen);
       }
@@ -1392,7 +1418,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
     var filter = $('#searchBox').val();
     if ( ! filter ) {
-      $('.dockerSearch').hide();
+      $('.dockerSearch,.templateSearch').hide();
     }
     if ( description && ! filter ) {
       $("#Category").html(description);
@@ -1660,7 +1686,7 @@ function previousApps(installed,dontClear=false,filter="") {
   data.docker = "";
 
   clearSearchBox();
-  $(".dockerSearch").hide();
+  $(".dockerSearch,.templateSearch").hide();
   showSortIcons();
 
   // this is the checkSortOrder function running to prevent a race condition
@@ -1692,7 +1718,7 @@ function actionCentre() {
   setPageOne();
   data.docker = "";
   clearSearchBox();
-  $(".dockerSearch").hide();
+  $(".dockerSearch,.templateSearch").hide();
   showSortIcons();
 
   // this is the checkSortOrder function running to prevent a race condition
@@ -1913,6 +1939,7 @@ function setPageOne() {
 
 function clearCategory() {
   $("#Category").html("&nbsp;");
+  $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
 }
 
 function pinnedApps() {
@@ -1940,7 +1967,7 @@ function pins() {
   clearCategory();
   showSortIcons();
   $("#Category").html("<?tr("Pinned Apps");?>");
-  $(".dockerSearch,.multi_installDiv").hide();
+  $(".dockerSearch,.templateSearch,.multi_installDiv").hide();
   post({action:'pinnedApps'},function(result) {
     refreshDisplay();
     myCloseAlert();
@@ -1953,7 +1980,11 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
   var flag = false;
 
   if ( ports ) {
-    ports = JSON.parse(ports);
+    try {
+      ports = JSON.parse(ports);
+    } catch(e) {
+      ports = [];
+    }
     if ( ports ) {
       ports.forEach(function(port){
         portsInUse.forEach(function(used) {
@@ -2031,7 +2062,15 @@ function selectAllPrevious() {
 
 function getSelectedApps() {
   if ( data.selected ) {
-    var selected = JSON.parse(data.selected);
+    try {
+      var selected = JSON.parse(data.selected);
+    } catch(e) {
+      var selected = new Object();
+      var deletePaths = new Array();
+      var docker = new Array();
+      var plugin = new Array();
+      var language = new Array();
+    }
     var deletePaths = selected.deletePaths;
     var docker = selected.docker;
     var plugin = selected.plugin;
@@ -2745,7 +2784,11 @@ function popupInstallXML(xml,type,comment="",ports="") {
   saveState();
   var flag = false;
   if ( ports ) {
-    ports = JSON.parse(ports);
+    try {
+      ports = JSON.parse(ports);
+    } catch(e) {
+      ports = [];
+    }
     if ( ports ) {
       ports.forEach(function(port){
         portsInUse.forEach(function(used) {
