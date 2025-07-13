@@ -42,10 +42,6 @@ a {
   font-size: 1.4rem !important;
 }
 
-.ca_note {
-  color: var(--ca-note-color);
-}
-
 .ca_red {
   color: var(--ca-red-color);
 }
@@ -401,14 +397,16 @@ input[type="button"][disabled] {
   opacity: 0.95;
   
   /* Visual */
-  background-color: var(--sidebar-close-background);
   display: none;
 }
 .sidebar {
+  background-color: var(--sidebar-background);
   z-index: 1000;
 }
 .menuOverlay {
   z-index: 2;
+  background-color: var(--menu-background);
+  opacity: var(--menu-opacity,0.8);
 }
 
 .sidebarClose {
@@ -553,7 +551,6 @@ li.caMenuItem {
 
 .additionalRequirementsHeader {
   font-size: 1.5rem;
-  color: var(--ca-note-color);
   font-weight: bold;
 }
 
@@ -654,6 +651,11 @@ a.ca_author {
 a.ca_categories {
   text-decoration: none;
   color: inherit;
+}
+
+.credits {
+  margin-left: 10%;
+  margin-right: 10%;
 }
 
 .ca_credit {
@@ -881,7 +883,6 @@ ul.caMenu {
 
 .ca_readmore:hover {
   text-decoration: none;
-  color: var(--ca-note-color);
 }
 
 .ca_reddit::before {
@@ -1197,10 +1198,6 @@ img.displayIcon {
   margin-right: -9rem;
 }
 
-.homeMore:hover, {
-  color: var(--ca-note-color);
-}
-
 .homespotlightIconArea {
   display: inline-block;
   position: relative;
@@ -1361,7 +1358,7 @@ input[type=button][disabled] {
   padding-bottom: 20px;
   position: fixed;
   bottom: 0;
-  background-color: var(--backg11round-color,var(--ca-legacy-background-color));
+  background-color: var(--ca-legacy-background-color);
 }
 
 .myReadmoreButton {
@@ -1728,7 +1725,7 @@ a.popUpLink {
   z-index: 6;
   width: 100%;
   position: sticky;
-  background-color: var(--background-color,var(--ca-legacy-background-color));
+  background-color: var(--ca-legacy-background-color);
   top: var(--search-area-top);
 }
 
@@ -1870,10 +1867,6 @@ a.popUpLink {
   text-decoration: none;
 }
 
-.spotlightMessage a:hover {
-  color: var(--ca-note-color);
-}
-
 ul.subCategory {
   list-style-type: none;
   margin-left: 2rem;
@@ -1890,7 +1883,7 @@ ul.subCategory {
   left: 0;
   text-align: center;
   font-size: 1.5rem;
-  background-color: var(--background-color,var(--ca-legacy-background-color));
+  background-color: var(--ca-legacy-background-color);
 }
 .navigationSectionShift {
   bottom: 5rem !important;

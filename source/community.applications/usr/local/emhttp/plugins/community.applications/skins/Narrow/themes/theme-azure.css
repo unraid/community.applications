@@ -1,12 +1,9 @@
 :root {
-    --donate-background: #606e7f;
-    --donate-text: #e4e2e4;
     --template-background: transparent;
     --template-hover-background: #edeaef;
     --template-favourite: #e0e0e0;
     --hr-color: #606e7f;
     --border-color: #9794a7;
-    --watermark-color: rgba(96, 110, 127, 0.1);
     --a-color: #486dba;
     --sidebar-background: #edeaef;
     --sidebar-text: #606e7f;
@@ -15,12 +12,13 @@
     --support-popup-background: #ffffff;
     --mod-comment-border: #cf3131;
     --sidebar-close-background: rgba(0,0,0,0.7);
-    --unraid-66-color: #FF8C2F;
+    --unraid-66-color: var(--orange-500,#FF8C2F);
     --link-color: #486dba;
-    --startup-color: #FF8C2F;
-    --ca-legacy-background-color: #1d1b1b;
+    --ca-legacy-background-color: var(--background-color,#e8e8e8);
     --search-area-top: 0;
     --search-area-left: 26.5rem;
     --search-area-mobile-left: 7rem;
     --search-area-mobile-top: 0;
+    --menu-background: var(--background-color,#e8e8e8);
+    --menu-opacity: 0.7;
 } 

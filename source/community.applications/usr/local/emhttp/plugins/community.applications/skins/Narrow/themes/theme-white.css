@@ -1,12 +1,9 @@
 :root {
-  --donate-background: #1c1b1b;
-  --donate-text: #f2f2f2;
   --template-background: #f5f5f5;
   --template-hover-background: #ffffff;
   --template-favourite: #d0d0d0;
   --hr-color: lightgrey;
   --border-color: #e3e3e3;
-  --watermark-color: rgba(211, 211, 211, 0.8);
   --a-color: #486dba;
   --sidebar-background: #ffffff;
   --sidebar-text: #000000;
@@ -15,13 +12,13 @@
   --support-popup-background: #1c1b1b;
   --mod-comment-border: #cf3131;
   --sidebar-close-background: rgba(0,0,0,0.7);
-  --unraid-66-color: #FF8C2F;
+  --unraid-66-color: var(--orange-500,#FF8C2F);
   --link-color: #486dba;
-  --startup-color: #FF8C2F;
-  --ca-legacy-background-color: #f2f2f2;
+  --ca-legacy-background-color: var(--background-color,#f2f2f2);
   --search-area-top: 4rem;
   --search-area-left: 19.5rem;
   --search-area-mobile-left: initial;
   --search-area-mobile-top: 0;
-
+  --menu-background: var(--background-color,#f2f2f2);
+  --menu-opacity: 0.8;
 } 
