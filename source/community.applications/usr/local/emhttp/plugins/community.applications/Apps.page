@@ -1499,7 +1499,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".ca_display_area").removeClass("dim");
+ // $(".ca_display_area").removeClass("dim");
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
@@ -3028,7 +3028,7 @@ function showSidebarApp(apppath,appname) {
   $(".sidebar").fadeIn();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  //$(".ca_display_area").addClass("dim");
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
@@ -3096,7 +3096,6 @@ function showSidebarApp(apppath,appname) {
           var newSize = size - 1;
           if (newSize == 0)
             return false;
-
           $(this).css("font-size",newSize+"px");
         }
       });
@@ -3131,7 +3130,7 @@ function showRepoPopup(repository) {
   $("#sidenavContent").html("");
 
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  //$(".ca_display_area").addClass("dim");
   $(".sidebar").fadeIn();
   $("body").addClass("body_sidebarScroll");
   $("body").css("overflow","hidden !important");

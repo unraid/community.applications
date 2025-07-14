@@ -73,9 +73,11 @@ a {
   overflow: hidden;
   min-height: 100rem;
 }
+/*
 .ca_display_area.mobileMenu {
   opacity: 0.4;
 }
+*/
 
 .mainArea {
   right: 0px;
@@ -338,11 +340,11 @@ input[type="button"][disabled] {
 }
 #templates_content.mobileMenuPopup {
   display:inline-block !important;
-  opacity: 0.2;
+ // opacity: 0.2;
 }
 .ca_display_area.mobileMenuPopup {
   height: 120vh !important;
-  opacity: 1;
+ ` opacity: 1;
   overflow-y: hidden!important;
 }
 
@@ -371,6 +373,11 @@ input[type="button"][disabled] {
   min-width: 14rem;
   max-width: 14rem;
   z-index: 2;
+  background-color: var(--ca-legacy-background-color);
+}
+.menuItems.mobileMenuPopup {
+  box-shadow: 11px 20px 5px 2px var(--ca-shadow-color);
+  font-weight: bold;
 }
 
 .selectedMenu {
@@ -394,19 +401,16 @@ input[type="button"][disabled] {
   width: 100%;
   height: 100vh;
   margin-bottom: 10px;
-  opacity: 0.95;
   
   /* Visual */
   display: none;
+ background-color: transparent;
 }
 .sidebar {
-  background-color: var(--sidebar-background);
   z-index: 1000;
 }
 .menuOverlay {
   z-index: 2;
-  background-color: var(--menu-background);
-  opacity: var(--menu-opacity,0.8);
 }
 
 .sidebarClose {
@@ -427,6 +431,7 @@ input[type="button"][disabled] {
   padding-top: 4rem;
   
   /* Visual */
+  box-shadow: -16px -15px 5px 2px var(--ca-shadow-color);
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
   
@@ -442,9 +447,6 @@ input[type="button"][disabled] {
 .sidenavShow {
   width: 90%;
   max-width: 70rem;
-}
-.dim {
-  opacity: 0.3;
 }
 
 .dockerSearchTemplate {
@@ -587,18 +589,9 @@ a.appIconsPopUp {
   z-index: 0;
 }
 
-.betaCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--unraid-66-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
-
-.betaPopupBackground {
+.betaPopupBackground,
+.upgradePopupBackground,
+.installedPopup {
   clip-path: polygon(0 0,100% 0, 100% 100%);
   background-color: var(--unraid-66-color);
   top: var(--beta-popup-offset);
@@ -607,15 +600,23 @@ a.appIconsPopUp {
   position: absolute;
   right: 0;
 }
-
-.betaPopupText {
+.installedPopup {
+  background-color: var(--ca-purple-color);
+}
+.betaPopupBackground,
+.upgradePopupBackground {
+  background-color: var(--unraid-66-color);
+}
+.betaPopupText,
+.upgradePopupText,
+.installedPopupText {
   position: absolute;
   transform: rotate(45deg);
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
   color: var(--ca-named-white);
-  font-size: 2rem;
+  font-size: 1.1rem;
   top: 2.25rem;
   right: -1rem;
   width: 100%;
@@ -1187,17 +1188,6 @@ img.displayIcon {
   color: var(--unraid-66-color);
 }
 
-.greenCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-dark-green-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
-
 .homespotlightIconArea {
   display: inline-block;
   position: relative;
@@ -1231,35 +1221,6 @@ a.initDockerSearch {
   color: unset;
 }
 
-.installedCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-purple-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
-
-.installedCardText {
-  text-transform: uppercase;
-  position: absolute;
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -o-transform: rotate(45deg);
-  color: var(--ca-named-white);
-  font-size: 2rem;
-  position: absolute;
-  top: 2rem;
-  right: 0rem;
-  width: 6rem;
-  overflow: hidden;
-  height: 2.5rem;
-  display: inline;
-}
-
 input[type=checkbox] {
   width: 2rem;
   height: 2rem;
@@ -1288,31 +1249,6 @@ input[type=button][disabled] {
   background-color: none !important;
 }
 
-.installedPopup {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-purple-color);
-  top: var(--beta-popup-offset);
-  height: 9rem;
-  width: 9rem;
-  position: absolute;
-  right: 0;
-}
-
-.installedPopupText {
-  position: absolute;
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -o-transform: rotate(45deg);
-  color: var(--ca-named-white);
-  font-size: 2rem;
-  position: absolute;
-  top: 2.5rem;
-  right: -1rem;
-  width: 100%;
-  overflow: hidden;
-  height: 2rem;
-}
 
 .mobileHolderFix {
   margin-bottom: 2rem !important;
@@ -1369,9 +1305,14 @@ input[type=button][disabled] {
   margin-top: 0px;
 }
 
-.officialCardBackground {
+.officialCardBackground,
+.LTOfficialCardBackground,
+.spotlightCardBackground,
+.warningCardBackground,
+.betaCardBackground,
+.greenCardBackground,
+.installedCardBackground {
   clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-dark-purple-color);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1379,35 +1320,45 @@ input[type=button][disabled] {
   left: -10rem;
   margin-right: -9rem;
 }
+.installedCardBackground {
+  background-color: var(--ca-purple-color);
+}
+.LTOfficialCardBackground {
+  background-color: var(--ca-orange-color);
+}
+.officialCardBackground,
+.spotlightCardBackground {
+  background-color: var(--ca-dark-purple-color);
+}
+.warningCardBackground {
+  background-color: var(--ca-dark-red-color);
+}
+.betaCardBackground {
+  background-color: var(--unraid-66-color);
+}
+.greenCardBackground {
+  background-color: var(--ca-dark-green-color);
+}
 
-.officialPopupText {
+.installedCardText {
   position: absolute;
   transform: rotate(45deg);
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
   color: var(--ca-named-white);
-  font-size: 2rem;
+  font-size: 1.1rem;
   position: absolute;
-  top: 2.25rem;
-  right: -1rem;
-  width: 100%;
+  top: 2rem;
+  right: 0rem;
+  width: 6rem;
   overflow: hidden;
   height: 2.5rem;
+  display: inline;
 }
 
-.LTOfficialCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-orange-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
-
-.ltofficialPopupText {
+.officialPopupText,
+.LTOfficialPopupText {
   position: absolute;
   transform: rotate(45deg);
   -webkit-transform: rotate(45deg);
@@ -1518,6 +1469,7 @@ img.popupAuthorIcon {
 }
 .mobileMenuClose {
   padding-top: 1rem;
+  padding-left: 1rem;
   display: none;
 }
 
@@ -1798,17 +1750,6 @@ a.popUpLink {
   margin-left: 0.5rem !important;
 }
 
-.spotlightCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-dark-orange-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
-
 .spotlightHome {
   min-width: 36rem !important;
   max-width: 36rem !important;
@@ -1888,16 +1829,7 @@ ul.subCategory {
 .navigationSectionShift {
   bottom: 5rem !important;
 }
-.warningCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--ca-dark-red-color);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  left: -10rem;
-  margin-right: -9rem;
-}
+
 .actionCentre {
   display: none;
 }

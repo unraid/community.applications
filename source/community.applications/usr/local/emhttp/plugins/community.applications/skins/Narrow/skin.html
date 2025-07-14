@@ -65,11 +65,22 @@
   <div class='mainArea'>
     <div class='spinnerBackground'></div>
     <div class='spinner fixed'></div>
-    <div id='sortIconArea' class='menuAdjust'><?tr("Sort By:");?> <a id='defaultSort' class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a><a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a><a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a><a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a></div>
+    <div id='sortIconArea' class='menuAdjust'>
+      <?tr("Sort By:");?>
+      <a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
+      <a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
+      <a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
+      <a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
+    </div>
     <div id='templates_content' class='menuAdjust'>
       <div class='ca_templatesDisplay'></div>
     </div>
-    <div class='multi_installDiv'><input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled><input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'><input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled><input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'></div>
+    <div class='multi_installDiv'>
+      <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
+      <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
+      <input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
+      <input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'>
+    </div>
   </div>
 </div>
 <div id='alternateView' style='display:none;'>
