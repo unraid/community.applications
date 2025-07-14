@@ -2059,9 +2059,7 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 
 
 function selectAllPrevious() {
-  $(".ca_multiselect").each(function() {
-    $(this).prop("checked",true);
-  });
+  $(".ca_multiselect").prop("checked",true);
   getSelectedApps();
 }
 
@@ -2377,11 +2375,7 @@ function updateDisplay(content) {
     var supportContext = $(this).data("context");
     if (supportContext) {
       var ID = $(this).attr("id");
-      var opts = [];
-      supportContext.forEach(function(item,index){
-        opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
-      });
-      context.attach('#'+ID, opts);
+      setupContext(supportContext,"#"+ID);
     }
   });
 
@@ -2389,15 +2383,7 @@ function updateDisplay(content) {
     var actionsContext = $(this).data("context");
     if (actionsContext) {
       var ID = $(this).attr("id");
-      var opts = [];
-      actionsContext.forEach(function(item,index){
-        if ( item.divider ) {
-          opts.push({divider:true});
-        } else {
-          opts.push({text:item.text,icon:item.icon,action:function(){eval(item.action);}});
-        }
-      });
-      context.attach('#'+ID, opts);
+      setupContext(actionsContext,"#"+ID);
     }
   });
   $(".cardDesc").each(function() {
@@ -2411,23 +2397,8 @@ function updateDisplay(content) {
     }
   });
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText,.ca_applicationName").each(function() {
-    var newSize = 100;
-    var minSize = $(this).hasClass("ca_applicationName") ? 8 : 0;
-    var overflowType = ! $(this).hasClass("ca_applicationName");
-    while (isOverflown(this,overflowType)) {
-      var existingSize = $(this).css("font-size");
-      var size = parseInt(existingSize);
-      if ( size == newSize + 1 ) {  // looks like browsers in Chinese have a minimum enforced font-size
-        break;
-      }
-      var newSize = size - 1;
-      if (newSize == minSize)
-        break;
+  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText,.ca_applicationName").fitText(true);
 
-      $(this).css("font-size",newSize+"px");
-    }
-  });
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
   }	else {
@@ -2737,10 +2708,6 @@ function updateDocker(container) {
     var postFunction = "refreshDisplay";
   }
   openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
-
- /*
-  openBox('/plugins/community.applications/scripts/installUpdate.php?ct[]='+encodeURIComponent(container),tr('Update Container'),600,1100,true,postFunction);
-  */
 }
 
 function setToolTipForFavourite() {
@@ -3070,38 +3037,10 @@ function showSidebarApp(apppath,appname) {
       });
       $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
-      if ( result.supportContext ) {
-        var opts = [];
-        result.supportContext.forEach(function(item,index){
-          opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
-        });
-        context.attach('#supportPopup', opts)
-      }
-      if ( result.actionsContext ) {
-        var opts = [];
-        result.actionsContext.forEach(function(item,index){
-          if ( item.divider ) {
-            opts.push({divider:true});
-          } else {
-            opts.push({text:item.text,icon:item.icon,action:function(){
-              eval(item.action);
-            }});
-          }
-        });
-        context.attach("#actionsPopup",opts);
-      }
-      var newSize;
-  
-      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").each(function() {
-        var test = 100;
-        while (isOverflown(this,true)) {
-          test = test - 10;
-          if ( test < 10 ) {
-            break;
-          }
-          $(this).css("font-size",test+"%");
-        }
-      });
+      setupContext(result.supportContext,"#supportPopup");
+      setupContext(result.actionsContext,"#actionsPopup");
+        
+      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
 
       postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
         if (lastUpdate.lastUpdate) {

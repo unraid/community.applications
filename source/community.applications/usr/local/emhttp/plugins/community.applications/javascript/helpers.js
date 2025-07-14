@@ -247,40 +247,47 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     html: true
   });
 }
-function fixText(classList) {
-  $(classList).each(function(){
-    var $el = $(this),
-        max = $el.get(0),
-        el = null;
-        
-    max = max ? max.offsetWidth : 320;
-    $el.css({ 'font-size': 'em', 'display': 'inline' });
-    el = $el.get(0);
 
-    el.get_float = function(){
-      var fs = 0;
-      if (this.style && this.style.fontSize) {
-        fs = parseFloat(this.style.fontSize.replace(/([\d\.]+)em/g, '$1'));
+jQuery.fn.fitText = function(overFlowType=false) {
+  var el = this;
+  $(el).each(function() {
+    var test = 100;
+    while (isOverflown(this,overFlowType)) {
+      test = test - 10;
+      if ( test < 10 ) {
+        break;
       }
-      return fs;
-    };
-
-    el.bigger = function(){
-      this.style.fontSize = (this.get_float() + 0.1) + 'em';
-    };
-
-    while (el.offsetWidth < max) {
-      el.bigger();
+      $(this).css("font-size",test+"%");
     }
-
-    // Finishing touch.
-    $el.css({
-      'font-size': ((el.get_float() -0.1) +'em'),
-      'line-height': 'normal',
-      'display': '',
-    });
-  }); 
+  });
+  return el;
 }
+
+function setupContext(menu,el) {
+  if ( ! menu ) return;
+  var opts = [];
+  menu.forEach(function(item,index){
+    if ( item.text ) {
+      item.text = tr(item.text);
+    }
+    if ( item.divider ) {
+      opts.push({divider:true});
+    } else {
+      if ( item.link ) {
+        opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
+      } else {
+        if ( item.action ) {
+          opts.push({text:item.text,icon:item.icon,action:function(){
+            eval(item.action);
+          }});
+        }
+      }
+    }
+  });
+  if ( opts.length > 0 ) {
+    context.attach(el,opts);
+  }
+} 
 
 function guiSearchOnUnload() {
   saveState();

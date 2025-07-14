@@ -1,4 +1,4 @@
-e199e394367a87f680b06a12e08316f5  ./Apps.page
+32ae2e2171a01608652ebecb8c8a0375  ./Apps.page
 751fe9f9ca27a6ee79c3b69758678bc6  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 b7ab2b7e471c6834c08de1f211f86ae0  ./ca_settings.page
@@ -7,7 +7,7 @@ c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
 70a614867daadff0af457d3b59a0dede  ./include/exec.php
 53d0aaa62f0a279ba80178eea90ac3d5  ./include/helpers.php
 9f5431bf019457ca8ef9b65da373e71b  ./include/paths.php
-edb4d5587b55064ccb20c24291eb6f4a  ./javascript/helpers.js
+4bee177e2202ecdaf3fce8c990da9c6e  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
