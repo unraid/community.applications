@@ -1,4 +1,4 @@
-5e10521dd6f5906a6e9164eee7d3ed76  ./Apps.page
+e199e394367a87f680b06a12e08316f5  ./Apps.page
 751fe9f9ca27a6ee79c3b69758678bc6  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 b7ab2b7e471c6834c08de1f211f86ae0  ./ca_settings.page
@@ -7,13 +7,13 @@ c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
 70a614867daadff0af457d3b59a0dede  ./include/exec.php
 53d0aaa62f0a279ba80178eea90ac3d5  ./include/helpers.php
 9f5431bf019457ca8ef9b65da373e71b  ./include/paths.php
-9f828b614d1b056f3d8428e1d7cc9add  ./javascript/helpers.js
+edb4d5587b55064ccb20c24291eb6f4a  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
 8b7ab4c0b89d94942662cec6803b7872  ./scripts/debugging.php
 69720716b3a2f183719bdff947fe5411  ./scripts/dockerConvert.php
-b10532fe7d4e7e9b40db134a2508c7ae  ./scripts/downloadPlugin
+93c3e2e03e2c1219b4ed74a1f0a116b6  ./scripts/downloadPlugin
 1f140ac17ac7df9ffd1e8941f058ebac  ./scripts/installMulti.php
 dbfc21b36f4b185313569aca4175812b  ./scripts/installMultiPlugin.php
 524afab04ca930f59117a846f819fb2f  ./scripts/installPluginUpdate.sh
@@ -25,11 +25,11 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
 f25ccd42b4486d55959e72c07c9116b2  ./skins/Narrow/styles/community.applications.colors.css
-75b6fc57704b03e32173179d23d6a01f  ./skins/Narrow/styles/community.applications.css
+56a225372e75d8c7c355fef0858c9771  ./skins/Narrow/styles/community.applications.css
 3019c3313bfc3ef004afb959012a36f5  ./skins/Narrow/themes/theme-azure.css
 ca080198a7384d8b5f6dbc027882e6c9  ./skins/Narrow/themes/theme-black.css
 330562bc345d492fe483a7ccd10ff4fd  ./skins/Narrow/themes/theme-gray.css
 f8f73200f6de3bcd29f80c235b4f0fca  ./skins/Narrow/themes/theme-white.css
 2a1865601fc38bb46900a3f6bca578b5  ./skins/Narrow/skin.html
-ece3792eafb8ff27a6f535cc9e85064c  ./skins/Narrow/skin.php
+3016e6459e0dbdf09d26fca2408a0941  ./skins/Narrow/skin.php
 d41d8cd98f00b204e9800998ecf8427e  ./skins/.DS_Store

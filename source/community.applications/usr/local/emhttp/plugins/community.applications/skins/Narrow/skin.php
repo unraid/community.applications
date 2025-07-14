@@ -972,7 +972,7 @@ function getRepoDescriptionSkin($repository) {
         <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
       </div>
     </div>
-    <div class='caButton popupRepoDescription'><br>".strip_tags($repo['bio'])."</div>
+    <div class='popupRepoDescription'>".strip_tags($repo['bio'])."</div>
   ";
   if ( isset($repo['DonateLink']) ) {
     $t .= "

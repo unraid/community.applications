@@ -207,7 +207,9 @@ a {
 
 /* Buttons & Forms
   -------------------------------------------------------------------------- */
-.caButton {
+.caButton,
+.popupRepoDescription,
+.popupDescription {
   /* Layout */
   display: inline-block;
   margin-right: 1rem;
@@ -221,7 +223,7 @@ a {
   /* Visual */
   background: linear-gradient(
     to bottom,
-    transparent 0%,
+    transparent 50%,
     var(--ca-overlay-color) 100%
   ),
   linear-gradient(
@@ -233,11 +235,17 @@ a {
   background-position: 0 0;
   background-size: 100% 100%;
   border-radius: 15px;
-  
-  /* Interactive */
+}
+.caButton {
   cursor: pointer;
 }
-
+.popupRepoDescription,
+.popupDescription {
+  width: 90%;
+  min-height: 3rem;
+  padding: 2rem!important;
+  -webkit-mask-image: unset !important;
+}
 .caButton a {
   text-decoration: none;
   color: var(--support-popup-text);
@@ -340,11 +348,10 @@ input[type="button"][disabled] {
 }
 #templates_content.mobileMenuPopup {
   display:inline-block !important;
- // opacity: 0.2;
+  opacity: 0.3;
 }
 .ca_display_area.mobileMenuPopup {
   height: 120vh !important;
- ` opacity: 1;
   overflow-y: hidden!important;
 }
 
@@ -370,14 +377,13 @@ input[type="button"][disabled] {
   position: relative;
   height: auto;
   align-items: stretch;
-  min-width: 14rem;
-  max-width: 14rem;
+  width: 14rem;
   z-index: 2;
   background-color: var(--ca-legacy-background-color);
 }
 .menuItems.mobileMenuPopup {
-  box-shadow: 11px 20px 5px 2px var(--ca-shadow-color);
-  font-weight: bold;
+  background-color: var(--template-hover-background);
+  width: 20rem;
 }
 
 .selectedMenu {
@@ -616,7 +622,7 @@ a.appIconsPopUp {
   -moz-transform: rotate(45deg);
   -o-transform: rotate(45deg);
   color: var(--ca-named-white);
-  font-size: 1.1rem;
+  font-size: 5rem;
   top: 2.25rem;
   right: -1rem;
   width: 100%;

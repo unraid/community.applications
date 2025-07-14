@@ -90,8 +90,6 @@ function isOverflown(el,type=false){
     return (el.scrollWidth > el.clientWidth);
   else
     return (el.scrollHeight > el.clientHeight);
-
-  return (el.scrollHeight > el.clientHeight) || (el.scrollWidth > el.clientWidth)||(el.offsetWidth < el.scrollWidth);
 }
 
 
@@ -248,6 +246,40 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     animation: false,
     html: true
   });
+}
+function fixText(classList) {
+  $(classList).each(function(){
+    var $el = $(this),
+        max = $el.get(0),
+        el = null;
+        
+    max = max ? max.offsetWidth : 320;
+    $el.css({ 'font-size': 'em', 'display': 'inline' });
+    el = $el.get(0);
+
+    el.get_float = function(){
+      var fs = 0;
+      if (this.style && this.style.fontSize) {
+        fs = parseFloat(this.style.fontSize.replace(/([\d\.]+)em/g, '$1'));
+      }
+      return fs;
+    };
+
+    el.bigger = function(){
+      this.style.fontSize = (this.get_float() + 0.1) + 'em';
+    };
+
+    while (el.offsetWidth < max) {
+      el.bigger();
+    }
+
+    // Finishing touch.
+    $el.css({
+      'font-size': ((el.get_float() -0.1) +'em'),
+      'line-height': 'normal',
+      'display': '',
+    });
+  }); 
 }
 
 function guiSearchOnUnload() {

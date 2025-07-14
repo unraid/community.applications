@@ -542,7 +542,7 @@ $(function(){
     showMenu();
   });
 
-  $(".menuClose").on("click",function() {
+  $(".menuClose,.menuOverlay").on("click",function() {
     closeMenu();
   });
 
@@ -801,6 +801,11 @@ $(function(){
     var menu = this;
     if ( $(menu).hasClass("caMenuDisabled") )
       return;
+
+    if ( $(menu).hasClass("selectedMenu") ) {
+      return;
+    }
+
     if ( $(menu).hasClass("selectedMenu") ) {
       if ( $(menu).hasClass("caRepositoryMenu") ) {
         return;
@@ -2525,7 +2530,7 @@ function showCredits() {
 function showStatistics() {
   showAlternateView();
   post({action:'statistics'},function(result) {
-    $(".alternateViewContent").html(result.statistics).show();
+    $(".alternateViewContent").html(result.statistics).css("font-weight","bold").show();
   });
 }
 
@@ -3086,19 +3091,18 @@ function showSidebarApp(apppath,appname) {
         context.attach("#actionsPopup",opts);
       }
       var newSize;
+  
       $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").each(function() {
-        while (isOverflown(this)) {
-          var existingSize = $(this).css("font-size");
-          var size = parseInt(existingSize);
-          if ( size == newSize + 1 ) {  // looks like browsers in Chinese have a minimum enforced font-size
-            return false;
+        var test = 100;
+        while (isOverflown(this,true)) {
+          test = test - 10;
+          if ( test < 10 ) {
+            break;
           }
-          var newSize = size - 1;
-          if (newSize == 0)
-            return false;
-          $(this).css("font-size",newSize+"px");
+          $(this).css("font-size",test+"%");
         }
       });
+
       postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
         if (lastUpdate.lastUpdate) {
           $("#template"+result.ID).fadeOut("slow","linear",function() {
