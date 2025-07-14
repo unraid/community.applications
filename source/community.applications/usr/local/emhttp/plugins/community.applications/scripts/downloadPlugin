@@ -57,7 +57,7 @@ write("Downloading plugin\n");
 
 if (!isset($argv[3]) || empty($argv[3])) {
   write("Error: No URL provided\n");
-  done(0;
+  done(0);
 }
 if (!filter_var($argv[3], FILTER_VALIDATE_URL)) {
   write("Error: Invalid URL format\n");

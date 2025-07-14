@@ -329,7 +329,7 @@ input[type="button"][disabled] {
 }
 
 .menuItemsHidden, .mobileMenuClose {
-  top: 1.5 rem;
+  top: 1.5rem;
   left: 2rem;
   padding-right: 1rem;
   height: auto;
