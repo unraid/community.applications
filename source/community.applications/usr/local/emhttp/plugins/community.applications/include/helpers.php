@@ -163,6 +163,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   }
   if ( $out === false ) {
     debug("cURL error: ".curl_error($ch));
+    @unlink($path);
   }
   curl_close($ch);
 

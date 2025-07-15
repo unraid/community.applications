@@ -236,7 +236,7 @@ function DownloadApplicationFeed() {
   } else {
     $downloadURL = randomFile();
     $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",30);
-    if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
+    if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
       $currentFeed = "Backup Server";
       $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL,"",-1);
     }
