@@ -6,6 +6,10 @@ body {
   cursor: default !important;
 }
 
+#maxHomeApps {
+  display: none;
+  z-index: 0;
+}
 .body_sidebarScroll {
   overflow: hidden !important;
 }
@@ -15,6 +19,19 @@ body {
 }
 li.subCategory {
   margin-top: -0.5rem;
+}
+.category {
+  font-style: italic;
+}
+.categoryLine {
+  display: inline-block;
+}
+.altCategoryLine {
+  display: none;
+}
+.categoryLineNoMenu {
+  display: none;
+  margin-right: 1rem;
 }
 
 p {
@@ -86,8 +103,12 @@ a {
   overflow-x: hidden;
   padding-left: 4.5rem;
   align-items: stretch;
+  width: 100%
 }
-
+#maxHomeApps {
+  width: 100&
+  display: block;
+}
 /* ==========================================================================
   Components
   ========================================================================== */
@@ -100,10 +121,10 @@ a {
   display: inline-block;
   float: left;
   height: 20rem;
-  min-width: 24rem;
-  max-width: 24rem;
+  width:24rem;
   padding: 1.25rem 0.625rem 1.25rem 1.25rem;
   margin: 0 1rem 1rem 0;
+  font-size: 1.2rem;
   
   /* Visual */
   background-color: var(--template-background);
@@ -533,6 +554,10 @@ ul.nonselectMenu {
 li.caMenuItem {
   padding: 0 0 5px 0;
   width: fit-content;
+}
+a.caMenuItem {
+  text-decoration: none;
+  color: inherit;
 }
 
 .caMenuDisabled {
@@ -1080,6 +1105,11 @@ li.debugging {
   cursor: pointer;
 }
 
+.dim {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
 .dimScreenShot {
   overflow: unset !important;
 }
@@ -1151,7 +1181,7 @@ img.displayIcon {
 .homeMore,
 .card_readmore {
   cursor: pointer;
-  color: var(--unraid-66-color);
+  color: var(--unraid-66-color) !important;
 }
 
 .fav {
@@ -1188,6 +1218,14 @@ img.displayIcon {
 .favCardBackground::before {
   content: "\f004";
   font-family: fontAwesome;
+}
+
+.favCardBackgroundShow {
+  display: inline-block;
+}
+
+.favCardBackgroundHide {
+  display: none;
 }
 
 .featuredIncompatible {
@@ -1323,6 +1361,7 @@ input[type=button][disabled] {
   height: 9rem;
   width: 9rem;
   position: relative;
+  display: inline-block;
   left: -10rem;
   margin-right: -9rem;
 }
@@ -1690,6 +1729,7 @@ a.popUpLink {
 #searchFilter {
   position: relative;
   left: var(--search-area-left);
+  display:inline-block;
 }
 
 #searchBox {
@@ -1711,8 +1751,10 @@ a.popUpLink {
   font-size: 2rem;
 }
 .showMenuButton { 
-  position: relative;
+  position: absolute;
   left: 2rem;
+  top: 2rem;
+  display: inline-block;
 }
 .closeMenuButton {
   display: none;
@@ -1757,8 +1799,7 @@ a.popUpLink {
 }
 
 .spotlightHome {
-  min-width: 36rem !important;
-  max-width: 36rem !important;
+  width: 36rem !important;
   height: 24rem !important;
   margin-bottom: 1rem;
 }

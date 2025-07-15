@@ -9,9 +9,10 @@
     <span id='searchFilter'>
       <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
       <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-      <div class='dockerSearch caButton' style='display:none'><?tr("Search DockerHub");?></div>
-      <div class='templateSearch caButton' style='display:none'><?tr("Search Apps")?></div>
-      <div id="Category" class="categoryLine"></div>
+      <div class='dockerSearch caButton' style='display:none'><?tr("DockerHub");?></div>
+      <div class='templateSearch caButton' style='display:none'><?tr("Apps")?></div>
+      <div class="category categoryLine"></div>
+      <div class="category altCategoryLine"></div>
     </span>
     <span class='caButton maxPerPage' id='maxPerPage'></span>
   </span>
@@ -47,7 +48,7 @@
         <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
         <li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
         <li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
-        <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' style='text-decoration:none;color:inherit;'><?tr("Support");?></a></li>
+        <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'><?tr("Support");?></a></li>
         <li><hr class='category_hr'/></li>
         <li><?=tr("VERSION");?></li>
         <li><span id='caInstalledVersion'></span></li>
@@ -65,24 +66,23 @@
     <div class='spinnerBackground'></div>
     <div class='spinner fixed'></div>
     <div id='sortIconArea' class='menuAdjust'>
+      <div class="category categoryLineNoMenu"></div>
       <?tr("Sort By:");?>
       <a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
       <a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
       <a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
       <a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
     </div>
-    <div id='templates_content' class='menuAdjust'>
-      <div class='ca_templatesDisplay'></div>
-    </div>
+    <div id='templates_content' class='menuAdjust'></div>
     <div class='multi_installDiv'>
       <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
       <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
       <input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
-      <input type='button' class='multi_deleteButton' style='visibility:hidden;' value='<?tr("Delete");?>'>
+      <input type='button' class='multi_deleteButton' value='<?tr("Delete");?>' disabled>
     </div>
   </div>
 </div>
-<div id='alternateView' style='display:none;'>
+<div id='alternateView'>
   <div class='caButton alternateViewClose'><?tr("CLOSE");?></div>
   <div class='alternateViewContent'></div>
 </div>

@@ -41,8 +41,8 @@ $caSettings['unRaidVersion'] = $unRaidSettings['version'];
 $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";
 $caSettings['dynamixTheme']  = $dynamixSettings['theme'];
 
-$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: "24"; // Handle possible corruption on file
-if ( $caSettings['maxPerPage'] < 24 ) $caSettings['maxPerPage'] = 24;
+$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 24; // Handle possible corruption on file
+if ( $caSettings['maxPerPage'] < 12 ) $caSettings['maxPerPage'] = 12;
 
 if ( ! is_file($caPaths['warningAccepted']) )
   $caSettings['NoInstalls'] = true;
@@ -768,6 +768,8 @@ function get_content() {
   $filter      = getPost("filter",false);
   $category    = getPost("category",false);
   $newApp      = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
+  
+  $maxHomeApps = getPost("maxHomeApps",12);
 
   $caSettings['startup'] = getPost("startupDisplay",false);
   @unlink($caPaths['repositoriesDisplayed']);
@@ -884,8 +886,15 @@ function get_content() {
         );
       }
       $o['display'] = "";
+
+      if ($maxHomeApps == 0) $maxHomeApps = 4; // something strange happened, set it to 4
+      if ($maxHomeApps < 3) {
+        $maxHomeApps = 2;
+      };
+
       foreach ($startupTypes as $type) {
         $display = [];
+        $homeCount = 0;
 
         $caSettings['startup'] = $type['type'];
         $appsOfDay = appOfDay($file);
@@ -900,6 +909,8 @@ function get_content() {
           $spot['homeScreen'] = true;
           $displayApplications['community'][] = $spot;
           $display[] = $spot;
+          $homeCount++;
+          if ( $homeCount >= $maxHomeApps ) break;
         }
         if ( $displayApplications['community'] ) {
           $o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
@@ -2507,9 +2518,9 @@ function changeMaxPerPage() {
   global $caPaths, $caSettings;
 
   $max = getPost("max",24);
-  if ($caSettings['maxPerPage'] == $max)
+  if ($caSettings['maxPerPage'] == $max) {
     postReturn(["status"=>"same"]);
-  else {
+  } else {
     $caSettings['maxPerPage'] = $max;
     write_ini_file($caPaths['pluginSettings'],$caSettings);
     postReturn(["status"=>"updated"]);

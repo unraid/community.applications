@@ -1244,8 +1244,9 @@ function displayCard($template) {
   $bottomClass = "ca_bottomLineSpotLight";
   if ( $DockerHub ) {
     $backgroundClickable = "dockerCardBackground";
+    $cardStart = "
+      <div class='dockerHubHolder $class $popupType'>";
     $card .= "
-      <div class='dockerHubHolder $class $popupType'>
       <div class='ca_bottomLine $bottomClass'>
       <div class='caButton infoButton_docker ca_href' data-href='$DockerHub'>".tr("Docker Hub")."</div>
       <div class='caButton actionsButton similarSearch' data-search='$similarSearch'>".tr("Similar")."</div>";
@@ -1256,8 +1257,9 @@ function displayCard($template) {
       $dataPluginURL = "";
     }
     $backgroundClickable = "ca_backgroundClickable";
+    $cardStart = "
+      <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>";
     $card .= "
-      <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>
       <div class='ca_bottomLine $bottomClass'>
       <div class='caButton infoButton $cardClass'>".tr("Info")."</div>
     ";
@@ -1284,9 +1286,9 @@ function displayCard($template) {
   $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
   if ( $ca_fav ) {
     $favText = $RepositoryTemplate ? tr("This is your favourite repository") : tr("This application is from your favourite repository");
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' title='".htmlentities($favText)."'></span>";
+    $card .= "<span class='favCardBackground favCardBackgroundShow' data-repository='".str_replace("'","",$RepoName)."' title='".htmlentities($favText)."'></span>";
   }	else
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' style='display:none;'></span>";
+    $card .= "<span class='favCardBackground favCardBackgroundHide' data-repository='".str_replace("'","",$RepoName)."'></span>";
 
   $pinStyle = $Pinned ? "" : "display:none;";
 
@@ -1395,7 +1397,8 @@ function displayCard($template) {
       </div>
     ";
   }
-  $card .= "</div>";
+
+  $cardFlag = "";
   if ( $Installed || $Uninstall ) {
     $flagTextStart = tr("Installed")."<br>";
     $flagTextEnd = "";
@@ -1404,72 +1407,68 @@ function displayCard($template) {
     $flagTextEnd = "&nbsp;";
   }
   if ( $UpdateAvailable ) {
-    $card .= "
+    $cardFlag .= "
       <div class='betaCardBackground'>
         <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
       </div>";
   } elseif ( ($Installed || $Uninstall) && !$actionCentre) {
-     $card .= "
+     $cardFlag .= "
        <div class='installedCardBackground'>
          <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
       </div>";
   } elseif ( $Blacklist ) {
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $caTemplateExists ) {
-    $card .= "
+    $cardFlag .= "
       <div class='greenCardBackground'>
         <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
       </div>
     ";
   } elseif ( isset($Compatible) && ! $Compatible ) {
     $verMsg = $VerMessage ?? tr("This application is not compatible with your version of Unraid");
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='$verMsg'>$flagTextStart".tr("Incompatible")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $Deprecated ) {
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $Official ) {
-    $card .= "
+    $cardFlag .= "
       <div class='officialCardBackground'>
         <div class='installedCardText ca_center' title='".tr('This is an official container')."'>".tr("OFFICIAL")."</div>
       </div>
     ";
   } elseif ( $LTOfficial ?? false ) {
-    $card .= "
+    $cardFlag .= "
       <div class='LTOfficialCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("LIMETECH")."</div>
       </div>
     ";
   } elseif ( $Beta ) {
-    $card .= "
+    $cardFlag .= "
       <div class='betaCardBackground'>
         <div class='installedCardText ca_center'>".tr("BETA")."</div>
       </div>
     ";
-  }/*  elseif ( $RecommendedDate ) {
-    $card .= "
-      <div class='spotlightCardBackground'>
-        <div class='spotlightPopupText' title='".tr("This is a spotlight application")."'></div>
-      </div>
-    ";
-  } */ elseif ( $Trusted ) {
-    $card .= "
+  } elseif ( $Trusted ) {
+    $cardFlag .= "
       <div class='spotlightCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div>
       </div>
     ";
   }
-  return str_replace(["\t","\n"],"",$card);
+  $cardEnd = "</div>";
+  $cardFinish = "<div>$cardFlag $cardStart $card $cardEnd</div>";
+  return str_replace(["\t","\n"],"",$cardFinish);
 }
 
 function displayPopup($template) {

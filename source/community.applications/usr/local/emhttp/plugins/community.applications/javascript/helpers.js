@@ -263,6 +263,16 @@ jQuery.fn.fitText = function(overFlowType=false) {
   return el;
 }
 
+
+jQuery.fn.getWidth = function() {
+  var width = $(this).css("width").replace("px","");
+  var paddingLeft = $(this).css("padding-left").replace("px","");
+  var paddingRight = $(this).css("padding-right").replace("px","");
+  var marginLeft = $(this).css("margin-left").replace("px","");
+  var marginRight = $(this).css("margin-right").replace("px","");
+  return parseInt(width) + parseInt(paddingLeft) + parseInt(paddingRight) + parseInt(marginLeft) + parseInt(marginRight);
+}
+
 function setupContext(menu,el) {
   if ( ! menu ) return;
   var opts = [];
