@@ -458,7 +458,6 @@ input[type="button"][disabled] {
   padding-top: 4rem;
   
   /* Visual */
-  box-shadow: -16px -15px 5px 2px var(--ca-shadow-color);
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
   
@@ -1755,7 +1754,12 @@ a.popUpLink {
   left: 2rem;
   top: 2rem;
   display: inline-block;
+  cursor: pointer;
 }
+.showMenuButton:hover {
+  color: var(--unraid-66-color);
+}
+
 .closeMenuButton {
   display: none;
 }

@@ -1094,7 +1094,7 @@ function displaySearchResults($pageNumber) {
   $count = 0;
   $caSettings['NoInstalls'] = is_file($caPaths['warningAccepted']) ? false : true;
 
-  $ct .= "<div class='ca_templatesDisplay'>";
+  $ct = "<div class='ca_templatesDisplay'>";
 
   $columnNumber = 0;
   foreach ($file as $result) {

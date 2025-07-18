@@ -184,11 +184,8 @@ $doubleRow += $themeOffset;
 $noMenu += $themeOffset;
 ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/theme-$theme.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
-<? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
-  <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'></link>
-<? endif;?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$theme.css");?>'></link>
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
@@ -255,7 +252,7 @@ body {
     left: 3rem;
   }
   .searchArea {
-    margin-left: var(--search-area-mobile-left);
+    margin-left: var(--search-area-mobile-left) !important;
     top: var(--search-area-mobile-top);
     padding-top:1.5rem;
     height:4rem;
@@ -302,6 +299,16 @@ body {
 .alternateViewClose {
   left: 8.5rem;
 }
+</style>
+<? endif; ?>
+
+<!-- Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed -->
+<? if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
+<style>
+  .searchArea {
+    max-width: 1920px; 
+    margin: 0 auto;
+  }
 </style>
 <? endif; ?>
 
@@ -357,7 +364,7 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-<? if ( version_compare($unRaidSettings['version'],"6.12.15","<") ) :?>
+<? if ( version_compare($unRaidSettings['version'],"6.12.15","<=") ) :?>
 $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
   var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {

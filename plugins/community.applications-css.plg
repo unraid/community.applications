@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.07.15">
-<!ENTITY md5       "1b7e75d75f3b78c26e29dbdaf8a8a3a5">
+<!ENTITY version   "2025.07.18">
+<!ENTITY md5       "b6520f6c20ddf6135ac2ffc8a004dd00">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,8 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+- Fixed: Potential fatal error in a specific unlikely circumstance on downloads
+- Fixed: Link to dockerHub from docker Hub searches wouldn't work on 6.12.15
 - Changed: CSS definitions for easier theming system
 - Changed: 7.2+ only have back end send number of apps that will fit on home screen (saves CPU cycles especially on low powered devices
 - Added: Max Results per page on searches or browsing of 12
