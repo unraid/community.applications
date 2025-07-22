@@ -513,10 +513,9 @@ $(function(){
     $.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
   }
 
-  addBannerWarning("DO NOT RELEASE AS IS - update check requires filename change");
-  caPluginUpdateCheck("community.applications-css.plg",{
+  caPluginUpdateCheck("community.applications.plg",{
       noDismiss:true,
-      name:"Community Applications CSS",
+      name:"Community Applications",
       debug:false,
       priority:true
     },function(result) {
@@ -892,7 +891,8 @@ $(function(){
     if ( $(this).attr("onclick") ) {
       return;
     }
-
+    // Repository menu gets disabled when a special category is shown.  If we're here, then make sure it's enabled as we're not on a special category anymore
+    $(".caRepositoryMenu").addClass("caMenuEnabled").removeClass("caMenuDisabled");
     var slideFlag = true;
     var currentCat = $(".selectedMenu").data("category");
     var newCat = $(this).data("category");
@@ -1271,6 +1271,7 @@ function updateContent(button) {
 }
 
 function showSpecialCategory(button) {
+  clearSearchBox();
   var sortButton = false;
   $(".sortIcons").each(function() {
     if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
@@ -1295,6 +1296,7 @@ function showSpecials(button) {
   data.selected_category = "DOESNTMATTERWHATSHERE";
   data.section = "AppStore";
   changeCategory(button,false);
+  $(".caRepositoryMenu").addClass("caMenuDisabled").removeClass("caMenuEnabled");
   $(".category").append(" - <?tr("Installs not allowed from this page");?>");
 }
 
