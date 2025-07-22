@@ -287,11 +287,11 @@ body {
 </style>
 <? elseif ($display['theme'] == "black" || $display['theme'] == "white"): ?> 
 <!-- 
-  This is a hack to fix the search area margin on the white/black theme un OS 7.1 and earlier
+  This is a hack to fix the search area margin on the white/black theme on OS 7.1 and earlier
  -->
 <style>
 .searchArea {
-  margin: 13rem auto -10rem auto;
+  margin: 13rem auto -10rem auto !important;
 }
 </style>
 <? elseif ($display['theme'] == "azure" || $display['theme'] == "gray"): ?>
@@ -3270,7 +3270,8 @@ function setupActionCentre() {
   $.post(execURL,{action:'enableActionCentre'},function(ret) {
     if ( ret.status == "action" ) {
       if ( !$(".actionCentre").is(":visible") ) {
-        if ( ! actionCentreRestoreState ) {
+        // Don't show banner for action centre if menu isn't visibile (Covers hamburger on mobile if scrolled down)
+        if ( ! actionCentreRestoreState && $(".menuItems").is(":visible") ) {
           acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
           setTimeout(function() {
             removeBannerWarning(acBanner);

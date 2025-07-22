@@ -1086,7 +1086,7 @@ li.context {
   margin-bottom: 10px;
   padding-top: 15rem;
   width:100%;
-  z-index:10;
+  z-index:10000;
   
   /* Visual */
   background-color: var(--sidebar-background);
