@@ -27,10 +27,10 @@ $caSettings['unRaidVersion'] = $var['version'];
 $caSettings['wheelThreshold'] = abs(intval($caSettings['wheelThreshold']));
 $caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] ?: 50;
 
-require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
-require_once "$docroot/plugins/$plugin/include/paths.php";
-require_once "$docroot/plugins/$plugin/include/helpers.php";
-require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
+require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
+require_once("$docroot/plugins/$plugin/include/paths.php");
+require_once("$docroot/plugins/$plugin/include/helpers.php");
+require_once("$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php");
 
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
@@ -42,7 +42,7 @@ exec("mkdir -p {$caPaths['CA_logs']}");
 exec("mkdir -p {$caPaths['tempFiles']}");
 exec("rm $docroot/CA-Logging*.zip");
 
-$diagnosticsFile = htmlspecialchars(str_replace(' ','_',strtolower($var['NAME'])));
+$diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
 
 switch ($caSettings['maxPerPage']) {
   case 12:
@@ -2453,7 +2453,8 @@ function updateDisplay(content) {
     }
   });
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText,.ca_applicationName").fitText(true);
+  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText").fitText(true);
+  $(".ca_applicationName").fitText(false);
 
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");

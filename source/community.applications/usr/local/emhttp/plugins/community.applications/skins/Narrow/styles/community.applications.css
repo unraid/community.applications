@@ -105,10 +105,7 @@ a {
   align-items: stretch;
   width: 100%
 }
-#maxHomeApps {
-  width: 100&
-  display: block;
-}
+
 /* ==========================================================================
   Components
   ========================================================================== */
@@ -495,18 +492,12 @@ input[type="button"][disabled] {
   cursor: default !important;
 }
 
-/* Animations */
-@keyframes cycleRed {
-  0% { color: inherit; }
-  50% { color: var(--ca-red-color); }
-}
-
 /* Responsive Design */
 @media screen and (max-width: 800px) and (orientation: landscape),
-      screen and (max-height: 300px) {
-  .mobileHolderFix {
+  screen and (max-height: 300px) {
+    .mobileHolderFix {
       margin-bottom: 2rem !important;
-  }
+   }
 }
 
 /* Icon and Symbol Styles */
