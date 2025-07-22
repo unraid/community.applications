@@ -7,7 +7,7 @@ c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
 881b2056cc17590187ebe3815fcb222e  ./include/exec.php
 d95cb4ed363b7df128eb3c7f82d7f565  ./include/helpers.php
 9f5431bf019457ca8ef9b65da373e71b  ./include/paths.php
-16087da2eaa7a1bc035c08cf0b31c887  ./javascript/helpers.js
+f234a7a714ae3e26946b1dfa813b8a23  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
