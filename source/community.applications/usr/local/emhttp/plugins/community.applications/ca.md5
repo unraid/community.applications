@@ -24,12 +24,13 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 70744c698d2961c8b48109709811fad6  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
-d41d8cd98f00b204e9800998ecf8427e  ./skins/.DS_Store
-400e05bdcf17fbcaebd2b8aadc8f24c4  ./skins/Narrow/skin.html
-3f0026f2537928c2746cb80fa4396c05  ./skins/Narrow/skin.php
 f25ccd42b4486d55959e72c07c9116b2  ./skins/Narrow/styles/community.applications.colors.css
 c95ed12348c914ae333c935e132f48b6  ./skins/Narrow/styles/community.applications.css
 ba54ceefe82534bb015608c717c76e3c  ./skins/Narrow/themes/azure.css
 ca080198a7384d8b5f6dbc027882e6c9  ./skins/Narrow/themes/black.css
 508e00fbcd3851d1d3c3ffeeb24d263a  ./skins/Narrow/themes/gray.css
 f8f73200f6de3bcd29f80c235b4f0fca  ./skins/Narrow/themes/white.css
+5ae16aa6b9a0569c3ceec3526133e52b  ./skins/Narrow/css.php
+400e05bdcf17fbcaebd2b8aadc8f24c4  ./skins/Narrow/skin.html
+3f0026f2537928c2746cb80fa4396c05  ./skins/Narrow/skin.php
+d41d8cd98f00b204e9800998ecf8427e  ./skins/.DS_Store
