@@ -27,10 +27,10 @@ $caSettings['unRaidVersion'] = $var['version'];
 $caSettings['wheelThreshold'] = abs(intval($caSettings['wheelThreshold']));
 $caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] ?: 50;
 
-require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
-require_once "$docroot/plugins/$plugin/include/paths.php";
-require_once "$docroot/plugins/$plugin/include/helpers.php";
-require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
+require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
+require_once("$docroot/plugins/$plugin/include/paths.php");
+require_once("$docroot/plugins/$plugin/include/helpers.php");
+require_once("$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php");
 
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
@@ -42,15 +42,25 @@ exec("mkdir -p {$caPaths['CA_logs']}");
 exec("mkdir -p {$caPaths['tempFiles']}");
 exec("rm $docroot/CA-Logging*.zip");
 
-$diagnosticsFile = htmlspecialchars(str_replace(' ','_',strtolower($var['NAME'])));
+$diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
 
-if ( $caSettings['maxPerPage'] < 24 ) $caSettings['maxPerPage'] = 24;
+switch ($caSettings['maxPerPage']) {
+  case 12:
+  case 24:
+  case 48:
+  case 96:
+    break;
+  default:
+    $caSettings['maxPerPage'] = 24;
+    break;
+}
+
 
 $firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
 $pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
 
 if ( ! is_file($caPaths['docker_cfg']) ) {
-  exec("logger -t 'Community Applications' 'Fatal Flash Drive Error: /boot/config/docker.cfg does not exist'");
+  exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
 $unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
@@ -63,27 +73,22 @@ $previousLocale = $_COOKIE["locale"] ?? "";
 
 switch ($theme) {
   case 'black':
-    $swalBackground = "black";
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
   case 'azure':
-    $swalBackground = "white";
     $tooltipsterContent = "#101010";
     $chartGrid = "#dddddd";
     break;
   case 'gray':
-    $swalBackground = "black";
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
   case 'white':
-    $swalBackground = "white";
     $tooltipsterContent = "#101010";
     $chartGrid = "#dddddd";
     break;
   default:
-    $swalBackground = "black"; // default to black.  This should only be when someone adds a new theme.  It is NOT the default that the OS uses
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
@@ -145,22 +150,169 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
-?>
-<style>
+$font = $display['font'] ?: "62.5";
+$themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $font + 10 : 0;
 
-<?
- include ("/$docroot/plugins/$plugin/skins/Narrow/css.php");
+switch ($font) {
+  case "50":
+    $doubleRow = 796;
+    $noMenu = 500;
+    break;
+  case "56.25":
+    $doubleRow = 894;
+    $noMenu = 558;
+    break;
+  case "62.5":
+    $doubleRow = 994;
+    $noMenu = 608;
+    break;
+  case "68.75":
+    $doubleRow = 1092;
+    $noMenu = 653;
+    break;
+  case "75":
+    $doubleRow = 1189;
+    $noMenu = 719;
+    break;
+  case "80":
+    $doubleRow = 1267;
+    $noMenu = 763;
+    break;
+    
+}
+$doubleRow += $themeOffset;
+$noMenu += $themeOffset;
 ?>
-</style>
-<? if ( is_file("$docroot/plugins/dynamix/styles/community.applications-$theme.css") ):?>
-  <link type='text/css' rel='stylesheet' href='<?=autov("/plugins/dynamix/styles/community.applications-$theme.css");?>'>
-<? endif;?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$theme.css");?>'></link>
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
-<script>
+<? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?>
+<style>
+body {
+  overflow-x: hidden !important;
+}
 
+@media (max-width:<?=$doubleRow?>px) {
+  .caHomeSpotlight {
+    height: 54rem !important;
+  }
+  .dockerSearch,
+  .templateSearch {
+    position: relative;
+  }
+  .mainArea {
+    width: <?=$doubleRow?>px;
+  }
+  .maxPerPage {
+    display: none !important;
+  }
+  .categoryLine {
+    display: none;
+  }
+  .altCategoryLine {
+    display: block;
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+  #searchBox {
+    width: 150px;
+  }
+}
+
+@media (max-width:<?=$noMenu?>px) {
+  body {
+    overflow-x: unset !important;
+    width: initial;
+  }
+  .menuItems {
+    display: none;
+  }
+  .menuItemsHidden {
+    display: inline-block;
+  }
+  .closeMenuButton {
+    display: none;
+  }
+
+  .mainArea {
+    left: 0;
+    width: <?=$noMenu?>px;
+    padding-left: 1rem;
+  }
+  #searchFilter {
+    left: 3rem;
+  }
+  .searchArea {
+    margin-left: var(--search-area-mobile-left) !important;
+    top: var(--search-area-mobile-top);
+    padding-top:1.5rem;
+    height:4rem;
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+  .altCategoryLine {
+    display: none;
+  }
+
+  .categoryLineNoMenu {
+    display: inline-block;
+  }
+}
+@media (max-width: 768px) {
+  .searchArea {
+    top: var(--search-area-mobile-top);
+  }
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+}
+</style>
+<? elseif ($display['theme'] == "black" || $display['theme'] == "white"): ?> 
+<!-- 
+  This is a hack to fix the search area margin on the white/black theme on OS 7.1 and earlier
+ -->
+<style>
+.searchArea {
+  margin: 13rem auto -10rem auto !important;
+}
+</style>
+<? elseif ($display['theme'] == "azure" || $display['theme'] == "gray"): ?>
+<style>
+.alternateViewClose {
+  left: 8.5rem;
+}
+</style>
+<? endif; ?>
+
+<!-- Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed -->
+<? if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
+<style>
+  .searchArea {
+    max-width: 1920px; 
+    margin: 0 auto;
+  }
+</style>
+<? endif; ?>
+
+<script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
 var searchBoxInput;
@@ -201,7 +353,6 @@ var startupSearch = "<?=$startupSearch?>";
 var iconHoverTimer;
 var wheelActive = false;
 var ca_done_override = false;
-
 // handle 3rd party links on older versions of OS
 <?
 if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
@@ -213,11 +364,18 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-$('body').on("click","a,.ca_href", function(e) {
+<? if ( version_compare($unRaidSettings['version'],"6.12.15","<=") ) :?>
+$('body').on("click","a,.ca_href,.dockerPopup", function(e) {
+  var dockerHub = false;
   if ($(this).hasClass("ca_href") ) {
     var ca_href = true;
     var href=$(this).attr("data-href");
     var target=$(this).attr("data-target");
+  } else if ( $(this).hasClass("dockerPopup") ) {
+    var ca_href = false;
+    var href=$(this).data("dockerhub");
+    var target="_blank";
+    var dockerHub = true;
   } else {
     var ca_href = false;
     var href = $(this).attr("href");
@@ -227,11 +385,12 @@ $('body').on("click","a,.ca_href", function(e) {
     href = href.trim();
     if ( href.match('https?://[^\.]*.(my)?unraid.net/') || href.indexOf("https://unraid.net/") == 0 || href == "https://unraid.net" || href.indexOf("http://lime-technology.com") == 0) {
       if ( ca_href ) {
+        e.stopPropagation();
+        e.preventDefault();
         window.open(href,target);
       }
       return;
     }
-
     if (href !== "#" && href.indexOf("javascript") !== 0) {
       var dom = isValidURL(href);
       if ( dom == false ) {
@@ -255,6 +414,15 @@ $('body').on("click","a,.ca_href", function(e) {
       $.cookie("allowedDomains",JSON.stringify(domainsAllowed),{expires:3650}); // rewrite cookie to further extend expiration by 400 days
 
       if ( domainsAllowed[dom.hostname] ) {
+        if ( dockerHub ) {
+          var popupOpen = window.open(href,target);
+          if ( !popupOpen || popupOpen.closed || typeof popupOpen == "undefined" ) {
+            var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
+            setTimeout(function() {
+              removeBannerWarning(popupWarning);}
+            ,10000);
+          }
+        }
         return;
       }
 
@@ -286,8 +454,11 @@ $('body').on("click","a,.ca_href", function(e) {
     }
   }
 });
+<?endif;?>
 
 $(function(){
+  $(".content").addClass("menuAdjust");
+  
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
@@ -314,11 +485,11 @@ $(function(){
     return;
   <? endif;?>
   <? if ( ! is_file($caPaths['docker_cfg']) ):?>
-    // This file is guaranteed to exist on the flash drive.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with a flash offline / corrupted.
+    // This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
     $(".mainArea,.menuItems").html("");
     swal({
-      title: "<?tr("Fatal Flash Drive Error");?>",
-      text: '<?tr('This usually means your flash drive is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
+      title: "<?tr("Fatal Boot Device Error");?>",
+      text: '<?tr('This usually means your Boot Device is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
       html: true,
       type: 'error',
       showCancelButton: false,
@@ -348,15 +519,23 @@ $(function(){
       debug:false,
       priority:true
     },function(result) {
-      var result = JSON.parse(result);
-      $("#caInstalledVersion").html(result.installedVersion);
+      try {
+        var result = JSON.parse(result);
+        $("#caInstalledVersion").html(result.installedVersion);
+      } catch(e) {
+        $("#caInstalledVersion").html("Unknown");
+      }
     }
   );
 
 // Override the OS switch language function so that CA can save it's current state when switching via the OS
   $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-
-  $("body").append("<div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
+  <? if ( version_compare($unRaidSettings['version'],"7.1.9999","<") && ($display['theme'] == 'azure' || $display['theme'] == 'gray') ):?>
+    $(".searchArea").css("margin-left","-8.5rem");
+  <? else: ?>
+    $(".searchArea").insertAfter("#menu");
+  <? endif; ?>
+  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
@@ -377,14 +556,37 @@ $(function(){
 
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
+  $("body").on("click",".long-loading-abort-button",function() {
+    var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
+    setTimeout(function() {
+      removeBannerWarning(abortBanner);
+    }, 20000);
+    myCloseAlert(true);
+    myCloseSpinner();
+    postCount = 0;
+  });
+
+  $(".showMenuButton").on("click",function() {
+    showMenu();
+  });
+
+  $(".menuClose,.menuOverlay").on("click",function() {
+    closeMenu();
+  });
+
+
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
   });
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
     data.actions = true;
   });
+  $(".searchSubmit").on("click",function() {
+    doSearch(true);
+  });
   $("#searchBox").keydown(function(e) {
     if (e.which === 13) {
+      e.stopPropagation();
       searchBoxAwesomplete.close();
       // this is the check sort order function
       var sortButton = false;
@@ -406,8 +608,49 @@ $(function(){
   });
 
   $('body').keydown(function(e) {
-    if (e.which === 27) {
-      closeSidebar();
+    switch (e.which) {
+      case 27:
+        if ( $("#alternateView").is(":visible") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          hideAlternateView();
+          return;
+        }
+        if ( $(".sidenav").hasClass("sidenavShow") ) {
+          e.preventDefault();
+          e.stopPropagation();  
+          closeSidebar();
+          return;
+        }
+        if ( $(".menuOverlay").is(":visible") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeMenu();
+          return;
+        }
+        break;
+      case 37:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
+          return;
+        }
+
+        if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          $(".pageLeft").click();
+        }
+        break;
+      case 39:
+        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
+          return;
+        }
+
+        if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          $(".pageRight").click();
+        }
+        break;
     }
   });
 
@@ -490,7 +733,6 @@ $(function(){
   });
 
   $('body').on("click",".templateSearch",function() {
-    $(".maxPerPage").show();
     doSearch(false);
   });
 
@@ -566,15 +808,32 @@ $(function(){
     }
   });
 
-  $('body').on("click",".dockerPopup", function() {
-    var url = $(this).data("dockerhub");
-    openNewWindow(url,'_blank');
+  $('body').on("click",".caMenuItem",function() {
+    if ( $(this).hasClass("caMenuDisabled") || $(this).hasClass("selectedMenu") ) {
+      return;
+    }
+
+    if ( $(this).hasClass("showStatistics") ) {
+      event.stopPropagation();
+      showStatistics();
+    } else if ( $(this).hasClass("showCredits") ) {
+      event.stopPropagation();
+      showCredits();
+    } else {
+      scrollToTop();  
+      closeMenu();
+    }
   });
 
   $('.menuItems').on("click",'.categoryMenu',function() {
     var menu = this;
     if ( $(menu).hasClass("caMenuDisabled") )
       return;
+
+    if ( $(menu).hasClass("selectedMenu") ) {
+      return;
+    }
+
     if ( $(menu).hasClass("selectedMenu") ) {
       if ( $(menu).hasClass("caRepositoryMenu") ) {
         return;
@@ -606,16 +865,6 @@ $(function(){
     }
   });
 
-  $('.menuItems').on("mouseover",".caMenuItem",function() {
-    if ( $(this).hasClass("caMenuEnabled") ) {
-      $(this).addClass("hoverMenu");
-    }
-  });
-
-  $('.menuItems').on("mouseleave",".caMenuItem",function() {
-    $(this).removeClass("hoverMenu");
-  });
-
   $(".sidebar").on("click",".chartMenu",function() {
     if ($(this).hasClass("selectedMenu") )
       return;
@@ -632,13 +881,18 @@ $(function(){
     showSidebarApp(apppath,appname);
   });
 
-  $('.menuItems').on("click",".caMenuItem",function() {
+  $('body').on("click",".caMenuItem",function() {
     if ( $(this).hasClass("caMenuDisabled") ) {
       return;
     }
-    if ( $(this).attr("onclick") )
+    if ( $(this).hasClass("noSelect") ) {
       return;
-
+    }
+    if ( $(this).attr("onclick") ) {
+      return;
+    }
+    // Repository menu gets disabled when a special category is shown.  If we're here, then make sure it's enabled as we're not on a special category anymore
+    $(".caRepositoryMenu").addClass("caMenuEnabled").removeClass("caMenuDisabled");
     var slideFlag = true;
     var currentCat = $(".selectedMenu").data("category");
     var newCat = $(this).data("category");
@@ -660,18 +914,19 @@ $(function(){
 
     $(this).addClass("selectedMenu");
     if ( slideFlag ) {
-      if ( ! $(this).next().hasClass("actionCentre") ) {
+      if ( ! $(this).parent().hasClass("actionCentre") ) {
         $(this).next().show("fast");
       }
     }
   });
 
-  $(".sectionMenu").on("click",function() {
+  $('body').on("click",".sectionMenu",function() {
     if ( $(this).hasClass("caMenuDisabled") )
       return;
 
     var section = $(this).attr("data-category");
     showSortIcons();
+    hideAlternateView();
     switch (section) {
       case "installed_apps":
         data.previousAppsSection = "";
@@ -723,7 +978,7 @@ $(function(){
       sortOrder.sortDir = sortDir;
       $(".sortIcons").addClass("startupMore");
     }
-    $("#CategoryLine").html($(this).data("des"));
+    $(".CategoryLine").html($(this).data("des"));
     $("#searchBox").val("");
     scrollToTop();
     post({action:"changeSortOrder",sortOrder:sortOrder},function() {
@@ -731,7 +986,8 @@ $(function(){
     });
   });
 
-  $(".debugging").on("click",function() {
+  $('body').on("click",".debugging",function() {
+    hideAlternateView();
     var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
     var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
     var filename='CA-Logging-'+localISOTime.substr(0,16).replace(/[-:]/g,'').replace('T','-')+'.zip';
@@ -761,11 +1017,18 @@ $(function(){
     }
   });
 
-  $(".initDockerSearch").click(function()     { initDockerSearch(); });
+  $(".dockerSearch").click(function()         { initDockerSearch(); });
   $(".multi_installClear").click(function()   { clearMultiInstall(); });
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
-  $(".startupButton").click(function()        { $(".maxPerPage").hide();hideSortIcons();updateContent(this); });
+  $("body").on("click",".startupButton",function() { 
+    $(".category").html("");
+    $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
+    hideAlternateView();
+    $(".maxPerPage").hide();
+    hideSortIcons();
+    updateContent(this);
+  });
 
   $(".multi_installButton").click(function()  {
     if ( $(".multi_installButton").hasClass("actionCenter") ) {
@@ -809,6 +1072,15 @@ $(function(){
     closeSidebar();
   });
 
+  $(".alternateViewClose").on("click",function() {
+    event.stopPropagation();
+    hideAlternateView();
+  });
+
+  $("body").on("click",".similarSearch",function() {
+    doSearch(false,$(this).data("search")); 
+  });
+
   $("body").on("click",".removeApp",function() {
     var path = $(this).data("path");
     var name = $(this).data("name");
@@ -818,9 +1090,8 @@ $(function(){
   addEventListener("wheel",function(event){
     if (wheelActive)
       return;
-    if ( $(".sidebar").is(":visible") )
+    if ( $(".sidebar").is(":visible") || $("#alternateView").is(":visible") || $(".menuOverlay").is(":visible") )
       return;
-    if ($("body").width() < 1260 ) return; // dynamix coding
     event.stopPropagation();
 
     if ( $(".pageRight").is(":visible") ) {
@@ -852,6 +1123,7 @@ $(function(){
     $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
       var icon = this;
       iconHoverTimer = setTimeout(function() {
+        if ( !$("#searchBox").is(":focus") )
         icon.click();
       },3000);
     });
@@ -921,6 +1193,7 @@ $(function(){
       <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
+        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
         updateContent();
         if ("<?=$startupDisplayed?>" == "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
@@ -948,7 +1221,13 @@ function showSortIcons() {
   $("#sortIconArea").show();
 }
 function ca_openPlugin(cmd,title,plg,func) {
-  setTimeout(function(){openPlugin(cmd,title,plg,func,"");},250);
+  if ( cmd.startsWith("plugin install") ) {
+    cmd = "downloadPlugin "+cmd;
+  }
+  setTimeout(function(){
+    openPlugin(cmd,title,plg,func,"");
+    myCloseAlert();
+  },250);
 }
 
 function updateContent(button) {
@@ -974,7 +1253,7 @@ function updateContent(button) {
         doSearch(false,startupSearch);
         populateAutoComplete();
         startupSearch = "";
-        $(".dockerSearch").hide();
+        $(".dockerSearch,.templateSearch").hide();
       } else {
         getContent(true,'INITIALIZE',"","",startupScreen);
       }
@@ -992,6 +1271,7 @@ function updateContent(button) {
 }
 
 function showSpecialCategory(button) {
+  clearSearchBox();
   var sortButton = false;
   $(".sortIcons").each(function() {
     if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
@@ -1016,13 +1296,15 @@ function showSpecials(button) {
   data.selected_category = "DOESNTMATTERWHATSHERE";
   data.section = "AppStore";
   changeCategory(button,false);
-  $("#Category").append(" - <?tr("Installs not allowed from this page");?>");
+  $(".caRepositoryMenu").addClass("caMenuDisabled").removeClass("caMenuEnabled");
+  $(".category").append(" - <?tr("Installs not allowed from this page");?>");
 }
 
 function changeCategory(button,subSwitch) {
   var description = $(button).text();
   var category = $(button).attr("data-category");
 
+  hideAlternateView();
   $(".multi_installDiv").hide();
   getContent(false,category,description,false);
 }
@@ -1037,14 +1319,12 @@ function changePage(pageNumber) {
   });
 }
 
-function swalBackground(color) {
-  $(".sweet-alert").css("background-color",color);
-}
-
-function myCloseAlert() {
+function myCloseAlert(force=false) {
+  if ( data.section == "AppStore" && initialStartup && ! force ) {
+    return;
+  }
   swal.close();
   $("div.spinner, .sweet-alert").hide();
-  swalBackground("<?=$swalBackground?>");
   enableSearch();
 }
 
@@ -1091,7 +1371,7 @@ function doSearch(button,newSearch) {
   scrollToTop();
   if (filter) {
     $("#sortIconArea").show();
-    $("#Category").html(sprintf(tr("Search for %s"),filter));
+    $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
     data.searchFlag = true;
   } else {
     updateContent();
@@ -1100,10 +1380,13 @@ function doSearch(button,newSearch) {
     return;
   }
   data.searchActive = true;
+
   if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
     $('.dockerSearch').show();
+    $('.templateSearch').hide();
   } else {
     $('.dockerSearch').hide();
+    $('.templateSearch').hide();
   }
 
   data.searchInProgress = true;
@@ -1155,9 +1438,28 @@ function getContent(init,category,description,newApp,startupDisplay) {
       category = "NONE";
       initialize = true;
       enableButtons();
-    }
 
-    if ( (category == "New") || (category == "All") ) { category = ""; }
+      var maxHomeApps = 12; // legacy value for 7.1.999 and below
+
+      <? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?> 
+        if ( ! $(".spotlightHome").length ) {
+          $("#templates_content").html("<div id='maxHomeApps'><div class='ca_holder spotlightHome' style='display:none;'></div></div>");
+        }
+        // See how many apps will fit maximum on home page
+        var displayWidth = $("#header").getWidth() - $(".menuItems").getWidth();
+        $("#maxHomeApps").show();
+        var appWidth = $(".spotlightHome").getWidth();
+        $("#maxHomeApps").hide();
+        var maxHomeApps = Math.floor(displayWidth / appWidth);
+
+        <? if ( ($display['width'] ?? 0) != 1 ): ?>
+          maxHomeApps = Math.min(maxHomeApps,4);
+        <? endif;?>
+      <? endif;?>
+    }
+    if ( (category == "New") || (category == "All") ) { 
+      category = ""; 
+    }
     var el_dl = $.find(".sortIcons[data-sortby='downloads']");
     var el_tr = $.find(".sortIcons[data-sortby='trending']");
 
@@ -1171,19 +1473,27 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
     var filter = $('#searchBox').val();
     if ( ! filter ) {
-      $('.dockerSearch').hide();
+      $('.dockerSearch,.templateSearch').hide();
     }
     if ( description && ! filter ) {
-      $("#Category").html(description);
+      $(".category").html(description);
     }
-    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay},function(result) {
+    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps},function(result) {
       updateDisplay(result.display);
       if ( initialize ) {
         populateAutoComplete();
         downloadStatistics();
+        if ( maxHomeApps < 3 ) {
+          changeMaxPerPage(12);
+        }
       }
     });
   }
+}
+
+function changeMaxPerPage(max) {
+  postNoSpin({action:"changeMaxPerPage",max:max},function(){
+  });
 }
 
 function downloadStatistics() {
@@ -1241,6 +1551,9 @@ function clearSearchBox() {
 }
 
 function closeSidebar(cookie=false,visible=false) {
+  if ( ! $(".sidenav").hasClass("sidenavShow") ) {
+    return;
+  }
   if ( ! cookie ) {
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
@@ -1249,6 +1562,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+  $(".ca_display_area").removeClass("dim");
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
@@ -1426,7 +1740,7 @@ function showDesc_openBox(cmd,title,height,width,load,func) {
 
 function showModeration(script,title) {
   $("#sb-nav-close").css("visisbility","visible");
-  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,false);
+  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,"showStatistics()");
 }
 
 function previousApps(installed,dontClear=false,filter="") {
@@ -1435,7 +1749,7 @@ function previousApps(installed,dontClear=false,filter="") {
   data.docker = "";
 
   clearSearchBox();
-  $(".dockerSearch").hide();
+  $(".dockerSearch,.templateSearch").hide();
   showSortIcons();
 
   // this is the checkSortOrder function running to prevent a race condition
@@ -1467,7 +1781,7 @@ function actionCentre() {
   setPageOne();
   data.docker = "";
   clearSearchBox();
-  $(".dockerSearch").hide();
+  $(".dockerSearch,.templateSearch").hide();
   showSortIcons();
 
   // this is the checkSortOrder function running to prevent a race condition
@@ -1513,7 +1827,7 @@ function getPrevApps(installed,filter,dontClear) {
         var msg = "<?tr("Action Centre");?>";
         break;
     }
-    $("#Category").html(msg);
+    $(".category").html(msg);
     changeSortOrder(null,null,"true");
     enableMultiInstall();
 
@@ -1526,7 +1840,7 @@ function removeApp(application, humanName) {
   disableSearch();
   swal({
     title: "<?tr("Delete Template?");?>",
-    text: sprintf(tr("Are you sure you want to delete %s from the list of previously installed applications?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
+    text: sprintf("<?tr("Are you sure you want to delete %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
     type: "warning",
     confirmButtonText: "<?tr("Yes, delete it!");?>",
     cancelButtonText: "<?tr("Cancel");?>",
@@ -1569,7 +1883,7 @@ function uninstallApp(application,humanName) {
     } else {
       swal({
         title: "<?tr("Uninstall Application?");?>",
-        text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+        text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
         type: "warning",
         showCancelButton: true,
         showConfirmButton: true,
@@ -1603,7 +1917,7 @@ function uninstallDocker(application,humanName) {
   disableSearch();
   swal({
     title: "<?tr("Uninstall Application?");?>",
-    text: sprintf(tr("Are you sure you want to uninstall %s?"),"<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+    text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
     type: "warning",
     showCancelButton: true,
     showConfirmButton: true,
@@ -1615,7 +1929,7 @@ function uninstallDocker(application,humanName) {
     html: true
   }, function( isConfirm ) {
     if ( isConfirm ) {
-      myAlert("",sprintf(tr("Uninstalling %s"),humanName));
+      myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
       post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
         myCloseAlert();
         enableSearch();
@@ -1687,7 +2001,8 @@ function setPageOne() {
 }
 
 function clearCategory() {
-  $("#Category").html("&nbsp;");
+  $(".category").html("&nbsp;");
+  $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
 }
 
 function pinnedApps() {
@@ -1714,8 +2029,8 @@ function pins() {
   clearSearchBox();
   clearCategory();
   showSortIcons();
-  $("#Category").html("<?tr("Pinned Apps");?>");
-  $(".dockerSearch,.multi_installDiv").hide();
+  $(".category").html("<?tr("Pinned Apps");?>");
+  $(".dockerSearch,.templateSearch,.multi_installDiv").hide();
   post({action:'pinnedApps'},function(result) {
     refreshDisplay();
     myCloseAlert();
@@ -1728,7 +2043,11 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
   var flag = false;
 
   if ( ports ) {
-    ports = JSON.parse(ports);
+    try {
+      ports = JSON.parse(ports);
+    } catch(e) {
+      ports = [];
+    }
     if ( ports ) {
       ports.forEach(function(port){
         portsInUse.forEach(function(used) {
@@ -1798,15 +2117,21 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 
 
 function selectAllPrevious() {
-  $(".ca_multiselect").each(function() {
-    $(this).prop("checked",true);
-  });
+  $(".ca_multiselect").prop("checked",true);
   getSelectedApps();
 }
 
 function getSelectedApps() {
   if ( data.selected ) {
-    var selected = JSON.parse(data.selected);
+    try {
+      var selected = JSON.parse(data.selected);
+    } catch(e) {
+      var selected = new Object();
+      var deletePaths = new Array();
+      var docker = new Array();
+      var plugin = new Array();
+      var language = new Array();
+    }
     var deletePaths = selected.deletePaths;
     var docker = selected.docker;
     var plugin = selected.plugin;
@@ -1874,7 +2199,7 @@ function enableMultiInstall() {
     $(".multi_install,.multi_installClear").attr("disabled",false);
     if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
       $(".multi_deleteButton").css("visibility","visible");
-    var buttonText = (count == 1) ? sprintf(tr(actionText + " %s Selected Application"),count) : sprintf(tr(actionText + " %s Selected Applications"),count);
+    var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
     $(".multi_installButton").val(buttonText);
   }
   getSelectedApps();
@@ -1894,7 +2219,7 @@ function deleteMulti() {
   var selected = getSelectedApps();
   swal({
     title: "<?tr("Delete Template?");?>",
-    text: sprintf(tr("Are you sure you want to delete %s applications from the previously installed list?"),"<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
+    text: sprintf("<?tr("Are you sure you want to delete %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
     type: "warning",
     confirmButtonText: "<?tr("Delete");?>",
     cancelButtonText: "<?tr("Cancel");?>",
@@ -1954,7 +2279,7 @@ function updateMulti() {
 
   swal({
     title: "<?tr("Update Applications");?>",
-    text: sprintf(tr("Are you sure you want to update %s applications?"),languageCount+dockerCount+pluginCount),
+    text: sprintf("<?tr("Are you sure you want to update %s applications?")?>",languageCount+dockerCount+pluginCount),
     type: "info",
     showCancelButton: true,
     cancelButtonText: "<?tr("Cancel");?>",
@@ -2038,7 +2363,7 @@ function installMulti() {
   } else {
     var buttonText = "<?tr("Yes, install it");?>";
   }
-  var text = sprintf(tr("Are you sure you want to install %s docker and %s plugin application(s)?"),dockerCount,pluginCount);
+  var text = sprintf("<?tr("Are you sure you want to install %s docker and %s plugin application(s)?")?>",dockerCount,pluginCount);
   text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part");?></span>" : "");
   text = text.concat(cookieWarning ? "<br><span class='caHighlight>"+cookieWarning+"</span>" : "");
   swal({
@@ -2090,8 +2415,12 @@ function updateDisplay(content) {
     var ID = $(this).attr("id");
     context.destroy("#"+ID);
   });
-
   $("#templates_content").html(content);
+  if ( $(".multi_installDiv").is(":visible") ) {
+    $(".navigationSection").addClass("navigationSectionShift");
+  } else {
+    $(".navigationSection").removeClass("navigationSectionShift");
+  }
   enableSearch();
   $('img').on("error",function() {
     if ( $(this).hasClass("spotlightIcon") )
@@ -2104,11 +2433,7 @@ function updateDisplay(content) {
     var supportContext = $(this).data("context");
     if (supportContext) {
       var ID = $(this).attr("id");
-      var opts = [];
-      supportContext.forEach(function(item,index){
-        opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
-      });
-      context.attach('#'+ID, opts);
+      setupContext(supportContext,"#"+ID);
     }
   });
 
@@ -2116,15 +2441,7 @@ function updateDisplay(content) {
     var actionsContext = $(this).data("context");
     if (actionsContext) {
       var ID = $(this).attr("id");
-      var opts = [];
-      actionsContext.forEach(function(item,index){
-        if ( item.divider ) {
-          opts.push({divider:true});
-        } else {
-          opts.push({text:item.text,icon:item.icon,action:function(){eval(item.action);}});
-        }
-      });
-      context.attach('#'+ID, opts);
+      setupContext(actionsContext,"#"+ID);
     }
   });
   $(".cardDesc").each(function() {
@@ -2138,23 +2455,9 @@ function updateDisplay(content) {
     }
   });
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText,.ca_applicationName").each(function() {
-    var newSize = 100;
-    var minSize = $(this).hasClass("ca_applicationName") ? 8 : 0;
-    var overflowType = ! $(this).hasClass("ca_applicationName");
-    while (isOverflown(this,overflowType)) {
-      var existingSize = $(this).css("font-size");
-      var size = parseInt(existingSize);
-      if ( size == newSize + 1 ) {  // looks like browsers in Chinese have a minimum enforced font-size
-        break;
-      }
-      var newSize = size - 1;
-      if (newSize == minSize)
-        break;
+  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText").fitText(true);
+  $(".ca_applicationName").fitText(false);
 
-      $(this).css("font-size",newSize+"px");
-    }
-  });
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
   }	else {
@@ -2163,18 +2466,18 @@ function updateDisplay(content) {
 //	saveState();
 
   if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
-    $(".maxPerPage").show();
   }
   if ( $(".ca_multiselect").length ) {
       $(".multi_installAll").attr("disabled",false);
   } else {
     $(".multi_installAll").attr("disabled",true);
   }
+  myCloseAlert(true);
 }
 
 function saveState() {
   console.log("Save State");
-  $.cookie("ca_categoryText",$("#Category").html(),{path:"/;SameSite=Lax"});
+  $.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
   $.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
   $.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
   $.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
@@ -2192,21 +2495,26 @@ function saveState() {
 }
 
 function restoreState() {
-  swalBackground("transparent");
-
   console.log("Restore State");
   $.removeCookie("ca_languageSwitch",{path:'/'});
 
-  $("#Category").html($.cookie("ca_categoryText"));
+  $(".category").html($.cookie("ca_categoryText"));
   if ( $.cookie("ca_installMulti") == "true" ) {
     $(".multi_installDiv").show();
   } else {
     $(".multi_installDiv").hide();
   }
   $.removeCookie("ca_categoryText");
-
-  data = JSON.parse($.cookie("ca_data"));
-  $.removeCookie("ca_data");
+  try {
+    data = JSON.parse($.cookie("ca_data"));
+    $.removeCookie("ca_data");
+  } catch (e) {
+    console.log("Unable to restore state - reloading to clear errors");
+    $.removeCookie("ca_data");
+    post({action:"clearStartUpDisplayed"},function(result) {
+      window.location.reload();
+    });
+  }
   data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
   restoreStateMenu = $.cookie("ca_selectedMenu");
   $(".categoryMenuName").html($.cookie("ca_categoryName"));
@@ -2231,30 +2539,44 @@ function restoreState() {
   });
 
 }
+function showAlternateView() {
+  $("#alternateView").show();
+  $("body").addClass("body_sidebarScroll");
+}
+
+function hideAlternateView() {
+  $("#alternateView").hide();
+  $("#alternateView,.ca_display_area").removeClass("mobileMenu");
+  $("body").removeClass("body_sidebarScroll");
+}
 
 function showCredits() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
-  var credits = $('#caCredits').html();
-  updateDisplay(credits);
-  $(".maxPerPage").hide();
+  showAlternateView();
+  $(".alternateViewContent").html($("#caCredits").html());
 }
 
 function showStatistics() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  showAlternateView();
   post({action:'statistics'},function(result) {
-    updateDisplay(result.statistics);
-    $(".maxPerPage").hide();
-    disableSearch();
+    $(".alternateViewContent").html(result.statistics).css("font-weight","bold").show();
   });
 }
 
+function showMenu() {
+  $('.back_to_top').click();
+  $('.menuAdjust').addClass("mobileMenuPopup");
+  $("#templates_content").addClass("dim");
+}
+
+function closeMenu() {
+  $('.menuAdjust').removeClass("mobileMenuPopup");
+  $("#templates_content").removeClass("dim");
+}
+
 function caChangeLog() {
-  $(".multi_installDiv,.dockerSearch").hide();
-  clearCategory(); clearSearchBox();
+  showAlternateView();
   post({action:'caChangeLog'},function(result) {
-    updateDisplay(result.changelog);
+    $(".alternateViewContent").html(result.changelog);
   });
 }
 
@@ -2302,6 +2624,7 @@ function setFavRepoSearch() {
 function getCategories() {
   post({action:'get_categories'},function(result) {
     $("#category_list").html(result.categories);
+    $(".subCategory").hide();
     $(".caMenuItem").each(function() {
       if ( ! ( $(this).hasClass("favouriteRepo") || $(this).hasClass("caPinnedMenu") ) ) {
         $(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
@@ -2444,10 +2767,6 @@ function updateDocker(container) {
     var postFunction = "refreshDisplay";
   }
   openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
-
- /*
-  openBox('/plugins/community.applications/scripts/installUpdate.php?ct[]='+encodeURIComponent(container),tr('Update Container'),600,1100,true,postFunction);
-  */
 }
 
 function setToolTipForFavourite() {
@@ -2457,7 +2776,7 @@ function setToolTipForFavourite() {
     } else {
       var repository = $(this).data("repository");
       repository = repository.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      $(this).attr("title",sprintf("Click to set %s as favourite repository",repository));
+      $(this).attr("title",sprintf("<?tr("Click to set %s as favourite repository")?>",repository));
     }
   });
 }
@@ -2472,10 +2791,10 @@ function setFavourite(button) {
       removeBannerWarning(repoBanner);
     if ( data.fav ) {
       var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("%s set as favourite repository",bannerMessage),false,true);
+      repoBanner = addBannerWarning(sprintf("<?tr("%s set as favourite repository")?>",bannerMessage),false,true);
     } else {
       var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("%s removed as favourite repository",bannerMessage),false,true);
+      repoBanner = addBannerWarning(sprintf("<?tr("%s removed as favourite repository")?>",bannerMessage),false,true);
     }
     repoBannerTimer = setTimeout(function() {
       removeBannerWarning(repoBanner);
@@ -2483,9 +2802,9 @@ function setFavourite(button) {
     },5000);
     $(".favCardBackground").each(function() {
       if ( $(this).data("repository") == data.fav.replace("'","") )
-        $(this).show("slow");
+        $(this).addClass("favCardBackgroundShow").removeClass("favCardBackgroundHide");
       else
-        $(this).hide("slow");
+        $(this).removeClass("favCardBackgroundShow").addClass("favCardBackgroundHide");
     });
     setFavRepoSearch();
   });
@@ -2496,7 +2815,11 @@ function popupInstallXML(xml,type,comment="",ports="") {
   saveState();
   var flag = false;
   if ( ports ) {
-    ports = JSON.parse(ports);
+    try {
+      ports = JSON.parse(ports);
+    } catch(e) {
+      ports = [];
+    }
     if ( ports ) {
       ports.forEach(function(port){
         portsInUse.forEach(function(used) {
@@ -2736,6 +3059,7 @@ function showSidebarApp(apppath,appname) {
   $(".sidebar").fadeIn();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+  $(".ca_display_area").addClass("dim");
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
@@ -2772,41 +3096,11 @@ function showSidebarApp(apppath,appname) {
       });
       $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
-      if ( result.supportContext ) {
-        var opts = [];
-        result.supportContext.forEach(function(item,index){
-          opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
-        });
-        context.attach('#supportPopup', opts)
-      }
-      if ( result.actionsContext ) {
-        var opts = [];
-        result.actionsContext.forEach(function(item,index){
-          if ( item.divider ) {
-            opts.push({divider:true});
-          } else {
-            opts.push({text:item.text,icon:item.icon,action:function(){
-              eval(item.action);
-            }});
-          }
-        });
-        context.attach("#actionsPopup",opts);
-      }
-      var newSize;
-      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").each(function() {
-        while (isOverflown(this)) {
-          var existingSize = $(this).css("font-size");
-          var size = parseInt(existingSize);
-          if ( size == newSize + 1 ) {  // looks like browsers in Chinese have a minimum enforced font-size
-            return false;
-          }
-          var newSize = size - 1;
-          if (newSize == 0)
-            return false;
+      setupContext(result.supportContext,"#supportPopup");
+      setupContext(result.actionsContext,"#actionsPopup");
+        
+      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
 
-          $(this).css("font-size",newSize+"px");
-        }
-      });
       postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
         if (lastUpdate.lastUpdate) {
           $("#template"+result.ID).fadeOut("slow","linear",function() {
@@ -2838,9 +3132,9 @@ function showRepoPopup(repository) {
   $("#sidenavContent").html("");
 
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+  $(".ca_display_area").addClass("dim");
   $(".sidebar").fadeIn();
   $("body").addClass("body_sidebarScroll");
-  $("body").css("overflow","hidden !important");
   $(".nav-user.show").hide();
 
   post({action:'getRepoDescription',repository:repository},function(result) {
@@ -2912,7 +3206,8 @@ function dockerSearch(pageNumber) {
   var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
-  $("#Category").html(sprintf(tr("DockerHub Search for %s"),filter)+" <span id='pageNumber'></span>");
+  $(".templateSearch").show();
+  $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);
   });
@@ -2932,7 +3227,7 @@ function dockerConvert(dockerID) {
   }, function (isConfirm) {
     if ( isConfirm ) {
       $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-      openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,tr('Docker Test Install'),600,1100,true);
+      openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,"<?tr('Docker Test Install')?>",600,1100,true);
     } else {
       post({action:'convert_docker',ID:dockerID},function(result) {
         myCloseAlert();
@@ -2959,7 +3254,7 @@ function changeMax(max) {
 }
 
 function getPerPageOpts(value) {
-  var perPage = [24,48,96];
+  var perPage = [12,24,48,96];
   var maxPerPageOpts = [];
   perPage.forEach(function(entry) {
     if ( entry != value ) {
@@ -2978,7 +3273,8 @@ function setupActionCentre() {
   $.post(execURL,{action:'enableActionCentre'},function(ret) {
     if ( ret.status == "action" ) {
       if ( !$(".actionCentre").is(":visible") ) {
-        if ( ! actionCentreRestoreState ) {
+        // Don't show banner for action centre if menu isn't visibile (Covers hamburger on mobile if scrolled down)
+        if ( ! actionCentreRestoreState && $(".menuItems").is(":visible") ) {
           acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
           setTimeout(function() {
             removeBannerWarning(acBanner);

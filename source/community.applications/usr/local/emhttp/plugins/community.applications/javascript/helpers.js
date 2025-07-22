@@ -44,13 +44,21 @@ function stripTags(str) {
   return str.replace(/(<([^>]+)>)/ig,"");
 }
 
+
 function mySpinner() {
-  $("div.spinner").show();
-  $(".spinnerBackground").show();
+  if ( $(".sweet-overlay").is(":visible") ) {
+    return;
+  }
+  $("div.spinner,.spinnerBackground").show();
+
 }
 
 function myCloseSpinner() {
+  clearTimeout(ca_longLoading);
+  clearTimeout(ca_veryLongLoading);
+  clearTimeout(ca_somethingWrong);
   $("div.spinner,.spinnerBackground").hide();
+  $(".long-loading").html("");
 }
 
 function enableButtons() {
@@ -82,8 +90,6 @@ function isOverflown(el,type=false){
     return (el.scrollWidth > el.clientWidth);
   else
     return (el.scrollHeight > el.clientHeight);
-
-  return (el.scrollHeight > el.clientHeight) || (el.scrollWidth > el.clientWidth)||(el.offsetWidth < el.scrollWidth);
 }
 
 
@@ -114,35 +120,19 @@ function tr(string) {
 }
 
 function postNoSpin(options,callback) {
+  var msg = "No Spin Post: ";
+  console.log(msg+JSON.stringify(options));
   if ( typeof options === "function" ) {
     callback = options;
-  } else {
-    var msg = "No Spin Post: ";
-    console.log(msg+JSON.stringify(options));
+    options = {};
   }
-
-  if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(result){
-      try {
-        callback(result);
-      } catch(e) {
-        if ( ! data.loggedOut ) {
-          post({action:'javascriptError',postCall:options.action,retval:result});
-          alert("Fatal error during "+options.action+" "+e);
-        }
-      }
-      if (result.script) {
-        try {
-          eval(result.script);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
-    });
-  } else {
-    $.post(execURL,options);
-  }
+  options.noSpinner = true;
+  post(options,callback);
 }
+
+var ca_longLoading = false;
+var ca_veryLongLoading = false;
+var ca_somethingWrong = false;
 
 function post(options,callback) {
   if ( typeof options === "function" ) {
@@ -151,15 +141,44 @@ function post(options,callback) {
     var msg = postCount > 0 ? "Embedded Post: " : "Post: ";
     console.log(msg+JSON.stringify(options));
   }
-
-  if ( postCount == 0 && ! options.noSpinner ) {
-    mySpinner();
+  if ( ! options.noSpinner ) {
+    if ( postCount == 0) {
+      if ( ! $(".sweet-overlay").is(":visible") ) {
+        mySpinner();
+      }
+      ca_longLoading = setTimeout(function() {
+        slowPost(tr('Taking longer than expected. Please wait...'));
+      }, 20000);
+      ca_veryLongLoading = setTimeout(function() {
+        clearTimeout(ca_longLoading);
+        slowPost(tr('Still taking longer than expected. Please wait...'));
+      },30000);
+  
+      ca_somethingWrong = setTimeout(function() {
+        clearTimeout(ca_veryLongLoading);
+        slowPost(tr('Taking far longer than expected.  Investigate possible network / internet connection hardware issues. Still attempting to load.  Please wait... Aborting will recover, but might cause Community Applications some issues.')+"<div class='long-loading-abort-button caButton'>"+tr('Abort')+"</div>");
+      }, 40000);
+    }
+    postCount++;
   }
-  postCount++;
-  console.log("Post Count: "+postCount);
-  if ( typeof callback === "function" ) {
-    $.post(execURL,options,function(result){
-       try {
+  
+  $.post(execURL,options).done(function(result) {
+    if (result.script) {
+      try {
+        eval(result.script);
+      } catch(e) {
+        alert("Could not execute result.script "+e);
+      }
+    }
+    if (result.globalScript) {
+      try {
+        eval(result.globalScript);
+      } catch(e) {
+        alert("Could not execute result.globalScript "+e);
+      }
+    }
+    if ( typeof callback === "function" ) {    
+      try {
         callback(result);
       } catch(e) {
         if ( ! data.loggedOut ) {
@@ -167,61 +186,45 @@ function post(options,callback) {
           alert("Fatal error during "+options.action+" "+e);
         }
       }
-      if (result.script) {
-        try {
-          eval(result.script);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
-      if (result.globalScript) {
-        try {
-          eval(result.globalScript);
-        } catch(e) {
-          alert("Could not execute Script "+e);
-        }
-      }
+    }
+
+    
+    if ( ! options.noSpinner ) {
       postCount--;
-      if (postCount < 0) postCount = 0;
-      if ( postCount == 0 && ! options.noSpinner) {
+      if (postCount < 0) {
+        postCount = 0;
+      }
+      if ( postCount == 0 ) {
         myCloseSpinner();
       }
-    }).fail(function(){
-      myCloseSpinner();
-      swal({
-        title: tr("Browser failed to communicate with Unraid Server"),
-        text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
-        html: true,
-        type: 'error',
-        showCancelButton: true,
-        showConfirmButton: true,
-        cancelButtonText: tr("Cancel"),
-        confirmButtonText: tr('Attempt to Fix Via Reload Page')
-      }, function (isConfirm) {
-        if ( isConfirm ) {
-          window.location.reload();
-        } else {
-          history.back();
-        }
-      });
+    }
+
+  }).fail(function(result){
+    myCloseSpinner();
+    swal({
+      title: tr("Browser failed to communicate with Unraid Server"),
+      text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
+      html: true,
+      type: 'error',
+      showCancelButton: true,
+      showConfirmButton: true,
+      cancelButtonText: tr("Cancel"),
+      confirmButtonText: tr('Attempt to Fix Via Reload Page')
+    }, function (isConfirm) {
+      if ( isConfirm ) {
+        window.location.reload();
+      } else {
+        history.back();
+      }
     });
-  } else {
-    $.post(execURL,options);
-    postCount--;
-    if ( postCount < 0 ) postCount = 0;
-    if ( postCount == 0) {
-      myCloseSpinner();
-    }
-  }
-  if ( ! cookiesEnabled() ) {
-    if ( cookieWarning === false) {
-      cookieWarning = addBannerWarning(tr("Community Applications works best when cookies are enabled in your browser.  Certain features may not be available."));
-    }
-  } else {
-    if ( cookieWarning !== false ) {
-      removeBannerWarning(cookieWarning);
-      cookieWarning = false;
-    }
+  });
+}
+
+function slowPost(message) {
+  $(".updateContent-swal").html(message);
+  // this isn't working quite right
+  if ( $(".spinner").is(":visible") ) {
+    $(".long-loading").html(message);
   }
 }
 
@@ -236,6 +239,7 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     title: description,
     text: textdescription,
     allowOutsideClick: outsideClick,
+    allowEscapeKey: outsideClick, 
     showConfirmButton: showConfirm,
     showCancelButton: showCancel,
     cancelButtonText: tr("Cancel"),
@@ -244,6 +248,57 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
     html: true
   });
 }
+
+jQuery.fn.fitText = function(overFlowType=false) {
+  var el = this;
+  $(el).each(function() {
+    var test = 100;
+    while (isOverflown(this,overFlowType)) {
+      test = test - 10;
+      if ( test < 10 ) {
+        break;
+      }
+      $(this).css("font-size",test+"%");
+    }
+  });
+  return el;
+}
+
+
+jQuery.fn.getWidth = function() {
+  var width = $(this).css("width").replace("px","");
+  var paddingLeft = $(this).css("padding-left").replace("px","");
+  var paddingRight = $(this).css("padding-right").replace("px","");
+  var marginLeft = $(this).css("margin-left").replace("px","");
+  var marginRight = $(this).css("margin-right").replace("px","");
+  return parseInt(width) + parseInt(paddingLeft) + parseInt(paddingRight) + parseInt(marginLeft) + parseInt(marginRight);
+}
+
+function setupContext(menu,el) {
+  if ( ! menu ) return;
+  var opts = [];
+  menu.forEach(function(item,index){
+    if ( item.text ) {
+      item.text = tr(item.text);
+    }
+    if ( item.divider ) {
+      opts.push({divider:true});
+    } else {
+      if ( item.link ) {
+        opts.push({text:item.text,icon:item.icon,href:item.link,target:'_blank'});
+      } else {
+        if ( item.action ) {
+          opts.push({text:item.text,icon:item.icon,action:function(){
+            eval(item.action);
+          }});
+        }
+      }
+    }
+  });
+  if ( opts.length > 0 ) {
+    context.attach(el,opts);
+  }
+} 
 
 function guiSearchOnUnload() {
   saveState();

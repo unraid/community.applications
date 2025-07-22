@@ -41,8 +41,8 @@ $caSettings['unRaidVersion'] = $unRaidSettings['version'];
 $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";
 $caSettings['dynamixTheme']  = $dynamixSettings['theme'];
 
-$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: "24"; // Handle possible corruption on file
-if ( $caSettings['maxPerPage'] < 24 ) $caSettings['maxPerPage'] = 24;
+$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 24; // Handle possible corruption on file
+if ( $caSettings['maxPerPage'] < 12 ) $caSettings['maxPerPage'] = 12;
 
 if ( ! is_file($caPaths['warningAccepted']) )
   $caSettings['NoInstalls'] = true;
@@ -211,6 +211,9 @@ switch ($_POST['action']) {
   case 'networkAlreadyCreated':
     networkAlreadyCreated();
     break;
+  case 'clearStartUpDisplayed':
+    clearStartUpDisplayed();
+    break;
   ###############################################
   # Return an error if the action doesn't exist #
   ###############################################
@@ -232,10 +235,10 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = json_decode(file_get_contents($caPaths['application-feed-local']),true);
   } else {
     $downloadURL = randomFile();
-    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",20);
-    if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
+    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",30);
+    if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
       $currentFeed = "Backup Server";
-      $ApplicationFeed = download_json($caPaths['application-feedBackup'],$downloadURL);
+      $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL,"",-1);
     }
     @unlink($downloadURL);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
@@ -765,6 +768,8 @@ function get_content() {
   $filter      = getPost("filter",false);
   $category    = getPost("category",false);
   $newApp      = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
+  
+  $maxHomeApps = getPost("maxHomeApps",12);
 
   $caSettings['startup'] = getPost("startupDisplay",false);
   @unlink($caPaths['repositoriesDisplayed']);
@@ -881,8 +886,15 @@ function get_content() {
         );
       }
       $o['display'] = "";
+
+      if ($maxHomeApps == 0) $maxHomeApps = 4; // something strange happened, set it to 4
+      if ($maxHomeApps < 3) {
+        $maxHomeApps = 2;
+      };
+
       foreach ($startupTypes as $type) {
         $display = [];
+        $homeCount = 0;
 
         $caSettings['startup'] = $type['type'];
         $appsOfDay = appOfDay($file);
@@ -897,6 +909,8 @@ function get_content() {
           $spot['homeScreen'] = true;
           $displayApplications['community'][] = $spot;
           $display[] = $spot;
+          $homeCount++;
+          if ( $homeCount >= $maxHomeApps ) break;
         }
         if ( $displayApplications['community'] ) {
           $o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
@@ -906,7 +920,7 @@ function get_content() {
           $o['display'] .= "</div>";
           $homeClass = "caHomeSpotlight";
 
-          $o['display'] .= "<div class='ca_homeTemplates $homeClass'>".my_display_apps($display,"1")."</div>";
+          $o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1")."</div>";
           $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();$('.ca_holder').addClass('mobileHolderFix');";
 
         } else {
@@ -1088,7 +1102,7 @@ function force_update() {
   @unlink($caPaths['lastUpdated']);
   $latestUpdate = download_json($caPaths['application-feed-last-updated'],$caPaths['lastUpdated'],"",5);
   if ( $latestUpdate === false || ! ($latestUpdate['last_updated_timestamp'] ?? false) )
-    $latestUpdate = download_json($caPaths['application-feed-last-updatedBackup'],$caPaths['lastUpdated'],"",5);
+    $latestUpdate = download_json($caPaths['pluginProxy'].$caPaths['application-feed-last-updatedBackup'],$caPaths['lastUpdated'],"",5);
   debug("new appfeed timestamp: {$latestUpdate['last_updated_timestamp']}");
   if ( ! isset($latestUpdate['last_updated_timestamp']) ) {
     $latestUpdate['last_updated_timestamp'] = INF;
@@ -1141,11 +1155,12 @@ function force_update() {
 $script = "$('.statistics').attr('title','{$updateTime}');";
 
 // is CA running on a version of the OS the it no longer supports (ie: no further updates to CA compatible with this OS will be issued)
-  $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/Squidly271/community.applications/master/plugins/community.applications.plg");
+  $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg");
 
-  if ( version_compare($caSettings['unRaidVersion'],$GLOBALS['templates'][$appfeedCA]['MinVer'],"<") )
-    $script .= "addBannerWarning('".tr("Deprecated OS version.  No further updates to Community Applications will be issued for this OS version")."');";
-
+  if ( $appfeedCA !== false ) {
+    if ( version_compare($caSettings['unRaidVersion'],$GLOBALS['templates'][$appfeedCA]['MinVer'],"<") )
+      $script .= "addBannerWarning('".tr("Deprecated OS version.  No further updates to Community Applications will be issued for this OS version")."');";
+  }
   postReturn(['status'=>"ok",'script'=> $script]);
 }
 
@@ -1644,9 +1659,6 @@ function displayTags() {
 function statistics() {
   global $caPaths, $caSettings;
 
-  @unlink($caPaths['community-templates-displayed']);
-  @unlink($caPaths['community-templates-allSearchResults']);
-  @unlink($caPaths['community-templates-catSearchResults']);
   if ( ! is_file($caPaths['statistics']) )
     $statistics = download_json($caPaths['statisticsURL'],$caPaths['statistics']);
   else
@@ -1774,7 +1786,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a onclick='showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
+            <a onclick='event.stopPropagation();showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['repositories']}
@@ -1787,7 +1799,7 @@ function statistics() {
   $o .= "
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['invalidXML']}
@@ -1795,7 +1807,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['caFixed']}+
@@ -1827,7 +1839,7 @@ function statistics() {
         </tr>
         <tr>
           <td class='ca_table'>
-            <a class='popUpLink' onclick='showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
+            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
           </td>
           <td class='ca_stat'>
             {$statistics['totalModeration']}+
@@ -1916,7 +1928,7 @@ function get_categories() {
   global $caPaths, $sortOrder, $caSettings, $DockerClient, $DockerTemplates;
   $categories = readJsonFile($caPaths['categoryList']);
   if ( ! is_array($categories) || empty($categories) ) {
-    $cat = "Category list N/A<br><br>";
+    $cat = "<ul><li>Category list N/A</li></ul>";
     postReturn(['categories'=>$cat]);
     return;
   } else {
@@ -1938,15 +1950,15 @@ function get_categories() {
     $sortOrder['sortDir'] = "Up";
     usort($newCat,"mySort"); // Sort it alphabetically according to the language.  May not work right in non-roman charsets
 
-    $cat = "";
+    $cat = "<ul class='caMenu'>";
     foreach ($newCat as $category) {
       $cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$category['Cat']}'>".$category['Des']."</li>";
       if (isset($category['Sub']) && is_array($category['Sub'])) {
-        $cat .= "<ul class='subCategory'>";
+        $cat .= "<li class='subCategory'>";
         foreach($category['Sub'] as $subcategory) {
-          $cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</li>";
+          $cat .= "<ul class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</ul>";
         }
-        $cat .= "</ul>";
+        $cat .= "</li>";
       }
     }
     $templates = &$GLOBALS['templates'];
@@ -2397,7 +2409,7 @@ function search_dockerhub() {
   $communityTemplates = &$GLOBALS['templates'];
   $filter = str_replace(" ","%20",$filter);
   $filter = str_replace("/","%20",$filter);
-  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber");
+  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber","",false,-1);
   //$jsonPage = shell_exec("curl -s -X GET 'https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber'");
   $pageresults = json_decode($jsonPage,true);
   $num_pages = $pageresults['num_pages'];
@@ -2506,9 +2518,9 @@ function changeMaxPerPage() {
   global $caPaths, $caSettings;
 
   $max = getPost("max",24);
-  if ($caSettings['maxPerPage'] == $max)
+  if ($caSettings['maxPerPage'] == $max) {
     postReturn(["status"=>"same"]);
-  else {
+  } else {
     $caSettings['maxPerPage'] = $max;
     write_ini_file($caPaths['pluginSettings'],$caSettings);
     postReturn(["status"=>"updated"]);
@@ -2746,6 +2758,16 @@ function networkAlreadyCreated() {
 }
 
 #######################################
+# Clears the startup displayed flag   #
+# in case of weird error              #
+#######################################
+function clearStartUpDisplayed() {
+  global $caPaths;
+
+  @unlink($caPaths['startupDisplayed']);
+  postReturn(['done']);
+}
+
 # Logs Javascript errors being caught #
 #######################################
 function javascriptError() {

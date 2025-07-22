@@ -1,0 +1,81 @@
+#!/usr/bin/php
+<?
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2025, Lime Technology #
+# Copyright 2015-2025, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
+
+$docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
+
+require_once "$docroot/plugins/community.applications/include/paths.php";
+require_once("$docroot/plugins/community.applications/include/helpers.php");
+require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
+
+function write(...$messages){
+  global $nchan;
+  if ($nchan) {
+    $com = curl_init();
+    curl_setopt_array($com,[
+      CURLOPT_URL => 'http://localhost/pub/plugins?buffer_length=1',
+      CURLOPT_UNIX_SOCKET_PATH => '/var/run/nginx.socket',
+      CURLOPT_POST => 1,
+      CURLOPT_RETURNTRANSFER => true
+    ]);
+    foreach ($messages as $message) {
+      curl_setopt($com, CURLOPT_POSTFIELDS, $message);
+      curl_exec($com);
+    }
+    curl_close($com);
+  } else {
+    foreach ($messages as $message) echo $message;
+  }
+}
+
+// Run command and obtain output
+//
+function run($command) {
+  $run = popen($command,'r');
+  while (!feof($run)) write(fgets($run));
+  return pclose($run);
+}
+
+function done($code) {
+    global $nchan;
+    if ($nchan) write('_DONE_','');
+    exit($code);
+  }
+  
+
+$nchan = true;
+
+write("Downloading plugin\n");
+
+if (!isset($argv[3]) || empty($argv[3])) {
+  write("Error: No URL provided\n");
+  done(0);
+}
+if (!filter_var($argv[3], FILTER_VALIDATE_URL)) {
+  write("Error: Invalid URL format\n");
+  done(0);
+}
+
+$url = $argv[3];
+$result = download_url($url,"/tmp/community.applications/".basename($url));
+if ( $result === false ) {
+    write("Download failed\n");
+    @unlink("/tmp/community.applications/".basename($url));
+    done(0);
+} else {
+    run("plugin install /tmp/community.applications/".basename($url));
+    write("Plugin installed\n");
+    @unlink("/tmp/community.applications/".basename($url));
+    done(0);
+}
+
+
+?>

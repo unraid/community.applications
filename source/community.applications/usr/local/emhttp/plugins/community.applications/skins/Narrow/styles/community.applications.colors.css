@@ -1,0 +1,61 @@
+/* ==========================================================================
+  Community Applications Color Variables
+  ========================================================================== */
+
+:root {
+  /* Text Colors */
+  --ca-note-color: #d67777;
+  --ca-red-color: #882626;
+  --ca-green-color: #038503;
+  --ca-warning-color: #bdbd14;
+  --ca-white-color: #fff;
+  --ca-black-color: #000;
+  --ca-grey-color: #626868;
+  --ca-dark-grey-color: #040404;
+  --ca-light-grey-color: #bb0000;
+  --ca-blue-color: #6363ca;
+  --ca-teal-color: #1fa67a;
+  --ca-red-error-color: #f34646;
+  --ca-dark-blue-color: #606E7F;
+  --ca-yellow-color: #cecc31;
+  --ca-orange-color: #F15A2C;
+  --ca-purple-color: #322fff;
+  --ca-dark-purple-color: #854153;
+  --ca-dark-green-color: #008100;
+  --ca-dark-red-color: #810000;
+  --ca-dark-orange-color: #009900;
+  --ca-light-bg-color: #DDDADF;
+  --ca-lighter-bg-color: #C7C5CB;
+  --ca-dark-bg-color: #0b0b0b;
+  --ca-medium-bg-color: #444;
+  --ca-light-text-color: #BDBDBD;
+  --ca-lighter-text-color: #F3F3F3;
+  --ca-medium-text-color: #CCC;
+  --ca-dark-text-color: #333;
+  --ca-medium-dark-color: #3F3F3F;
+
+  /* Opacity Colors */
+  --ca-shadow-color: rgba(255, 140, 47, 0.5);
+  --ca-overlay-color: rgba(0, 0, 0, 0.4);
+  --ca-light-overlay-color: rgba(0, 0, 0, 0.3);
+  --ca-medium-overlay-color: rgba(0, 0, 0, 0.2);
+  --ca-dark-overlay-color: rgba(0, 0, 0, 0.6);
+  --ca-white-overlay: rgba(0, 0, 0, 1);
+  --ca-white-overlay-light: rgba(0, 0, 0, 0.1);
+  --ca-white-overlay-medium: rgba(0, 0, 0, 0.6);
+
+  /* HSL Colors */
+  --ca-hsl-light-blue: hsl(200, 40%, 80%);
+  --ca-hsl-dark-blue: hsl(205, 40%, 40%);
+  --ca-hsl-yellow: hsl(65, 100%, 50%);
+  --ca-hsl-light-yellow: hsl(68, 100%, 41%);
+  --ca-hsl-green: hsl(86, 100%, 21%);
+  --ca-hsl-white: hsla(0, 0%, 100%);
+
+  /* Named Colors */
+  --ca-named-red: red;
+  --ca-named-white: white;
+  --ca-named-black: black;
+  --ca-named-grey: grey;
+  --ca-named-transparent: transparent;
+} 

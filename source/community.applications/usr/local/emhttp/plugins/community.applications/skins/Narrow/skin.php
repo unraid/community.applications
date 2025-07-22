@@ -421,23 +421,39 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
   global $caSettings;
 
-  $pageFunction = $dockerSearch ? "dockerSearch": "changePage";
-  if ( $dockerSearch )
-    $caSettings['maxPerPage'] = 25;
-
-  if ( $caSettings['maxPerPage'] < 0 ) return;
   $swipeScript = "<script>";
+  
+  $pageFunction = $dockerSearch ? "dockerSearch": "changePage";
+  if ( $dockerSearch ) {
+    $caSettings['maxPerPage'] = 25;
+    $swipeScript .= "$('.maxPerPage').hide();";
+  } else {
+    $swipeScript .= "$('.maxPerPage').show();";
+  }
+
+  if ( $caSettings['maxPerPage'] < 0 ) {
+    return;
+  }
 
   $totalPages = ceil($totalApps / $caSettings['maxPerPage']);
 
-  if ($totalPages <= 1) return "<script>data.currentpage = 1;</script>";
+  if ( ($dockerSearch && $totalApps <=25) || ($totalApps < 2) ) {
+    return "<script>data.currentpage = 1;$('.maxPerPage').hide();</script>";
+  }
+  if ( $totalPages <= 1) {
+    if ( $totalApps >= 25 ) {
+      return "<script>data.currentpage = 1;$('.maxPerPage').show();</script>";
+    } else {
+      return "<script>data.currentpage = 1;$('.maxPerPage').hide();</script>";
+    }
+  }
 
   $startApp = ($pageNumber - 1) * $caSettings['maxPerPage'] + 1;
   $endApp = $pageNumber * $caSettings['maxPerPage'];
   if ( $endApp > $totalApps )
     $endApp = $totalApps;
 
-  $o = "</div><div class='ca_center'>";
+  $o = "</div><div class='navigationSection'><div class='navigationArea ca_center'>";
   if ($displayCount)
     $o .= "<span class='pageNavigation'>".sprintf(tr("Displaying %s - %s (of %s)"),$startApp,$endApp,$totalApps)."</span><br>";
 
@@ -469,7 +485,7 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
   $o .= ( $pageNumber < $totalPages ) ? "<span class='ca_tooltip pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
   $swipeScript .= ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
   $swipeScript .= "</script>";
-  $o .= "</div></div><script>data.currentpage = $pageNumber;</script>";
+  $o .= "</div></div></div><script>data.currentpage = $pageNumber;</script>";
   return $o.$swipeScript;
 }
 
@@ -945,25 +961,24 @@ function getRepoDescriptionSkin($repository) {
   }
 
   $t = "
-    <div class='popUpClose'>".tr("CLOSE")."</div>
-    <div class='popUpBack'>".tr("BACK")."</div>
+    <div class='popupContent'>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>
         $iconPrefix<img class='popupIcon' src='{$repo['icon']}'>$iconPostfix
       </div>
       <div class='popupInfo'>
         <div class='popupName'>$repository</div>
-        <div class='ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
-        <div class='ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
+        <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
+        <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
       </div>
     </div>
-    <div class='popupRepoDescription'><br>".strip_tags($repo['bio'])."</div>
+    <div class='popupRepoDescription'>".strip_tags($repo['bio'])."</div>
   ";
   if ( isset($repo['DonateLink']) ) {
     $t .= "
       <div class='donateArea'>
         <div class='repoDonateText'>{$repo['DonateText']}</div>
-        <a class='donate' href='{$repo['DonateLink']}' target='_blank'>".tr("Donate")."</a>
+        <a class='caButton donate' href='{$repo['DonateLink']}' target='_blank'>".tr("Donate")."</a>
       </div>
     ";
   }
@@ -1048,8 +1063,14 @@ function getRepoDescriptionSkin($repository) {
   }
   $t .= "</table>";
   $t .= "</div>";
+  $t .= "</div>";
 
-  $t = "<div class='popup'>$t</div>";
+  $t = "
+  <div class='popupCloseArea'>
+    <span class='popUpClose caButton'>".tr("CLOSE")."</span>
+    <span class='popUpBack caButton'>".tr("BACK")."</span>
+  </div>
+  <div class='popup'>$t</div>";
   return ["description"=>$t];
 }
 
@@ -1073,8 +1094,7 @@ function displaySearchResults($pageNumber) {
   $count = 0;
   $caSettings['NoInstalls'] = is_file($caPaths['warningAccepted']) ? false : true;
 
-  $ct = "<div>".tr("NOTE You must visit the dockerHub page to gather the information required to install correctly")."<span class='templateSearch' style='float:right'>Show CA templates</span></div><br><br>";
-  $ct .= "<div class='ca_templatesDisplay'>";
+  $ct = "<div class='ca_templatesDisplay'>";
 
   $columnNumber = 0;
   foreach ($file as $result) {
@@ -1085,6 +1105,8 @@ function displaySearchResults($pageNumber) {
     $result['Compatible'] = true;
     if ( ! $caSettings['NoInstalls'] )
       $result['actionsContext'] = [["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"dockerConvert({$result['ID']});"]];
+   
+    $result['similarSearch'] = $result['Name'];
 
     $templateSearch = searchArray($templates,"Repository",$result['Repository']);
     if ( $templateSearch === false )
@@ -1181,7 +1203,6 @@ function displayCard($template) {
     elseif (strpos($author," Repository") )
       $author = sprintf(tr("%s Repository"),str_replace(" Repository","",$author));
   }
-
   if ( !$RepositoryTemplate ) {
     $cardClass = "ca_appPopup";
     $supportContext = [];
@@ -1223,10 +1244,12 @@ function displayCard($template) {
   $bottomClass = "ca_bottomLineSpotLight";
   if ( $DockerHub ) {
     $backgroundClickable = "dockerCardBackground";
+    $cardStart = "
+      <div class='dockerHubHolder $class $popupType'>";
     $card .= "
-      <div class='dockerHubHolder $class $popupType'>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton_docker dockerPopup' data-dockerHub='$DockerHub'>".tr("Docker Hub")."</div>";
+      <div class='caButton infoButton_docker ca_href' data-href='$DockerHub'>".tr("Docker Hub")."</div>
+      <div class='caButton actionsButton similarSearch' data-search='$similarSearch'>".tr("Similar")."</div>";
   } else {
     if ( $PluginURL ?? false) {
       $dataPluginURL = "data-pluginurl='$PluginURL'";
@@ -1234,34 +1257,38 @@ function displayCard($template) {
       $dataPluginURL = "";
     }
     $backgroundClickable = "ca_backgroundClickable";
+    $cardStart = "
+      <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>";
     $card .= "
-      <div class='ca_holder $class $popupType $holderClass' data-apppath='$Path' data-appname='$Name' data-repository='".htmlentities($RepoName,ENT_QUOTES)."' $dataPluginURL>
       <div class='ca_bottomLine $bottomClass'>
-      <div class='infoButton $cardClass'>".tr("Info")."</div>
+      <div class='caButton infoButton $cardClass'>".tr("Info")."</div>
     ";
   }
-  if ( count($supportContext) == 1)
-    $card .= "<div class='supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
-  elseif (!empty($supportContext))
+  if ( count($supportContext) == 1) {
+    if ( $supportContext[0]['text'] == tr("Support Forum") ) {
+      $supportContext[0]['text'] = tr("Support");
+    }
+    $card .= "<div class='caButton supportButton'><span class='ca_href' data-href='{$supportContext[0]['link']}' data-target='_blank'>{$supportContext[0]['text']}</span></div>";
+  }elseif (!empty($supportContext))
     $card .= "
-      <div class='supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
+      <div class='caButton supportButton supportButtonCardContext' id='support".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
     ";
 
   if ( $actionsContext ) {
-    if ( count($actionsContext) == 1) {
+    if ( count($actionsContext) == 1 && $actionsContext[0]['text'] == tr("Install") ) {
       $dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
-      $card .= "<div class='actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
+      $card .= "<div class='caButton actionsButton' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' onclick={$actionsContext[0]['action']}>$dispText</div>";
     }
     else
-      $card .= "<div class='actionsButton actionsButtonContext' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($actionsContext,JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
+      $card .= "<div class='caButton actionsButton actionsButtonContext' data-pluginURL='$PluginURL' data-languagePack='$LanguagePack' id='actions".preg_replace("/[^a-zA-Z0-9]+/", "",$Name)."$ID' data-context='".json_encode($actionsContext,JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
   }
 
   $card .= "<span class='$appType' title='".htmlentities($typeTitle)."'></span>";
   if ( $ca_fav ) {
     $favText = $RepositoryTemplate ? tr("This is your favourite repository") : tr("This application is from your favourite repository");
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' title='".htmlentities($favText)."'></span>";
+    $card .= "<span class='favCardBackground favCardBackgroundShow' data-repository='".str_replace("'","",$RepoName)."' title='".htmlentities($favText)."'></span>";
   }	else
-    $card .= "<span class='favCardBackground' data-repository='".str_replace("'","",$RepoName)."' style='display:none;'></span>";
+    $card .= "<span class='favCardBackground favCardBackgroundHide' data-repository='".str_replace("'","",$RepoName)."'></span>";
 
   $pinStyle = $Pinned ? "" : "display:none;";
 
@@ -1329,7 +1356,7 @@ function displayCard($template) {
   }
   $card .= "
         </div>
-        <div class='ca_author'>$author</div>
+        <div class='ca_author'>".($Official ? tr("Official Container") : $author)."</div>
         <div class='cardCategory'>$Category</div>
   ";
 
@@ -1370,7 +1397,8 @@ function displayCard($template) {
       </div>
     ";
   }
-  $card .= "</div>";
+
+  $cardFlag = "";
   if ( $Installed || $Uninstall ) {
     $flagTextStart = tr("Installed")."<br>";
     $flagTextEnd = "";
@@ -1379,72 +1407,68 @@ function displayCard($template) {
     $flagTextEnd = "&nbsp;";
   }
   if ( $UpdateAvailable ) {
-    $card .= "
+    $cardFlag .= "
       <div class='betaCardBackground'>
         <div class='installedCardText ca_center'>".tr("UPDATED")."</div>
       </div>";
   } elseif ( ($Installed || $Uninstall) && !$actionCentre) {
-     $card .= "
+     $cardFlag .= "
        <div class='installedCardBackground'>
          <div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
       </div>";
   } elseif ( $Blacklist ) {
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $caTemplateExists ) {
-    $card .= "
+    $cardFlag .= "
       <div class='greenCardBackground'>
         <div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
       </div>
     ";
   } elseif ( isset($Compatible) && ! $Compatible ) {
     $verMsg = $VerMessage ?? tr("This application is not compatible with your version of Unraid");
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='$verMsg'>$flagTextStart".tr("Incompatible")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $Deprecated ) {
-    $card .= "
+    $cardFlag .= "
       <div class='warningCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."$flagTextEnd</div>
       </div>
     ";
   } elseif ( $Official ) {
-    $card .= "
+    $cardFlag .= "
       <div class='officialCardBackground'>
         <div class='installedCardText ca_center' title='".tr('This is an official container')."'>".tr("OFFICIAL")."</div>
       </div>
     ";
   } elseif ( $LTOfficial ?? false ) {
-    $card .= "
+    $cardFlag .= "
       <div class='LTOfficialCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This is an offical plugin")."'>".tr("LIMETECH")."</div>
       </div>
     ";
   } elseif ( $Beta ) {
-    $card .= "
+    $cardFlag .= "
       <div class='betaCardBackground'>
         <div class='installedCardText ca_center'>".tr("BETA")."</div>
       </div>
     ";
-  }/*  elseif ( $RecommendedDate ) {
-    $card .= "
-      <div class='spotlightCardBackground'>
-        <div class='spotlightPopupText' title='".tr("This is a spotlight application")."'></div>
-      </div>
-    ";
-  } */ elseif ( $Trusted ) {
-    $card .= "
+  } elseif ( $Trusted ) {
+    $cardFlag .= "
       <div class='spotlightCardBackground'>
         <div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div>
       </div>
     ";
   }
-  return str_replace(["\t","\n"],"",$card);
+  $cardEnd = "</div>";
+  $cardFinish = "<div>$cardFlag $cardStart $card $cardEnd</div>";
+  return str_replace(["\t","\n"],"",$cardFinish);
 }
 
 function displayPopup($template) {
@@ -1466,8 +1490,11 @@ function displayPopup($template) {
   $DateAdded = tr(date("M j, Y",$FirstSeen),0);
   $favRepoClass = ($caSettings['favourite'] == $Repo) ? "fav" : "nonfav";
   $card = "
+    <div class='popupCloseArea'>
+      <span class='popUpClose caButton'>".tr("CLOSE")."</span>
+    </div>
     <div class='popup'>
-    <div><span class='popUpClose'>".tr("CLOSE")."</span></div>
+    <div class='popupContent'>
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>$display_icon</div>
       <div class='popupInfo'>
@@ -1478,21 +1505,21 @@ function displayPopup($template) {
 
     if ( $actionsContext ) {
       if ( count($actionsContext) == 1 ) {
-        $card .= "<div class='actionsPopup'><span onclick={$actionsContext[0]['action']}>".str_replace("ca_red","",$actionsContext[0]['text'])."</span></div>";
+        $card .= "<div class='caButton actionsPopup'><span onclick={$actionsContext[0]['action']}>".str_replace("ca_red","",$actionsContext[0]['text'])."</span></div>";
       } else {
         $card .= "
-          <div class='actionsPopup' id='actionsPopup'>".tr("Actions")."</div>
+          <div class='caButton actionsPopup' id='actionsPopup'>".tr("Actions")."</div>
         ";
       }
     }
 
     if ( count($supportContext) == 1 )
-      $card .= "<div class='supportPopup'><a href='{$supportContext[0]['link']}' target='_blank'><span class='{$supportContext[0]['icon']}'> {$supportContext[0]['text']}</span></a></div>";
+      $card .= "<div class='caButton supportPopup'><a href='{$supportContext[0]['link']}' target='_blank'><span class='{$supportContext[0]['icon']}'> {$supportContext[0]['text']}</span></a></div>";
     elseif ( count($supportContext) )
-      $card.= "<div class='supportPopup' id='supportPopup'><span class='ca_fa-support'> ".tr("Support")."</div>";
+      $card.= "<div class='caButton supportPopup' id='supportPopup'><span class='ca_fa-support'> ".tr("Support")."</div>";
 
     $NoPin = $NoPin ?? false;
-    $card .= ($LanguagePack != "en_US" && ! $Blacklist && ! $NoPin) ? "<div class='pinPopup $pinnedClass' title='$pinnedTitle' data-pinnedalt='$pinnedAlt' data-repository='$Repository' data-name='$SortName'><span>$pinned</span></div>" : "";
+    $card .= ($LanguagePack != "en_US" && ! $Blacklist && ! $NoPin) ? "<div class='caButton pinPopup $pinnedClass' title='$pinnedTitle' data-pinnedalt='$pinnedAlt' data-repository='$Repository' data-name='$SortName'><span>$pinned</span></div>" : "";
     if ( ! $caSettings['dockerRunning'] && (! $Plugin && ! $Language) ) {
       $card .= "<div class='ca_red'>".tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed")."</div>";
     }
@@ -1576,7 +1603,7 @@ function displayPopup($template) {
       $card .= "<div>";
       $count = 1;
       foreach ( $Video as $vid ) {
-        $card .= "<a class='screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
+        $card .= "<a class='caButton screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
         $count++;
       }
       $card .= "</div>";
@@ -1590,7 +1617,7 @@ function displayPopup($template) {
     <div class='popupInfoSection'>
       <div class='popupInfoLeft'>
       <div class='rightTitle'>".tr("Details")."</div>
-      <table style='display:initial;'>
+      <table class='popupTable contents'>
         <tr><td class='popupTableLeft'>".tr("Application Type")."</td><td class='popupTableRight'>$appType</td></tr>
         <tr><td class='popupTableLeft'>".tr("Categories")."</td><td class='popupTableRight'>$Category</td></tr>
         <tr><td class='popupTableLeft'>".tr("Added")."</td><td class='popupTableRight'>$DateAdded</td></tr>
@@ -1647,16 +1674,16 @@ function displayPopup($template) {
           <div><div class='popupAuthor'>$RepoName</div>
           <div class='popupAuthorIcon'>$remoteIconPrefix<img class='popupAuthorIcon' src='$ProfileIcon' alt='Repository Icon'></img>$remoteIconPostfix</div>
           </div>
-          <div class='ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("All Apps")."</div>
-          <div class='repoPopup' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Profile")."</div>
-          <div class='ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Favourite")."</div>
+          <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("All Apps")."</div>
+          <div class='caButton repoPopup' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Profile")."</div>
+          <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($Repo,ENT_QUOTES)."'>".tr("Favourite")."</div>
     ";
   }
 
   if ( $DonateLink ) {
     $card .= "
       <div class='donateText'>$DonateText</div>
-      <div class='donateDiv'><span class='donate'><a href='$DonateLink' target='_blank'>".tr("Donate")."</a></span></div>
+      <div class='donateDiv'><span class='caButton donate'><a href='$DonateLink' target='_blank'>".tr("Donate")."</a></span></div>
     ";
   }
 
@@ -1672,9 +1699,9 @@ function displayPopup($template) {
         <div class='charts chartTitle'>".tr("Trends")."</div>
         <div><span class='charts'>Show: <span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
         <div>
-        <div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
-        <div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3</canvas></div>
-        <div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
+          <div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
+          <div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
+          <div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
         </div>
       ";
     }
@@ -1713,7 +1740,7 @@ function displayPopup($template) {
       <div class='installedPopupText ca_center'>".tr("INSTALLED")."</div></div>
     ";
   }
-
+  $card .= "</div>";
 
   return $card;
 }
