@@ -457,6 +457,8 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
 <?endif;?>
 
 $(function(){
+  myAlert("Beta Period over","Please uninstall Community Applications on the plugins tab and reinstall via the Apps tab.<br><br><a href='/Plugins/'>Go to Plugins</a>");
+  return;
   $(".content").addClass("menuAdjust");
   
   window.onerror = function(msg,url,lineNo,columnNo, error) {
