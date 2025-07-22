@@ -13,6 +13,37 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+- Fixed: Potential fatal error in a specific unlikely circumstance on downloads
+- Fixed: Link to dockerHub from docker Hub searches wouldn't work on 6.12.15
+- Changed: CSS definitions for easier theming system
+- Changed: 7.2+ only have back end send number of apps that will fit on home screen (saves CPU cycles especially on low powered devices
+- Added: Max Results per page on searches or browsing of 12
+- Changed: Performance and client memory useage on all clients - most noticeable on mobile or other low powered clients
+- Changed: 7.2+ if using (or probable) mobile device, force maximum results per page when browsing or searching to be maximum 12)
+- Changed: Use modal for initial loading of CA (Updating Content)
+- Changed: 7.2+ if display settings width is set to boxed instead of unlimited, always limit the home page apps to what fits on display instead of what fits on the window size (or previous settings of 12 per section of Home)
+- Changed: Timeouts on downloads
+- Changed: Various coding simplifications and optimizations
+- Changed: Styling of sidebar display
+- Changed: Page navigation always visible
+- Changed: Removal of inline styles on elements (on going WIP)
+- Changed: Search bar always visible (exception: when running Azure / Gray themes on 6.12/7.0/7.1 - this will not be fixed to work on older OS versions with Azure / Gray themes)
+- Added: Popup and ability to abort post calls if they're taking longer than expected
+- Changed: Close cURL channels when switching options on failures
+- Fixed: Disable responsive when running OS versions earlier than 7.2
+- Fixed: HTML syntax / nesting errors on menus
+- Changed: Complete overhaul and simplification of CSS
+- Added: 7.2+: Responsive at resolutions less than 800px (was always responsive greater, with no limitations)
+- Changed: Credits / Statistics use overlay
+- Added: Left / Right Arrow can be used to switch pages when multiple pages are present
+- Fixed: Searches for similar containers (from dockerHub search) wasn't working
+- Fixed: When only a single support option was available and button stated 'Support Forum', a tab would open twice when clicking
+- Fixed: Clicking 'Docker Hub' to get more information was a docker hub search would bypass the external link warning
+- Fixed: Possible to do a search under certain circumstances if the sidebar was open
+- Fixed: Possible for CA to crash at start up under certain very specific and unlikely circumstances
+- Fixed: Possible under certain circumstances for banner saying no more updates to CA running on a deprecated OS version to appear mistakenly
+- Changed: If proxy fails on download, retry without proxy
+
 ###2025.06.04a
 - Fixed: Repository searches wouldn't show any results.
 - Changed: CSS tweaks for better responsive experience on mobile devices
