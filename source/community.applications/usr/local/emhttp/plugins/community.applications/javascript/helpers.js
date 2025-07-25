@@ -265,8 +265,11 @@ jQuery.fn.fitText = function(overFlowType=false) {
 }
 
 
-jQuery.fn.getWidth = function() {
+jQuery.fn.getWidth = function(everything=true) {
   var width = $(this).css("width").replace("px","");
+  if ( ! everything ) {
+    return parseInt(width);
+  }
   var paddingLeft = $(this).css("padding-left").replace("px","");
   var paddingRight = $(this).css("padding-right").replace("px","");
   var marginLeft = $(this).css("margin-left").replace("px","");

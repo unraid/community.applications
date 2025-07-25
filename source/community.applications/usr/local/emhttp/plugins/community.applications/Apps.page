@@ -65,6 +65,7 @@ if ( ! is_file($caPaths['docker_cfg']) ) {
 
 $unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
 $phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
+$responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 
 // Check md5's of files
 exec("cd /usr/local/emhttp/plugins/$plugin/ && md5sum -c ca.md5",$output,$md5Error);
@@ -150,167 +151,27 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
-$font = $display['font'] ?: "62.5";
-$themeOffset = ($display['theme'] == "azure" || $display['theme'] == "gray") ? $font + 10 : 0;
 
-switch ($font) {
-  case "50":
-    $doubleRow = 796;
-    $noMenu = 500;
-    break;
-  case "56.25":
-    $doubleRow = 894;
-    $noMenu = 558;
-    break;
-  case "62.5":
-    $doubleRow = 994;
-    $noMenu = 608;
-    break;
-  case "68.75":
-    $doubleRow = 1092;
-    $noMenu = 653;
-    break;
-  case "75":
-    $doubleRow = 1189;
-    $noMenu = 719;
-    break;
-  case "80":
-    $doubleRow = 1267;
-    $noMenu = 763;
-    break;
-    
-}
-$doubleRow += $themeOffset;
-$noMenu += $themeOffset;
 ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/fontSizeAdjustments/{$display['font']}.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$theme.css");?>'></link>
+<? if ( $responsiveOS ):?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>
+<? else: ?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.legacy.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/legacy/$theme.css");?>'></link>
+<? endif; ?>
+<? 
+// Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed
+if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.boxed.css");?>'></link>
+<? endif; ?>
+
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
-
-<? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?>
-<style>
-body {
-  overflow-x: hidden !important;
-}
-
-@media (max-width:<?=$doubleRow?>px) {
-  .caHomeSpotlight {
-    height: 54rem !important;
-  }
-  .dockerSearch,
-  .templateSearch {
-    position: relative;
-  }
-  .mainArea {
-    width: <?=$doubleRow?>px;
-  }
-  .maxPerPage {
-    display: none !important;
-  }
-  .categoryLine {
-    display: none;
-  }
-  .altCategoryLine {
-    display: block;
-  }
-  .multi_installDiv {
-    position: relative;
-  }
-  .navigationSection {
-    bottom: 0 !important;
-    position: relative;
-  }
-  #searchBox {
-    width: 150px;
-  }
-}
-
-@media (max-width:<?=$noMenu?>px) {
-  body {
-    overflow-x: unset !important;
-    width: initial;
-  }
-  .menuItems {
-    display: none;
-  }
-  .menuItemsHidden {
-    display: inline-block;
-  }
-  .closeMenuButton {
-    display: none;
-  }
-
-  .mainArea {
-    left: 0;
-    width: <?=$noMenu?>px;
-    padding-left: 1rem;
-  }
-  #searchFilter {
-    left: 3rem;
-  }
-  .searchArea {
-    margin-left: var(--search-area-mobile-left) !important;
-    top: var(--search-area-mobile-top);
-    padding-top:1.5rem;
-    height:4rem;
-  }
-  .multi_installDiv {
-    position: relative;
-  }
-  .navigationSection {
-    bottom: 0 !important;
-    position: relative;
-  }
-  .altCategoryLine {
-    display: none;
-  }
-
-  .categoryLineNoMenu {
-    display: inline-block;
-  }
-}
-@media (max-width: 768px) {
-  .searchArea {
-    top: var(--search-area-mobile-top);
-  }
-  .multi_installDiv {
-    position: relative;
-  }
-  .navigationSection {
-    bottom: 0 !important;
-    position: relative;
-  }
-}
-</style>
-<? elseif ($display['theme'] == "black" || $display['theme'] == "white"): ?> 
-<!-- 
-  This is a hack to fix the search area margin on the white/black theme on OS 7.1 and earlier
- -->
-<style>
-.searchArea {
-  margin: 13rem auto -10rem auto !important;
-}
-</style>
-<? elseif ($display['theme'] == "azure" || $display['theme'] == "gray"): ?>
-<style>
-.alternateViewClose {
-  left: 8.5rem;
-}
-</style>
-<? endif; ?>
-
-<!-- Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed -->
-<? if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
-<style>
-  .searchArea {
-    max-width: 1920px; 
-    margin: 0 auto;
-  }
-</style>
-<? endif; ?>
 
 <script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
@@ -530,9 +391,9 @@ $(function(){
 
 // Override the OS switch language function so that CA can save it's current state when switching via the OS
   $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-  <? if ( version_compare($unRaidSettings['version'],"7.1.9999","<") && ($display['theme'] == 'azure' || $display['theme'] == 'gray') ):?>
-    $(".searchArea").css("margin-left","-8.5rem");
-  <? else: ?>
+  
+// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
+  <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
     $(".searchArea").insertAfter("#menu");
   <? endif; ?>
   $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
@@ -574,16 +435,18 @@ $(function(){
     closeMenu();
   });
 
-
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
   });
+
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
     data.actions = true;
   });
+
   $(".searchSubmit").on("click",function() {
     doSearch(true);
   });
+
   $("#searchBox").keydown(function(e) {
     if (e.which === 13) {
       e.stopPropagation();
@@ -633,7 +496,6 @@ $(function(){
         if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
-
         if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
           e.preventDefault();
           e.stopPropagation();
@@ -644,7 +506,6 @@ $(function(){
         if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
-
         if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
           e.preventDefault();
           e.stopPropagation();
@@ -1441,20 +1302,21 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
       var maxHomeApps = 12; // legacy value for 7.1.999 and below
 
-      <? if ( version_compare($unRaidSettings['version'],"7.1.999",">") ):?> 
+      <? if ( $responsiveOS ):?> 
         if ( ! $(".spotlightHome").length ) {
           $("#templates_content").html("<div id='maxHomeApps'><div class='ca_holder spotlightHome' style='display:none;'></div></div>");
         }
         // See how many apps will fit maximum on home page
-        var displayWidth = $("#header").getWidth() - $(".menuItems").getWidth();
+        $("body").addClass("maxPerPageCalc");
+        var displayWidth = $(".mainArea").getWidth(false);  // don't include margin or padding, so we can calculate the number of apps that will fit
         $("#maxHomeApps").show();
         var appWidth = $(".spotlightHome").getWidth();
         $("#maxHomeApps").hide();
+        $("body").removeClass("maxPerPageCalc");
         var maxHomeApps = Math.floor(displayWidth / appWidth);
 
-        <? if ( ($display['width'] ?? 0) != 1 ): ?>
-          maxHomeApps = Math.min(maxHomeApps,4);
-        <? endif;?>
+        maxHomeApps = Math.max(maxHomeApps,2);
+
       <? endif;?>
     }
     if ( (category == "New") || (category == "All") ) { 
@@ -2924,7 +2786,7 @@ function popUpChart(descData) {
             },
             ticks: {
               fontSize: fontSize,
-              fontColor: '<?=$tooltipsterContent?>',
+              fontColor: 'var(--ca_named_color_red)',
               color: '#ffffff'
             }
           }]

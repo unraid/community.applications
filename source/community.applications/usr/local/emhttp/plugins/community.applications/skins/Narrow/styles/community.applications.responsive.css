@@ -1,0 +1,54 @@
+.caHomeSpotlight {
+    height: fit-content;
+    min-height: 27rem;
+    max-height: 54rem;
+  }
+
+  /* Only used to calculate the number of apps on home page by forcing the display area to include the scroll bar */
+  .maxPerPageCalc {
+    overflow-y: scroll !important;
+  }
+  @media (max-width: 880px) {
+    body {
+      overflow-x: unset !important;
+      width: initial;
+    }
+    .menuItems {
+      display: none;
+    }
+    .menuItemsHidden {
+      display: inline-block;
+    }
+    .closeMenuButton {
+      display: none;
+    }
+
+    .mainArea {
+      left: 0;
+      width: <?=$noMenu?>px;
+      padding-left: 1rem;
+    }
+    #searchFilter {
+      left: 3rem;
+    }
+    .searchArea {
+      margin-left: var(--search-area-mobile-left) !important;
+      top: var(--search-area-mobile-top);
+      padding-top:1.5rem;
+      height:4rem;
+    }
+    .multi_installDiv {
+      position: relative;
+    }
+    .navigationSection {
+      bottom: 0 !important;
+      position: relative;
+    }
+    .altCategoryLine {
+      display: none;
+    }
+
+    .categoryLineNoMenu {
+      display: inline-block;
+    }
+  }
