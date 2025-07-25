@@ -76,30 +76,6 @@ $ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';
 $allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
 $fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
 
-switch ($theme) {
-  case 'black':
-    $tooltipsterContent = "#f2f2f2";
-    $chartGrid = "#222222";
-    break;
-  case 'azure':
-    $tooltipsterContent = "#101010";
-    $chartGrid = "#dddddd";
-    break;
-  case 'gray':
-    $tooltipsterContent = "#f2f2f2";
-    $chartGrid = "#222222";
-    break;
-  case 'white':
-    $tooltipsterContent = "#101010";
-    $chartGrid = "#dddddd";
-    break;
-  default:
-    $ca_theme = "black";  // default to black if theme is not set to only include supported theme CSS files
-    $tooltipsterContent = "#f2f2f2";
-    $chartGrid = "#222222";
-    break;
-}
-
 if ( is_file($caPaths['addConverted']) )
   $dockerConvertFlag = "true";
 else
@@ -147,9 +123,6 @@ if ( $CArequirementsNOTmet && isset($_COOKIE['ca_memoryOverride']) && $_COOKIE['
 $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
-
-$allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
-$fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
 
 function tr($string,$ret=false) {
   $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
