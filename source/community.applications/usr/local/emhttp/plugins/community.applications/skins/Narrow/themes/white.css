@@ -21,4 +21,6 @@
   --search-area-mobile-top: 0;
   --menu-background: var(--background-color,#f2f2f2);
   --menu-opacity: 0.8;
+  --tooltipster-content: #101010;
+  --chart-grid: #dddddd;
 } 

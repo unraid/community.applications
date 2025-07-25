@@ -1,4 +1,4 @@
-c044937238ace38d37ae63f47ba1f58c  ./Apps.page
+fe9eb8eebdfbc27b0671f06c12edf72f  ./Apps.page
 751fe9f9ca27a6ee79c3b69758678bc6  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 7c66cff927451204a569a895851cd2d5  ./ca_settings.page
@@ -7,7 +7,7 @@ c26b187a50c966adff7bfb9cab6fca16  ./event/disks_mounted
 881b2056cc17590187ebe3815fcb222e  ./include/exec.php
 d95cb4ed363b7df128eb3c7f82d7f565  ./include/helpers.php
 9f5431bf019457ca8ef9b65da373e71b  ./include/paths.php
-1bb6e930fcc6eed4bd5e29c6b268bb2a  ./javascript/helpers.js
+3187b859ad2f8ec1e399115988b0c56a  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
@@ -41,7 +41,7 @@ a5687a2ad7d8ebe749718861ca3a7c82  ./skins/Narrow/styles/legacy/gray.css
 c649394c912ad04954d6b00bc1e89b62  ./skins/Narrow/styles/legacy/black.css
 c649394c912ad04954d6b00bc1e89b62  ./skins/Narrow/styles/legacy/white.css
 c078dfc6a191bd8246c6ebc32c7b7987  ./skins/Narrow/styles/community.applications.responsive.css
-ba54ceefe82534bb015608c717c76e3c  ./skins/Narrow/themes/azure.css
-12750e82723bbfa0c8bc4ae92a121487  ./skins/Narrow/themes/black.css
-508e00fbcd3851d1d3c3ffeeb24d263a  ./skins/Narrow/themes/gray.css
-f8f73200f6de3bcd29f80c235b4f0fca  ./skins/Narrow/themes/white.css
+9d15aef43e121c2f53b6a1bd2c1d9b36  ./skins/Narrow/themes/azure.css
+ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css
+5fce7b3fd5f189fda0032524e9ceb0fc  ./skins/Narrow/themes/gray.css
+2256e8567d1eece2713df6b18417fa7e  ./skins/Narrow/themes/white.css

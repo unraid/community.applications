@@ -303,6 +303,11 @@ function setupContext(menu,el) {
   }
 } 
 
+// Get a CSS variable value from the document root
+function cssVar(varName) {
+  return window.getComputedStyle(document.documentElement).getPropertyValue(varName);
+}
+
 function guiSearchOnUnload() {
   saveState();
 }
