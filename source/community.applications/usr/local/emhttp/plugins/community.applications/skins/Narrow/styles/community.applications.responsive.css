@@ -25,7 +25,6 @@
 
     .mainArea {
       left: 0;
-      width: <?=$noMenu?>px;
       padding-left: 1rem;
     }
     #searchFilter {
