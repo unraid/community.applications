@@ -72,6 +72,7 @@ exec("cd /usr/local/emhttp/plugins/$plugin/ && md5sum -c ca.md5",$output,$md5Err
 
 $previousLocale = $_COOKIE["locale"] ?? "";
 
+$ca_theme = $theme;
 switch ($theme) {
   case 'black':
     $tooltipsterContent = "#f2f2f2";
@@ -90,6 +91,7 @@ switch ($theme) {
     $chartGrid = "#dddddd";
     break;
   default:
+    $ca_theme = "black";  // default to black if theme is not set to only include supported theme CSS files
     $tooltipsterContent = "#f2f2f2";
     $chartGrid = "#222222";
     break;
@@ -143,6 +145,9 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
+$allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
+$fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
+
 function tr($string,$ret=false) {
   $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
   if ( $ret )
@@ -154,14 +159,14 @@ function tr($string,$ret=false) {
 
 ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/fontSizeAdjustments/{$display['font']}.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/fontSizeAdjustments/$fontSize.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$theme.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
 <? if ( $responsiveOS ):?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>
 <? else: ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.legacy.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/legacy/$theme.css");?>'></link>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/legacy/$ca_theme.css");?>'></link>
 <? endif; ?>
 <? 
 // Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed
