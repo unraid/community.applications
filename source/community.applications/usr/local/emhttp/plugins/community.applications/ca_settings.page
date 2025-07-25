@@ -93,27 +93,6 @@ _(Allow CA to check for updates to applications)_:
 
 > <?tr("This setting enables CA to check for updates to applications");?>
 
-_(Disable Mouse Wheel Page Changes)_:
-: <select class='narrow' name="wheelPage" size="1">
-  <?=mk_option($cfg['wheelPage'],"no",tr("No",true));?>
-  <?=mk_option($cfg['wheelPage'],"yes",tr("Yes",true));?>
-  </select>
-
-> <?tr("This setting disables using left or right on a mouse wheel to change the page");?>
-
-_(Mouse wheel threshold)_:
-: <input class='narrow' size='4' maxlength='4' type='number' name='wheelThreshold' min='1' value='<?=$cfg['wheelThreshold']?>'></input>
-_(Browser returned value:)_ <span id='wheelValue'></span>
-
-> <?tr("If you tilt the mouse wheel left or right, the browser returned value will change.  Set the threshold to the value returned.  Note that different browsers and operating systems may return different values");?>
-> <?tr("This is a global value for all devices.  If it causes issues, then disable Mouse Wheel Page Changes");?>
-
-<script>
-addEventListener("wheel",function(event){
-  $('#wheelValue').html(Math.abs(parseInt(event.deltaX)));
-});
-</script>
-
 _(Allow CA to send any emergency notifications)_:
 : <select class='narrow' name='notifications' size='1'>
   <?=mk_option($cfg['notifications'],"yes",tr("Yes",true));?>

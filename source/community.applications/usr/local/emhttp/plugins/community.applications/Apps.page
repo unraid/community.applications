@@ -24,8 +24,6 @@ $plugin = "community.applications";
 $caSettings = parse_plugin_cfg($plugin);
 $caSettings['dockerSearch'] = "yes";
 $caSettings['unRaidVersion'] = $var['version'];
-$caSettings['wheelThreshold'] = abs(intval($caSettings['wheelThreshold']));
-$caSettings['wheelThreshold'] = $caSettings['wheelThreshold'] ?: 50;
 
 require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
 require_once("$docroot/plugins/$plugin/include/paths.php");
@@ -217,7 +215,6 @@ var resizeTimer;
 var portsInUse = [];
 var startupSearch = "<?=$startupSearch?>";
 var iconHoverTimer;
-var wheelActive = false;
 var ca_done_override = false;
 // handle 3rd party links on older versions of OS
 <?
@@ -952,38 +949,6 @@ $(function(){
     var name = $(this).data("name");
     removeApp(path,name);
   });
-  <?if ($caSettings['wheelPage'] == "no"):?>
-  addEventListener("wheel",function(event){
-    if (wheelActive)
-      return;
-    if ( $(".sidebar").is(":visible") || $("#alternateView").is(":visible") || $(".menuOverlay").is(":visible") )
-      return;
-    event.stopPropagation();
-
-    if ( $(".pageRight").is(":visible") ) {
-      if (event.deltaX >=<?=$caSettings['wheelThreshold']?>) {
-        if ( !$(".pageRight").hasClass("pageNavNoClick")) {
-          wheelActive = true;
-          setTimeout(function() {
-            wheelActive = false;
-          },1000);
-          $(".pageRight").click();
-        }
-      }
-      if (event.deltaX <= -<?=$caSettings['wheelThreshold']?>) {
-        if (! $(".pageLeft").hasClass("pageNavNoClick")) {
-          wheelActive = true;
-
-          setTimeout(function() {
-            wheelActive = false;
-          },1000);
-          $(".pageLeft").click();
-        }
-      }
-    } else
-      wheelActive = false;
-  });
-  <?endif;?>
 
   <? if ($caSettings['sidebarOpen'] == "yes"):?>
     $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
