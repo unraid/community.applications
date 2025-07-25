@@ -70,7 +70,12 @@ exec("cd /usr/local/emhttp/plugins/$plugin/ && md5sum -c ca.md5",$output,$md5Err
 
 $previousLocale = $_COOKIE["locale"] ?? "";
 
-$ca_theme = $theme;
+$allowedThemes = ['black', 'white', 'azure', 'gray'];
+$ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';
+
+$allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
+$fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
+
 switch ($theme) {
   case 'black':
     $tooltipsterContent = "#f2f2f2";
@@ -2731,7 +2736,7 @@ function popUpChart(descData) {
           display: true,
           text: "<?tr("Trend Per Month");?>",
           fontSize: 16,
-          fontColor: '<?=$tooltipsterContent?>',
+          fontColor: cssVar("--tooltipster-content"),
         },
         legend: {
           display: false
@@ -2740,24 +2745,23 @@ function popUpChart(descData) {
         scales: {
           yAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               callback: function(label,index,labels) {
                 return label + " %";
               },
               precision: 0,
-              fontColor: '<?=$tooltipsterContent?>'
+              fontColor: cssVar("--tooltipster-content")
             }
           }],
           xAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               fontSize: fontSize,
-              fontColor: 'var(--ca_named_color_red)',
-              color: '#ffffff'
+              fontColor: cssVar("--tooltipster-content")
             }
           }]
         }
@@ -2792,7 +2796,7 @@ function popUpChart(descData) {
           display: true,
           text: "<?tr("Downloads Per Month");?>",
           fontSize: 16,
-          fontColor: '<?=$tooltipsterContent?>'
+          fontColor: cssVar("--tooltipster-content")
         },
         legend: {
           display: false
@@ -2801,22 +2805,22 @@ function popUpChart(descData) {
         scales: {
           yAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               callback: function(label,index,labels) {
                 return label.toLocaleString();
               },
-              fontColor: '<?=$tooltipsterContent?>'
+              fontColor: cssVar("--tooltipster-content")
             }
           }],
           xAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               fontSize: fontSize,
-              fontColor: '<?=$tooltipsterContent?>'
+              fontColor: cssVar("--tooltipster-content")
             }
           }]
         }
@@ -2846,7 +2850,7 @@ function popUpChart(descData) {
           display: true,
           text: "<?tr("Total Downloads");?>",
           fontSize: 16,
-          fontColor: '<?=$tooltipsterContent?>'
+          fontColor: cssVar("--tooltipster-content")
         },
         legend: {
           display: false
@@ -2855,22 +2859,22 @@ function popUpChart(descData) {
         scales: {
           yAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               callback: function(label,index,labels) {
                 return label.toLocaleString();
               },
-              fontColor: '<?=$tooltipsterContent?>'
+                fontColor: cssVar("--tooltipster-content")
             }
           }],
           xAxes: [{
             gridLines: {
-              color: '<?=$chartGrid?>'
+              color: cssVar("--chart-grid")
             },
             ticks: {
               fontSize: fontSize,
-              fontColor: '<?=$tooltipsterContent?>'
+              fontColor: cssVar("--tooltipster-content")
             }
           }]
         }
