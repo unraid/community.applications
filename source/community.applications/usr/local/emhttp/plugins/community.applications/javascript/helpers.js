@@ -161,14 +161,14 @@ function post(options,callback) {
   $.post(execURL,options).done(function(result) {
     if (result.script) {
       try {
-        eval(result.script);
+        safeExecuteScript(result.script, { result, options });
       } catch(e) {
         alert("Could not execute result.script "+e);
       }
     }
     if (result.globalScript) {
       try {
-        eval(result.globalScript);
+        safeExecuteScript(result.globalScript, { result, options });
       } catch(e) {
         alert("Could not execute result.globalScript "+e);
       }
@@ -288,7 +288,7 @@ function setupContext(menu,el) {
       } else {
         if ( item.action ) {
           opts.push({text:item.text,icon:item.icon,action:function(){
-            eval(item.action);
+            safeExecuteAction(item.action, { item, el });
           }});
         }
       }
@@ -332,4 +332,107 @@ function dimScreen(dim) {
 
 function guiSearchOnUnload() {
   saveState();
+}
+
+function setupSwalDim() {
+  if ( $(".sweet-alert").length == 0 ) {
+    setTimeout(function() {
+      setupSwalDim();
+    }, 100);
+    return; // Wait for swal to be initialized
+  }
+  $(".sweet-alert").onClassChange(function(el,className) {
+    if ( className.includes("showSweetAlert") ) {
+      dimScreen(true);
+      // If the spinner is showing, close it.  It may be showing due to the post calls when updating content.
+    } else {
+      dimScreen(false);
+    }
+  });
+}
+      
+// Safe script execution function
+function safeExecuteScript(script, context = {}) {
+  if (!script || typeof script !== 'string') {
+    return false;
+  }
+  
+  // Basic validation - check for potentially dangerous patterns
+  const dangerousPatterns = [
+    /window\./,
+    /document\./,
+    /location\./,
+    /history\./,
+    /navigator\./,
+    /localStorage\./,
+    /sessionStorage\./,
+    /eval\(/,
+    /Function\(/,
+    /setTimeout\(/,
+    /setInterval\(/,
+    /import\(/,
+    /require\(/,
+    /fetch\(/,
+    /XMLHttpRequest/,
+    /fetch\(/,
+    /\.innerHTML\s*=/,
+    /\.outerHTML\s*=/,
+    /\.insertAdjacentHTML\(/,
+    /\.write\(/,
+    /\.writeln\(/
+  ];
+  
+  // Check for dangerous patterns
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(script)) {
+      console.warn('Potentially dangerous script detected:', script.substring(0, 100));
+      return false;
+    }
+  }
+  
+  try {
+    // Use Function constructor instead of eval for better isolation
+    const safeFunction = new Function('context', `
+      with(context) {
+        ${script}
+      }
+    `);
+    return safeFunction(context);
+  } catch (e) {
+    console.error('Script execution failed:', e);
+    return false;
+  }
+}
+
+// Safe action execution function
+function safeExecuteAction(action, context = {}) {
+  if (!action || typeof action !== 'string') {
+    return false;
+  }
+  
+  // For actions, we can be more restrictive since they're typically simple function calls
+  const allowedPatterns = [
+    /^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\([^)]*\)\s*;?\s*$/, // function calls like "myFunction()"
+    /^[a-zA-Z_$][a-zA-Z0-9_$]*\s*=\s*[^;]+;?\s*$/, // assignments like "var = value"
+    /^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\.[a-zA-Z_$][a-zA-Z0-9_$]*\s*\([^)]*\)\s*;?\s*$/ // method calls like "obj.method()"
+  ];
+  
+  // Check if action matches allowed patterns
+  const isAllowed = allowedPatterns.some(pattern => pattern.test(action.trim()));
+  if (!isAllowed) {
+    console.warn('Action does not match allowed patterns:', action);
+    return false;
+  }
+  
+  try {
+    const safeFunction = new Function('context', `
+      with(context) {
+        ${action}
+      }
+    `);
+    return safeFunction(context);
+  } catch (e) {
+    console.error('Action execution failed:', e);
+    return false;
+  }
 }
