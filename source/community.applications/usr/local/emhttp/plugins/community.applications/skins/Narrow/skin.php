@@ -753,7 +753,7 @@ function getPopupDescriptionSkin($appNumber) {
         if ( checkInstalledPlugin($template) ) {
           $template['Installed'] = true;
           $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
-          if ( ($template['installedVersion'] != $template['pluginVersion'] || $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) && $template['Name'] !== "Community Applications") {
+          if ( $template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) ) {
             if (is_file($caPaths['pluginTempDownload'])) {
               @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
               $template['UpdateAvailable'] = true;

@@ -46,11 +46,7 @@ function stripTags(str) {
 
 
 function mySpinner() {
-  if ( $(".sweet-overlay").is(":visible") ) {
-    return;
-  }
   $("div.spinner,.spinnerBackground").show();
-
 }
 
 function myCloseSpinner() {
@@ -303,9 +299,35 @@ function setupContext(menu,el) {
   }
 } 
 
-// Get a CSS variable value from the document root
+// Get a CSS variable value from the document root  
 function cssVar(varName) {
   return window.getComputedStyle(document.documentElement).getPropertyValue(varName);
+}
+
+// Watch for class changes on an element
+$.fn.onClassChange = function(cb) {
+  return $(this).each((_, el) => {
+    new MutationObserver(mutations => {
+      mutations.forEach(mutation => cb && cb(mutation.target, mutation.target.className));
+    }).observe(el, {
+      attributes: true,
+      attributeFilter: ['class'] // only listen for class attribute changes 
+    });
+  });
+}
+
+// Dims the display area
+function dimScreen(dim) {
+  if ( dim ) {
+    $("#header, #menu").addClass("dim");
+    if ( $(".mobileMenu").is(":visible") ) {
+      $(".mainArea").addClass("dim");
+    } else {
+      $(".ca_display_area").addClass("dim");
+    }
+  } else {
+    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim");
+  }
 }
 
 function guiSearchOnUnload() {

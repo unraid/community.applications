@@ -149,11 +149,9 @@ function tr($string,$ret=false) {
 if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.boxed.css");?>'></link>
 <? endif; ?>
-
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
-
 <script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -303,6 +301,33 @@ $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
+
+// override swal function to setup the dim effect.  The override is removed immediately.
+// This override is only used for the first swal call, and only because the DOM for swal is not initialized yet
+  let ca_originalSwal = swal;
+
+  swal = function(title, text, type, options) {
+    // First swal call, restore the original swal function.
+    swal = ca_originalSwal;
+    ca_originalSwal = null;
+    swal(title, text, type, options);
+    // Wait for a second to make sure the DOM is initialized, then add the dim effect via a class change observer.
+    setTimeout(function() {
+      $(".sweet-alert").onClassChange(function(el,className) {
+        if ( className.includes("showSweetAlert") ) {
+          dimScreen(true);
+          // If the spinner is showing, close it.  It may be showing due to the post calls when updating content.
+        } else {
+          dimScreen(false);
+        }
+      });
+      
+      // Because the class change observer is delayed by a second, the first call might not trigger it.  Force it to trigger by adding a class
+      // Not necessary to remove class, but removing will cause observer to fire again and may result in race condition
+      $(".sweet-alert").addClass("triggerClassChange");
+    }, 1000);
+  }
+
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
     swal({
@@ -1372,7 +1397,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".ca_display_area").removeClass("dim");
+  dimScreen(false);
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
@@ -2003,12 +2028,12 @@ function enableMultiInstall() {
   var actionText = $(".multi_installButton").hasClass("actionCenter") ? "Update" : "Install";
   if ( count == 0 ) {
     $(".multi_install,.multi_installClear").attr("disabled",true);
-    $(".multi_deleteButton").css("visibility","hidden");
+    $(".multi_deleteButton").hide();
     $(".multi_installButton").val(tr(actionText + " Selected Applications"));
   } else {
     $(".multi_install,.multi_installClear").attr("disabled",false);
     if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
-      $(".multi_deleteButton").css("visibility","visible");
+      $(".multi_deleteButton").show();
     var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
     $(".multi_installButton").val(buttonText);
   }
@@ -2042,6 +2067,7 @@ function deleteMulti() {
       post({action:'remove_multiApplications',apps:selected.deletePaths}, function(result) {
         clearMultiInstall();
         enableSearch();
+        mySpinner();
         previousApps(false,true);
       });
     } else {
@@ -2375,12 +2401,12 @@ function showStatistics() {
 function showMenu() {
   $('.back_to_top').click();
   $('.menuAdjust').addClass("mobileMenuPopup");
-  $("#templates_content").addClass("dim");
+  dimScreen(true);
 }
 
 function closeMenu() {
   $('.menuAdjust').removeClass("mobileMenuPopup");
-  $("#templates_content").removeClass("dim");
+  dimScreen(false);
 }
 
 function caChangeLog() {
@@ -2868,7 +2894,7 @@ function showSidebarApp(apppath,appname) {
   $(".sidebar").fadeIn();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  dimScreen(true);
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
@@ -2894,11 +2920,12 @@ function showSidebarApp(apppath,appname) {
         },
         callbacks: {
           open: function() {
-            $('body').addClass("dimScreenShot");
+            dimScreen(true);
             closeSidebar();
           },
           close: function() {
-            $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+            dimScreen(false);
+            $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
             showSidebarApp(data.sidebarapppath,data.sidebarappname);
           }
         }
@@ -2941,7 +2968,7 @@ function showRepoPopup(repository) {
   $("#sidenavContent").html("");
 
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  dimScreen(true);
   $(".sidebar").fadeIn();
   $("body").addClass("body_sidebarScroll");
   $(".nav-user.show").hide();
@@ -2965,11 +2992,12 @@ function showRepoPopup(repository) {
       },
       callbacks: {
         open: function() {
-          $('body').addClass("dimScreenShot");
+          dimScreen(true);
           closeSidebar();
         },
         close: function() {
-          $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+          dimScreen(false);
+          $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
