@@ -311,21 +311,11 @@ $(function(){
     swal = ca_originalSwal;
     ca_originalSwal = null;
     swal(title, text, type, options);
-    // Wait for a second to make sure the DOM is initialized, then add the dim effect via a class change observer.
+    setupSwalDim();
+    // Trigger a class change to the swal element.   The initial opening of swal might not have triggered the dim effect.
     setTimeout(function() {
-      $(".sweet-alert").onClassChange(function(el,className) {
-        if ( className.includes("showSweetAlert") ) {
-          dimScreen(true);
-          // If the spinner is showing, close it.  It may be showing due to the post calls when updating content.
-        } else {
-          dimScreen(false);
-        }
-      });
-      
-      // Because the class change observer is delayed by a second, the first call might not trigger it.  Force it to trigger by adding a class
-      // Not necessary to remove class, but removing will cause observer to fire again and may result in race condition
       $(".sweet-alert").addClass("triggerClassChange");
-    }, 1000);
+    }, 100); // Wait for swal to be initialized
   }
 
   <? if ( $CArequirementsNOTmet ) :?>
@@ -1566,10 +1556,49 @@ function OpenSidebarAndRefreshDisplay() {
   });
 }
 
+// Safe function execution for showDesc_openBox
+function safeExecuteFunction(funcName, context = {}) {
+  if (!funcName || typeof funcName !== 'string') {
+    return false;
+  }
+  
+  // Only allow specific function names that are known to be safe
+  const allowedFunctions = [
+    'showStatistics',
+    'refreshDisplay',
+    'reloadPage',
+    'closeSidebar',
+    'clearSearchBox'
+  ];
+  
+  // Extract function name (remove parentheses and arguments)
+  const functionName = funcName.split('(')[0].trim();
+  
+  // Check if function is in allowed list
+  if (!allowedFunctions.includes(functionName)) {
+    console.warn('Function not allowed:', functionName);
+    return false;
+  }
+  
+  // Check if function exists in global scope
+  if (typeof window[functionName] !== 'function') {
+    console.warn('Function does not exist:', functionName);
+    return false;
+  }
+  
+  try {
+    // Execute the function safely
+    return window[functionName]();
+  } catch (e) {
+    console.error('Function execution failed:', e);
+    return false;
+  }
+}
+
 function showDesc_openBox(cmd,title,height,width,load,func) {
   // open shadowbox window (run in foreground)
   var run = cmd.split('?')[0].substr(-4)=='.php' ? cmd : '/logging.htm?cmd='+cmd+'&csrf_token=<?=$var['csrf_token']?>';
-  var options = load ? {modal:false,onClose:function(){ eval(func); }} : {modal:true};
+  var options = load ? {modal:false,onClose:function(){ safeExecuteFunction(func); }} : {modal:true};
   Shadowbox.open({content:run, player:'iframe', title:title, height:height, width:width, options:options});
 }
 
