@@ -2081,7 +2081,7 @@ function createXML() {
       if (!($testarray[0]??false)) $testarray = [$testarray];
 
       foreach ($testarray as &$config) {
-        if ( is_array($config['@attributes']) ) {
+        if ( isset($config['@attributes']) && is_array($config['@attributes']) ) {
           if ( $config['@attributes']['Type'] == "Path" ) {
             // handles where a container path is effectively a config path but it doesn't begin with /config
             if ( startsWith($config['value'],$caPaths['defaultAppdataPath']) || startsWith($config['@attributes']['Default'],$caPaths['defaultAppdataPath']) ) {
