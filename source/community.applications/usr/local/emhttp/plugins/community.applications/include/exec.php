@@ -1152,7 +1152,7 @@ function force_update() {
   concept of a backup server is no longer relevant
   $script = "feedWarning('$currentServer');$('.statistics').attr('title','{$updateTime}');";
 */
-$script = "$('.statistics').attr('title','{$updateTime}');";
+$script = "$('.showStatistics').attr('title','{$updateTime}');";
 
 // is CA running on a version of the OS the it no longer supports (ie: no further updates to CA compatible with this OS will be issued)
   $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg");
@@ -2081,7 +2081,7 @@ function createXML() {
       if (!($testarray[0]??false)) $testarray = [$testarray];
 
       foreach ($testarray as &$config) {
-        if ( isset($config['@attributes']) && is_array($config['@attributes']) ) {
+        if ( is_array($config['@attributes']) ) {
           if ( $config['@attributes']['Type'] == "Path" ) {
             // handles where a container path is effectively a config path but it doesn't begin with /config
             if ( startsWith($config['value'],$caPaths['defaultAppdataPath']) || startsWith($config['@attributes']['Default'],$caPaths['defaultAppdataPath']) ) {
