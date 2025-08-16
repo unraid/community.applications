@@ -124,6 +124,28 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
+// Create the class lists for HTML
+$classList = [];
+
+if ( $responsiveOS ) 
+  $classList[] = "Theme--responsive";
+if ( ! $responsiveOS ) 
+  $classList[] = "Theme--legacyOS";
+
+$classList[] = "Theme--fontSize".intval($fontSize);
+
+if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ) 
+  $classList[] = "Theme--width-boxed";
+else $classList[] = "Theme--width-unlimited";
+
+if ( $ca_theme == "azure" || $ca_theme == "gray" ) 
+  $classList[] = "Theme--sidebar";
+else $classList[] = "Theme--nav-top";
+
+$classList[] = "Theme--$ca_theme";
+
+$htmlClasses = implode(" ",$classList);
+
 function tr($string,$ret=false) {
   $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
   if ( $ret )
@@ -134,21 +156,17 @@ function tr($string,$ret=false) {
 
 
 ?>
+<script>
+$("html").addClass("<?=$htmlClasses?>");
+</script>
+
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/fontSizeAdjustments/$fontSize.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
 <? if ( $responsiveOS ):?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>
-<? else: ?>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.legacy.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/legacy/$ca_theme.css");?>'></link>
-<? endif; ?>
-<? 
-// Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed
-if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.boxed.css");?>'></link>
-<? endif; ?>
+<?endif;?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
+
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
@@ -387,6 +405,8 @@ $(function(){
   if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
   if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
+  // Remove after 2025/08/26
+  if ( "<?=$date?>" == "8/15" ) addBannerWarning("<?tr("Happy 20th Birthday Unraid!");?>",false);
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
   <?if ( $caPaths['localONLY'] == true ):?>
