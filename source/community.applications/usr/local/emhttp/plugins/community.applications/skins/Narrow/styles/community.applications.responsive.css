@@ -8,7 +8,7 @@
   .maxPerPageCalc {
     overflow-y: scroll !important;
   }
-  @media (max-width: 880px) {
+  @media (max-width: 768px) {
     body {
       overflow-x: unset !important;
       width: initial;
@@ -30,6 +30,9 @@
     #searchFilter {
       left: 3rem;
     }
+   #searchBox {
+    width: 150px;
+   }
     .searchArea {
       margin-left: var(--search-area-mobile-left) !important;
       top: var(--search-area-mobile-top);
@@ -46,8 +49,16 @@
     .altCategoryLine {
       display: none;
     }
-
+    .categoryLine {
+      display: none;
+    }
+    .maxPerPage {
+      display: none !important;
+    }
     .categoryLineNoMenu {
       display: inline-block;
+    }
+    #templates_content {
+      margin-bottom: 0;
     }
   }
