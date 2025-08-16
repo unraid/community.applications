@@ -1894,22 +1894,22 @@ ul.subCategory {
   background-color: var(--ca-legacy-background-color);
 }
 .Theme--fontSize50 .navigationSectionShift {
-  bottom: 6rem !important;
+  bottom: 6rem;
 }
 .Theme--fontSize56 .navigationSectionShift {
-  bottom: 5rem !important;
+  bottom: 5rem;
 }
 .Theme--fontSize62 .navigationSectionShift {
-  bottom: 4.5rem !important;
+  bottom: 4.5rem;
 }
 .Theme--fontSize68 .navigationSectionShift {
-  bottom: 4rem !important;
+  bottom: 4rem;
 }
 .Theme--fontSize75 .navigationSectionShift {
-  bottom: 3.5rem !important;
+  bottom: 3.5rem;
 }
 .Theme--fontSize80 .navigationSectionShift {
-  bottom: 3rem !important;
+  bottom: 3rem;
 }
 
 .actionCentre {

@@ -24,8 +24,8 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
 b2a14456484b0b15bbb34be965c226d4  ./skins/Narrow/styles/community.applications.colors.css
-7e0e7823849f0f8f48f99b7db2073d3a  ./skins/Narrow/styles/community.applications.css
-734fffada9e8d686cca26da0476ef7d9  ./skins/Narrow/styles/community.applications.responsive.css
+46832339a3dfd00312486ac011fcd8a8  ./skins/Narrow/styles/community.applications.css
+d85c27616a928d55c62d982315c9e01a  ./skins/Narrow/styles/community.applications.responsive.css
 9d15aef43e121c2f53b6a1bd2c1d9b36  ./skins/Narrow/themes/azure.css
 ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css
 5fce7b3fd5f189fda0032524e9ceb0fc  ./skins/Narrow/themes/gray.css

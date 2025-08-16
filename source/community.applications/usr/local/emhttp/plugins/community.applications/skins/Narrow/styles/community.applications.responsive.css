@@ -58,4 +58,7 @@
     .categoryLineNoMenu {
       display: inline-block;
     }
+    #templates_content {
+      margin-bottom: 0;
+    }
   }
