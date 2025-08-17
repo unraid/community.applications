@@ -402,7 +402,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
   if ( ! $count )
     $displayHeader .= "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>hideSortIcons();</script>";
 
-  if ( $count == 1 && ! isset($template['homeScreen']) ) {
+  if ( $count == 1 && ! isset($template['homeScreen']) && $pageNumber == 1 ) {
     if ( $template['RepositoryTemplate'] ) {
       $displayHeader .= "<script>showRepoPopup('".htmlentities($template['RepoName'],ENT_QUOTES)."');</script>";
     } else {
@@ -753,7 +753,7 @@ function getPopupDescriptionSkin($appNumber) {
         if ( checkInstalledPlugin($template) ) {
           $template['Installed'] = true;
           $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
-          if ( ($template['installedVersion'] != $template['pluginVersion'] || $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) && $template['Name'] !== "Community Applications") {
+          if ( $template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName") ) ) {
             if (is_file($caPaths['pluginTempDownload'])) {
               @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
               $template['UpdateAvailable'] = true;

@@ -59,3 +59,21 @@
   --ca-named-grey: grey;
   --ca-named-transparent: transparent;
 } 
+.Theme--fontSize50:root {
+  --ca_legacySearchMarginTop: 15rem;
+}
+.Theme--fontSize56:root {
+  --ca_legacySearchMarginTop: 14rem;
+}
+.Theme--fontSize62:root { 
+  --ca_legacySearchMarginTop: 13rem;
+}
+.Theme--fontSize68:root {
+  --ca_legacySearchMarginTop: 12rem;
+}
+.Theme--fontSize75:root {
+  --ca_legacySearchMarginTop: 11rem;
+}
+.Theme--fontSize80:root {
+  --ca_legacySearchMarginTop: 11rem;
+}

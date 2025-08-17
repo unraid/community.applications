@@ -1152,7 +1152,7 @@ function force_update() {
   concept of a backup server is no longer relevant
   $script = "feedWarning('$currentServer');$('.statistics').attr('title','{$updateTime}');";
 */
-$script = "$('.statistics').attr('title','{$updateTime}');";
+$script = "$('.showStatistics').attr('title','{$updateTime}');";
 
 // is CA running on a version of the OS the it no longer supports (ie: no further updates to CA compatible with this OS will be issued)
   $appfeedCA = searchArray($GLOBALS['templates'],"PluginURL","https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg");

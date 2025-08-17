@@ -257,6 +257,10 @@ a {
 .caButton {
   cursor: pointer;
 }
+.alternateViewClose.caButton {
+  font-size: 20px;
+  line-height: 25px;
+}
 .popupRepoDescription,
 .popupDescription {
   width: 90%;
@@ -364,6 +368,11 @@ input[type="button"][disabled] {
   left: 0;
   z-index:5;
 }
+
+#templates_content {
+  margin-bottom:12rem;
+}
+
 #templates_content.mobileMenuPopup {
   display:inline-block !important;
   opacity: 0.3;
@@ -1064,6 +1073,9 @@ li.context {
 .alternateViewClose {
   position: fixed;
 }
+.Theme--sidebar .alternateViewClose {
+  left: 8.5rem;
+}
 
 #alternateView {
   /* Layout */
@@ -1086,6 +1098,9 @@ li.context {
   /* Interactive */
   overflow-x: scroll;
   overflow-y: scroll;
+}
+.Theme--azure #alternateView {
+  opacity: 0.95;
 }
 
 li.debugging {
@@ -1712,6 +1727,16 @@ a.popUpLink {
   background-color: var(--ca-legacy-background-color);
   top: var(--search-area-top);
 }
+.Theme--width-boxed .searchArea {
+  max-width: 1920px; 
+  margin: 0 auto;
+}
+.Theme--legacyOS.Theme--sidebar .searchArea {
+  margin-left: -8.5rem;
+}
+.Theme--legacyOS.Theme--nav-top .searchArea {
+  margin: var(--ca_legacySearchMarginTop) auto -10rem auto !important;
+}
 
 #searchFilter {
   position: relative;
@@ -1795,6 +1820,9 @@ a.popUpLink {
   height: 24rem !important;
   margin-bottom: 1rem;
 }
+.Theme--legacyOS .caHomeSpotlight {
+  height: 27rem !important;
+}
 
 .spotlightHeader {
   font-size: 2rem;
@@ -1865,8 +1893,23 @@ ul.subCategory {
   font-size: 1.5rem;
   background-color: var(--ca-legacy-background-color);
 }
-.navigationSectionShift {
-  bottom: 5rem !important;
+.Theme--fontSize50 .navigationSectionShift {
+  bottom: 6rem;
+}
+.Theme--fontSize56 .navigationSectionShift {
+  bottom: 5rem;
+}
+.Theme--fontSize62 .navigationSectionShift {
+  bottom: 4.5rem;
+}
+.Theme--fontSize68 .navigationSectionShift {
+  bottom: 4rem;
+}
+.Theme--fontSize75 .navigationSectionShift {
+  bottom: 3.5rem;
+}
+.Theme--fontSize80 .navigationSectionShift {
+  bottom: 3rem;
 }
 
 .actionCentre {

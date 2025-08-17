@@ -124,6 +124,28 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
+// Create the class lists for HTML
+$classList = [];
+
+if ( $responsiveOS ) 
+  $classList[] = "Theme--responsive";
+if ( ! $responsiveOS ) 
+  $classList[] = "Theme--legacyOS";
+
+$classList[] = "Theme--fontSize".intval($fontSize);
+
+if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ) 
+  $classList[] = "Theme--width-boxed";
+else $classList[] = "Theme--width-unlimited";
+
+if ( $ca_theme == "azure" || $ca_theme == "gray" ) 
+  $classList[] = "Theme--sidebar";
+else $classList[] = "Theme--nav-top";
+
+$classList[] = "Theme--$ca_theme";
+
+$htmlClasses = implode(" ",$classList);
+
 function tr($string,$ret=false) {
   $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
   if ( $ret )
@@ -134,26 +156,20 @@ function tr($string,$ret=false) {
 
 
 ?>
+<script>
+$("html").addClass("<?=$htmlClasses?>");
+</script>
+
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/fontSizeAdjustments/$fontSize.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
 <? if ( $responsiveOS ):?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>
-<? else: ?>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.legacy.css");?>'></link>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/legacy/$ca_theme.css");?>'></link>
-<? endif; ?>
-<? 
-// Adjust search area positioning when display is boxed and if unlimited width plugin isn't installed
-if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ):?>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.boxed.css");?>'></link>
-<? endif; ?>
+<?endif;?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
 
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
-
 <script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -298,11 +314,15 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
 <?endif;?>
 
 $(function(){
-  $(".content").addClass("menuAdjust");
-  
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
+  
+  // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
+  setupSwalDim();
+
+  $(".content").addClass("menuAdjust");
+  
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
     swal({
@@ -385,6 +405,8 @@ $(function(){
   if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
   if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
+  // Remove after 2025/08/26
+  if ( "<?=$date?>" == "8/26" ) addBannerWarning("<?tr("Happy 20th Birthday Unraid!");?>",false);
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
   <?if ( $caPaths['localONLY'] == true ):?>
@@ -1372,7 +1394,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".ca_display_area").removeClass("dim");
+  dimScreen(false);
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
   $("body").removeClass("body_sidebarScroll");
@@ -2003,12 +2025,12 @@ function enableMultiInstall() {
   var actionText = $(".multi_installButton").hasClass("actionCenter") ? "Update" : "Install";
   if ( count == 0 ) {
     $(".multi_install,.multi_installClear").attr("disabled",true);
-    $(".multi_deleteButton").css("visibility","hidden");
+    $(".multi_deleteButton").hide();
     $(".multi_installButton").val(tr(actionText + " Selected Applications"));
   } else {
     $(".multi_install,.multi_installClear").attr("disabled",false);
     if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
-      $(".multi_deleteButton").css("visibility","visible");
+      $(".multi_deleteButton").show();
     var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
     $(".multi_installButton").val(buttonText);
   }
@@ -2042,6 +2064,7 @@ function deleteMulti() {
       post({action:'remove_multiApplications',apps:selected.deletePaths}, function(result) {
         clearMultiInstall();
         enableSearch();
+        mySpinner();
         previousApps(false,true);
       });
     } else {
@@ -2375,12 +2398,12 @@ function showStatistics() {
 function showMenu() {
   $('.back_to_top').click();
   $('.menuAdjust').addClass("mobileMenuPopup");
-  $("#templates_content").addClass("dim");
+  dimScreen(true);
 }
 
 function closeMenu() {
   $('.menuAdjust').removeClass("mobileMenuPopup");
-  $("#templates_content").removeClass("dim");
+  dimScreen(false);
 }
 
 function caChangeLog() {
@@ -2868,7 +2891,7 @@ function showSidebarApp(apppath,appname) {
   $(".sidebar").fadeIn();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  dimScreen(true);
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
@@ -2894,11 +2917,12 @@ function showSidebarApp(apppath,appname) {
         },
         callbacks: {
           open: function() {
-            $('body').addClass("dimScreenShot");
+            dimScreen(true);
             closeSidebar();
           },
           close: function() {
-            $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+            dimScreen(false);
+            $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
             showSidebarApp(data.sidebarapppath,data.sidebarappname);
           }
         }
@@ -2941,7 +2965,7 @@ function showRepoPopup(repository) {
   $("#sidenavContent").html("");
 
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  $(".ca_display_area").addClass("dim");
+  dimScreen(true);
   $(".sidebar").fadeIn();
   $("body").addClass("body_sidebarScroll");
   $(".nav-user.show").hide();
@@ -2965,11 +2989,12 @@ function showRepoPopup(repository) {
       },
       callbacks: {
         open: function() {
-          $('body').addClass("dimScreenShot");
+          dimScreen(true);
           closeSidebar();
         },
         close: function() {
-          $('body').removeClass("dimScreenShot").removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+          dimScreen(false);
+          $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
