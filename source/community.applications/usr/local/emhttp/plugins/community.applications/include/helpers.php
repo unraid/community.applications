@@ -50,34 +50,27 @@ function randomFile() {
 # 7 Functions to avoid typing the same lines over and over again #
 ##################################################################
 function readJsonFile($filename) {
-  static $cache = [];
+  debug("CA Read JSON file $filename");
 
   if ( ! is_file($filename) ) {
-    unset($cache[$filename]);
     debug("$filename not found");
     return [];
   }
 
-  if (isset($cache[$filename]) && filemtime($filename) <= $cache[$filename]['time']) {
-    debug("CA Cached JSON read $filename");
-    return $cache[$filename]['data'];
-  }
+  $startTime = microtime(true);
 
-  debug("CA Read JSON file $filename");
+  $json = unserialize(@file_get_contents($filename));
 
-  
-  $json = json_decode(@file_get_contents($filename),true);
+  $totalTime = microtime(true) - $startTime;
+  debug("CA Read JSON file $filename Time: $totalTime");
+
   if ( $json === false ) {
-    if ( ! is_file($filename) ){
-      debug("$filename not found");
-      return [];
-    } else {
-      debug("JSON Read Error ($filename)");
-    return [];
-    }
+    $json = json_decode(@file_get_contents($filename),true);
+      if ( $json === false ) {
+        debug("JSON Read Error ($filename)");
+        return [];
+      }
   }
-  
-  $cache[$filename] = ['data'=>$json,'time'=>filemtime($filename)];
 
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
   return $json;
@@ -88,7 +81,7 @@ function writeJsonFile($filename,$jsonArray) {
 
   debug("Write JSON File $filename");
   $jsonFlags = $caSettings['dev'] == "yes" ? JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT : JSON_UNESCAPED_SLASHES;
-  $result = ca_file_put_contents($filename,json_encode($jsonArray, $jsonFlags));
+  $result = ca_file_put_contents($filename,serialize($jsonArray));
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 
@@ -168,7 +161,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   curl_close($ch);
 
   $totalTime = time() - $startTime;
-  debug("DOWNLOAD $url Time: $totalTime  RESULT:\n".var_dump_ret($out));
+  debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
   return $out ?: false;
 }
 function download_json($url,$path="",$bg=false,$timeout=45) {
@@ -427,6 +420,7 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
   if ( ! $xmlfile || ! is_file($xmlfile) ) return false;
   $xml = file_get_contents($xmlfile);
   $o = TypeConverter::xmlToArray($xml,TypeConverter::XML_GROUP);
+  if ( ! $o || ! is_array($o) ) return false;
   removeXMLtags($o);
   $o = addMissingVars($o);
   if ( ! $o ) return false;
@@ -695,7 +689,7 @@ function postReturn($retArray) {
   }	else
     echo $retArray;
   flush();
-  debug("POST RETURN ({$_POST['action']})\n".var_dump_ret($retArray));
+  debug("POST RETURN ({$_POST['action']})");
   debug("POST RETURN Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 ####################################
