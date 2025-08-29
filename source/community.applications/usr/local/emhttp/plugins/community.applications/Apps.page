@@ -83,6 +83,7 @@ else
 
 $date = (date("n/d"));
 
+$ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
 $startupDisplayed = is_file($caPaths['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
   $killCookie = "true";
@@ -124,25 +125,33 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
-// Create the class lists for HTML
 $classList = [];
-
-if ( $responsiveOS ) 
-  $classList[] = "Theme--responsive";
-if ( ! $responsiveOS ) 
+if ( ! $responsiveOS ) {
   $classList[] = "Theme--legacyOS";
 
+  // Set the theme to sidebar or nav-top based on the theme.
+  if ( $ca_theme == "azure" || $ca_theme == "gray" ) {
+    $classList[] = "Theme--sidebar";
+  } else {
+    $classList[] = "Theme--nav-top";
+  }
+
+  // Set the width to boxed or unlimited based on the display width and the unlimited.width.plg plugin.
+  if ( !($display['width'] ?? false) && ! is_file("/var/log/plugins/unlimited.width.plg") ) {
+    $classList[] = "Theme--width-boxed";
+  } else {
+    $classList[] = "Theme--width-unlimited";
+  } 
+  
+  // Set the theme to the theme selected.
+  $classList[] = "Theme--$ca_theme";
+} else {
+  // Add a class to indicate its a responsive OS.
+  $classList[] = "Theme--responsive";
+}
+
+// Set a class for the font size on all OS versions
 $classList[] = "Theme--fontSize".intval($fontSize);
-
-if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ) 
-  $classList[] = "Theme--width-boxed";
-else $classList[] = "Theme--width-unlimited";
-
-if ( $ca_theme == "azure" || $ca_theme == "gray" ) 
-  $classList[] = "Theme--sidebar";
-else $classList[] = "Theme--nav-top";
-
-$classList[] = "Theme--$ca_theme";
 
 $htmlClasses = implode(" ",$classList);
 
@@ -1026,7 +1035,7 @@ $(function(){
       post({action:"defaultSortOrder"},function() {
         myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
         updateContent();
-        if ("<?=$startupDisplayed?>" == "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+        if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
           var appname = $.cookie("sidebarAppName");
           if ( $.trim(apppath) ) {
@@ -1035,9 +1044,10 @@ $(function(){
         }
       });
     }
-    if ( document.referrer.indexOf("/Apps/") > 1 )
+    if ( <?=$ca_apps_referrer?> )
       actionCentreRestoreState = true;
     setupActionCentre();
+    $.cookie("ca_apps_referrer");
   }
   <?endif;?>
 });
@@ -2307,8 +2317,13 @@ function updateDisplay(content) {
   }
   myCloseAlert(true);
 }
-
-function saveState() {
+window.onbeforeunload = function() {
+  saveState(false);
+}
+function saveState(legacy=true) {
+  if (legacy) {
+    return;
+  }
   console.log("Save State");
   $.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
   $.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});

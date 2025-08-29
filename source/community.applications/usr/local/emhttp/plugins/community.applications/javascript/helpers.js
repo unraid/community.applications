@@ -319,14 +319,14 @@ $.fn.onClassChange = function(cb) {
 // Dims the display area
 function dimScreen(dim) {
   if ( dim ) {
-    $("#header, #menu").addClass("dim");
+    $("#header, #menu").addClass("dim",500);
     if ( $(".mobileMenu").is(":visible") ) {
-      $(".mainArea").addClass("dim");
+      $(".mainArea").addClass("dim",500);
     } else {
-      $(".ca_display_area").addClass("dim");
+      $(".ca_display_area").addClass("dim",500);
     }
   } else {
-    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim");
+    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",500);
   }
 }
 

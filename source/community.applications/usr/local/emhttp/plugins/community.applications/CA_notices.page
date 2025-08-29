@@ -16,6 +16,22 @@ Link='nav-user'
 <?
 $caCFG = parse_plugin_cfg("community.applications");
 ?>
+<script>
+// set a cookie if the URL contains /Apps/ is CA in case the user instead of hitting "done" hits the back button. 
+// Allows CA to restore its state in this situation.
+$(function() {
+  // Set the cookie if the URL contains /Apps/ and it's not CA's settings page or the CA page itself.
+  if ( window.location.href.includes("/Apps/") && ( ! window.location.href.endsWith("/Apps/") ) && ( ! window.location.href.endsWith("ca_settings") ) ) {
+    $.cookie("ca_apps_referrer","true",{expires: 1,path:"/;SameSite=Lax"});
+  } else {
+    // If we're not on CA itself then reset the cookie.  If we're on CA do nothing.
+    if ( (! window.location.href.includes("/Apps") ) || ( window.location.href.endsWith("ca_settings") ) ) {
+      $.cookie("ca_apps_referrer","false",{expires: 1,path:"/;SameSite=Lax"});
+    }
+  }
+  alert($.cookie("ca_apps_referrer"));
+}); 
+</script>
 
 <? if ( "{$caCFG['notifications']}" == "yes" ) :?>
 <script>
