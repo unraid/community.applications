@@ -29,7 +29,6 @@ $(function() {
       $.cookie("ca_apps_referrer","false",{expires: 1,path:"/;SameSite=Lax"});
     }
   }
-  alert($.cookie("ca_apps_referrer"));
 }); 
 </script>
 
