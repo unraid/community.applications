@@ -445,7 +445,7 @@ function updatePluginSupport($templates) {
   $plugins = glob("/boot/config/plugins/*.plg");
 
   foreach ($plugins as $plugin) {
-    $pluginURL = @ca_plugin("pluginURL",$plugin);
+    $pluginURL = @ca_plugin("pluginURL",$plugin,true);
     $pluginEntry = searchArray($templates,"PluginURL",$pluginURL);
     if ( $pluginEntry === false ) {
       $pluginEntry = searchArray($templates,"PluginURL",str_replace("https://raw.github.com/","https://raw.githubusercontent.com/",$pluginURL));
@@ -455,9 +455,9 @@ function updatePluginSupport($templates) {
       if ( ! $templates[$pluginEntry]['Support'] ) {
         continue;
       }
-      if ( @ca_plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {
+      if ( @ca_plugin("support",$plugin,true) !== $templates[$pluginEntry]['Support'] ) {
         // remove existing support attribute if it exists
-        if ( @ca_plugin("support",$plugin) ) {
+        if ( @ca_plugin("support",$plugin,true) ) {
           $existing_support = $xml->xpath("//PLUGIN/@support");
           foreach ($existing_support as $node) {
             unset($node[0]);
@@ -472,6 +472,7 @@ function updatePluginSupport($templates) {
       }
     }
   }
+  dropAttributeCache();
 }
 
 function getConvertedTemplates() {

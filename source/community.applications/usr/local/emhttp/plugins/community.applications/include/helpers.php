@@ -19,9 +19,9 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 
   if ( in_array($method, $PLUGIN_METHODS) ) {
     // clear the attribute cache if the method is not an attribute (avoids stale data)
-    
     $attributeCache = [];
-    @unlink($caPaths['pluginAttributesCache']);
+    dropAttributeCache();
+
     return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
   }
 
@@ -36,7 +36,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
       $attributeCache = @unserialize(file_get_contents($caPaths['pluginAttributesCache']))??[];
       if ( ! is_array($attributeCache) ) {
         $attributeCache = [];
-        @unlink($caPaths['pluginAttributesCache']);
+        dropAttributeCache();
       }
     }
     if ( $plugin_file ) {
@@ -66,7 +66,14 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
     return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
   }
 }
-
+############################
+# Drop the attribute cache #
+############################
+function dropAttributeCache() {
+  global $caPaths;
+  
+  @unlink($caPaths['pluginAttributesCache']);
+}
 ##################################################################################################################
 # Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
 ##################################################################################################################
