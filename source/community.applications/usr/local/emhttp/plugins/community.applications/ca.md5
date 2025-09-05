@@ -1,11 +1,11 @@
-b56d626911463250b82a5bd0b56d7ff4  ./Apps.page
+4a4431c5a68e280b876498f971f945c5  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 7c66cff927451204a569a895851cd2d5  ./ca_settings.page
 f2af8d90596707020e7cc398edd359fb  ./default.cfg
 a5146d4f45f7d86a3df007f5198c35a5  ./include/exec.php
-ed9458c07ae927355c87c99385916408  ./include/helpers.php
-9f5431bf019457ca8ef9b65da373e71b  ./include/paths.php
+60e0811ae4b305d48a575347bb482624  ./include/helpers.php
+36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
 aaf0bc7e40e680c83102187c5c19cf65  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php

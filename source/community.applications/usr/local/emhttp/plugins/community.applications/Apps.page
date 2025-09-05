@@ -414,8 +414,7 @@ $(function(){
   if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
   if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
-  // Remove after 2025/08/26
-  if ( "<?=$date?>" == "8/26" ) addBannerWarning("<?tr("Happy 20th Birthday Unraid!");?>",false);
+
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
   <?if ( $caPaths['localONLY'] == true ):?>
