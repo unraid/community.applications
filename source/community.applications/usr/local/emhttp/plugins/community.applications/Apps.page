@@ -1284,7 +1284,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
       var maxHomeApps = 12; // legacy value for 7.1.999 and below
 
-      <? if ( $responsiveOS ):?> 
+    /*  <? if ( $responsiveOS ):?> 
         if ( ! $(".spotlightHome").length ) {
           $("#templates_content").html("<div id='maxHomeApps'><div class='ca_holder spotlightHome' style='display:none;'></div></div>");
         }
@@ -1299,7 +1299,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
         maxHomeApps = Math.max(maxHomeApps,2);
 
-      <? endif;?>
+      <? endif;?> */
     }
     if ( (category == "New") || (category == "All") ) { 
       category = ""; 

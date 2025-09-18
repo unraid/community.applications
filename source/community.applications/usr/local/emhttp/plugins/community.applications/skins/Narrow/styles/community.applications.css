@@ -145,9 +145,10 @@ a {
 /* Home Templates Section */
 .ca_homeTemplates {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
   height: 24.5rem;
-  overflow: hidden;
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: hidden; /* Hide vertical scrollbar */
 }
 
 .ca_homeTemplatesHeader {
