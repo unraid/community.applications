@@ -41,24 +41,19 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
     }
     if ( $plugin_file ) {
       if ( !isset($attributeCache[$plugin_file]) ) {
+        debug("CA Plugin $method $plugin_file not in attribute cache");
         $xml = file_exists($plugin_file) ? @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA) : false;
         
         $attributes = $xml->attributes();
-        $json = json_decode(json_encode($attributes), true);
-    
-        $attributeCache[$plugin_file] = $json['@attributes'] ?: ["error" => "no attributes present"];
+        $attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
         file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));
       } else { 
         debug("$plugin_file already in attribute cache");
       }
 
       // return the cached result if it exists.  If it doesn't return false;;
-      if ( isset($attributeCache[$plugin_file][$method]) ) {
-        debug("CA Plugin $method $plugin_file cached");
-        return $attributeCache[$plugin_file][$method];
-      } else {
-        return "";
-      }
+      return $attributeCache[$plugin_file]['@attributes'][$method]??false;
+     
     } else {
       return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
     }
@@ -71,7 +66,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 ############################
 function dropAttributeCache() {
   global $caPaths;
-  
+
   @unlink($caPaths['pluginAttributesCache']);
 }
 ##################################################################################################################

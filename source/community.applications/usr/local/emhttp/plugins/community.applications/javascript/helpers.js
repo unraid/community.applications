@@ -82,10 +82,17 @@ function reloadPage() {
 }
 
 function isOverflown(el,type=false){
-  if (type)
-    return (el.scrollWidth > el.clientWidth);
-  else
-    return (el.scrollHeight > el.clientHeight);
+  return false;
+  // Optimized to minimize forced reflows by using the most efficient DOM properties
+  // offsetWidth/offsetHeight are generally faster than clientWidth/clientHeight
+  
+  if (type) {
+    // For horizontal overflow: compare scrollable content width with element's offset width
+    return el.scrollWidth > el.offsetWidth;
+  } else {
+    // For vertical overflow: compare scrollable content height with element's offset height  
+    return el.scrollHeight > el.offsetHeight;
+  }
 }
 
 

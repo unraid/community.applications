@@ -4,9 +4,9 @@ f17859c0eec0621bff9dc68c9db0bc6c  ./Apps.page
 7c66cff927451204a569a895851cd2d5  ./ca_settings.page
 f2af8d90596707020e7cc398edd359fb  ./default.cfg
 8b366f70e142d05cf281aa55ef2338f4  ./include/exec.php
-688aacdb78f23507dd95582d75422c19  ./include/helpers.php
+8a0e4c9c5ad2626cfb85c2fac85c813b  ./include/helpers.php
 36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
-aaf0bc7e40e680c83102187c5c19cf65  ./javascript/helpers.js
+d07d642ffd2ed2bd07619f58c7cdb66e  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
@@ -24,7 +24,7 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
 b2a14456484b0b15bbb34be965c226d4  ./skins/Narrow/styles/community.applications.colors.css
-46832339a3dfd00312486ac011fcd8a8  ./skins/Narrow/styles/community.applications.css
+20ad81aeae89a8758042ba89b6c91909  ./skins/Narrow/styles/community.applications.css
 d85c27616a928d55c62d982315c9e01a  ./skins/Narrow/styles/community.applications.responsive.css
 9d15aef43e121c2f53b6a1bd2c1d9b36  ./skins/Narrow/themes/azure.css
 ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css

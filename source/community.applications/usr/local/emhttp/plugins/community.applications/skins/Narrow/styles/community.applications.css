@@ -173,6 +173,8 @@ a {
   font-size: 2rem;
   font-weight: bold;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ca_backgroundClickable {
@@ -205,7 +207,8 @@ a {
   display: block;
   position: relative;
   top: 0.5rem;
-  max-height: 7rem;
+  max-height: 6.5rem;
+  line-height: 1.5rem;
   
   /* Interactive */
   cursor: pointer;
@@ -214,8 +217,46 @@ a {
 
 .cardDesc {
   display: inline-block;
-  max-height: 6rem;
+  max-height: 7rem;
   overflow: hidden;
+  position: relative; /* Required for absolute positioning of ::after */
+}
+
+.cardDesc::after {
+  content: "...";
+  
+  /* Positioning */
+  position: absolute;
+  right: 0;
+  top: 4.75rem;
+  height: 1.2rem;
+  width: 60ch;
+  
+  /* Typography */
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  
+  /* Create fade effect using template background color */
+  background: linear-gradient(to right, 
+    transparent 0%, 
+    color-mix(in srgb, var(--template-background) 10%, transparent) 30%, 
+    color-mix(in srgb, var(--template-background) 30%, transparent) 70%, 
+    color-mix(in srgb, var(--template-background) 80%, transparent) 100%);
+  
+  /* Ensure it overlays the text */
+  z-index: 10;
+  
+  /* Padding for spacing */
+  padding-left: 0.5rem;
+  
+  /* Display properties */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  
+  /* Ensure it's positioned correctly */
+  pointer-events: none;
 }
 
 .cardWarning {
@@ -669,6 +710,10 @@ a.appIconsPopUp {
   font-size: 1rem;
   margin-left: 0.75rem;
   margin-top: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22rem;
 }
 
 a.ca_author {
@@ -1610,6 +1655,8 @@ a.popUpLink {
   font-weight: bold;
   max-height: 4rem;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .popupRepoDescription {
