@@ -74,7 +74,7 @@ if ( ! $sortOrder ) {
   writeJsonFile($caPaths['sortOrder'],$sortOrder);
 }
 
-$GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
+//$GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
 
 ############################################
 ##                                        ##
@@ -224,7 +224,7 @@ switch ($_POST['action']) {
 #  DownloadApplicationFeed MUST BE CALLED prior to DownloadCommunityTemplates in order for private repositories to be merged correctly.
 
 function DownloadApplicationFeed() {
-  global $caPaths, $caSettings, $statistics;
+  global $caPaths;
 
   //$info = readJsonFile($caPaths['info']);
   exec("rm -rf '{$caPaths['tempFiles']}'");
@@ -476,8 +476,9 @@ function updatePluginSupport($templates) {
 }
 
 function getConvertedTemplates() {
-  global $caPaths, $caSettings, $statistics;
+  global $caPaths;
 
+  getGlobals();
 # Start by removing any pre-existing private (converted templates)
   $templates = &$GLOBALS['templates'];
 
@@ -709,6 +710,8 @@ function checkRandomApp($test) {
 function displayRepositories() {
   global $caPaths, $caSettings;
 
+  getGlobals();
+
   $repositories = readJsonFile($caPaths['repositoryList']);
   if ( is_file($caPaths['community-templates-allSearchResults']) ) {
     $temp = readJsonFile($caPaths['community-templates-allSearchResults']);
@@ -765,6 +768,8 @@ function displayRepositories() {
 ######################################################################################
 function get_content() {
   global $caPaths, $caSettings;
+
+  getGlobals();
 
   $filter      = getPost("filter",false);
   $category    = getPost("category",false);
@@ -1092,6 +1097,8 @@ function get_content() {
 function force_update() {
   global $caPaths, $caSettings;
 
+  getGlobals();
+
   if ( $caPaths['localONLY'] ) {
     exec("rm -rf '{$caPaths['tempFiles']}'");
     @mkdir($caPaths['templates-community'],0777,true);
@@ -1107,7 +1114,6 @@ function force_update() {
   debug("new appfeed timestamp: {$latestUpdate['last_updated_timestamp']}");
   if ( ! isset($latestUpdate['last_updated_timestamp']) ) {
     $latestUpdate['last_updated_timestamp'] = INF;
-    $badDownload = true;
     @unlink($caPaths['lastUpdated']);
   }
 
@@ -1117,7 +1123,6 @@ function force_update() {
   }
 
   if (!file_exists($caPaths['community-templates-info']) || ! $GLOBALS['templates']) {
-    $updatedSyncFlag = true;
     if (! DownloadApplicationFeed() ) {
       $o['script'] = "$('.onlyShowWithFeed').hide();";
       if ( checkServerDate() )
@@ -1208,7 +1213,9 @@ function dismiss_plugin_warning() {
 # Displays the list of installed or previously installed apps #
 ###############################################################
 function previous_apps($enableActionCentre=false) {
-  global $caPaths, $caSettings, $DockerClient;
+  global $caPaths, $caSettings;
+
+  getGlobals();
 
   if ( $enableActionCentre ) {
     $installed = "action";
@@ -1540,7 +1547,8 @@ function updatePLGstatus() {
 # Uninstalls a docker #
 #######################
 function uninstall_docker() {
-  global $DockerClient, $caPaths, $caSettings;
+  global $DockerClient;
+
   $application = getPost("application","");
 
 # get the name of the container / image
@@ -1557,8 +1565,6 @@ function uninstall_docker() {
   $DockerClient->removeContainer($containerName,$dockerRunning[$container]['Id']);
   $DockerClient->removeImage($dockerRunning[$container]['ImageId']);
   exec("/usr/bin/docker volume prune");
-
-  $info = getAllInfo(true);
 
   postReturn(['status'=>"Uninstalled"]);
 }
@@ -1596,6 +1602,7 @@ function areAppsPinned() {
 function pinnedApps() {
   global $caPaths, $caSettings;
 
+  getGlobals();
 
   $pinnedApps = readJsonFile($caPaths['pinnedV2']);
   debug("pinned apps memory usage before: ".round(memory_get_usage()/1048576,2)." MB");
@@ -1659,6 +1666,8 @@ function displayTags() {
 ###########################################
 function statistics() {
   global $caPaths, $caSettings;
+
+  getGlobals();
 
   if ( ! is_file($caPaths['statistics']) )
     $statistics = download_json($caPaths['statisticsURL'],$caPaths['statistics']);
@@ -1865,6 +1874,8 @@ function statistics() {
 function populateAutoComplete() {
   global $caPaths, $caSettings;
 
+  getGlobals();
+
   $templates = [];
   while ( empty($templates) ) {
     $templates = &$GLOBALS['templates'];
@@ -1926,7 +1937,10 @@ function caChangeLog() {
 # Populates the category list #
 ###############################
 function get_categories() {
-  global $caPaths, $sortOrder, $caSettings, $DockerClient, $DockerTemplates;
+  global $caPaths, $sortOrder;
+
+  getGlobals();
+
   $categories = readJsonFile($caPaths['categoryList']);
   if ( ! is_array($categories) || empty($categories) ) {
     $cat = "<ul><li>Category list N/A</li></ul>";
@@ -1995,6 +2009,8 @@ function getRepoDescription() {
 function createXML() {
   global $caPaths, $caSettings;
 
+  getGlobals();
+
   $dockerSettings = parse_ini_file($caPaths['dockerSettings']);
   $xmlFile = getPost("xml","");
   $type = getPost("type","");
@@ -2042,7 +2058,6 @@ function createXML() {
       return ($k['status'] !== "DISK_NP" && ! preg_match("/(parity|parity2|disks|diskP|diskQ)/",$k['name']));
     }));
 
-    $unRaidVersion = parse_ini_file($caPaths['unRaidVersion']);
     $cachePools = array_filter($unRaidDisks, function($k) {
       return ! preg_match("/disk\d(\d|$)|(parity|parity2|disks|flash|diskP|diskQ)/",$k['name']);
     });
@@ -2407,7 +2422,6 @@ function search_dockerhub() {
   $filter     = getPost("filter","");
   $pageNumber = getPost("page","1");
 
-  $communityTemplates = &$GLOBALS['templates'];
   $filter = str_replace(" ","%20",$filter);
   $filter = str_replace("/","%20",$filter);
   $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber","",false,-1);
@@ -2462,7 +2476,7 @@ function search_dockerhub() {
 # Gets the last update issued to a container #
 ##############################################
 function getLastUpdate($ID) {
-  global $caPaths;
+  getGlobals();
 
   $count = 0;
   $registry_json = null;
@@ -2532,7 +2546,7 @@ function changeMaxPerPage() {
 # Basically a duplicate of action centre code in previous apps #
 ################################################################
 function enableActionCentre() {
-  global $caPaths, $caSettings, $DockerClient;
+  global $caPaths;
 
 # wait til check for updates is finished
   for ( $i=0;$i<100;$i++ ) {

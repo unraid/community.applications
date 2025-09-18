@@ -53,7 +53,6 @@ switch ($caSettings['maxPerPage']) {
     break;
 }
 
-
 $firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
 $pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
 
@@ -62,7 +61,6 @@ if ( ! is_file($caPaths['docker_cfg']) ) {
 }
 
 $unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
-$phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
 $responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 
 // Check md5's of files
@@ -1282,24 +1280,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
       initialize = true;
       enableButtons();
 
-      var maxHomeApps = 12; // legacy value for 7.1.999 and below
-
-    /*  <? if ( $responsiveOS ):?> 
-        if ( ! $(".spotlightHome").length ) {
-          $("#templates_content").html("<div id='maxHomeApps'><div class='ca_holder spotlightHome' style='display:none;'></div></div>");
-        }
-        // See how many apps will fit maximum on home page
-        $("body").addClass("maxPerPageCalc");
-        var displayWidth = $(".mainArea").getWidth(false);  // don't include margin or padding, so we can calculate the number of apps that will fit
-        $("#maxHomeApps").show();
-        var appWidth = $(".spotlightHome").getWidth();
-        $("#maxHomeApps").hide();
-        $("body").removeClass("maxPerPageCalc");
-        var maxHomeApps = Math.floor(displayWidth / appWidth);
-
-        maxHomeApps = Math.max(maxHomeApps,2);
-
-      <? endif;?> */
+      var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
     }
     if ( (category == "New") || (category == "All") ) { 
       category = ""; 
@@ -2289,19 +2270,9 @@ function updateDisplay(content) {
       setupContext(actionsContext,"#"+ID);
     }
   });
-  $(".cardDesc").each(function() {
-    var description = $(this).html();
-    var readMoreText = $(".dockerHubHolder").length ? "" : "<?=tr("Read more");?>" // Don't show READ MORE on dockerHub searches
-    while (isOverflown(this)) {
-      description = description.slice(0,-5);
-      if ( description.length < 5 ) // Safari under certain circumstances thinks that non-displayed cards are always overflown
-        return false;
-      $(this).html(description + "... <span class='card_readmore'>"+readMoreText+"</span>");
-    }
-  });
+
 
   $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText").fitText(true);
-  $(".ca_applicationName").fitText(false);
 
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
@@ -2949,7 +2920,7 @@ function showSidebarApp(apppath,appname) {
       setupContext(result.supportContext,"#supportPopup");
       setupContext(result.actionsContext,"#actionsPopup");
         
-      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
+      $(".betaPopupText,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
 
       postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
         if (lastUpdate.lastUpdate) {

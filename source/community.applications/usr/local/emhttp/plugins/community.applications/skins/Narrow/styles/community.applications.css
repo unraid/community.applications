@@ -173,9 +173,6 @@ a {
   /* Typography */
   font-size: 2rem;
   font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .ca_backgroundClickable {
@@ -706,14 +703,16 @@ a.appIconsPopUp {
   border: none;
 }
 
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .ca_author {
   font-size: 1rem;
   margin-left: 0.75rem;
   margin-top: 0.75rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   max-width: 22rem;
 }
 
@@ -1624,6 +1623,7 @@ img.popupIcon {
   position: absolute;
   top: 3rem;
   left: 15rem;
+  right: 0;
 }
 
 .popupInfoLeft {

@@ -9,6 +9,21 @@
 #                                      #
 ########################################
 
+###############################################################
+# Populate $GLOBALS['templates'] if it's not already populated #
+###############################################################
+function getGlobals() {
+  global $caPaths;
+
+  if ( is_file($caPaths['community-templates-info']) ) {
+    if ( ! isset($GLOBALS['templates']) ) {
+      $GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
+    }
+  } else {
+    $GLOBALS['templates'] = [];
+  }
+}
+
 ########################################
 # Sanitize output from plugin function #
 ########################################
@@ -39,21 +54,28 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
         dropAttributeCache();
       }
     }
-    if ( $plugin_file ) {
-      if ( !isset($attributeCache[$plugin_file]) ) {
-        debug("CA Plugin $method $plugin_file not in attribute cache");
-        $xml = file_exists($plugin_file) ? @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA) : false;
-        
-        $attributes = $xml->attributes();
-        $attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
-        file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));
-      } else { 
-        debug("$plugin_file already in attribute cache");
+    if ( $plugin_file) {
+      if ( is_file($plugin_file) ) {
+        if ( !isset($attributeCache[$plugin_file]) ) {
+          debug("CA Plugin $method $plugin_file not in attribute cache");
+          $xml = @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA);
+          if ( $xml ) { 
+            $attributes = $xml->attributes();
+          } else {
+            $attributes = false;
+          }
+          $attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
+        } else { 
+          debug("$plugin_file already in attribute cache");
+        }
+      } else {
+        unset($attributeCache[$plugin_file]);
       }
-
+      file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+    
       // return the cached result if it exists.  If it doesn't return false;;
       return $attributeCache[$plugin_file]['@attributes'][$method]??false;
-     
+  
     } else {
       return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
     }
@@ -66,7 +88,8 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 ############################
 function dropAttributeCache() {
   global $caPaths;
-
+  
+  debug("Dropping attribute cache");
   @unlink($caPaths['pluginAttributesCache']);
 }
 ##################################################################################################################
@@ -539,7 +562,8 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 function moderateTemplates() {
   global $caPaths,$caSettings;
 
-//	$templates = readJsonFile($caPaths['community-templates-info']);
+  getGlobals();
+
   $templates = &$GLOBALS['templates'];
 
   if ( ! $templates ) return;
@@ -591,6 +615,8 @@ function filterMatch($filter,$searchArray,$exact=true) {
 function pluginDupe() {
   global $caPaths;
 
+  getGlobals();
+  
   $pluginList = [];
   $dupeList = [];
   foreach ($GLOBALS['templates'] as $template) {
@@ -723,6 +749,8 @@ function fixDescription($Description) {
 # displays the branch tags #
 ############################
 function formatTags($leadTemplate,$rename="false") {
+  getGlobals();
+  
   $type = $rename == "true" ? "second" : "default";
 
   $file = &$GLOBALS['templates'];
@@ -860,6 +888,8 @@ function debug($str) {
     $lingo = $_SESSION['locale'] ?? "en_US";
     debug("Language: $lingo");
     debug("Settings:\n".print_r($caSettings,true));
+
+    $phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
 
     if (boolval($phpErrors['display_errors']??false)) {
       debug("PHP errors set to be displayed!");

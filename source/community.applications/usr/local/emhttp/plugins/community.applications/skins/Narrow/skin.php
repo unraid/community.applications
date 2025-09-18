@@ -10,7 +10,7 @@
 ########################################
 
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths, $caSettings, $sortOrder;
+  global $caPaths;
 
   if ( is_file($caPaths['repositoriesDisplayed']) ) {
     $file = readJsonFile($caPaths['repositoriesDisplayed']);
@@ -30,7 +30,7 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
 }
 
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths, $caSettings, $plugin, $displayDeprecated, $sortOrder, $DockerTemplates, $DockerClient;
+  global $caPaths, $caSettings;
 
   $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
   $repositories = readJsonFile($caPaths['repositoryList']);
@@ -494,12 +494,9 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 # Generate the display for the popup #
 ######################################
 function getPopupDescriptionSkin($appNumber) {
-  global $caSettings, $caPaths, $language, $DockerTemplates, $DockerClient;
+  global $caSettings, $caPaths, $language, $DockerClient;
 
-  $unRaidVars = parse_ini_file($caPaths['unRaidVars']);
-  $dockerVars = parse_ini_file($caPaths['docker_cfg']);
-  $csrf_token = $unRaidVars['csrf_token'];
-  $tabMode = '_parent';
+  getGlobals();
 
   $allRepositories = readJsonFile($caPaths['repositoryList']);
   $extraBlacklist = readJsonFile($caPaths['extraBlacklist']);
@@ -920,9 +917,10 @@ function getPopupDescriptionSkin($appNumber) {
 # Generate the display for the repo #
 #####################################
 function getRepoDescriptionSkin($repository) {
-  global $caSettings, $caPaths, $language;
+  global $caSettings, $caPaths;
 
-  $dockerVars = parse_ini_file($caPaths['docker_cfg']);
+  getGlobals();
+
   $repositories = readJsonFile($caPaths['repositoryList']);
   $templates = &$GLOBALS['templates'];
 
@@ -967,7 +965,7 @@ function getRepoDescriptionSkin($repository) {
         $iconPrefix<img class='popupIcon' src='{$repo['icon']}'>$iconPostfix
       </div>
       <div class='popupInfo'>
-        <div class='popupName'>$repository</div>
+        <div class='popupName ellipsis'>$repository</div>
         <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
         <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
       </div>
@@ -1085,7 +1083,9 @@ function dockerNavigate($num_pages, $pageNumber) {
 # function that actually displays the results from dockerHub #
 ##############################################################
 function displaySearchResults($pageNumber) {
-  global $caPaths, $caSettings, $plugin;
+  global $caPaths, $caSettings;
+
+  getGlobals();
 
   $tempFile = readJsonFile($caPaths['dockerSearchResults']);
   $num_pages = $tempFile['num_pages'];
@@ -1096,10 +1096,9 @@ function displaySearchResults($pageNumber) {
 
   $ct = "<div class='ca_templatesDisplay'>";
 
-  $columnNumber = 0;
   foreach ($file as $result) {
     $result['Icon'] = "/plugins/dynamix.docker.manager/images/question.png";
-    $result['display_dockerName'] = "<a class='ca_tooltip ca_applicationName' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
+    $result['display_dockerName'] = "<a class='ca_tooltip ca_applicationName ellipsis' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
     $result['Category'] = "Docker&nbsp;Hub&nbsp;Search";
     $result['Description'] = $result['Description'] ?: tr("No description present");
     $result['Compatible'] = true;
@@ -1131,8 +1130,8 @@ function displaySearchResults($pageNumber) {
 # Generate the app's card #
 ###########################
 function displayCard($template) {
-  global $caSettings, $caPaths;
-  $appName = str_replace("-"," ",$template['display_dockerName'] ?? "");
+  global $caPaths;
+
   $holderClass = "";
   $card = "";
 
@@ -1336,7 +1335,7 @@ function displayCard($template) {
 
 
   $card .= "
-    <div class='ca_applicationName'>$Name
+    <div class='ca_applicationName ellipsis'>$Name
   ";
   if ( $CAComment || $ModeratorComment || $Requires) {
     $commentIcon = "";
@@ -1356,7 +1355,7 @@ function displayCard($template) {
   }
   $card .= "
         </div>
-        <div class='ca_author'>".($Official ? tr("Official Container") : $author)."</div>
+        <div class='ca_author ellipsis'>".($Official ? tr("Official Container") : $author)."</div>
         <div class='cardCategory'>$Category</div>
   ";
 
@@ -1498,7 +1497,7 @@ function displayPopup($template) {
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>$display_icon</div>
       <div class='popupInfo'>
-        <div class='popupName'>$Name</div>
+        <div class='popupName ellipsis'>$Name</div>
     ";
     if ( ! $Language )
       $card .= "<div class='popupAuthorMain'>$Author</div>";
