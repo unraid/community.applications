@@ -49,7 +49,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
   if ( ! $dontCache ) {
     if ( empty($attributeCache) && file_exists($caPaths['pluginAttributesCache']) ) {
       $attributeCache = @unserialize(file_get_contents($caPaths['pluginAttributesCache']))??[];
-      if ( ! is_array($attributeCache) ) {
+      if ( empty($attributeCache) ) {
         $attributeCache = [];
         dropAttributeCache();
       }
@@ -88,7 +88,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 ############################
 function dropAttributeCache() {
   global $caPaths;
-  
+
   debug("Dropping attribute cache");
   @unlink($caPaths['pluginAttributesCache']);
 }
@@ -902,8 +902,13 @@ function debug($str) {
 # Gets the default ports in a template #
 ########################################
 function portsUsed($template) {
+  if ( ! is_array($template) ) {
+    return json_encode([]);
+  }
+
   if ( ($template['Network'] ?? "whatever") !== "bridge")
-    return;
+    return json_encode([]);
+  
   $portsUsed = [];
   if ( isset($template['Config']['@attributes']) )
     $template['Config'] = ['@attributes'=>$template['Config']];

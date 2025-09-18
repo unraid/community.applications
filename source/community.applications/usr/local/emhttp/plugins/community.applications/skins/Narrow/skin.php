@@ -648,7 +648,9 @@ function getPopupDescriptionSkin($appNumber) {
       $templateURL = $template['caTemplateURL'] ?: $template['TemplateURL'];
       download_url($templateURL,$caPaths['pluginTempDownload'],"",5);
       $xml = readXmlFile($caPaths['pluginTempDownload']);
-      $template['Changes'] = $xml['Changes'];
+      if ( $xml ) {
+        $template['Changes'] = $xml['Changes'];
+      }
     }
   }
   $template['Changes'] = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$template['Changes'] ?: ""); // Prevent inadvertent code blocks
