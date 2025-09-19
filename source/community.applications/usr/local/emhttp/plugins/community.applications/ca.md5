@@ -6,7 +6,7 @@ f2af8d90596707020e7cc398edd359fb  ./default.cfg
 555cfd783c640e2ee0b4d0a549f09891  ./include/exec.php
 4d4bc3f0c8097b9a910ded975a7de4ae  ./include/helpers.php
 36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
-10ecbf4e3cd96eac9a6b6bff893583c5  ./javascript/helpers.js
+10c48a824bc59d4c11a95dfa30107665  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook

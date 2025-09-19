@@ -331,14 +331,14 @@ function guiSearchOnUnload() {
 // Dims the display area
 function dimScreen(dim) {
   if ( dim ) {
-    $("#header, #menu").addClass("dim",500);
+    $("#header, #menu").addClass("dim",250);
     if ( $(".mobileMenu").is(":visible") ) {
-      $(".mainArea").addClass("dim",500);
+      $(".mainArea").addClass("dim",250);
     } else {
-      $(".ca_display_area").addClass("dim",500);
+      $(".ca_display_area").addClass("dim",250);
     }
   } else {
-    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",500);
+    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",250);
   }
 }
 
