@@ -323,6 +323,11 @@ $.fn.onClassChange = function(cb) {
   });
 }
 
+// Save the state of CA if GUI Search takes us away from the page
+function guiSearchOnUnload() {
+  saveState();
+}
+
 // Dims the display area
 function dimScreen(dim) {
   if ( dim ) {
@@ -335,10 +340,6 @@ function dimScreen(dim) {
   } else {
     $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",500);
   }
-}
-
-function guiSearchOnUnload() {
-  saveState();
 }
 
 function setupSwalDim() {
@@ -358,5 +359,3 @@ function setupSwalDim() {
   });
   $(".sweet-alert").addClass("triggerClassChange");
 }
-
-// Safe script execution function

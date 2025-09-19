@@ -1725,6 +1725,9 @@ function displayPopup($template) {
   if ( ! $Plugin && ! $Language ){
     $card .= "<div><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
   }
+
+// Don't show the flags in the popup - being switch to badges and they don't resize due to the refactors
+  /*
   if ( $UpdateAvailable ) {
     $card .= "
       <div class='upgradePopupBackground'>
@@ -1741,6 +1744,7 @@ function displayPopup($template) {
       <div class='installedPopupText ca_center'>".tr("INSTALLED")."</div></div>
     ";
   }
+*/    
   $card .= "</div>";
 
   return $card;

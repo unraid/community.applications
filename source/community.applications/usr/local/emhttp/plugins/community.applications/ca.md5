@@ -1,12 +1,12 @@
-e3b64f7c8bded7b5e2a64b1514e9306f  ./Apps.page
+beeb7658e21958c5b8031a04fc052b2e  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 7c66cff927451204a569a895851cd2d5  ./ca_settings.page
 f2af8d90596707020e7cc398edd359fb  ./default.cfg
-e03097eec7f9405dee1835fd3cf69a0e  ./include/exec.php
-d5bc690aee851272a9e677377170e875  ./include/helpers.php
+555cfd783c640e2ee0b4d0a549f09891  ./include/exec.php
+4d4bc3f0c8097b9a910ded975a7de4ae  ./include/helpers.php
 36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
-d07d642ffd2ed2bd07619f58c7cdb66e  ./javascript/helpers.js
+10ecbf4e3cd96eac9a6b6bff893583c5  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook
@@ -33,4 +33,4 @@ ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css
 5fce7b3fd5f189fda0032524e9ceb0fc  ./skins/Narrow/themes/gray.css
 2256e8567d1eece2713df6b18417fa7e  ./skins/Narrow/themes/white.css
 828fd6db196c4a0d8d3ff046361a5acc  ./skins/Narrow/skin.html
-3136e3e1c6c48dddeed956550a6539e4  ./skins/Narrow/skin.php
+c6bce48b48f32922eb74b08eed3fbff1  ./skins/Narrow/skin.php

@@ -170,7 +170,6 @@ function tr($string,$ret=false) {
     echo $string;
 }
 
-
 ?>
 <script>
 $("html").addClass("<?=$htmlClasses?>");
@@ -226,6 +225,7 @@ var portsInUse = [];
 var startupSearch = "<?=$startupSearch?>";
 var iconHoverTimer;
 var ca_done_override = false;
+
 // handle 3rd party links on older versions of OS
 <?
 if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
