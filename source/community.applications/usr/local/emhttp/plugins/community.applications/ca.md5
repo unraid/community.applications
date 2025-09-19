@@ -6,10 +6,10 @@ f2af8d90596707020e7cc398edd359fb  ./default.cfg
 555cfd783c640e2ee0b4d0a549f09891  ./include/exec.php
 4d4bc3f0c8097b9a910ded975a7de4ae  ./include/helpers.php
 36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
-10c48a824bc59d4c11a95dfa30107665  ./javascript/helpers.js
+7be20d8d3c07524c991647e11dfc6012  ./javascript/helpers.js
 858a859214d2c08ded445186cb28458b  ./javascript/libraries.js
-11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook
+11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 93de6af077991de2eb4cfffab84e035d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
 8b7ab4c0b89d94942662cec6803b7872  ./scripts/debugging.php

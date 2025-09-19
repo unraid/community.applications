@@ -44,12 +44,19 @@ function stripTags(str) {
   return str.replace(/(<([^>]+)>)/ig,"");
 }
 
-
+var spinnerTimer = null;
 function mySpinner() {
-  $("div.spinner,.spinnerBackground").show();
+  if ( ! spinnerTimer ) {
+    spinnerTimer = setTimeout(function() {
+      spinnerTimer = null;
+      $("div.spinner,.spinnerBackground").show();
+    }, 250);
+  }
 }
 
 function myCloseSpinner() {
+  clearTimeout(spinnerTimer);
+  spinnerTimer = null;
   clearTimeout(ca_longLoading);
   clearTimeout(ca_veryLongLoading);
   clearTimeout(ca_somethingWrong);
