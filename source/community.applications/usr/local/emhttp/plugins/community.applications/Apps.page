@@ -104,6 +104,13 @@ if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var
   unset($caSettings['dockerRunning']);
 }
 
+// Create a symlink for plugin pre and post hooks to drop the attribute cache
+
+if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook") )
+  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_preHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook");
+if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook") )
+  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_postHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook");
+
 // Drop the attribute cache
 dropAttributeCache();
 // Drop the docker info cache
@@ -405,7 +412,7 @@ $(function(){
   <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
     $(".searchArea").insertAfter("#menu");
   <? endif; ?>
-  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
+  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
