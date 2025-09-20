@@ -325,15 +325,14 @@ a.caButton:hover {
 }
 
 .maxPerPage {
-  position: absolute;
-  right: 0;
+
   top: 0.5rem;
   display: none;
 }
 
 #dropdown-maxPerPage {
-  position: absolute;
-  right: 0;
+ /* position: relative;
+  right: 4rem;*/
 }
 
 /* Form Elements */
@@ -400,6 +399,12 @@ input[type="button"][disabled] {
 .menuItems.mobileMenuPopup {
   display: block !important;
 }
+.menuItems.menuHidden {
+  display: none;
+}
+.menuItems.menuShowing {
+  display: block;
+}
 .mobileMenu.mobileMenuPopup {
   display: inline-block !important;
   position: absolute;
@@ -421,7 +426,19 @@ input[type="button"][disabled] {
   overflow-y: hidden!important;
 }
 
-.menuItemsHidden {
+.showMenuButton.menuShowing {
+  display: none;
+}
+.closeMenuButton.menuShowing {
+  display: inline-block;
+}
+.showMenuButton.menuHidden {
+  display: inline-block;
+}
+.closeMenuButton.menuHidden {
+  display: none;
+}
+.mobileMenuButton {
   display: none;
 }
 .menuOverlay.mobileMenuPopup {
@@ -429,7 +446,7 @@ input[type="button"][disabled] {
 }
 .content.mobileMenuPopup {
   overflow-y: hidden !important;
-  height: fit-content !important;
+  height: 120vh !important;
 }
 .menuItemsHidden.mobileMenuPopup,
 .hideWithMenu.mobileMenuPopup,
@@ -446,6 +463,9 @@ input[type="button"][disabled] {
   width: 14rem;
   z-index: 2;
   background-color: var(--ca-legacy-background-color);
+}
+.menuItems.menuHidden {
+  display: block;
 }
 .menuItems.mobileMenuPopup {
   background-color: var(--template-hover-background);
@@ -1772,14 +1792,21 @@ a.popUpLink {
 #displayBox {
   padding-top: 0;
 }
-.searchArea {
-  z-index: 6;
-  width: 100%;
-  position: sticky;
-  background-color: var(--ca-legacy-background-color);
+.searchAreaHolder {
   top: var(--search-area-top);
+  position: sticky;
+  z-index: 6;
 }
-.Theme--width-boxed .searchArea {
+.searchArea {
+  padding-left: var(--search-area-left);
+  background-color: var(--ca-legacy-background-color);
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 2rem;
+}
+.Theme--width-boxed .searchAreaHolder {
   max-width: 1920px; 
   margin: 0 auto;
 }
@@ -1815,18 +1842,14 @@ a.popUpLink {
   font-size: 2rem;
 }
 .showMenuButton { 
-  position: absolute;
-  left: 2rem;
-  top: 2rem;
+ // position: absolute;
+ // left: 2rem;
+ // top: 2rem;
   display: inline-block;
   cursor: pointer;
 }
 .showMenuButton:hover {
   color: var(--unraid-66-color);
-}
-
-.closeMenuButton {
-  display: none;
 }
 
 #sortIconArea {

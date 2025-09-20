@@ -1,26 +1,28 @@
-<div class='searchArea onlyShowWithFeed'>
-  <div class='menuItemsHidden menuAdjust'>
-    <div class='showMenuButton'></div>
-  </div>
-  <div class='mobileMenuClose menuAdjust'>
-    <div class="menuClose caButton"><?tr("CLOSE");?></div>
-  </div>
-  <span class='hideWithMenu menuAdjust'>
-    <span id='searchFilter'>
+<div class="searchAreaHolder">
+  <div class='searchArea onlyShowWithFeed'>
+    <div class='mobileMenuButton'>
+      <div class='showMenuButton menuAdjust menuHidden'></div>
+      <div class='closeMenuButton menuAdjust menuHidden'>
+        <div class="menuClose caButton"><?tr("CLOSE");?></div>
+      </div>
+    </div>
+    <div id='searchFilter menuAdjust'>
       <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
       <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-      <div class='dockerSearch caButton' style='display:none'><?tr("DockerHub");?></div>
-      <div class='templateSearch caButton' style='display:none'><?tr("Apps")?></div>
-      <div class="category categoryLine"></div>
-      <div class="category altCategoryLine"></div>
-    </span>
-    <span class='caButton maxPerPage' id='maxPerPage'></span>
-  </span>
+    </div>
+    <div class='caButton maxPerPage menuAdjust' id='maxPerPage'></div>
+
+    <div class='dockerSearch caButton' style='display:none'><?tr("DockerHub");?></div>
+    <div class='templateSearch caButton' style='display:none'><?tr("Apps")?></div>
+    <div class='category categoryLine'></div>
+    <div class='category altCategoryLine'></div>
+  </div>
 </div>
 <div class='ca_display_area'>
-  <div class='mobileMenu menuAdjust'>
-    <div class="mobileMenuOverlay menuAdjust"></div>
-    <div class='menuItems menuAdjust'>
+
+  <div class='mobileMenu mobileMenu'>
+    <div class="mobileMenuOverlay mobileMenu"></div>
+    <div class='menuItems menuAdjust menuHidden'>
       <ul class='caMenu '>
         <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
         <li><hr class='onlyShowWithFeed'/></li>

@@ -410,7 +410,7 @@ $(function(){
   
 // Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
   <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
-    $(".searchArea").insertAfter("#menu");
+    $(".searchAreaHolder").insertAfter("#menu");
   <? endif; ?>
   $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
@@ -431,9 +431,9 @@ $(function(){
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
-
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
+  
   $("body").on("click",".long-loading-abort-button",function() {
     var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
     setTimeout(function() {
@@ -2390,14 +2390,22 @@ function showStatistics() {
 }
 
 function showMenu() {
+  if ( ! $(".mobileMenuButton").is(":visible") ) {
+    return;
+  }
+  $(".menuAdjust").addClass("menuShowing").removeClass("menuHidden");
   $('.back_to_top').click();
-  $('.menuAdjust').addClass("mobileMenuPopup");
-  dimScreen(true);
+
+ // dimScreen(true);
 }
 
 function closeMenu() {
-  $('.menuAdjust').removeClass("mobileMenuPopup");
-  dimScreen(false);
+  if ( ! $(".mobileMenuButton").is(":visible") ) {
+    return;
+  }
+  $(".menuAdjust").addClass("menuHidden").removeClass("menuShowing");
+
+ // dimScreen(false);
 }
 
 function caChangeLog() {

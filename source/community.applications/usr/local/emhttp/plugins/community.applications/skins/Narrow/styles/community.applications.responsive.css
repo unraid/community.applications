@@ -13,16 +13,17 @@
       overflow-x: unset !important;
       width: initial;
     }
-    .menuItems {
+    .menuItems.menuHidden {
       display: none;
     }
-    .menuItemsHidden {
+    .menuItems.menuShowing {
+      width: 20rem;
+      padding-left:2rem;
+    }
+  
+    .mobileMenuButton {
       display: inline-block;
     }
-    .closeMenuButton {
-      display: none;
-    }
-
     .mainArea {
       left: 0;
       padding-left: 1rem;
@@ -30,14 +31,18 @@
     #searchFilter {
       left: 3rem;
     }
-   #searchBox {
-    width: 150px;
-   }
-    .searchArea {
-      margin-left: var(--search-area-mobile-left) !important;
+    #searchBox {
+      width: 150px;
+    }
+    .searchAreaHolder {
+      margin-left: var(--search-area-mobile-left);
       top: var(--search-area-mobile-top);
-      padding-top:1.5rem;
       height:4rem;
+      padding-left: 2rem;
+    }
+    .searchArea {
+      padding-left: 0;
+      margin-left: 0;
     }
     .multi_installDiv {
       position: relative;
