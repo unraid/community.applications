@@ -429,7 +429,7 @@ input[type="button"][disabled] {
 }
 .content.mobileMenuPopup {
   overflow-y: hidden !important;
-  height: 120vh !important;
+  height: fit-content !important;
 }
 .menuItemsHidden.mobileMenuPopup,
 .hideWithMenu.mobileMenuPopup,
@@ -449,9 +449,13 @@ input[type="button"][disabled] {
 }
 .menuItems.mobileMenuPopup {
   background-color: var(--template-hover-background);
-  width: 20rem;
+  width: 25rem;
+  padding-left:5rem;
 }
-
+.Theme--sidebar .menuItems.mobileMenuPopup{
+  width: 20rem;
+  padding-left:2rem;
+}
 .selectedMenu {
   color: var(--unraid-66-color);
   font-weight: bold;

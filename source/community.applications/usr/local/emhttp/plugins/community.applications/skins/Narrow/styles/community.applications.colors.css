@@ -34,6 +34,12 @@
   --ca-dark-text-color: #333;
   --ca-medium-dark-color: #3F3F3F;
 
+  /* Legacy Background Colors */
+  --ca-legacy-bg-azure: #e8e8e8;
+  --ca-legacy-bg-dark: #1d1b1b;
+  --ca-legacy-bg-white: #f2f2f2;
+  --ca-icon-bg-dark: #404040;
+
   /* Opacity Colors */
   --ca-shadow-color: rgba(255, 140, 47, 0.5);
   --ca-overlay-color: rgba(0, 0, 0, 0.4);

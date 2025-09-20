@@ -1738,7 +1738,7 @@ function statistics() {
   $statistics['repositories'] = @count($repositories) ?: tr("unknown");
 
   $o =  "
-    <div style='height:auto;overflow:scroll; overflow-x:hidden; overflow-y:hidden;margin:auto;width:700px;'>
+    <div style='height:auto;overflow:scroll; overflow-x:scroll; overflow-y:hidden;margin:auto;width:fit-content;'>
       <table style='margin-top:1rem;'>
         <tr style='height:6rem;'>
           <td colspan='2'>
