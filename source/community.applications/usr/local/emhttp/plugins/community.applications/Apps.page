@@ -334,7 +334,13 @@ $(function(){
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
 
-  // 
+  <? if ( $responsiveOS ):?>
+  // Due to complications, reload the page when window resized or orientation changed.
+  // Complications involve situations where the menu is open and a mobile device switches from portrait to landscape.
+  // Hard to recover since the menu may now be set to always display due to the width.
+  // Rather than try and recover, just reload the page, and ensure that /Apps is the referrer so state is restored.
+  // Only affects responsive OS.
+  
   function resizeDebounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -359,7 +365,8 @@ $(function(){
   $(window).on('orientationchange resize', function() {
     setTimeout(debouncedOrientationHandler, 100);
   });
-  
+  <? endif;?>
+
   // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
   setupSwalDim();
 
