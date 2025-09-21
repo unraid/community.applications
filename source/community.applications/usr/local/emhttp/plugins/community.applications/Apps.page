@@ -333,6 +333,13 @@ $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
+
+  $(window).on('orientationchange resize', function() {
+    setTimeout(function() {
+      saveState();
+      window.location.replace("/Apps/Apps");
+    }, 100);
+  });
   
   // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
   setupSwalDim();
@@ -412,7 +419,7 @@ $(function(){
   <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
     $(".searchAreaHolder").insertAfter("#menu");
   <? endif; ?>
-  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
+  $("body").append("<div class='sidebar hide' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
@@ -430,10 +437,12 @@ $(function(){
 
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
+  $("body").addClass("menuAdjust");
+
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
 
-  
+
   $("body").on("click",".long-loading-abort-button",function() {
     var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
     setTimeout(function() {
@@ -448,12 +457,15 @@ $(function(){
     showMenu();
   });
 
-  $(".menuClose,.menuOverlay").on("click",function() {
+  $(".closeMenuButton,.menuOverlay").on("click",function() {
     closeMenu();
   });
 
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
+  });
+  $(".mobileOverlay").on("click",function(e) {
+    closeMenu();
   });
 
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
@@ -965,19 +977,6 @@ $(function(){
     removeApp(path,name);
   });
 
-  <? if ($caSettings['sidebarOpen'] == "yes"):?>
-    $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
-      var icon = this;
-      iconHoverTimer = setTimeout(function() {
-        if ( !$("#searchBox").is(":focus") )
-        icon.click();
-      },3000);
-    });
-
-    $("body").on("mouseout",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
-      clearTimeout(iconHoverTimer);
-    });
-  <?endif;?>
   /* Everything is now initialized.  This is the start of the actual "real" code */
 
   if ( "<?=$firstRun?>" == "true" ) {
@@ -1276,6 +1275,8 @@ function changeSortOrder(button,buttonClass,previousApps) {
 function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
+  var maxHomeApps = 5; // Maximum number of apps to display in each row on home page
+
 
   enableSearch();
 
@@ -1286,7 +1287,6 @@ function getContent(init,category,description,newApp,startupDisplay) {
       initialize = true;
       enableButtons();
 
-      var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
     }
     if ( (category == "New") || (category == "All") ) { 
       category = ""; 
@@ -1309,14 +1309,11 @@ function getContent(init,category,description,newApp,startupDisplay) {
     if ( description && ! filter ) {
       $(".category").html(description);
     }
-    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps},function(result) {
+    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
       updateDisplay(result.display);
       if ( initialize ) {
         populateAutoComplete();
         downloadStatistics();
-        if ( maxHomeApps < 3 ) {
-          changeMaxPerPage(12);
-        }
       }
     });
   }
@@ -2389,23 +2386,26 @@ function showStatistics() {
   });
 }
 
+var menuScrollPosition = null;
 function showMenu() {
-  if ( ! $(".mobileMenuButton").is(":visible") ) {
-    return;
-  }
-  $(".menuAdjust").addClass("menuShowing").removeClass("menuHidden");
-  $('.back_to_top').click();
-
- // dimScreen(true);
+  menuScrollPosition = $(window).scrollTop();
+  $(".menuAdjust,.hideWithMenu").addClass("menuShowing").removeClass("menuHidden");
+  $('.mobileMenu').toggle("slide", { direction: "left" }, 500); 
+  $(":root").css("--mainAreaHeight",$(".mobileMenu").height()+"px");
+  
+  const element = document.getElementById("mobileMenu");
+  element.scrollIntoView({behavior: "smooth", block: "start"});
 }
 
 function closeMenu() {
-  if ( ! $(".mobileMenuButton").is(":visible") ) {
+  if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
     return;
   }
-  $(".menuAdjust").addClass("menuHidden").removeClass("menuShowing");
-
- // dimScreen(false);
+  $(".menuAdjust,.hideWithMenu").addClass("menuHidden").removeClass("menuShowing");
+  $('.mobileMenu').toggle("slide", { direction: "left" }, 500);
+  $(window).scrollTop(menuScrollPosition);
+  menuScrollPosition = null;
+  $(":root").css("--mainAreaHeight","unset");
 }
 
 function caChangeLog() {

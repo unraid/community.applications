@@ -1,69 +1,82 @@
-.caHomeSpotlight {
-    height: fit-content;
-    min-height: 27rem;
-    max-height: 54rem;
+@media (min-width: 769px) {
+  .mobileOverlay {
+    display: none !important;
+  }
+}
+@media (max-width: 1024px) {
+  .searchAreaHolder {
+    height:4rem;
+    padding-left: 2rem;
+  }
+  .searchArea {
+    padding-left: 0;
+    margin-left: 0;
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --mobileDevice: true;
+  }
+  body {
+    overflow-x: unset !important;
+    width: initial;
+  }
+  .searchAreaHolder {
+    top: var(--search-area-mobile-top);
+  }
+ 
+  .mobileMenu {
+    position: absolute;
+    display: none;
+    z-index: 5;
   }
 
-  /* Only used to calculate the number of apps on home page by forcing the display area to include the scroll bar */
-  .maxPerPageCalc {
-    overflow-y: scroll !important;
+  .mobileMenu.menuHidden{
+    display: none;
   }
-  @media (max-width: 768px) {
-    body {
-      overflow-x: unset !important;
-      width: initial;
-    }
-    .menuItems.menuHidden {
-      display: none;
-    }
-    .menuItems.menuShowing {
-      width: 20rem;
-      padding-left:2rem;
-    }
-  
-    .mobileMenuButton {
-      display: inline-block;
-    }
-    .mainArea {
-      left: 0;
-      padding-left: 1rem;
-    }
-    #searchFilter {
-      left: 3rem;
-    }
-    #searchBox {
-      width: 150px;
-    }
-    .searchAreaHolder {
-      margin-left: var(--search-area-mobile-left);
-      top: var(--search-area-mobile-top);
-      height:4rem;
-      padding-left: 2rem;
-    }
-    .searchArea {
-      padding-left: 0;
-      margin-left: 0;
-    }
-    .multi_installDiv {
-      position: relative;
-    }
-    .navigationSection {
-      bottom: 0 !important;
-      position: relative;
-    }
-    .altCategoryLine {
-      display: none;
-    }
-    .categoryLine {
-      display: none;
-    }
-    .maxPerPage {
-      display: none !important;
-    }
-    .categoryLineNoMenu {
-      display: inline-block;
-    }
-    #templates_content {
-      margin-bottom: 0;
-    }
+  .mobileMenu.menuShowing {
+    width: 20rem;
+    padding-left:2rem;
   }
+
+  .mobileMenuButton {
+    display: inline-block;
+    z-index: 5;
+  }
+  .menuItems {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    top: 2rem;
+  }
+  .mainArea {
+    left: 0;
+    padding-left: 1rem;
+  }
+
+  #searchBox {
+    width: 150px;
+  }
+
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+  .altCategoryLine {
+    display: none;
+  }
+  .categoryLine {
+    display: none;
+  }
+  .maxPerPage {
+    display: none !important;
+  }
+  .categoryLineNoMenu {
+    display: inline-block;
+  }
+  #templates_content {
+    margin-bottom: 0;
+  }
+}

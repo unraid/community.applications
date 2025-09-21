@@ -526,7 +526,7 @@ function getConvertedTemplates() {
 function appOfDay($file) {
   global $caPaths,$caSettings,$sortOrder,$dynamixSettings;
 
-  $max = ( is_file("/boot/config/plugins/unlimited-width.plg") || ($dynamixSettings['width'] ?? false) ) ? 12 : 5;
+  $max = getPost("maxHomeApps",10);
   $appOfDay = [];
 
   switch ($caSettings['startup']) {
@@ -774,7 +774,10 @@ function get_content() {
   $filter      = getPost("filter",false);
   $category    = getPost("category",false);
   $newApp      = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
-  
+  $mobileDevice = getPost("mobileDevice",false);
+  if ( $mobileDevice ) {
+    $caSettings['maxPerPage'] = 12;
+  }
   $maxHomeApps = getPost("maxHomeApps",12);
 
   $caSettings['startup'] = getPost("startupDisplay",false);
@@ -2446,7 +2449,7 @@ function search_dockerhub() {
     $o['Repository'] = $result['name'];
     $details = explode("/",$result['name']);
     $o['Author'] = $details[0];
-    $o['Name'] = $details[1];
+    $o['Name'] = $details[1]??"";
     $o['Description'] = $result['description'];
     $o['Automated'] = $result['is_automated'];
     $o['Stars'] = $result['star_count'];

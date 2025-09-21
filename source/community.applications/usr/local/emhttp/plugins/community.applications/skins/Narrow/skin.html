@@ -1,28 +1,24 @@
-<div class="searchAreaHolder">
+<div class="searchAreaHolder menuAdjust">
   <div class='searchArea onlyShowWithFeed'>
     <div class='mobileMenuButton'>
       <div class='showMenuButton menuAdjust menuHidden'></div>
-      <div class='closeMenuButton menuAdjust menuHidden'>
-        <div class="menuClose caButton"><?tr("CLOSE");?></div>
-      </div>
+      <div class='closeMenuButton menuAdjust menuHidden'></div>
     </div>
-    <div id='searchFilter menuAdjust'>
+    <div id='searchFilter' class='hideWithMenu'>
       <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
       <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
     </div>
-    <div class='caButton maxPerPage menuAdjust' id='maxPerPage'></div>
-
-    <div class='dockerSearch caButton' style='display:none'><?tr("DockerHub");?></div>
-    <div class='templateSearch caButton' style='display:none'><?tr("Apps")?></div>
-    <div class='category categoryLine'></div>
-    <div class='category altCategoryLine'></div>
+    <div class='caButton maxPerPage hideWithMenu' id='maxPerPage'></div>
+    <div class='dockerSearch caButton hideWithMenu' style='display:none'><?tr("DockerHub");?></div>
+    <div class='templateSearch caButton hideWithMenu' style='display:none'><?tr("Apps")?></div>
+    <div class='category categoryLine hideWithMenu'></div>
+    <div class='category altCategoryLine hideWithMenu'></div>
   </div>
 </div>
 <div class='ca_display_area'>
-
-  <div class='mobileMenu mobileMenu'>
-    <div class="mobileMenuOverlay mobileMenu"></div>
-    <div class='menuItems menuAdjust menuHidden'>
+  <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
+  <div class='mobileMenu' id='mobileMenu'>
+    <div class='menuItems menuAdjust'>
       <ul class='caMenu '>
         <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
         <li><hr class='onlyShowWithFeed'/></li>
@@ -64,7 +60,7 @@
       </ul>
     </div>
   </div>
-  <div class='mainArea'>
+  <div class='mainArea menuAdjust'>
     <div id='sortIconArea' class='menuAdjust'>
       <div class="category categoryLineNoMenu"></div>
       <?tr("Sort By:");?>

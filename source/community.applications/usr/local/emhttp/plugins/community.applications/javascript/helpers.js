@@ -329,6 +329,33 @@ $.fn.onClassChange = function(cb) {
     });
   });
 }
+// Watch for a visibility change
+$.fn.onVisibilityHidden = function(callback) {
+  return this.each(function() {
+    const $element = $(this);
+    
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (!entry.isIntersecting) {
+            // Element is hidden/not visible
+            callback.call(entry.target);
+          }
+        });
+      }, {
+        threshold: 0
+      });
+      
+      observer.observe(this);
+      
+      // Store observer for cleanup
+      $element.data('visibilityObserver', observer);
+    } else {
+      // Fallback for older browsers
+      console.warn('IntersectionObserver not supported');
+    }
+  });
+};
 
 // Save the state of CA if GUI Search takes us away from the page
 function guiSearchOnUnload() {

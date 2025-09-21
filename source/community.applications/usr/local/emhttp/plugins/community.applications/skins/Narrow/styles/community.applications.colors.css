@@ -64,6 +64,8 @@
   --ca-named-black: black;
   --ca-named-grey: grey;
   --ca-named-transparent: transparent;
+  --mainAreaHeight: unset;
+  --mobileDevice: false;
 } 
 .Theme--fontSize50:root {
   --ca_legacySearchMarginTop: 15rem;
