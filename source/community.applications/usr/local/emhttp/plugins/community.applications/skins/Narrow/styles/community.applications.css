@@ -10,7 +10,7 @@ body {
   display: none;
   z-index: 0;
 }
-body.menuShowing {
+body.menuShowing,body.body_sidebarScroll {
   overflow: hidden !important;
 }
 .subCategory ul {

@@ -8,6 +8,9 @@
     height:4rem;
     padding-left: 2rem;
   }
+  .Theme--sidebar .searchAreaHolder {
+    margin-left: 6rem;
+  }
   .searchArea {
     padding-left: 0;
     margin-left: 0;
