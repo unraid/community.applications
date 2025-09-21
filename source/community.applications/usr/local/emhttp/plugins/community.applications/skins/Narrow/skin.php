@@ -994,7 +994,7 @@ function getRepoDescriptionSkin($repository) {
       $videos = is_array($repo['Video']) ? $repo['Video'] : [$repo['Video']];
       foreach ($videos as $vid) {
         $thumbnail = getYoutubeThumbnail($vid);
-        $t .= "<a class='screenshot videoButton mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+        $t .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
     }
 
@@ -1589,7 +1589,7 @@ function displayPopup($template) {
 
       foreach ( $Video as $vid ) {
         $thumbnail = getYoutubeThumbnail($vid);
-        $card .= "<a class='screenshot videoButton mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+        $card .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
     }
     $card .= "</div>";

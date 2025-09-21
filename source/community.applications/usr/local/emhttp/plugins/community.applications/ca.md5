@@ -2,8 +2,8 @@ f1ef7d9d097bcbd955cf7cbeb6226930  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 2491d72544be3002226ff2e9a3654295  ./ca_settings.page
-5522cb82039c3e9e7645f6f18cf492e3  ./default.cfg
-f0b7bfd112d1e1b9e8a353fbdb26e2fb  ./include/exec.php
+567d4ae1a85199102da4bff221e58aa6  ./default.cfg
+9c4f64b943d0dd659d756b2a14e9c5d1  ./include/exec.php
 cafc6fcb3ebc8597f41ae7ffe3e59823  ./include/helpers.php
 36278d14117c4fab068c6f35ac7ce69a  ./include/paths.php
 deb9cceacd6ae3ea886c4ebec20204d8  ./javascript/helpers.js
@@ -22,7 +22,7 @@ dbfc21b36f4b185313569aca4175812b  ./scripts/installMultiPlugin.php
 5846421e95b475e1156c3f68164ccc4f  ./scripts/languageInstall.sh
 e5bc131b5209db690654029b6f83141c  ./scripts/notices.php
 dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
-70744c698d2961c8b48109709811fad6  ./scripts/showStatistics.php
+e9cc93a853355548b83f4c942dc2f45a  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
 4b69183dfc66d8eb5a2bbc602fd5c034  ./skins/Narrow/styles/community.applications.colors.css
@@ -33,4 +33,4 @@ ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css
 6f5ba379eb0ccbeccf2def6dbbf535f2  ./skins/Narrow/themes/gray.css
 1a29acdfc05938414ba232b1e888a3b1  ./skins/Narrow/themes/white.css
 a5e722af03f76c76814c3845881871bb  ./skins/Narrow/skin.html
-56f7af14c2e03703f650d806ecf725e3  ./skins/Narrow/skin.php
+a90425e10f0e5f8e88dd06e0862d9a1b  ./skins/Narrow/skin.php

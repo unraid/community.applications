@@ -41,7 +41,7 @@ $caSettings['unRaidVersion'] = $unRaidSettings['version'];
 $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";
 $caSettings['dynamixTheme']  = $dynamixSettings['theme'];
 
-$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 24; // Handle possible corruption on file
+$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 12; // Handle possible corruption on file
 if ( $caSettings['maxPerPage'] < 12 ) $caSettings['maxPerPage'] = 12;
 
 if ( ! is_file($caPaths['warningAccepted']) )
