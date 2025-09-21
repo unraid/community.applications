@@ -986,25 +986,16 @@ function getRepoDescriptionSkin($repository) {
     $t .= "<div>";
     if ( isset($repo['Photo']) ) {
       $photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
-      $t .= "<div>";
       foreach ($photos as $shot) {
         $t .= "<a class='screenshot' href='".trim($shot)."'><img class='screen' src='".trim($shot)."' onerror='this.style.display=&quot;none&quot;'></img></a>";
       }
-      $t .= "</div>";
     }
     if ( isset($repo['Video']) ) {
-      if ( isset($repo['Photo']) )
-        $t .= "<div><hr></div>";
-
       $videos = is_array($repo['Video']) ? $repo['Video'] : [$repo['Video']];
-      $vidText = (count($videos) == 1) ? "Play Video" : "Play Video %s";
-      $t .= "<div>";
-      $count = 1;
       foreach ($videos as $vid) {
-        $t .= "<a class='screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
-        $count++;
+        $thumbnail = getYoutubeThumbnail($vid);
+        $t .= "<a class='screenshot videoButton mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
-      $t .= "</div>";
     }
 
     $t .= "</div>";
@@ -1581,34 +1572,27 @@ function displayPopup($template) {
     ";
   }
   if ( $Screenshot || $Photo || $Video) {
+    $card .= "<div>";
     if ( $Screenshot || $Photo ) {
       $pictures = $Screenshot ? $Screenshot : $Photo;
       if ( ! is_array($pictures) )
         $pictures = [$pictures];
 
-      $card .= "<div>";
       foreach ($pictures as $shot) {
         $card .= "<a class='screenshot mfp-image' href='".trim($shot)."'><img class='screen' src='".trim($shot)."'></img></a>";
       }
-      $card .= "</div>";
     }
 
     if ( $Video ) {
-      if ( $Screenshot || $Photo ) {
-        $card .= "<div><hr></div>";
-      }
       if ( ! is_array($Video) )
         $Video = [$Video];
 
-      $vidText = (count($Video) == 1) ? "Play Video" : "Play Video %s";
-      $card .= "<div>";
-      $count = 1;
       foreach ( $Video as $vid ) {
-        $card .= "<a class='caButton screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
-        $count++;
+        $thumbnail = getYoutubeThumbnail($vid);
+        $card .= "<a class='screenshot videoButton mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
-      $card .= "</div>";
     }
+    $card .= "</div>";
   }
   $appType = $Plugin ? tr("Plugin") : tr("Docker");
   $appType = $Language ? tr("Language") : $appType;

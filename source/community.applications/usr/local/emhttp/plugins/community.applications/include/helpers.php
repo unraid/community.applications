@@ -983,6 +983,24 @@ function checkServerDate() {
     return true;
 }
 
+##################################
+# Get youtube thumbnail from URL #
+##################################
+function getYoutubeThumbnail($url) {
+  // Handle youtu.be short URLs
+  if (preg_match('/https:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+    return 'https://img.youtube.com/vi/' . $matches[1] . '/default.jpg';
+  }
+  
+  // Handle youtube.com/watch?v= URLs
+  if (preg_match('/https:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+    return 'https://img.youtube.com/vi/' . $matches[1] . '/default.jpg';
+  }
+  
+  // Return original URL if no match found
+  return $url;
+}
+
 ##################################################################################
 # Adds in all the various missing entries from the templates for PHP8 compliance #
 ##################################################################################

@@ -89,11 +89,6 @@ a {
   overflow: hidden;
   min-height: 100rem;
 }
-/*
-.ca_display_area.mobileMenu {
-  opacity: 0.4;
-}
-*/
 
 .mainArea {
   right: 0px;
@@ -331,11 +326,6 @@ a.caButton:hover {
   font-size: 1rem;
 }
 
-#dropdown-maxPerPage {
- /* position: relative;
-  right: 4rem;*/
-}
-
 /* Form Elements */
 input[type="checkbox"] {
   width: 2rem;
@@ -560,14 +550,6 @@ input[type="button"][disabled] {
 
 .noClick {
   cursor: default !important;
-}
-
-/* Responsive Design */
-@media screen and (max-width: 800px) and (orientation: landscape),
-  screen and (max-height: 300px) {
-    .mobileHolderFix {
-      margin-bottom: 2rem !important;
-   }
 }
 
 /* Icon and Symbol Styles */
@@ -1361,11 +1343,6 @@ input[type=button][disabled] {
   background-color: none !important;
 }
 
-
-.mobileHolderFix {
-  margin-bottom: 2rem !important;
-}
-
 .modComment {
   padding: 2rem;
   border: 1px solid;
@@ -1407,10 +1384,6 @@ input[type=button][disabled] {
   position: fixed;
   bottom: 0;
   background-color: var(--ca-legacy-background-color);
-}
-
-.myReadmoreButton {
-  color: var(--ca-blue-color);
 }
 
 .notice.shift {
@@ -1767,6 +1740,7 @@ a.popUpLink {
   margin-bottom: 2rem;
 }
 
+/* might be coming from magnific popup - leave in place */
 .screen {
   border: 1px solid;
   border-radius: 5px 5px 5px 5px;
@@ -1821,7 +1795,6 @@ a.popUpLink {
 
 #searchBox {
   left: var(--search-area-left);
-
   margin-left: 0rem;
   margin-right: 0;
   margin-bottom: 1rem;
@@ -1898,9 +1871,11 @@ a.popUpLink {
   height: 24rem !important;
   margin-bottom: 1rem;
 }
+/* might not be needed
 .Theme--legacyOS .caHomeSpotlight {
   height: 27rem !important;
 }
+*/
 
 .spotlightHeader {
   font-size: 2rem;
@@ -2597,4 +2572,26 @@ img.mfp-img {
 
 .mfp-fade.mfp-wrap.mfp-removing .mfp-content {
   opacity: 0;
+}
+
+/* Video Play Overlay */
+.videoPlayOverlay::after {
+  content: '\f144'; /* Font Awesome play-circle icon */
+  font-family: 'fontAwesome';
+  font-weight: 900;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.75);
+  font-size: 3em;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.videoPlayOverlay:hover::after {
+  color: var(--unraid-66-color);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%) scale(1.0);
 }
