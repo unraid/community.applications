@@ -334,11 +334,30 @@ $(function(){
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
 
+  // 
+  function resizeDebounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  const debouncedOrientationHandler = resizeDebounce(function() {
+    resizeDebouncedOrientationHandler();
+  }, 300);
+
+  const resizeDebouncedOrientationHandler = resizeDebounce(function() {
+    saveState();
+    window.location.replace("/Apps/Apps");
+  }, 100);
+
   $(window).on('orientationchange resize', function() {
-    setTimeout(function() {
-      saveState();
-      window.location.replace("/Apps/Apps");
-    }, 100);
+    setTimeout(debouncedOrientationHandler, 100);
   });
   
   // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
