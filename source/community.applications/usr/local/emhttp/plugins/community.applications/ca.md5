@@ -1,4 +1,4 @@
-35ae319a934cfd7b155adbc836392001  ./Apps.page
+6d1f26b32bdf9d2b6046f25fd0682e40  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 2491d72544be3002226ff2e9a3654295  ./ca_settings.page
@@ -26,7 +26,7 @@ e9cc93a853355548b83f4c942dc2f45a  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
 4b69183dfc66d8eb5a2bbc602fd5c034  ./skins/Narrow/styles/community.applications.colors.css
-1182b36e05b0e23be5356b3a4ad6b461  ./skins/Narrow/styles/community.applications.css
+d7af3285748365227542e981ecb5f238  ./skins/Narrow/styles/community.applications.css
 9c982610b15aa2d0c4701e522377ef37  ./skins/Narrow/styles/community.applications.responsive.css
 2a2e075b43ddd2e9779514821b9efbc4  ./skins/Narrow/themes/azure.css
 ac34abe83a5253b9a95b3d15ab6b0d32  ./skins/Narrow/themes/black.css
