@@ -775,7 +775,7 @@ function get_content() {
   $category    = getPost("category",false);
   $newApp      = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
   $mobileDevice = filter_var(getPost("mobileDevice",false),FILTER_VALIDATE_BOOLEAN);
-  
+
   if ( $mobileDevice ) {
     $caSettings['maxPerPage'] = 12;
   }
@@ -1026,26 +1026,38 @@ function get_content() {
         $searchResults['favNameHit'][] = $template;
         continue;
       }
-      if ( strpos($filter,"/") && filterMatch($filter,[$template['Repository']]) )
+      
+      if ( strpos($filter,"/") && filterMatch($filter,[$template['Repository']]) ) {
         $searchResults['nameHit'][] = $template;
-      else {
-        if ( filterMatch($filter,[$template['SortName']??null,$template['RepoShort']??null,$template['Language']??null,$template['LanguageLocal']??null,$template['ExtraSearchTerms']??null]) ) {
-          if ( filterMatch($filter,[$template['ExtraSearchTerms']??null]) && ($template['ExtraPriority']??null) )
-            $searchResults['extraHit'][] = $template;
-          else
-            $searchResults['nameHit'][] = $template;
-        } elseif ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
-          if ( $template['RepoName'] == $caSettings['favourite']??null ) {
-            $searchResults['nameHit'][] = $template;
-          } else {
-            $searchResults['anyHit'][] = $template;
-          }
-        } else continue;
+        continue;
       }
+      if ( filterMatch($filter,[$template['SortName']??null,$template['RepoShort']??null,$template['Language']??null,$template['LanguageLocal']??null]) ) {
+        if ( $template['LTOfficial']??false || $template['Official']??false) {
+          $searchResults['officialHit'][] = $template;
+          continue;
+        } else {
+          $searchResults['nameHit'][] = $template;
+          continue;
+        }
+      }
+      if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null,$template['ExtraSearchTerms']??null]) ) {
+        if ( $template['RepoName'] == $caSettings['favourite']??null ) {
+          $searchResults['nameHit'][] = $template;
+        } else {
+          $searchResults['anyHit'][] = $template;
+        }
+      } 
+      
+    } else {
+      $display[] = $template;
     }
-    $display[] = $template;
   }
   if ( $filter ) {
+    if ( isset($searchResults['officialHit']) ) {
+      usort($searchResults['officialHit'],"mySort");
+    } else {
+      $searchResults['officialHit'] = [];
+    }
     if ( isset($searchResults['nameHit']) ) {
       usort($searchResults['nameHit'],"mySort");
       if ( ! strpos($filter," Repository") ) {
@@ -1072,7 +1084,7 @@ function get_content() {
     else
       $searchResults['extraHit'] = [];
 
-    $displayApplications['community'] = array_merge($searchResults['extraHit'],$searchResults['favNameHit'],$searchResults['nameHit'],$searchResults['anyHit']);
+    $displayApplications['community'] = array_merge($searchResults['officialHit'],$searchResults['nameHit'],$searchResults['favNameHit'],$searchResults['anyHit'],$searchResults['extraHit']);
   } else {
     usort($display,"mySort");
     $displayApplications['community'] = $display;

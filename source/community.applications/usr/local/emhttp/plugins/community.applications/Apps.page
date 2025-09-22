@@ -546,6 +546,17 @@ $(function(){
           closeMenu();
           return;
         }
+        if ( $("#searchBox").is(":focus") && ! $("#searchBox").prop("disabled") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          if ($('#searchButton').hasClass('fa-remove')) {
+            $(".searchSubmit").trigger("click");
+          } else {
+            $("#searchBox").val("");
+          }
+          
+          return;
+        }
         break;
       case 37:
         if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
@@ -911,26 +922,6 @@ $(function(){
     $.post('/plugins/community.applications/scripts/debugging.php',{file:filename},function(zip) {
       location = zip;
     });
-  });
-
-  $(".clearSearch").click(function() {
-    if ( $(this).hasClass("caMenuEnabled") ) {
-      var sortButton = false;
-      $(".sortIcons").each(function() {
-        if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-          sortButton = true;
-        }
-      });
-      if ( !sortButton) {
-        $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-        post({action:"defaultSortOrder"},function(data) {
-          $("#defaultSort").addClass("enabledIcon");
-          doSearch(true);
-        });
-      } else {
-        doSearch(true);
-      }
-    }
   });
 
   $(".dockerSearch").click(function()         { initDockerSearch(); });
@@ -1423,7 +1414,6 @@ function closeSidebar(cookie=false,visible=false) {
   $(".sidebar").fadeOut();
   $(".nav-user.show").show();
   enableSearch();
-  giveSearchFocus();
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
@@ -2272,7 +2262,6 @@ function updateDisplay(content) {
     var ID = $(this).attr("id");
     context.destroy("#"+ID);
   });
-  giveSearchFocus(); // This has to be before the content is loaded.  The updated HTML might contain a script to auto open the sidebar
   $("#templates_content").html(content);
   if ( $(".multi_installDiv").is(":visible") ) {
     $(".navigationSection").addClass("navigationSectionShift");
@@ -2393,7 +2382,6 @@ function restoreState() {
 
 }
 function showAlternateView() {
-  removeSearchFocus();
   $("#alternateView").show();
   $("body").addClass("body_sidebarScroll");
 }
@@ -2402,7 +2390,6 @@ function hideAlternateView() {
   $("#alternateView").hide();
   $("#alternateView,.ca_display_area").removeClass("mobileMenu");
   $("body").removeClass("body_sidebarScroll");
-  giveSearchFocus();
 }
 
 function showCredits() {
@@ -2913,7 +2900,6 @@ function popUpChart(descData) {
 }
 
 function showSidebarApp(apppath,appname) {
-  removeSearchFocus();
   disableSearch();
   clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
@@ -2979,7 +2965,6 @@ function showSidebarApp(apppath,appname) {
       });
     })
   },500);
-  $(".sidebar").focus();
 }
 
 function showRepoPopup(repository) {

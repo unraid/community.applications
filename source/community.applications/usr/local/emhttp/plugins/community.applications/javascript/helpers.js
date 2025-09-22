@@ -394,21 +394,3 @@ function setupSwalDim() {
   });
   $(".sweet-alert").addClass("triggerClassChange");
 }
-
-// Give the search box focus
-function giveSearchFocus() {
-  // check if the search box is visible or if the sidebar or alternate view is visible.  Kill the focus just in case
-  if ( ! $("#searchBox").is(":visible") || $("sidebar").is(":visible") || $("#alternateView").is(":visible") || $("#searchBox").prop("disabled") ) {
-    removeSearchFocus();
-    return;
-  }
-  console.log("Giving search box focus");
-  $("#searchBox").focus();
-}
-
-// Remove the search box focus
-function removeSearchFocus() {
-  console.log("Removing search box focus");
-  $("#searchBox").blur();
-  disableSearch();
-}
