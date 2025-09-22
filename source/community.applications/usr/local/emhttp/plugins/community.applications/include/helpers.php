@@ -1005,110 +1005,33 @@ function getYoutubeThumbnail($url) {
 # Adds in all the various missing entries from the templates for PHP8 compliance #
 ##################################################################################
 function addMissingVars($o) {
-  if ( ! is_array($o) )
+  if (!is_array($o)) {
     return $o;
-  $vars = [
-    'Category',
-    'CategoryList',
-    'CABlacklist',
-    'Blacklist',
-    'MinVer',
-    'MaxVer',
-    'UpdateMinVer',
-    'Plugin',
-    'PluginURL',
-    'Date',
-    'DonateText',
-    'DonateLink',
-    'Branch',
-    'OriginalOverview',
-    'DateInstalled',
-    'Config',
-    'trending',
-    'CAComment',
-    'ModeratorComment',
-    'DeprecatedMaxVer',
-    'downloads',
-    'FirstSeen',
-    'OriginalDescription',
-    'Deprecated',
-    'RecommendedRaw',
-    'Language',
-    'RequiresFile',
-    'Requires',
-    'trends',
-    'Description',
-    'OriginalDescription',
-    'Overview',
-    'Repository',
-    'Tag',
-    'Plugin',
-    'CaComment',
-    'IncompatibleVersion',
-    'Private',
-    'BranchName',
-    'display',
-    'RepositoryTemplate',
-    'bio',
-    'NoInstall',
-    'Twitter',
-    'Discord',
-    'Reddit',
-    'Facebook',
-    'ReadMe',
-    'display_dockerName',
-    'actionCentre',
-    'SupportLanguage',
-    'DockerHub',
-    'Official',
-    'Removable',
-    'IconFA',
-    'imageNoClick',
-    'RecommendedDate',
-    'UpdateAvailable',
-    'Installed',
-    'Uninstall',
-    'caTemplateExists',
-    'Support',
-    'Beta',
-    'Project',
-    'Trusted',
-    'InstallPath',
-    'LanguagePack',
-    'trendDelta',
-    'RepoTemplate',
-    'ExtraSearchTerms',
-    'Icon',
-    'LanguageDefault',
-    'translatedCategories',
-    'RepoShort',
-    'LanguageLocal',
-    'ExtraPriority',
-    'Registry',
-    'caTemplateURL',
-    'Changes',
-    'ChangeLogPresent',
-    'Photo',
-    'Screenshot',
-    'Video',
-    'RecommendedReason',
-    'stars',
-    'LanguageURL',
-    'LastUpdate',
-    'RecommendedWho',
-    'RepoName',
-    'SortName',
-    'ca_fav',
-    'Pinned'
-
-
-    ];
-
-  foreach ($vars as $var) {
-    $o[$var] = $o[$var] ?? null;
   }
-  return $o;
+  
+  // Static array to avoid recreation on each call
+  static $requiredVars = [
+    'Category', 'CategoryList', 'CABlacklist', 'Blacklist', 'MinVer', 'MaxVer', 'UpdateMinVer',
+    'Plugin', 'PluginURL', 'Date', 'DonateText', 'DonateLink', 'Branch', 'OriginalOverview',
+    'DateInstalled', 'Config', 'trending', 'CAComment', 'ModeratorComment', 'DeprecatedMaxVer',
+    'downloads', 'FirstSeen', 'OriginalDescription', 'Deprecated', 'RecommendedRaw', 'Language',
+    'RequiresFile', 'Requires', 'trends', 'Description', 'Overview', 'Repository', 'Tag',
+    'CaComment', 'IncompatibleVersion', 'Private', 'BranchName', 'display', 'RepositoryTemplate',
+    'bio', 'NoInstall', 'Twitter', 'Discord', 'Reddit', 'Facebook', 'ReadMe', 'display_dockerName',
+    'actionCentre', 'SupportLanguage', 'DockerHub', 'Official', 'Removable', 'IconFA',
+    'imageNoClick', 'RecommendedDate', 'UpdateAvailable', 'Installed', 'Uninstall',
+    'caTemplateExists', 'Support', 'Beta', 'Project', 'Trusted', 'InstallPath', 'LanguagePack',
+    'trendDelta', 'RepoTemplate', 'ExtraSearchTerms', 'Icon', 'LanguageDefault',
+    'translatedCategories', 'RepoShort', 'LanguageLocal', 'ExtraPriority', 'Registry',
+    'caTemplateURL', 'Changes', 'ChangeLogPresent', 'Photo', 'Screenshot', 'Video',
+    'RecommendedReason', 'stars', 'LanguageURL', 'LastUpdate', 'RecommendedWho', 'RepoName',
+    'SortName', 'ca_fav', 'Pinned'
+  ];
 
+  // Use array_fill_keys for better performance than foreach loop
+  $missingVars = array_diff_key(array_fill_keys($requiredVars, null), $o);
+  
+  return $o + $missingVars;
 }
 
 /**
