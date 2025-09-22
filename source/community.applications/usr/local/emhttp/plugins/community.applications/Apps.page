@@ -1422,6 +1422,8 @@ function closeSidebar(cookie=false,visible=false) {
   $("body").removeClass("body_sidebarScroll");
   $(".sidebar").fadeOut();
   $(".nav-user.show").show();
+  enableSearch();
+  giveSearchFocus();
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
@@ -2270,6 +2272,7 @@ function updateDisplay(content) {
     var ID = $(this).attr("id");
     context.destroy("#"+ID);
   });
+  giveSearchFocus(); // This has to be before the content is loaded.  The updated HTML might contain a script to auto open the sidebar
   $("#templates_content").html(content);
   if ( $(".multi_installDiv").is(":visible") ) {
     $(".navigationSection").addClass("navigationSectionShift");
@@ -2390,6 +2393,7 @@ function restoreState() {
 
 }
 function showAlternateView() {
+  removeSearchFocus();
   $("#alternateView").show();
   $("body").addClass("body_sidebarScroll");
 }
@@ -2398,6 +2402,7 @@ function hideAlternateView() {
   $("#alternateView").hide();
   $("#alternateView,.ca_display_area").removeClass("mobileMenu");
   $("body").removeClass("body_sidebarScroll");
+  giveSearchFocus();
 }
 
 function showCredits() {
@@ -2908,6 +2913,8 @@ function popUpChart(descData) {
 }
 
 function showSidebarApp(apppath,appname) {
+  removeSearchFocus();
+  disableSearch();
   clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
   $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});

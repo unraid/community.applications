@@ -774,7 +774,8 @@ function get_content() {
   $filter      = getPost("filter",false);
   $category    = getPost("category",false);
   $newApp      = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
-  $mobileDevice = getPost("mobileDevice",false);
+  $mobileDevice = filter_var(getPost("mobileDevice",false),FILTER_VALIDATE_BOOLEAN);
+  
   if ( $mobileDevice ) {
     $caSettings['maxPerPage'] = 12;
   }

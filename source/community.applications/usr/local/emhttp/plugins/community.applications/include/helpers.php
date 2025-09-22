@@ -1001,6 +1001,7 @@ function getYoutubeThumbnail($url) {
   return $url;
 }
 
+
 ##################################################################################
 # Adds in all the various missing entries from the templates for PHP8 compliance #
 ##################################################################################
