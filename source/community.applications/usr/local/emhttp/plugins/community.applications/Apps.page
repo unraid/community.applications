@@ -609,11 +609,6 @@ $(function(){
     });
   });
 
-  $('body').on("click",".dockerUpdate",function() {
-    var container = $(this).attr("data-name");
-    updateDocker(container);
-  });
-
   $('body').on("click",".fav,.nonfav",function() {
     setFavourite(this);
   });
@@ -678,11 +673,6 @@ $(function(){
     });
   });
 
-  $('body').on("click",".displayTags",function() {
-    var id = $(this).data("id");
-    displayTags(id);
-  });
-
   $('body').on("click",".pluginInstall",function() {
     var plugin = $(this).data("url");
     var type = $(this).data("update") ? true : false;
@@ -703,7 +693,7 @@ $(function(){
     }
   });
 
-  $("body").on("click",".repoPopup,.ca_repoinfo,.ca_reporeadmore,.ca_repoFromPopUp,.cardDescriptionRepo", function() {
+  $("body").on("click",".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function() {
     event.stopPropagation();
     var repository = $(this).data("repository");
     showRepoPopup(repository);
@@ -1334,11 +1324,6 @@ function getContent(init,category,description,newApp,startupDisplay) {
       }
     });
   }
-}
-
-function changeMaxPerPage(max) {
-  postNoSpin({action:"changeMaxPerPage",max:max},function(){
-  });
 }
 
 function downloadStatistics() {
@@ -2293,7 +2278,7 @@ function updateDisplay(content) {
   });
 
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText").fitText(true);
+  $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
 
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
