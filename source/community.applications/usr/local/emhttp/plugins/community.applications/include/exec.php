@@ -1038,7 +1038,7 @@ function get_content() {
         continue;
       }
       if ( filterMatch($filter,[$template['SortName']??null,$template['RepoShort']??null,$template['Language']??null,$template['LanguageLocal']??null]) ) {
-        if ( $template['LTOfficial']??false || $template['Official']??false) {
+        if ( ($template['LTOfficial']??false) || ($template['Official']??false) ) {
           $searchResults['officialHit'][] = $template;
           continue;
         } else {
@@ -1046,6 +1046,10 @@ function get_content() {
             $searchResults['officialHit'][] = $template;
             continue;
           } else {
+            if ( strtolower(trim($template['Name'])) == strtolower(trim($filter)) ) {
+              $searchResults['fullNameHit'][] = $template;
+              continue;
+            }
             $searchResults['nameHit'][] = $template;
             continue;
           }
@@ -1064,6 +1068,11 @@ function get_content() {
     }
   }
   if ( $filter ) {
+    if ( isset($searchResults['fullNameHit']) ) {
+      usort($searchResults['fullNameHit'],"mySort");
+    } else {
+      $searchResults['fullNameHit'] = [];
+    }
     if ( isset($searchResults['officialHit']) ) {
       usort($searchResults['officialHit'],"mySort");
     } else {
@@ -1095,7 +1104,7 @@ function get_content() {
     else
       $searchResults['extraHit'] = [];
 
-    $displayApplications['community'] = array_merge($searchResults['officialHit'],$searchResults['nameHit'],$searchResults['favNameHit'],$searchResults['anyHit'],$searchResults['extraHit']);
+    $displayApplications['community'] = array_merge($searchResults['officialHit'],$searchResults['fullNameHit'],$searchResults['nameHit'],$searchResults['favNameHit'],$searchResults['anyHit'],$searchResults['extraHit']);
   } else {
     usort($display,"mySort");
     $displayApplications['community'] = $display;
