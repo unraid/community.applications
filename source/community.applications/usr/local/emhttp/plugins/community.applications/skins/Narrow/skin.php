@@ -459,30 +459,30 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
   $o .= "<div class='pageNavigation'>";
   $previousPage = $pageNumber - 1;
-  $o .= ( $pageNumber == 1 ) ? "<span class='pageLeft pageNumber pageNavNoClick'></span>" : "<span class='pageLeft ca_tooltip pageNumber' onclick='$pageFunction(&quot;$previousPage&quot;)'></span>";
+  $o .= ( $pageNumber == 1 ) ? "<span class='pageLeft pageNumber pageNavNoClick'></span>" : "<span class='pageLeft pageNumber' onclick='$pageFunction(&quot;$previousPage&quot;)'></span>";
   $swipeScript .= "data.prevpage = $previousPage;";
   $startingPage = $pageNumber - 5;
   if ($startingPage < 3 )
     $startingPage = 1;
   else
-    $o .= "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a><span class='pageDots'></span>";
+    $o .= "<a class='pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a><span class='pageDots'></span>";
 
   $endingPage = $pageNumber + 5;
   if ( $endingPage > $totalPages )
     $endingPage = $totalPages;
 
   for ($i = $startingPage; $i <= $endingPage; $i++)
-    $o .= ( $i == $pageNumber ) ? "<span class='pageNumber pageSelected'>$i</span>" : "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
+    $o .= ( $i == $pageNumber ) ? "<span class='pageNumber pageSelected'>$i</span>" : "<a class='pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
 
   if ( $endingPage != $totalPages) {
     if ( ($totalPages - $pageNumber ) > 6)
       $o .= "<span class='pageDots'></span>";
 
     if ( ($totalPages - $pageNumber ) >5 )
-      $o .= "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
+      $o .= "<a class='pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
   }
   $nextPage = $pageNumber + 1;
-  $o .= ( $pageNumber < $totalPages ) ? "<span class='ca_tooltip pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
+  $o .= ( $pageNumber < $totalPages ) ? "<span class='pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
   $swipeScript .= ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
   $swipeScript .= "</script>";
   $o .= "</div></div></div><script>data.currentpage = $pageNumber;</script>";
@@ -1091,7 +1091,7 @@ function displaySearchResults($pageNumber) {
 
   foreach ($file as $result) {
     $result['Icon'] = "/plugins/dynamix.docker.manager/images/question.png";
-    $result['display_dockerName'] = "<a class='ca_tooltip ca_applicationName ellipsis' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
+    $result['display_dockerName'] = "<a class='ca_applicationName ellipsis' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
     $result['Category'] = "Docker&nbsp;Hub&nbsp;Search";
     $result['Description'] = $result['Description'] ?: tr("No description present");
     $result['Compatible'] = true;
@@ -1304,9 +1304,9 @@ function displayCard($template) {
   }
   $checked = $checked ?? "";
   if ($Removable && !($DockerInfo ?? false) && ! $Installed && ! $Blacklist) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
+    $card .= "<input class='ca_multiselectl' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
   } elseif ( $actionCentre && $UpdateAvailable ) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
+    $card .= "<input class='ca_multiselect' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
   }
 
   $card .= "</div>";

@@ -6,6 +6,11 @@ body {
   cursor: default !important;
 }
 
+.caLogoIcon::before {
+  content: "\f0c0";
+  font-family: fontAwesome;
+}
+
 #maxHomeApps {
   display: none;
   z-index: 0;
@@ -289,6 +294,9 @@ a {
   background-size: 100% 100%;
   border-radius: 15px;
 }
+.popupDescription, .popupRepoDescription {
+  background: var(--support-popup-background);
+}
 .caButton {
   cursor: pointer;
 }
@@ -386,7 +394,9 @@ input[type="button"][disabled] {
   height: auto;
   display: none;
 }
-
+.ca_hide{
+  display: none;
+}
 .menuShowing.hideWithMenu,#searchFilter.menuShowing {
   display: none;
 
@@ -444,6 +454,7 @@ input[type="button"][disabled] {
   display: block;
 }
 .menuItems.menuShowing {
+  padding-top: 3rem;
   padding-left: 5rem;
   padding-right: 5rem;
 }

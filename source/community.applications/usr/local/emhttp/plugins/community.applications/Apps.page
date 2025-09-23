@@ -502,6 +502,14 @@ $(function(){
     doSearch(true);
   });
 
+  $("#searchBox").on("input", function() {
+    if ( ! $("#searchBox").val() ) {
+      $("#searchButton").addClass("fa-search").removeClass("fa-remove");
+    } else {
+      $("#searchButton").addClass("fa-remove").removeClass("fa-search");
+    }
+  });
+
   $("#searchBox").keydown(function(e) {
     if (e.which === 13) {
       e.stopPropagation();
@@ -1282,9 +1290,8 @@ function changeSortOrder(button,buttonClass,previousApps) {
 function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
-  var maxHomeApps = 5; // Maximum number of apps to display in each row on home page
-
-
+  var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
+  
   enableSearch();
 
   if ( category != "NONE" ) {
