@@ -1,64 +1,85 @@
-.caHomeSpotlight {
-    height: fit-content;
-    min-height: 27rem;
-    max-height: 54rem;
+@media (min-width: 769px) {
+  .mobileOverlay {
+    display: none !important;
+  }
+}
+@media (max-width: 1024px) {
+  .searchAreaHolder {
+    height:4rem;
+    padding-left: 2rem;
+  }
+  .Theme--sidebar .searchAreaHolder {
+    margin-left: 6rem;
+  }
+  .searchArea {
+    padding-left: 0;
+    margin-left: 0;
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --mobileDevice: true;
+  }
+  body {
+    overflow-x: unset !important;
+    width: initial;
+  }
+  .searchAreaHolder {
+    top: var(--search-area-mobile-top);
+  }
+ 
+  .mobileMenu {
+    position: absolute;
+    display: none;
+    z-index: 5;
   }
 
-  /* Only used to calculate the number of apps on home page by forcing the display area to include the scroll bar */
-  .maxPerPageCalc {
-    overflow-y: scroll !important;
+  .mobileMenu.menuHidden{
+    display: none;
   }
-  @media (max-width: 768px) {
-    body {
-      overflow-x: unset !important;
-      width: initial;
-    }
-    .menuItems {
-      display: none;
-    }
-    .menuItemsHidden {
-      display: inline-block;
-    }
-    .closeMenuButton {
-      display: none;
-    }
+  .mobileMenu.menuShowing {
+    width: 20rem;
+    padding-left:2rem;
+  }
 
-    .mainArea {
-      left: 0;
-      padding-left: 1rem;
-    }
-    #searchFilter {
-      left: 3rem;
-    }
-   #searchBox {
+  .mobileMenuButton {
+    display: inline-block;
+    z-index: 5;
+  }
+  .menuItems {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    top: 2rem;
+  }
+  .mainArea {
+    left: 0;
+    padding-left: 1rem;
+  }
+
+  #searchBox {
     width: 150px;
-   }
-    .searchArea {
-      margin-left: var(--search-area-mobile-left) !important;
-      top: var(--search-area-mobile-top);
-      padding-top:1.5rem;
-      height:4rem;
-    }
-    .multi_installDiv {
-      position: relative;
-    }
-    .navigationSection {
-      bottom: 0 !important;
-      position: relative;
-    }
-    .altCategoryLine {
-      display: none;
-    }
-    .categoryLine {
-      display: none;
-    }
-    .maxPerPage {
-      display: none !important;
-    }
-    .categoryLineNoMenu {
-      display: inline-block;
-    }
-    #templates_content {
-      margin-bottom: 0;
-    }
   }
+
+  .multi_installDiv {
+    position: relative;
+  }
+  .navigationSection {
+    bottom: 0 !important;
+    position: relative;
+  }
+  .altCategoryLine {
+    display: none;
+  }
+  .categoryLine {
+    display: none;
+  }
+  .maxPerPage {
+    display: none !important;
+  }
+  .categoryLineNoMenu {
+    display: inline-block;
+  }
+  #templates_content {
+    margin-bottom: 0;
+  }
+}

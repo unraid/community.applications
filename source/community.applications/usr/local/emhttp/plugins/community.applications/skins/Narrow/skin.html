@@ -1,25 +1,23 @@
-<div class='searchArea onlyShowWithFeed'>
-  <div class='menuItemsHidden menuAdjust'>
-    <div class='showMenuButton'></div>
-  </div>
-  <div class='mobileMenuClose menuAdjust'>
-    <div class="menuClose caButton"><?tr("CLOSE");?></div>
-  </div>
-  <span class='hideWithMenu menuAdjust'>
-    <span id='searchFilter'>
+<div class="searchAreaHolder menuAdjust">
+  <div class='searchArea onlyShowWithFeed'>
+    <div class='mobileMenuButton'>
+      <div class='showMenuButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
+      <div class='closeMenuButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
+    </div>
+    <div id='searchFilter' class='hideWithMenu'>
       <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
       <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-      <div class='dockerSearch caButton' style='display:none'><?tr("DockerHub");?></div>
-      <div class='templateSearch caButton' style='display:none'><?tr("Apps")?></div>
-      <div class="category categoryLine"></div>
-      <div class="category altCategoryLine"></div>
-    </span>
-    <span class='caButton maxPerPage' id='maxPerPage'></span>
-  </span>
+    </div>
+    <div class='caButton maxPerPage hideWithMenu' id='maxPerPage'></div>
+    <div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
+    <div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
+    <div class='category categoryLine hideWithMenu'></div>
+    <div class='category altCategoryLine hideWithMenu'></div>
+  </div>
 </div>
 <div class='ca_display_area'>
-  <div class='mobileMenu menuAdjust'>
-    <div class="mobileMenuOverlay menuAdjust"></div>
+  <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
+  <div class='mobileMenu' id='mobileMenu'>
     <div class='menuItems menuAdjust'>
       <ul class='caMenu '>
         <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
@@ -62,7 +60,7 @@
       </ul>
     </div>
   </div>
-  <div class='mainArea'>
+  <div class='mainArea menuAdjust'>
     <div id='sortIconArea' class='menuAdjust'>
       <div class="category categoryLineNoMenu"></div>
       <?tr("Sort By:");?>
@@ -76,7 +74,7 @@
       <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
       <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
       <input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
-      <input type='button' class='multi_deleteButton' value='<?tr("Delete");?>' style='display:none'>
+      <input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
     </div>
   </div>
 </div>
@@ -84,30 +82,32 @@
   <div class='caButton alternateViewClose'><?tr("CLOSE");?></div>
   <div class='alternateViewContent'></div>
 </div>
-<div id='caCredits' style='display:none;'>
-  <div class='credits'>
-    <div class='ca_center ca_creditTitle ca_creditLogo'><i class='fa fa-users'></i></div>
-    <div class='ca_center ca_creditTitle'>Community Applications</div>
-    <div class='ca_center ca_creditheader'><?tr("Development");?></div>
-    <div class='ca_center ca_credit'>Andrew Zawadzki</div>
-    <div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
-    <div class='ca_center ca_credit'>bonienl, Lime Technology Inc</div>
-    <div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
-    <div class='ca_center ca_credit'>Magnus Engø</div>
-    <div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
-    <div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
-    <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
-    <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
-    <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
-    <div class='ca_center ca_credit'>
-      <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
-      <div class='ca_libraries'>Chart.js (various)</div>
-      <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
-      <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
-      <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
+<div class='ca_hide'>
+  <div id='caCredits'>
+    <div class='credits'>
+      <div class='ca_center ca_creditTitle caLogoIcon'></div>
+      <div class='ca_center ca_creditTitle'>Community Applications</div>
+      <div class='ca_center ca_creditheader'><?tr("Development");?></div>
+      <div class='ca_center ca_credit'>Andrew Zawadzki</div>
+      <div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
+      <div class='ca_center ca_credit'>bonienl, Lime Technology Inc</div>
+      <div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
+      <div class='ca_center ca_credit'>Magnus Engø</div>
+      <div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
+      <div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
+      <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
+      <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
+      <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
+      <div class='ca_center ca_credit'>
+        <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
+        <div class='ca_libraries'>Chart.js (various)</div>
+        <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
+        <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
+        <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
+      </div>
+      <br>
+      <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
     </div>
-    <br>
-    <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
   </div>
 </div>
 <span id='debugging'></span>

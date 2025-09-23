@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.08.16">
-<!ENTITY md5       "b82eab36a250c338abc1e1e7ddbb4703">
+<!ENTITY version   "2025.09.23">
+<!ENTITY md5       "752f29395f6cf21bad5da88fd57c5d0a">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,6 +13,31 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2025.09.23
+- Fixed: Complete revamp of search results order to more accurately reflect reality of what is being searched for
+- Chore: Cleanup unused legacy CSS definitions
+- Fixed: Deleting contents of search input would leave the clear search button still visible resulting in oddities under certain circumstances
+- Fixed: If an app had multiple branches defined, if a branch tag was equivalent to the default tag both would appear as an option to select
+- Chore: Remove unused legacy event handlers
+- Added: Pressing ESC will now clear search box and go back to home if a search is in progress and search bar is in focus
+- Added: Search input will remain in focus if searching by pressing enter. After results appear typing can continue without using a mouse click
+- Added: Major optimization for gathering information on installed / previous plugins.
+- Changed: Default now for results per page when browsing or searching is 12 instead of 24
+- Added: Any videos attached to an application will now appear as a thumbnail in the sidebar instead of a button
+- Fixed: Various issues related to the hidden mobile menu if rotating the device
+- Changed: Complete overhaul of the mobile menu bar for coding simplicity
+- Removed: Automatically opening the sidebar if hovering over the application's icon
+- Changed: Reorganization of the buttons and DOM for the searchbar area
+- Fixed: Menu on mobile devices could have the last few items not showing on devices very old (10 years+)
+- Changed: Don't show spinner until after 0.25 second has elapsed on the request
+- Changed: More efficient storage of files.
+- Fixed: Significantly faster browsing or searching
+- Fixed: PHP8 warnings if emergency notifications enabled
+- Changed: Home page now displays 6 applications per section.  Scrollable if they don't have space to fit.
+- Changed: Code which may cause a forced reflow on slower clients resulting in degradaded performance of CA if Unraid Connect was installed
+- Fixed: Better handling of saving the state of CA when leaving the page to handle installing or editing a container
+- Changed: Remove contents of file downloaded from the debugging log
+
 ###2025.08.16
 - Fixed: Search bar wouldn't appear without scrolling if font size in Display Settings wasn't set to Normal
 - Fixed: Unable to delete checked off applications from Previous Apps

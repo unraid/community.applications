@@ -77,14 +77,6 @@ _(Allow install of second instance)_:
 
 > <?tr("This option enables another button on the cards and popups which will allow you to reinstall an installed application using it's default template values.  This option can be confusing at times, and is only generally used if you wish to install and have an application running twice simultaneously");?>
 
-_(Automatically open the sidebar)_:
-: <select class='narrow' name='sidebarOpen' size='1'>
-  <?=mk_option($cfg['sidebarOpen'],'yes',tr("Yes",true));?>
-  <?=mk_option($cfg['sidebarOpen'],'no',tr("No",true));?>
-  </select>
-
-> <?tr("Allows CA to automatically open the sidebar for more information when hovering over an application's icon");?>
-
 _(Allow CA to check for updates to applications)_:
 : <select class='narrow' name="updateCheck" size="1">
   <?=mk_option($cfg['updateCheck'],"yes",tr("Yes",true));?>

@@ -10,7 +10,7 @@
 ########################################
 
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths, $caSettings, $sortOrder;
+  global $caPaths;
 
   if ( is_file($caPaths['repositoriesDisplayed']) ) {
     $file = readJsonFile($caPaths['repositoriesDisplayed']);
@@ -30,7 +30,7 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
 }
 
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths, $caSettings, $plugin, $displayDeprecated, $sortOrder, $DockerTemplates, $DockerClient;
+  global $caPaths, $caSettings;
 
   $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
   $repositories = readJsonFile($caPaths['repositoryList']);
@@ -459,30 +459,30 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
   $o .= "<div class='pageNavigation'>";
   $previousPage = $pageNumber - 1;
-  $o .= ( $pageNumber == 1 ) ? "<span class='pageLeft pageNumber pageNavNoClick'></span>" : "<span class='pageLeft ca_tooltip pageNumber' onclick='$pageFunction(&quot;$previousPage&quot;)'></span>";
+  $o .= ( $pageNumber == 1 ) ? "<span class='pageLeft pageNumber pageNavNoClick'></span>" : "<span class='pageLeft pageNumber' onclick='$pageFunction(&quot;$previousPage&quot;)'></span>";
   $swipeScript .= "data.prevpage = $previousPage;";
   $startingPage = $pageNumber - 5;
   if ($startingPage < 3 )
     $startingPage = 1;
   else
-    $o .= "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a><span class='pageDots'></span>";
+    $o .= "<a class='pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a><span class='pageDots'></span>";
 
   $endingPage = $pageNumber + 5;
   if ( $endingPage > $totalPages )
     $endingPage = $totalPages;
 
   for ($i = $startingPage; $i <= $endingPage; $i++)
-    $o .= ( $i == $pageNumber ) ? "<span class='pageNumber pageSelected'>$i</span>" : "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
+    $o .= ( $i == $pageNumber ) ? "<span class='pageNumber pageSelected'>$i</span>" : "<a class='pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
 
   if ( $endingPage != $totalPages) {
     if ( ($totalPages - $pageNumber ) > 6)
       $o .= "<span class='pageDots'></span>";
 
     if ( ($totalPages - $pageNumber ) >5 )
-      $o .= "<a class='ca_tooltip pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
+      $o .= "<a class='pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
   }
   $nextPage = $pageNumber + 1;
-  $o .= ( $pageNumber < $totalPages ) ? "<span class='ca_tooltip pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
+  $o .= ( $pageNumber < $totalPages ) ? "<span class='pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>" : "<span class='pageRight pageNumber pageNavNoClick'></span>";
   $swipeScript .= ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
   $swipeScript .= "</script>";
   $o .= "</div></div></div><script>data.currentpage = $pageNumber;</script>";
@@ -494,12 +494,9 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 # Generate the display for the popup #
 ######################################
 function getPopupDescriptionSkin($appNumber) {
-  global $caSettings, $caPaths, $language, $DockerTemplates, $DockerClient;
+  global $caSettings, $caPaths, $language, $DockerClient;
 
-  $unRaidVars = parse_ini_file($caPaths['unRaidVars']);
-  $dockerVars = parse_ini_file($caPaths['docker_cfg']);
-  $csrf_token = $unRaidVars['csrf_token'];
-  $tabMode = '_parent';
+  getGlobals();
 
   $allRepositories = readJsonFile($caPaths['repositoryList']);
   $extraBlacklist = readJsonFile($caPaths['extraBlacklist']);
@@ -651,7 +648,9 @@ function getPopupDescriptionSkin($appNumber) {
       $templateURL = $template['caTemplateURL'] ?: $template['TemplateURL'];
       download_url($templateURL,$caPaths['pluginTempDownload'],"",5);
       $xml = readXmlFile($caPaths['pluginTempDownload']);
-      $template['Changes'] = $xml['Changes'];
+      if ( $xml ) {
+        $template['Changes'] = $xml['Changes'];
+      }
     }
   }
   $template['Changes'] = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$template['Changes'] ?: ""); // Prevent inadvertent code blocks
@@ -920,9 +919,10 @@ function getPopupDescriptionSkin($appNumber) {
 # Generate the display for the repo #
 #####################################
 function getRepoDescriptionSkin($repository) {
-  global $caSettings, $caPaths, $language;
+  global $caSettings, $caPaths;
 
-  $dockerVars = parse_ini_file($caPaths['docker_cfg']);
+  getGlobals();
+
   $repositories = readJsonFile($caPaths['repositoryList']);
   $templates = &$GLOBALS['templates'];
 
@@ -967,7 +967,7 @@ function getRepoDescriptionSkin($repository) {
         $iconPrefix<img class='popupIcon' src='{$repo['icon']}'>$iconPostfix
       </div>
       <div class='popupInfo'>
-        <div class='popupName'>$repository</div>
+        <div class='popupName ellipsis'>$repository</div>
         <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("See All Apps")."</div>
         <div class='caButton ca_favouriteRepo $favRepoClass' data-repository='".htmlentities($repository,ENT_QUOTES)."'>".tr("Favourite")."</div>
       </div>
@@ -986,25 +986,16 @@ function getRepoDescriptionSkin($repository) {
     $t .= "<div>";
     if ( isset($repo['Photo']) ) {
       $photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
-      $t .= "<div>";
       foreach ($photos as $shot) {
         $t .= "<a class='screenshot' href='".trim($shot)."'><img class='screen' src='".trim($shot)."' onerror='this.style.display=&quot;none&quot;'></img></a>";
       }
-      $t .= "</div>";
     }
     if ( isset($repo['Video']) ) {
-      if ( isset($repo['Photo']) )
-        $t .= "<div><hr></div>";
-
       $videos = is_array($repo['Video']) ? $repo['Video'] : [$repo['Video']];
-      $vidText = (count($videos) == 1) ? "Play Video" : "Play Video %s";
-      $t .= "<div>";
-      $count = 1;
       foreach ($videos as $vid) {
-        $t .= "<a class='screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
-        $count++;
+        $thumbnail = getYoutubeThumbnail($vid);
+        $t .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
-      $t .= "</div>";
     }
 
     $t .= "</div>";
@@ -1085,7 +1076,9 @@ function dockerNavigate($num_pages, $pageNumber) {
 # function that actually displays the results from dockerHub #
 ##############################################################
 function displaySearchResults($pageNumber) {
-  global $caPaths, $caSettings, $plugin;
+  global $caPaths, $caSettings;
+
+  getGlobals();
 
   $tempFile = readJsonFile($caPaths['dockerSearchResults']);
   $num_pages = $tempFile['num_pages'];
@@ -1096,10 +1089,9 @@ function displaySearchResults($pageNumber) {
 
   $ct = "<div class='ca_templatesDisplay'>";
 
-  $columnNumber = 0;
   foreach ($file as $result) {
     $result['Icon'] = "/plugins/dynamix.docker.manager/images/question.png";
-    $result['display_dockerName'] = "<a class='ca_tooltip ca_applicationName' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
+    $result['display_dockerName'] = "<a class='ca_applicationName ellipsis' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
     $result['Category'] = "Docker&nbsp;Hub&nbsp;Search";
     $result['Description'] = $result['Description'] ?: tr("No description present");
     $result['Compatible'] = true;
@@ -1131,8 +1123,8 @@ function displaySearchResults($pageNumber) {
 # Generate the app's card #
 ###########################
 function displayCard($template) {
-  global $caSettings, $caPaths;
-  $appName = str_replace("-"," ",$template['display_dockerName'] ?? "");
+  global $caPaths;
+
   $holderClass = "";
   $card = "";
 
@@ -1312,9 +1304,9 @@ function displayCard($template) {
   }
   $checked = $checked ?? "";
   if ($Removable && !($DockerInfo ?? false) && ! $Installed && ! $Blacklist) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
+    $card .= "<input class='ca_multiselect' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
   } elseif ( $actionCentre && $UpdateAvailable ) {
-    $card .= "<input class='ca_multiselect ca_tooltip' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
+    $card .= "<input class='ca_multiselect' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
   }
 
   $card .= "</div>";
@@ -1336,7 +1328,7 @@ function displayCard($template) {
 
 
   $card .= "
-    <div class='ca_applicationName'>$Name
+    <div class='ca_applicationName ellipsis'>$Name
   ";
   if ( $CAComment || $ModeratorComment || $Requires) {
     $commentIcon = "";
@@ -1356,7 +1348,7 @@ function displayCard($template) {
   }
   $card .= "
         </div>
-        <div class='ca_author'>".($Official ? tr("Official Container") : $author)."</div>
+        <div class='ca_author ellipsis'>".($Official ? tr("Official Container") : $author)."</div>
         <div class='cardCategory'>$Category</div>
   ";
 
@@ -1498,7 +1490,7 @@ function displayPopup($template) {
     <div class='ca_popupIconArea'>
       <div class='popupIcon'>$display_icon</div>
       <div class='popupInfo'>
-        <div class='popupName'>$Name</div>
+        <div class='popupName ellipsis'>$Name</div>
     ";
     if ( ! $Language )
       $card .= "<div class='popupAuthorMain'>$Author</div>";
@@ -1580,34 +1572,27 @@ function displayPopup($template) {
     ";
   }
   if ( $Screenshot || $Photo || $Video) {
+    $card .= "<div>";
     if ( $Screenshot || $Photo ) {
       $pictures = $Screenshot ? $Screenshot : $Photo;
       if ( ! is_array($pictures) )
         $pictures = [$pictures];
 
-      $card .= "<div>";
       foreach ($pictures as $shot) {
         $card .= "<a class='screenshot mfp-image' href='".trim($shot)."'><img class='screen' src='".trim($shot)."'></img></a>";
       }
-      $card .= "</div>";
     }
 
     if ( $Video ) {
-      if ( $Screenshot || $Photo ) {
-        $card .= "<div><hr></div>";
-      }
       if ( ! is_array($Video) )
         $Video = [$Video];
 
-      $vidText = (count($Video) == 1) ? "Play Video" : "Play Video %s";
-      $card .= "<div>";
-      $count = 1;
       foreach ( $Video as $vid ) {
-        $card .= "<a class='caButton screenshot videoButton mfp-iframe' href='".trim($vid)."'><div class='ca_fa-film'> ".sprintf(tr($vidText),$count)."</div></a>";
-        $count++;
+        $thumbnail = getYoutubeThumbnail($vid);
+        $card .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='".trim($vid)."' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
       }
-      $card .= "</div>";
     }
+    $card .= "</div>";
   }
   $appType = $Plugin ? tr("Plugin") : tr("Docker");
   $appType = $Language ? tr("Language") : $appType;
@@ -1724,6 +1709,9 @@ function displayPopup($template) {
   if ( ! $Plugin && ! $Language ){
     $card .= "<div><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
   }
+
+// Don't show the flags in the popup - being switch to badges and they don't resize due to the refactors
+  /*
   if ( $UpdateAvailable ) {
     $card .= "
       <div class='upgradePopupBackground'>
@@ -1740,6 +1728,7 @@ function displayPopup($template) {
       <div class='installedPopupText ca_center'>".tr("INSTALLED")."</div></div>
     ";
   }
+*/    
   $card .= "</div>";
 
   return $card;

@@ -34,7 +34,8 @@ $caPaths['flashDrive']                          = "/boot/config/plugins/$CA";
 $caPaths['templates-community']                 = $caPaths['tempFiles']."/templates-community-apps";           /* templates and temporary files stored here.  Deleted every update of applications */
 $caPaths['community-templates-url']             = "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json";
 $caPaths['PublicServiceAnnouncement']           = "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt";
-$caPaths['community-templates-info']            = $caPaths['tempFiles']."/templates.json";                     /* json file containing all of the templates */
+$caPaths['community-templates-info']            = $caPaths['tempFiles']."/templates_new.json";                     /* json file containing all of the templates */
+$caPaths['community-templates-info-old']        = $caPaths['tempFiles']."/templates.json";  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
 $caPaths['haveTemplates']												= $caPaths['tempFiles']."/haveTemplates";
 $caPaths['community-templates-displayed']       = $caPaths['tempFiles']."/displayed.json";                     /* json file containing all of the templates currently displayed */
 $caPaths['community-templates-allSearchResults']= $caPaths['tempFiles']."/allSearchResults.json";
@@ -100,6 +101,7 @@ $caPaths['phpErrorSettings']                    = "/etc/php.d/errors-php.ini";
 $caPaths['pluginProxy']                         = "https://ca.unraid.net/dl/";
 $caPaths['RepositoryAssets']                    = "http://ca.unraid.net/dl/https://assets.ca.unraid.net/feed/repositories/";
 $caPaths['PHPErrorLog']                         = "/var/log/phplog";
+$caPaths['pluginAttributesCache']               = $caPaths['tempFiles']."/pluginAttributesCache";
 
 $dynamixSettings = parse_plugin_cfg("dynamix");
 $caPaths['SpotlightIcon-backup']								= "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png";

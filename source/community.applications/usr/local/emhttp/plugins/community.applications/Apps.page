@@ -53,7 +53,6 @@ switch ($caSettings['maxPerPage']) {
     break;
 }
 
-
 $firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
 $pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
 
@@ -62,7 +61,6 @@ if ( ! is_file($caPaths['docker_cfg']) ) {
 }
 
 $unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
-$phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
 $responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 
 // Check md5's of files
@@ -83,6 +81,7 @@ else
 
 $date = (date("n/d"));
 
+$ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
 $startupDisplayed = is_file($caPaths['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
   $killCookie = "true";
@@ -105,8 +104,17 @@ if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var
   unset($caSettings['dockerRunning']);
 }
 
-if ( is_file($caPaths['docker_cfg']) )
-  getAllInfo(true,false);
+// Create a symlink for plugin pre and post hooks to drop the attribute cache
+
+if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook") )
+  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_preHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook");
+if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook") )
+  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_postHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook");
+
+// Drop the attribute cache
+dropAttributeCache();
+// Drop the docker info cache
+@unlink($caPaths['info']);
 
 // Check memory to see if CA's minimums are met (4G same as base OS) - Test is actually for 2.5G though
 
@@ -124,25 +132,33 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
 
 $startupSearch = htmlspecialchars($_GET['search']??"");
 
-// Create the class lists for HTML
 $classList = [];
-
-if ( $responsiveOS ) 
-  $classList[] = "Theme--responsive";
-if ( ! $responsiveOS ) 
+if ( ! $responsiveOS ) {
   $classList[] = "Theme--legacyOS";
 
+  // Set the theme to sidebar or nav-top based on the theme.
+  if ( $ca_theme == "azure" || $ca_theme == "gray" ) {
+    $classList[] = "Theme--sidebar";
+  } else {
+    $classList[] = "Theme--nav-top";
+  }
+
+  // Set the width to boxed or unlimited based on the display width and the unlimited.width.plg plugin.
+  if ( !($display['width'] ?? false) && ! is_file("/var/log/plugins/unlimited.width.plg") ) {
+    $classList[] = "Theme--width-boxed";
+  } else {
+    $classList[] = "Theme--width-unlimited";
+  } 
+  
+  // Set the theme to the theme selected.
+  $classList[] = "Theme--$ca_theme";
+} else {
+  // Add a class to indicate its a responsive OS.
+  $classList[] = "Theme--responsive";
+}
+
+// Set a class for the font size on all OS versions
 $classList[] = "Theme--fontSize".intval($fontSize);
-
-if ( !($display['width'] ?? false)  && ! is_file("/var/log/plugins/unlimited.width.plg") ) 
-  $classList[] = "Theme--width-boxed";
-else $classList[] = "Theme--width-unlimited";
-
-if ( $ca_theme == "azure" || $ca_theme == "gray" ) 
-  $classList[] = "Theme--sidebar";
-else $classList[] = "Theme--nav-top";
-
-$classList[] = "Theme--$ca_theme";
 
 $htmlClasses = implode(" ",$classList);
 
@@ -153,7 +169,6 @@ function tr($string,$ret=false) {
   else
     echo $string;
 }
-
 
 ?>
 <script>
@@ -210,6 +225,7 @@ var portsInUse = [];
 var startupSearch = "<?=$startupSearch?>";
 var iconHoverTimer;
 var ca_done_override = false;
+
 // handle 3rd party links on older versions of OS
 <?
 if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
@@ -317,7 +333,40 @@ $(function(){
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
+
+  <? if ( $responsiveOS ):?>
+  // Due to complications, reload the page when window resized or orientation changed.
+  // Complications involve situations where the menu is open and a mobile device switches from portrait to landscape.
+  // Hard to recover since the menu may now be set to always display due to the width.
+  // Rather than try and recover, just reload the page, and ensure that /Apps is the referrer so state is restored.
+  // Only affects responsive OS.
   
+  function resizeDebounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  const debouncedOrientationHandler = resizeDebounce(function() {
+    resizeDebouncedOrientationHandler();
+  }, 300);
+
+  const resizeDebouncedOrientationHandler = resizeDebounce(function() {
+    saveState();
+    window.location.replace("/Apps/Apps");
+  }, 100);
+
+  $(window).on('orientationchange resize', function() {
+    setTimeout(debouncedOrientationHandler, 100);
+  });
+  <? endif;?>
+
   // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
   setupSwalDim();
 
@@ -394,9 +443,9 @@ $(function(){
   
 // Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
   <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
-    $(".searchArea").insertAfter("#menu");
+    $(".searchAreaHolder").insertAfter("#menu");
   <? endif; ?>
-  $("body").append("<div class='menuOverlay menuAdjust'></div><div class='sidebar'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
+  $("body").append("<div class='sidebar hide' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
@@ -405,8 +454,7 @@ $(function(){
   if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
   if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
-  // Remove after 2025/08/26
-  if ( "<?=$date?>" == "8/26" ) addBannerWarning("<?tr("Happy 20th Birthday Unraid!");?>",false);
+
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
   <?if ( $caPaths['localONLY'] == true ):?>
@@ -415,9 +463,11 @@ $(function(){
 
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
-  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
+  $("body").addClass("menuAdjust");
 
+  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
+
 
   $("body").on("click",".long-loading-abort-button",function() {
     var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
@@ -433,12 +483,15 @@ $(function(){
     showMenu();
   });
 
-  $(".menuClose,.menuOverlay").on("click",function() {
+  $(".closeMenuButton,.menuOverlay").on("click",function() {
     closeMenu();
   });
 
   $(".sidebarClose").on("click",function(e) {
     closeSidebar();
+  });
+  $(".mobileOverlay").on("click",function(e) {
+    closeMenu();
   });
 
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
@@ -447,6 +500,14 @@ $(function(){
 
   $(".searchSubmit").on("click",function() {
     doSearch(true);
+  });
+
+  $("#searchBox").on("input", function() {
+    if ( ! $("#searchBox").val() ) {
+      $("#searchButton").addClass("fa-search").removeClass("fa-remove");
+    } else {
+      $("#searchButton").addClass("fa-remove").removeClass("fa-search");
+    }
   });
 
   $("#searchBox").keydown(function(e) {
@@ -491,6 +552,17 @@ $(function(){
           e.preventDefault();
           e.stopPropagation();
           closeMenu();
+          return;
+        }
+        if ( $("#searchBox").is(":focus") && ! $("#searchBox").prop("disabled") ) {
+          e.preventDefault();
+          e.stopPropagation();
+          if ($('#searchButton').hasClass('fa-remove')) {
+            $(".searchSubmit").trigger("click");
+          } else {
+            $("#searchBox").val("");
+          }
+          
           return;
         }
         break;
@@ -543,11 +615,6 @@ $(function(){
       },5000);
       setFavRepoSearch();
     });
-  });
-
-  $('body').on("click",".dockerUpdate",function() {
-    var container = $(this).attr("data-name");
-    updateDocker(container);
   });
 
   $('body').on("click",".fav,.nonfav",function() {
@@ -614,11 +681,6 @@ $(function(){
     });
   });
 
-  $('body').on("click",".displayTags",function() {
-    var id = $(this).data("id");
-    displayTags(id);
-  });
-
   $('body').on("click",".pluginInstall",function() {
     var plugin = $(this).data("url");
     var type = $(this).data("update") ? true : false;
@@ -639,7 +701,7 @@ $(function(){
     }
   });
 
-  $("body").on("click",".repoPopup,.ca_repoinfo,.ca_reporeadmore,.ca_repoFromPopUp,.cardDescriptionRepo", function() {
+  $("body").on("click",".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function() {
     event.stopPropagation();
     var repository = $(this).data("repository");
     showRepoPopup(repository);
@@ -860,26 +922,6 @@ $(function(){
     });
   });
 
-  $(".clearSearch").click(function() {
-    if ( $(this).hasClass("caMenuEnabled") ) {
-      var sortButton = false;
-      $(".sortIcons").each(function() {
-        if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-          sortButton = true;
-        }
-      });
-      if ( !sortButton) {
-        $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-        post({action:"defaultSortOrder"},function(data) {
-          $("#defaultSort").addClass("enabledIcon");
-          doSearch(true);
-        });
-      } else {
-        doSearch(true);
-      }
-    }
-  });
-
   $(".dockerSearch").click(function()         { initDockerSearch(); });
   $(".multi_installClear").click(function()   { clearMultiInstall(); });
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
@@ -950,19 +992,6 @@ $(function(){
     removeApp(path,name);
   });
 
-  <? if ($caSettings['sidebarOpen'] == "yes"):?>
-    $("body").on("mouseover",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
-      var icon = this;
-      iconHoverTimer = setTimeout(function() {
-        if ( !$("#searchBox").is(":focus") )
-        icon.click();
-      },3000);
-    });
-
-    $("body").on("mouseout",".ca_displayIcon,.infoButton,.displayIcon,.card_readmore",function() {
-      clearTimeout(iconHoverTimer);
-    });
-  <?endif;?>
   /* Everything is now initialized.  This is the start of the actual "real" code */
 
   if ( "<?=$firstRun?>" == "true" ) {
@@ -1026,7 +1055,7 @@ $(function(){
       post({action:"defaultSortOrder"},function() {
         myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
         updateContent();
-        if ("<?=$startupDisplayed?>" == "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+        if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
           var appname = $.cookie("sidebarAppName");
           if ( $.trim(apppath) ) {
@@ -1035,9 +1064,10 @@ $(function(){
         }
       });
     }
-    if ( document.referrer.indexOf("/Apps/") > 1 )
+    if ( <?=$ca_apps_referrer?> )
       actionCentreRestoreState = true;
     setupActionCentre();
+    $.cookie("ca_apps_referrer");
   }
   <?endif;?>
 });
@@ -1260,7 +1290,8 @@ function changeSortOrder(button,buttonClass,previousApps) {
 function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
-
+  var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
+  
   enableSearch();
 
   if ( category != "NONE" ) {
@@ -1270,24 +1301,6 @@ function getContent(init,category,description,newApp,startupDisplay) {
       initialize = true;
       enableButtons();
 
-      var maxHomeApps = 12; // legacy value for 7.1.999 and below
-
-      <? if ( $responsiveOS ):?> 
-        if ( ! $(".spotlightHome").length ) {
-          $("#templates_content").html("<div id='maxHomeApps'><div class='ca_holder spotlightHome' style='display:none;'></div></div>");
-        }
-        // See how many apps will fit maximum on home page
-        $("body").addClass("maxPerPageCalc");
-        var displayWidth = $(".mainArea").getWidth(false);  // don't include margin or padding, so we can calculate the number of apps that will fit
-        $("#maxHomeApps").show();
-        var appWidth = $(".spotlightHome").getWidth();
-        $("#maxHomeApps").hide();
-        $("body").removeClass("maxPerPageCalc");
-        var maxHomeApps = Math.floor(displayWidth / appWidth);
-
-        maxHomeApps = Math.max(maxHomeApps,2);
-
-      <? endif;?>
     }
     if ( (category == "New") || (category == "All") ) { 
       category = ""; 
@@ -1310,22 +1323,14 @@ function getContent(init,category,description,newApp,startupDisplay) {
     if ( description && ! filter ) {
       $(".category").html(description);
     }
-    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps},function(result) {
+    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
       updateDisplay(result.display);
       if ( initialize ) {
         populateAutoComplete();
         downloadStatistics();
-        if ( maxHomeApps < 3 ) {
-          changeMaxPerPage(12);
-        }
       }
     });
   }
-}
-
-function changeMaxPerPage(max) {
-  postNoSpin({action:"changeMaxPerPage",max:max},function(){
-  });
 }
 
 function downloadStatistics() {
@@ -1400,6 +1405,7 @@ function closeSidebar(cookie=false,visible=false) {
   $("body").removeClass("body_sidebarScroll");
   $(".sidebar").fadeOut();
   $(".nav-user.show").show();
+  enableSearch();
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
@@ -2277,19 +2283,9 @@ function updateDisplay(content) {
       setupContext(actionsContext,"#"+ID);
     }
   });
-  $(".cardDesc").each(function() {
-    var description = $(this).html();
-    var readMoreText = $(".dockerHubHolder").length ? "" : "<?=tr("Read more");?>" // Don't show READ MORE on dockerHub searches
-    while (isOverflown(this)) {
-      description = description.slice(0,-5);
-      if ( description.length < 5 ) // Safari under certain circumstances thinks that non-displayed cards are always overflown
-        return false;
-      $(this).html(description + "... <span class='card_readmore'>"+readMoreText+"</span>");
-    }
-  });
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.ltofficialPopupText").fitText(true);
-  $(".ca_applicationName").fitText(false);
+
+  $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
 
   if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
     data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
@@ -2307,8 +2303,13 @@ function updateDisplay(content) {
   }
   myCloseAlert(true);
 }
-
-function saveState() {
+window.onbeforeunload = function() {
+  saveState(false);
+}
+function saveState(legacy=true) {
+  if (legacy) {
+    return;
+  }
   console.log("Save State");
   $.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
   $.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
@@ -2395,15 +2396,26 @@ function showStatistics() {
   });
 }
 
+var menuScrollPosition = null;
 function showMenu() {
-  $('.back_to_top').click();
-  $('.menuAdjust').addClass("mobileMenuPopup");
-  dimScreen(true);
+  menuScrollPosition = $(window).scrollTop();
+  $(".menuAdjust,.hideWithMenu").addClass("menuShowing").removeClass("menuHidden");
+  $('.mobileMenu').toggle("slide", { direction: "left" }, 500); 
+  $(":root").css("--mainAreaHeight",$(".mobileMenu").height()+"px");
+  
+  const element = document.getElementById("mobileMenu");
+  element.scrollIntoView({behavior: "smooth", block: "start"});
 }
 
 function closeMenu() {
-  $('.menuAdjust').removeClass("mobileMenuPopup");
-  dimScreen(false);
+  if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
+    return;
+  }
+  $(".menuAdjust,.hideWithMenu").addClass("menuHidden").removeClass("menuShowing");
+  $('.mobileMenu').toggle("slide", { direction: "left" }, 500);
+  $(window).scrollTop(menuScrollPosition);
+  menuScrollPosition = null;
+  $(":root").css("--mainAreaHeight","unset");
 }
 
 function caChangeLog() {
@@ -2880,6 +2892,7 @@ function popUpChart(descData) {
 }
 
 function showSidebarApp(apppath,appname) {
+  disableSearch();
   clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
   $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
@@ -2932,7 +2945,7 @@ function showSidebarApp(apppath,appname) {
       setupContext(result.supportContext,"#supportPopup");
       setupContext(result.actionsContext,"#actionsPopup");
         
-      $(".popupName,.betaPopupText,.popupTableRight,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
+      $(".betaPopupText,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
 
       postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
         if (lastUpdate.lastUpdate) {
@@ -2944,7 +2957,6 @@ function showSidebarApp(apppath,appname) {
       });
     })
   },500);
-  $(".sidebar").focus();
 }
 
 function showRepoPopup(repository) {

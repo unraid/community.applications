@@ -2,7 +2,6 @@
     --template-background: transparent;
     --template-hover-background: #0c0f0b;
     --template-favourite: #2b2b2b;
-    --hr-color: #606e7f;
     --border-color: #606e7f;
     --a-color: #00b8d6;
     --sidebar-background: #121510;
@@ -11,16 +10,12 @@
     --support-popup-text: #1b1d1b;
     --support-popup-background: #ffffff;
     --mod-comment-border: #cf3131;
-    --sidebar-close-background: rgba(0,0,0,0.7);
     --unraid-66-color: var(--orange-500,#FF8C2F);
-    --link-color: #486dba;
     --ca-legacy-background-color: var(--background-color,#1d1b1b);
     --search-area-top: 0;
     --search-area-left: 26.5rem;
     --search-area-mobile-left: 7rem;
     --search-area-mobile-top: 0;
-    --menu-background: var(--background-color,#1d1b1b);
-    --menu-opacity: 0.8;
     --tooltipster-content: #f2f2f2;
     --chart-grid: #222222;
 } 

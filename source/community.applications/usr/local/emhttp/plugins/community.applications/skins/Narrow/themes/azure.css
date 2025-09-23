@@ -2,7 +2,6 @@
     --template-background: transparent;
     --template-hover-background: #edeaef;
     --template-favourite: #e0e0e0;
-    --hr-color: #606e7f;
     --border-color: #9794a7;
     --a-color: #486dba;
     --sidebar-background: #edeaef;
@@ -11,16 +10,12 @@
     --support-popup-text: #1b1d1b;
     --support-popup-background: #ffffff;
     --mod-comment-border: #cf3131;
-    --sidebar-close-background: rgba(0,0,0,0.7);
     --unraid-66-color: var(--orange-500,#FF8C2F);
-    --link-color: #486dba;
     --ca-legacy-background-color: var(--background-color,#e8e8e8);
     --search-area-top: 0;
     --search-area-left: 26.5rem;
     --search-area-mobile-left: 7rem;
     --search-area-mobile-top: 0;
-    --menu-background: var(--background-color,#e8e8e8);
-    --menu-opacity: 0.7;
     --tooltipster-content: #101010;
     --chart-grid: #dddddd;
 } 

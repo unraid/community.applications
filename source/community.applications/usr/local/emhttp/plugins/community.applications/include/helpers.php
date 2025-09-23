@@ -9,11 +9,88 @@
 #                                      #
 ########################################
 
+###############################################################
+# Populate $GLOBALS['templates'] if it's not already populated #
+###############################################################
+function getGlobals() {
+  global $caPaths;
+
+  if ( is_file($caPaths['community-templates-info']) ) {
+    if ( ! isset($GLOBALS['templates']) ) {
+      $GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
+    }
+  } else {
+    $GLOBALS['templates'] = [];
+  }
+}
+
 ########################################
 # Sanitize output from plugin function #
 ########################################
-function ca_plugin($method, $arg = ''){
-  return strip_tags(html_entity_decode(@plugin($method,$arg)));
+function ca_plugin($method, $plugin_file = '',$dontCache = false) {
+  global $caPaths;
+  static $attributeCache = [];
+  static $PLUGIN_METHODS = ['dump', 'changes', 'alert', 'validate', 'check', 'checkall', 'update', 'remove', 'install', 'attributes'];
+
+  if ( in_array($method, $PLUGIN_METHODS) ) {
+    // clear the attribute cache if the method is not an attribute (avoids stale data)
+    $attributeCache = [];
+    dropAttributeCache();
+
+    return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
+  }
+
+  //  If the method is not a method, then it's an attribute.  Populate the attribute cache if it's not already populated and return
+
+  if ( ! is_file($caPaths['pluginAttributesCache']) ) {
+    $attributeCache = [];
+  }
+
+  if ( ! $dontCache ) {
+    if ( empty($attributeCache) && file_exists($caPaths['pluginAttributesCache']) ) {
+      $attributeCache = @unserialize(file_get_contents($caPaths['pluginAttributesCache']))??[];
+      if ( empty($attributeCache) ) {
+        $attributeCache = [];
+        dropAttributeCache();
+      }
+    }
+    if ( $plugin_file) {
+      if ( is_file($plugin_file) ) {
+        if ( !isset($attributeCache[$plugin_file]) ) {
+          debug("CA Plugin $method $plugin_file not in attribute cache");
+          $xml = @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA);
+          if ( $xml ) { 
+            $attributes = $xml->attributes();
+          } else {
+            $attributes = false;
+          }
+          $attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
+        } else { 
+          debug("$plugin_file already in attribute cache");
+        }
+      } else {
+        unset($attributeCache[$plugin_file]);
+      }
+      file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+    
+      // return the cached result if it exists.  If it doesn't return false;;
+      return $attributeCache[$plugin_file]['@attributes'][$method]??false;
+  
+    } else {
+      return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
+    }
+  } else {
+    return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
+  }
+}
+############################
+# Drop the attribute cache #
+############################
+function dropAttributeCache() {
+  global $caPaths;
+
+  debug("Dropping attribute cache");
+  @unlink($caPaths['pluginAttributesCache']);
 }
 ##################################################################################################################
 # Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
@@ -49,46 +126,47 @@ function randomFile() {
 ##################################################################
 # 7 Functions to avoid typing the same lines over and over again #
 ##################################################################
+// This function reads either a serialized or JSON file
 function readJsonFile($filename) {
-  static $cache = [];
+  debug("CA Read Serialized file $filename");
 
   if ( ! is_file($filename) ) {
-    unset($cache[$filename]);
     debug("$filename not found");
     return [];
   }
 
-  if (isset($cache[$filename]) && filemtime($filename) <= $cache[$filename]['time']) {
-    debug("CA Cached JSON read $filename");
-    return $cache[$filename]['data'];
-  }
+  $json = @unserialize(@file_get_contents($filename));
 
-  debug("CA Read JSON file $filename");
-
-  
-  $json = json_decode(@file_get_contents($filename),true);
   if ( $json === false ) {
-    if ( ! is_file($filename) ){
-      debug("$filename not found");
-      return [];
-    } else {
-      debug("JSON Read Error ($filename)");
-    return [];
-    }
+    debug("$filename is not serialized.  Reading as JSON.");
+    $json = json_decode(@file_get_contents($filename),true);
+      if ( $json === false ) {
+        debug("JSON Read Error ($filename)");
+        return [];
+      }
   }
-  
-  $cache[$filename] = ['data'=>$json,'time'=>filemtime($filename)];
 
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
   return $json;
 }
 
+// This function writes a serialized file of an array.  If the filename is $caPaths['community-templates-info'], then it will also write a JSON file to $caPaths['community-templates-info-old']
 function writeJsonFile($filename,$jsonArray) {
-  global $caSettings, $caPaths;
+  global $caPaths;
 
   debug("Write JSON File $filename");
-  $jsonFlags = $caSettings['dev'] == "yes" ? JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT : JSON_UNESCAPED_SLASHES;
-  $result = ca_file_put_contents($filename,json_encode($jsonArray, $jsonFlags));
+  $result = ca_file_put_contents($filename,serialize($jsonArray));
+
+  // The plugin script needs a template.json in JSON format to update support URLs on plugins
+  // If we're writing $template, then save templates.json but filtered only for plugins to save space
+
+  if ( $filename == $caPaths['community-templates-info'] ) {
+    ca_file_put_contents($caPaths['community-templates-info-old'],json_encode(array_map(function($t) {
+      return ["PluginURL"=>$t['PluginURL'],"Support"=>$t['Support']];
+    },array_filter($jsonArray, function($t1) {
+        return $t1['Plugin']??false;
+    })),JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+  }
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 
@@ -105,8 +183,9 @@ function ca_file_put_contents($filename,$data,$flags=0) {
   }
   return ($result === strlen($data)) ? strlen($data) : false;
 }
+
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
-  global $caSettings, $caPaths;
+  global $caPaths;
 
   static $proxycfg = false;
   
@@ -168,12 +247,25 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   curl_close($ch);
 
   $totalTime = time() - $startTime;
-  debug("DOWNLOAD $url Time: $totalTime  RESULT:\n".var_dump_ret($out));
+  debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
   return $out ?: false;
 }
+
 function download_json($url,$path="",$bg=false,$timeout=45) {
-  return json_decode(download_url($url,$path,$bg,$timeout),true);
+  // download the URL, but don't sae it yet
+  $result = download_url($url,"",$bg,$timeout);
+  if ( $result === false ) {
+    @unlink($path);
+    return false;
+  }
+  // save the result (serialized array) to the path if specified
+  $ret = json_decode($result,true);
+  if ( $path ) {
+    writeJsonFile($path,$ret);
+  }
+  return $ret;
 }
+
 function getPost($setting,$default) {
   return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
 }
@@ -299,7 +391,7 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 # Fix common problems (maintainer errors) in templates #
 ########################################################
 function fixTemplates($template) {
-  global $statistics, $caSettings;
+  global $caSettings;
 
   if ( ! $template['MinVer'] ) $template['MinVer'] = ($template['Plugin']??false) ? "6.1" : "6.0";
   if ( ! ($template['Date']??null) ) $template['Date'] = (is_numeric($template['DateInstalled']??null)) ? $template['DateInstalled'] : 0;
@@ -427,6 +519,7 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
   if ( ! $xmlfile || ! is_file($xmlfile) ) return false;
   $xml = file_get_contents($xmlfile);
   $o = TypeConverter::xmlToArray($xml,TypeConverter::XML_GROUP);
+  if ( ! $o || ! is_array($o) ) return false;
   removeXMLtags($o);
   $o = addMissingVars($o);
   if ( ! $o ) return false;
@@ -469,7 +562,8 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 function moderateTemplates() {
   global $caPaths,$caSettings;
 
-//	$templates = readJsonFile($caPaths['community-templates-info']);
+  getGlobals();
+
   $templates = &$GLOBALS['templates'];
 
   if ( ! $templates ) return;
@@ -521,6 +615,8 @@ function filterMatch($filter,$searchArray,$exact=true) {
 function pluginDupe() {
   global $caPaths;
 
+  getGlobals();
+  
   $pluginList = [];
   $dupeList = [];
   foreach ($GLOBALS['templates'] as $template) {
@@ -559,8 +655,6 @@ function alphaNumeric($string) {
 # mobile browser detection from http://detectmobilebrowsers.com/ #
 ##################################################################
 function isMobile() {
-  global $caSettings;
-
   $useragent=$_SERVER['HTTP_USER_AGENT'];
   return (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i',$useragent)||preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i',substr($useragent,0,4)));
 }
@@ -655,8 +749,8 @@ function fixDescription($Description) {
 # displays the branch tags #
 ############################
 function formatTags($leadTemplate,$rename="false") {
-  global $caPaths;
-
+  getGlobals();
+  
   $type = $rename == "true" ? "second" : "default";
 
   $file = &$GLOBALS['templates'];
@@ -681,8 +775,6 @@ function formatTags($leadTemplate,$rename="false") {
 # handles the POST return #
 ###########################
 function postReturn($retArray) {
-  global $caSettings, $caPaths;
-
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
       $retArray['globalScript'] = $GLOBALS['script'];
@@ -695,7 +787,7 @@ function postReturn($retArray) {
   }	else
     echo $retArray;
   flush();
-  debug("POST RETURN ({$_POST['action']})\n".var_dump_ret($retArray));
+  debug("POST RETURN ({$_POST['action']})");
   debug("POST RETURN Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 ####################################
@@ -730,8 +822,10 @@ function languageCheck($template) {
     return false;
 
   $OSupdates = readXmlFile($dynamixUpdate,true);   // Because the OS might check for an update before the feed
-  if ( ! $OSupdates )
+  if ( ! $OSupdates ) {
+    $OSupdates = [];
     $OSupdates['Version'] = "1900.01.01";
+  }
 
   $xmlFile = readXmlFile($installedLanguage,true);
 
@@ -797,6 +891,8 @@ function debug($str) {
     debug("Language: $lingo");
     debug("Settings:\n".print_r($caSettings,true));
 
+    $phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
+
     if (boolval($phpErrors['display_errors']??false)) {
       debug("PHP errors set to be displayed!");
     }
@@ -808,8 +904,13 @@ function debug($str) {
 # Gets the default ports in a template #
 ########################################
 function portsUsed($template) {
+  if ( ! is_array($template) ) {
+    return json_encode([]);
+  }
+
   if ( ($template['Network'] ?? "whatever") !== "bridge")
-    return;
+    return json_encode([]);
+  
   $portsUsed = [];
   if ( isset($template['Config']['@attributes']) )
     $template['Config'] = ['@attributes'=>$template['Config']];
@@ -882,114 +983,56 @@ function checkServerDate() {
     return true;
 }
 
+##################################
+# Get youtube thumbnail from URL #
+##################################
+function getYoutubeThumbnail($url) {
+  // Handle youtu.be short URLs
+  if (preg_match('/https:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+    return 'https://img.youtube.com/vi/' . $matches[1] . '/default.jpg';
+  }
+  
+  // Handle youtube.com/watch?v= URLs
+  if (preg_match('/https:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)) {
+    return 'https://img.youtube.com/vi/' . $matches[1] . '/default.jpg';
+  }
+  
+  // Return original URL if no match found
+  return $url;
+}
+
+
 ##################################################################################
 # Adds in all the various missing entries from the templates for PHP8 compliance #
 ##################################################################################
 function addMissingVars($o) {
-  if ( ! is_array($o) )
+  if (!is_array($o)) {
     return $o;
-  $vars = [
-    'Category',
-    'CategoryList',
-    'CABlacklist',
-    'Blacklist',
-    'MinVer',
-    'MaxVer',
-    'UpdateMinVer',
-    'Plugin',
-    'PluginURL',
-    'Date',
-    'DonateText',
-    'DonateLink',
-    'Branch',
-    'OriginalOverview',
-    'DateInstalled',
-    'Config',
-    'trending',
-    'CAComment',
-    'ModeratorComment',
-    'DeprecatedMaxVer',
-    'downloads',
-    'FirstSeen',
-    'OriginalDescription',
-    'Deprecated',
-    'RecommendedRaw',
-    'Language',
-    'RequiresFile',
-    'Requires',
-    'trends',
-    'Description',
-    'OriginalDescription',
-    'Overview',
-    'Repository',
-    'Tag',
-    'Plugin',
-    'CaComment',
-    'IncompatibleVersion',
-    'Private',
-    'BranchName',
-    'display',
-    'RepositoryTemplate',
-    'bio',
-    'NoInstall',
-    'Twitter',
-    'Discord',
-    'Reddit',
-    'Facebook',
-    'ReadMe',
-    'display_dockerName',
-    'actionCentre',
-    'SupportLanguage',
-    'DockerHub',
-    'Official',
-    'Removable',
-    'IconFA',
-    'imageNoClick',
-    'RecommendedDate',
-    'UpdateAvailable',
-    'Installed',
-    'Uninstall',
-    'caTemplateExists',
-    'Support',
-    'Beta',
-    'Project',
-    'Trusted',
-    'InstallPath',
-    'LanguagePack',
-    'trendDelta',
-    'RepoTemplate',
-    'ExtraSearchTerms',
-    'Icon',
-    'LanguageDefault',
-    'translatedCategories',
-    'RepoShort',
-    'LanguageLocal',
-    'ExtraPriority',
-    'Registry',
-    'caTemplateURL',
-    'Changes',
-    'ChangeLogPresent',
-    'Photo',
-    'Screenshot',
-    'Video',
-    'RecommendedReason',
-    'stars',
-    'LanguageURL',
-    'LastUpdate',
-    'RecommendedWho',
-    'RepoName',
-    'SortName',
-    'ca_fav',
-    'Pinned'
-
-
-    ];
-
-  foreach ($vars as $var) {
-    $o[$var] = $o[$var] ?? null;
   }
-  return $o;
+  
+  // Static array to avoid recreation on each call
+  static $requiredVars = [
+    'Category', 'CategoryList', 'CABlacklist', 'Blacklist', 'MinVer', 'MaxVer', 'UpdateMinVer',
+    'Plugin', 'PluginURL', 'Date', 'DonateText', 'DonateLink', 'Branch', 'OriginalOverview',
+    'DateInstalled', 'Config', 'trending', 'CAComment', 'ModeratorComment', 'DeprecatedMaxVer',
+    'downloads', 'FirstSeen', 'OriginalDescription', 'Deprecated', 'RecommendedRaw', 'Language',
+    'RequiresFile', 'Requires', 'trends', 'Description', 'Overview', 'Repository', 'Tag',
+    'CaComment', 'IncompatibleVersion', 'Private', 'BranchName', 'display', 'RepositoryTemplate',
+    'bio', 'NoInstall', 'Twitter', 'Discord', 'Reddit', 'Facebook', 'ReadMe', 'display_dockerName',
+    'actionCentre', 'SupportLanguage', 'DockerHub', 'Official', 'Removable', 'IconFA',
+    'imageNoClick', 'RecommendedDate', 'UpdateAvailable', 'Installed', 'Uninstall',
+    'caTemplateExists', 'Support', 'Beta', 'Project', 'Trusted', 'InstallPath', 'LanguagePack',
+    'trendDelta', 'RepoTemplate', 'ExtraSearchTerms', 'Icon', 'LanguageDefault',
+    'translatedCategories', 'RepoShort', 'LanguageLocal', 'ExtraPriority', 'Registry',
+    'caTemplateURL', 'Changes', 'ChangeLogPresent', 'Photo', 'Screenshot', 'Video',
+    'RecommendedReason', 'stars', 'LanguageURL', 'LastUpdate', 'RecommendedWho', 'RepoName',
+    'SortName', 'ca_fav', 'Pinned'
+  ];
 
+  // Use array_fill_keys for better performance than foreach loop
+  $missingVars = array_diff_key(array_fill_keys($requiredVars, null), $o);
+  
+  return $o + $missingVars;
 }
 
 /**

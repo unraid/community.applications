@@ -44,12 +44,19 @@ function stripTags(str) {
   return str.replace(/(<([^>]+)>)/ig,"");
 }
 
-
+var spinnerTimer = null;
 function mySpinner() {
-  $("div.spinner,.spinnerBackground").show();
+  if ( ! spinnerTimer ) {
+    spinnerTimer = setTimeout(function() {
+      spinnerTimer = null;
+      $("div.spinner,.spinnerBackground").show();
+    }, 250);
+  }
 }
 
 function myCloseSpinner() {
+  clearTimeout(spinnerTimer);
+  spinnerTimer = null;
   clearTimeout(ca_longLoading);
   clearTimeout(ca_veryLongLoading);
   clearTimeout(ca_somethingWrong);
@@ -82,15 +89,23 @@ function reloadPage() {
 }
 
 function isOverflown(el,type=false){
-  if (type)
-    return (el.scrollWidth > el.clientWidth);
-  else
-    return (el.scrollHeight > el.clientHeight);
+  return false;
+  // Optimized to minimize forced reflows by using the most efficient DOM properties
+  // offsetWidth/offsetHeight are generally faster than clientWidth/clientHeight
+  
+  if (type) {
+    // For horizontal overflow: compare scrollable content width with element's offset width
+    return el.scrollWidth > el.offsetWidth;
+  } else {
+    // For vertical overflow: compare scrollable content height with element's offset height  
+    return el.scrollHeight > el.offsetHeight;
+  }
 }
 
 
 function disableSearch() {
   $("#searchBox").prop("disabled",true);
+  $("#searchBox").blur();
 }
 
 function enableSearch() {
@@ -315,23 +330,51 @@ $.fn.onClassChange = function(cb) {
     });
   });
 }
+// Watch for a visibility change
+$.fn.onVisibilityHidden = function(callback) {
+  return this.each(function() {
+    const $element = $(this);
+    
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (!entry.isIntersecting) {
+            // Element is hidden/not visible
+            callback.call(entry.target);
+          }
+        });
+      }, {
+        threshold: 0
+      });
+      
+      observer.observe(this);
+      
+      // Store observer for cleanup
+      $element.data('visibilityObserver', observer);
+    } else {
+      // Fallback for older browsers
+      console.warn('IntersectionObserver not supported');
+    }
+  });
+};
+
+// Save the state of CA if GUI Search takes us away from the page
+function guiSearchOnUnload() {
+  saveState();
+}
 
 // Dims the display area
 function dimScreen(dim) {
   if ( dim ) {
-    $("#header, #menu").addClass("dim");
+    $("#header, #menu").addClass("dim",250);
     if ( $(".mobileMenu").is(":visible") ) {
-      $(".mainArea").addClass("dim");
+      $(".mainArea").addClass("dim",250);
     } else {
-      $(".ca_display_area").addClass("dim");
+      $(".ca_display_area").addClass("dim",250);
     }
   } else {
-    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim");
+    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",250);
   }
-}
-
-function guiSearchOnUnload() {
-  saveState();
 }
 
 function setupSwalDim() {
@@ -351,5 +394,3 @@ function setupSwalDim() {
   });
   $(".sweet-alert").addClass("triggerClassChange");
 }
-
-// Safe script execution function

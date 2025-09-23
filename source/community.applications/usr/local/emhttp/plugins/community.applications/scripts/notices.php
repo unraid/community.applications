@@ -235,7 +235,7 @@ switch ($action) {
       }
       debug1("\n");
     }
-    echo json_encode($unRaidNotifications ?: [],JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    echo json_encode($unRaidNotifications ?? [],JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     break;
   case 'dismiss':
     $notifications = readJsonFile($paths['dismiss']);
