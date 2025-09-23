@@ -380,10 +380,16 @@ function DownloadApplicationFeed() {
       foreach($o['Branch'] as $branch) {
         if ( is_array($branch['Tag'] ?? null) ) // if someone listed the same tag twice, drop the tag altogether
           continue;
-        $i = ++$i;
         $subBranch = $o;
         $masterRepository = explode(":",$subBranch['Repository']);
+        if ( (!isset($masterRepository[1]) && $branch['Tag'] == "latest" ) || (isset($masterRepository[1]) && $branch['Tag'] == $masterRepository[1]) ) {
+        //debug("Default tag is latest, but branch is also latest.  Skipping {$o['RepoName']} {$subBranch['Repository']} {$branch['Tag']}");
+        continue;
+        }
+        $i = ++$i;
+
         $o['BranchDefault'] = $masterRepository[1] ?? null;
+
         $subBranch['Repository'] = $masterRepository[0].":". ($branch['Tag'] ?? ""); #This takes place before any xml elements are overwritten by additional entries in the branch, so you can actually change the repo the app draws from
         $subBranch['BranchName'] = $branch['Tag'] ?? "";
         $subBranch['BranchDescription'] = $branch['TagDescription'] ? $branch['TagDescription'] : $branch['Tag'];
@@ -1036,8 +1042,13 @@ function get_content() {
           $searchResults['officialHit'][] = $template;
           continue;
         } else {
-          $searchResults['nameHit'][] = $template;
-          continue;
+          if ( $template['Official']??false) {
+            $searchResults['officialHit'][] = $template;
+            continue;
+          } else {
+            $searchResults['nameHit'][] = $template;
+            continue;
+          }
         }
       }
       if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null,$template['ExtraSearchTerms']??null]) ) {
