@@ -1304,7 +1304,7 @@ function displayCard($template) {
   }
   $checked = $checked ?? "";
   if ($Removable && !($DockerInfo ?? false) && ! $Installed && ! $Blacklist) {
-    $card .= "<input class='ca_multiselectl' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
+    $card .= "<input class='ca_multiselect' title='".tr("Check off to select multiple reinstalls")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-deletepath='$InstallPath' $checked>";
   } elseif ( $actionCentre && $UpdateAvailable ) {
     $card .= "<input class='ca_multiselect' title='".tr("Check off to select multiple updates")."' type='checkbox' data-name='$previousAppName' data-humanName='$Name' data-type='$type' data-language='$LanguagePack' $checked>";
   }

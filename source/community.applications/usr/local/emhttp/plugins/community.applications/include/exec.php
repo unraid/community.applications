@@ -937,7 +937,7 @@ function get_content() {
           $homeClass = "caHomeSpotlight";
 
           $o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1")."</div>";
-          $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();$('.ca_holder');";
+          $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();";
 
         } else {
           switch ($caSettings['startup']) {
@@ -1056,7 +1056,7 @@ function get_content() {
         }
       }
       if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null,$template['ExtraSearchTerms']??null]) ) {
-        if ( $template['RepoName'] == $caSettings['favourite']??null ) {
+        if ( $template['RepoName'] == ($caSettings['favourite']??null) ) {
           $searchResults['nameHit'][] = $template;
         } else {
           $searchResults['anyHit'][] = $template;

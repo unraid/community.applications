@@ -3,7 +3,7 @@
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
 <!ENTITY version   "2025.09.23">
-<!ENTITY md5       "d77c8b54b2ebb0fd76fbdbfcb175577b">
+<!ENTITY md5       "752f29395f6cf21bad5da88fd57c5d0a">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
