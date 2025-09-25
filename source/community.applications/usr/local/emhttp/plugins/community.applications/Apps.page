@@ -362,7 +362,7 @@ $(function(){
     window.location.replace("/Apps/Apps");
   }, 100);
 
-  $(window).on('orientationchange resize', function() {
+  $(window).on('orientationchange', function() {
     setTimeout(debouncedOrientationHandler, 100);
   });
   <? endif;?>

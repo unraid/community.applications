@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2025.09.24">
-<!ENTITY md5       "9c656c4164f72b5c69fa1eff76775d29">
+<!ENTITY version   "2025.09.25">
+<!ENTITY md5       "6e8a23660bf16d8aec4deb86fdcb0c54">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,7 +13,7 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
-###2025.09.24
+###2025.09.25
 - Fixed: 6.12.x compatibility
 - Fixed: Statistics weren't working with new data storage method
 - Added: Support for a DefaultBranchDescription tag
