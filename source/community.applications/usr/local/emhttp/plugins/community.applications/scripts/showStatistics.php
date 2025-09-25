@@ -35,9 +35,6 @@ function tr($string,$ret=true) {
 <!DOCTYPE html>
 <body bgcolor='white'>
 <style>
-<?include "/$docroot/plugins/community.applications/skins/Narrow/css.php"?>
-</style>
-<style>
 p {margin-left:2rem;margin-right:2rem;}
 body {margin-left:1.5rem;margin-right:1.5rem;margin-top:1.5rem;font-family:clear-sans;font-size:0.9rem;}
 hr { margin-top:1rem;margin-bottom:1rem; }
@@ -79,11 +76,10 @@ switch ($_GET['arg1']) {
     echo "<tt>".tr("These templates are invalid and the application they are referring to is unknown")."<br><br>$moderation";
     break;
   case 'Fixed':
-    $moderation = @file_get_contents($caPaths['fixedTemplates_txt']);
+    $json = $moderation = readJsonFile($caPaths['fixedTemplates_txt']);
     if ( ! $moderation ) {
       echo "<br><br><div class='ca_center'><span class='ca_bold'>".tr("No templates were automatically fixed")."</span></div>";
     } else {
-      $json = json_decode($moderation,true);
       ksort($json,SORT_NATURAL | SORT_FLAG_CASE);
       echo tr("All of these errors found have been fixed automatically")."<br><br>".tr("Note that many of these errors can be avoided by following the directions")." <a href='https://forums.unraid.net/topic/57181-real-docker-faq/#comment-566084' target='_blank'>".tr("HERE")."</a><br><br>";
       foreach (array_keys($json) as $repository) {
@@ -137,7 +133,7 @@ switch ($_GET['arg1']) {
     break;
   case 'Moderation':
     echo "<br><div class='ca_center'><strong>".tr("If any of these entries are incorrect then contact the moderators of CA to discuss")."</strong></div><br><br>";
-    $moderation = file_get_contents($caPaths['moderation']);
+    $moderation = json_encode(readJsonFile($caPaths['moderation']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     $repoComment = "";
     foreach ($repositories as $repo) {
       if ($repo['RepoComment']??false) {

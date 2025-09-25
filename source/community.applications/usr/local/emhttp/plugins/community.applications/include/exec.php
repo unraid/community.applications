@@ -382,7 +382,10 @@ function DownloadApplicationFeed() {
           continue;
         $subBranch = $o;
         $masterRepository = explode(":",$subBranch['Repository']);
-        if ( (!isset($masterRepository[1]) && $branch['Tag'] == "latest" ) || (isset($masterRepository[1]) && $branch['Tag'] == $masterRepository[1]) ) {
+        if ( ! ($branch['Tag']??null) ) {
+          continue;
+        }
+        if ( (!isset($masterRepository[1]) && ($branch['Tag']??null) == "latest" ) || (isset($masterRepository[1]) && ($branch['Tag']??null) == $masterRepository[1]) ) {
         //debug("Default tag is latest, but branch is also latest.  Skipping {$o['RepoName']} {$subBranch['Repository']} {$branch['Tag']}");
         continue;
         }

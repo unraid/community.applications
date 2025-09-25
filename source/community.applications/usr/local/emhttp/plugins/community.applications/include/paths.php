@@ -43,6 +43,7 @@ $caPaths['community-templates-catSearchResults']= $caPaths['tempFiles']."/catSea
 $caPaths['startupDisplayed']                    = $caPaths['tempFiles']."/startupDisplayed";
 $caPaths['repositoriesDisplayed']               = $caPaths['tempFiles']."/repositoriesDisplayed.json";
 $caPaths['localONLY']                           = false;    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
+$caPaths['humanReadable']                       = false;     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
 $caPaths['application-feed']                    = "https://ca.unraid.net/assets/feed/applicationFeed.json";
 $caPaths['application-feed-last-updated']       = "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json";
 $caPaths['application-feedBackup']              = "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json";

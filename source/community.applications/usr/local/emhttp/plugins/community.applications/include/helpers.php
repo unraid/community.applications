@@ -71,7 +71,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
       } else {
         unset($attributeCache[$plugin_file]);
       }
-      file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+      file_put_contents($caPaths['pluginAttributesCache'], serialize($attributeCache));  
     
       // return the cached result if it exists.  If it doesn't return false;;
       return $attributeCache[$plugin_file]['@attributes'][$method]??false;
@@ -128,7 +128,7 @@ function randomFile() {
 ##################################################################
 // This function reads either a serialized or JSON file
 function readJsonFile($filename) {
-  debug("CA Read Serialized file $filename");
+  debug( ($GLOBALS['action']?? "Unknown") . " - Read Serialized file $filename");
 
   if ( ! is_file($filename) ) {
     debug("$filename not found");
@@ -154,8 +154,12 @@ function readJsonFile($filename) {
 function writeJsonFile($filename,$jsonArray) {
   global $caPaths;
 
-  debug("Write JSON File $filename");
-  $result = ca_file_put_contents($filename,serialize($jsonArray));
+  debug("{$_POST['action']} - Write JSON File $filename");
+  if ( $caPaths['humanReadable'] ) {
+    $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+  } else {
+    $result = ca_file_put_contents($filename,serialize($jsonArray));
+  }
 
   // The plugin script needs a template.json in JSON format to update support URLs on plugins
   // If we're writing $template, then save templates.json but filtered only for plugins to save space
@@ -764,6 +768,9 @@ function formatTags($leadTemplate,$rename="false") {
 
     $o = "<table>";
     $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$template['Path']}'>Default</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$template['Path']}'>".tr("Install Using The Template's Default Tag")." (<span class='ca_bold'>:$defaultTag</span>)</td></tr>";
+    if ( ($template['DefaultTagDescription']??null) && ! is_array($template['DefaultTagDescription']) ) {
+      $o .= "<tr><td></td><td></td><td>{$template['DefaultTagDescription']}</td></tr>";
+    }
     foreach ($childTemplates as $child) {
       $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchName']}</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchDescription']}</td></tr>";
     }
