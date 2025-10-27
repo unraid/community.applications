@@ -1681,10 +1681,14 @@ a.popUpLink {
   max-width: 12rem;
   height: 8rem;
   margin: 10px;
+  transition: transform 0.3s ease;
 }
 
 .screen:hover {
-  opacity: 50%;
+  transform: scale(1.2);
+  transition: transform 0.3s ease;
+  z-index: 10;
+  position: relative;
 }
 
 .screenshot {
