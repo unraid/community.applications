@@ -1058,14 +1058,19 @@ function get_content() {
           }
         }
       }
-      if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null,$template['ExtraSearchTerms']??null]) ) {
+      if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
         if ( $template['RepoName'] == ($caSettings['favourite']??null) ) {
           $searchResults['nameHit'][] = $template;
         } else {
-          $searchResults['anyHit'][] = $template;
+          $searchResults['anyHit'][] = $template;   
         }
+        continue;
       } 
-      
+      if ( filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
+        debug("extraHit: ".$template['Name']);
+        $searchResults['extraHit'][] = $template;
+        continue;
+      }
     } else {
       $display[] = $template;
     }
