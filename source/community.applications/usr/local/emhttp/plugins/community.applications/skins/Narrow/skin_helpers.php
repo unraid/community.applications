@@ -730,7 +730,7 @@ function caProcessPluginTemplate(array $template, array $caPaths, array $caSetti
     $pluginInstalledVersion = ca_plugin("version", "/var/log/plugins/$pluginName");
     if (file_exists("/tmp/plugins/$pluginName")) {
       $tmpPluginVersion = ca_plugin("version", "/tmp/plugins/$pluginName");
-      if (strcmp($template['pluginVersion'], $tmpPluginVersion) < 0) {
+      if ($tmpPluginVersion && strcmp($template['pluginVersion'], $tmpPluginVersion) < 0) {
         $template['pluginVersion'] = $tmpPluginVersion;
       }
     }

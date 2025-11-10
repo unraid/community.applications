@@ -673,9 +673,9 @@ function appOfDay($file) {
           continue;
         // Don't show it if the container is installed
         if ( ! ($template['PluginURL']??false) ) {
-        if ( caIsDockerRunning() ) {
-            $selected = false;
+          $selected = false;
 
+          if ( caIsDockerRunning() ) {
             foreach ($containers as $testDocker) {
               if ( ($template['Repository'] == $testDocker['Image'] ) || ($template['Repository'].":latest" == $testDocker['Image']) || (str_replace(":latest","",$template['Repository']) == $testDocker['Image']) ) {
                 $selected = true;
