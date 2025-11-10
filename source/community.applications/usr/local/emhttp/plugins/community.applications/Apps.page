@@ -434,12 +434,6 @@ $(function(){
 // Override the OS switch language function so that CA can save it's current state when switching via the OS
   $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
   
-// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
-  <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
-    $(".searchAreaHolder").insertAfter("#menu");
-  <? endif; ?>
-  $("body").append("<div class='sidebar hide' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
-
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
 
@@ -1396,7 +1390,6 @@ function closeSidebar(cookie=false,visible=false) {
   dimScreen(false);
   $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
-  $("body").removeClass("body_sidebarScroll");
   $(".sidebar").fadeOut();
   $(".nav-user.show").show();
   enableSearch();
@@ -2373,22 +2366,19 @@ function restoreState() {
 }
 function showAlternateView() {
   $("#alternateView").show();
-  $("body").addClass("body_sidebarScroll");
 }
 
 function hideAlternateView() {
+  $(".alternateViewContent").html("");
   $("#alternateView").hide();
   $("#alternateView,.ca_display_area").removeClass("mobileMenu");
-  $("body").removeClass("body_sidebarScroll");
 }
 
 function showCredits() {
-  showAlternateView();
-  $(".alternateViewContent").html($("#caCredits").html());
+  $("#caCredits").showAlternateView();
 }
 
 function showStatistics() {
-  showAlternateView();
   post({action:'statistics'},function(result) {
     const stats = result.statistics || {};
     const unknownLabel = "<?=tr("unknown");?>";
@@ -2398,7 +2388,7 @@ function showStatistics() {
       return value;
     };
     const safeUrl = (url) => (typeof url === "string" && url.length) ? url : "#";
-    const $content = $($("#caStatisticsTemplate").html());
+    const $content = $("#caStatisticsTemplate");
     const setText = (key, value, fallback = "0") => {
       const $el = $content.find(`[data-stat-text='${key}']`);
       if ($el.length) $el.text(safeValue(value, fallback));
@@ -2431,7 +2421,7 @@ function showStatistics() {
     $content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
     $content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
 
-    $(".alternateViewContent").html($content).css("font-weight","bold").show();
+    $content.showAlternateView();
   });
 }
 
@@ -2458,9 +2448,9 @@ function closeMenu() {
 }
 
 function caChangeLog() {
-  showAlternateView();
   post({action:'caChangeLog'},function(result) {
-    $(".alternateViewContent").html(result.changelog);
+    $(".caChanges").html(result.changelog);
+    $("#caChangeLog").showAlternateView();
   });
 }
 
@@ -2939,7 +2929,6 @@ function showSidebarApp(apppath,appname) {
   $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
   data.sidebarapppath = apppath;
   data.sidebarappname = appname;
-  $("body").addClass("body_sidebarScroll");
   $(".nav-user.show").hide();
   $("#sidenavContent").html("");
   $(".sidebar").fadeIn();
@@ -2976,7 +2965,6 @@ function showSidebarApp(apppath,appname) {
           },
           close: function() {
             dimScreen(false);
-            $('body').addClass("body_sidebarScroll");
             setTimeout(function() {showSidebarApp(data.sidebarapppath,data.sidebarappname);},250);
           }
         }
@@ -3020,7 +3008,6 @@ function showRepoPopup(repository) {
   $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
   dimScreen(true);
   $(".sidebar").fadeIn();
-  $("body").addClass("body_sidebarScroll");
   $(".nav-user.show").hide();
 
   post({action:'getRepoDescription',repository:repository},function(result) {
@@ -3047,7 +3034,7 @@ function showRepoPopup(repository) {
         },
         close: function() {
           dimScreen(false);
-          $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+          $('body').removeClass("mfp-zoom-out-cur");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});

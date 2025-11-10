@@ -275,6 +275,10 @@ jQuery.fn.fitText = function(overFlowType=false) {
   return el;
 }
 
+jQuery.fn.showAlternateView = function() {
+  $(".alternateViewContent").html($(this).html());
+  showAlternateView();
+}
 
 jQuery.fn.getWidth = function(everything=true) {
   var width = $(this).css("width").replace("px","");

@@ -1,3 +1,33 @@
+<?
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2025, Lime Technology #
+# Copyright 2015-2025, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
+?>
+
+<?
+#############################################################################################################
+# JS to adjust the layout of the DOM and move elements around as needed outside of the Dynamix display area #
+#############################################################################################################
+?>
+<script>
+
+$(function() {
+  // Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
+  <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
+    $(".searchAreaHolder").insertAfter("#menu");
+  <? endif; ?>
+  $(".sidebar").appendTo("body");
+
+});
+</script>
+
+<!-- Search Area - This gets moved to body on responsive and black and white themes on legacy OS -->
 <div class="searchAreaHolder menuAdjust">
   <div class='searchArea onlyShowWithFeed'>
     <div class='mobileMenuButton'>
@@ -15,6 +45,8 @@
     <div class='category altCategoryLine hideWithMenu'></div>
   </div>
 </div>
+
+<!-- Main Display Area -->
 <div class='ca_display_area'>
   <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
   <div class='mobileMenu' id='mobileMenu'>
@@ -78,14 +110,33 @@
     </div>
   </div>
 </div>
+
+<!-- Sidebar for the application description.   This gets moved to the body -->
+<div class='sidebar' role='modal'>
+  <div class='sidebarClose'></div>
+  <div class='sidenav sidenavHide'>
+    <div id='sidenavContent'></div>
+  </div>
+</div>
 <div id='alternateView'>
   <div class='caButton alternateViewClose'><?tr("CLOSE");?></div>
   <div class='alternateViewContent'></div>
 </div>
+
+<!-- Templates / HTML for alternate views -->
 <div class='ca_hide'>
+  <div id="caChangeLog">
+    <div style='margin:auto;width:500px;'>
+      <div class='ca_center caLogoIcon'></div>
+      <div class='ca_center caChangelogTitle'><?tr("Community Applications Changelog")?></div>
+      <div class='ca_center ca_italic'><?tr("Copyright")?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
+      <div class='ca_center ca_italic'><?tr("All rights reserved.")?></div>
+      <div class="caChanges"></div>
+    </div>
+  </div>
   <div id='caCredits'>
     <div class='credits'>
-      <div class='ca_center ca_creditTitle caLogoIcon'></div>
+      <div class='ca_center caLogoIcon'></div>
       <div class='ca_center ca_creditTitle'>Community Applications</div>
       <div class='ca_center ca_creditheader'><?tr("Development");?></div>
       <div class='ca_center ca_credit'>Andrew Zawadzki</div>
@@ -99,11 +150,11 @@
       <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
       <div class='ca_center ca_credit'>
-        <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
-        <div class='ca_libraries'>Chart.js (various)</div>
-        <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
-        <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
-        <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
+        <div>Awesomeplete (Lea Verou)</div>
+        <div>Chart.js (various)</div>
+        <div>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
+        <div>XML2Array/Array2XML (Miles Johnson)</div>
+        <div>Magnific-Popup (Dmytro Semenov)</div>
       </div>
       <br>
       <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>

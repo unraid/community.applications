@@ -6,6 +6,14 @@ body {
   cursor: default !important;
 }
 
+.caChangelogTitle {
+  font-size: 2rem;
+}
+
+.caLogoIcon {
+  font-size: 6rem;
+}
+
 .caLogoIcon::before {
   content: "\f0c0";
   font-family: fontAwesome;
@@ -15,7 +23,11 @@ body {
   display: none;
   z-index: 0;
 }
-body.menuShowing,body.body_sidebarScroll {
+body.menuShowing {
+  overflow: hidden !important;
+}
+body:has(#alternateView[style]:not([style*="display: none"])),
+body:has(.sidebar[style]:not([style*="display: none"])) {
   overflow: hidden !important;
 }
 .subCategory ul {
@@ -77,6 +89,11 @@ a {
 .ca_center {
   margin: auto;
   text-align: center;
+}
+
+/* Move the banners to the very top of the page.  When displayed, it covers up part of the search area when display scrolled */
+.upgrade_notice {
+  top: 0rem !important;
 }
 
 .invisible {
@@ -394,10 +411,7 @@ input[type="button"][disabled] {
   height: auto;
   display: none;
 }
-.ca_hide{
-  display: none;
-}
-.menuShowing.hideWithMenu,#searchFilter.menuShowing {
+.ca_hide,.menuShowing.hideWithMenu,#searchFilter.menuShowing {
   display: none;
 
 }
@@ -415,12 +429,11 @@ input[type="button"][disabled] {
 .showMenuButton.menuShowing {
   display: none;
 }
-.closeMenuButton.menuShowing {
-  display: inline-block;
-}
+.closeMenuButton.menuShowing,
 .showMenuButton.menuHidden {
   display: inline-block;
 }
+
 .closeMenuButton.menuHidden {
   display: none;
 }
@@ -535,7 +548,7 @@ input[type="button"][disabled] {
 }
 
 .sidenavHide {
-  width: 0;
+  display: none;
 }
 
 .sidenavShow {
