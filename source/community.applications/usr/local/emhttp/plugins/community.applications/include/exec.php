@@ -50,11 +50,8 @@ if ( ! is_file($caPaths['warningAccepted']) )
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
 
-if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
-  $caSettings['dockerRunning'] = true;
-} else {
+if ( ! caIsDockerRunning() ) {
   $caSettings['dockerSearch'] = "no";
-  $caSettings['dockerRunning'] = false;
 }
 
 @mkdir($caPaths['tempFiles'],0777,true);
@@ -73,8 +70,6 @@ if ( ! $sortOrder ) {
   $sortOrder['sortDir'] = "Up";
   writeJsonFile($caPaths['sortOrder'],$sortOrder);
 }
-
-//$GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
 
 ############################################
 ##                                        ##
@@ -678,7 +673,7 @@ function appOfDay($file) {
           continue;
         // Don't show it if the container is installed
         if ( ! ($template['PluginURL']??false) ) {
-          if ( $caSettings['dockerRunning'] ) {
+        if ( caIsDockerRunning() ) {
             $selected = false;
 
             foreach ($containers as $testDocker) {
@@ -1281,7 +1276,7 @@ function previous_apps($enableActionCentre=false) {
   $displayed = [];
   $updateCount = 0;
 
-  if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
+  if ( caIsDockerRunning() ) {
     $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
   } else {
     $dockerUpdateStatus = [];
@@ -1291,7 +1286,7 @@ function previous_apps($enableActionCentre=false) {
 # $info contains all installed containers
 # now correlate that to a template;
 # this section handles containers that have not been renamed from the appfeed
-  if ( $caSettings['dockerRunning'] ) {
+  if ( caIsDockerRunning() ) {
     $all_files = glob("{$caPaths['dockerManTemplates']}/*.xml");
     $all_files = $all_files ?: [];
     if ( $installed == "true" || $installed == "action") {
@@ -1780,136 +1775,12 @@ function statistics() {
 
   $statistics['invalidXML'] = @count($invalidXML) ?: tr("unknown");
   $statistics['repositories'] = @count($repositories) ?: tr("unknown");
+  $statistics['updateTime'] = $updateTime;
+  $statistics['currentServer'] = tr($currentServer);
+  $statistics['primaryServerUrl'] = $caPaths['application-feed'];
+  $statistics['backupServerUrl'] = $caPaths['application-feedBackup'];
 
-  $o =  "
-    <div style='height:auto;overflow:scroll; overflow-x:scroll; overflow-y:hidden;margin:auto;width:fit-content;'>
-      <table style='margin-top:1rem;'>
-        <tr style='height:6rem;'>
-          <td colspan='2'>
-            <div class='ca_center'>
-              <i class='fa fa-users' style='font-size:6rem;'></i>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td colspan='2'>
-            <div class='ca_center'>
-              <font size='5rem;'>Community Applications</font>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            ".tr("Last Change To Application Feed")."
-          </td>
-          <td class='ca_stat'>
-            $updateTime<br>".tr($currentServer)."
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            ".tr("Docker Applications")."
-          </td>
-          <td class='ca_stat'>
-            {$statistics['docker']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            ".tr("Plugin Applications")."
-          </td>
-          <td class='ca_stat'>
-            {$statistics['plugin']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            ".tr("Templates")."
-          </td>
-          <td class='ca_stat'>
-            {$statistics['totalApplications']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            ".tr("Official Containers")."
-          </td>
-          <td class='ca_stat'>
-            {$statistics['official']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a onclick='event.stopPropagation();showModeration(&quot;Repository&quot;,&quot;".tr("Repositories")."&quot;);' style='cursor:pointer;' class='popUpLink'>".tr("Repositories")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['repositories']}
-          </td>
-        </tr>
-        ";
-  if ($statistics['private']) {
-    $o .= "<tr><td class='ca_table'><a class='popUpLink' data-category='PRIVATE' onclick='showSpecialCategory(this);' style='cursor:pointer;'>".tr("Private Docker Applications")."</a></td><td class='ca_stat'>{$statistics['private']}</td></tr>";
-  }
-  $o .= "
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Invalid&quot;,&quot;".tr("Invalid Templates")."&quot;);' style='cursor:pointer'>".tr("Invalid Templates")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['invalidXML']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Fixed&quot;,&quot;".tr("Template Errors")."&quot;);' style='cursor:pointer'>".tr("Template Errors")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['caFixed']}+
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' data-category='BLACKLIST' onclick='showSpecialCategory(this);' style='cursor:pointer'>".tr("Blacklisted Apps")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['blacklist']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' data-category='INCOMPATIBLE' onclick='showSpecialCategory(this);' style='cursor:pointer'>".tr("Incompatible Applications")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['totalIncompatible']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' data-category='DEPRECATED' onclick='showSpecialCategory(this);' style='cursor:pointer'>".tr("Deprecated Applications")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['totalDeprecated']}
-          </td>
-        </tr>
-        <tr>
-          <td class='ca_table'>
-            <a class='popUpLink' onclick='event.stopPropagation();showModeration(&quot;Moderation&quot;,&quot;".tr("Moderation Entries")."&quot;);' style='cursor:pointer'>".tr("Moderation Entries")."</a>
-          </td>
-          <td class='ca_stat'>
-            {$statistics['totalModeration']}+
-          </td>
-        </tr>
-        <tr>
-        <td class='ca_table'>
-          <a class='popUpLink' href='{$caPaths['application-feed']}' target='_blank'>".tr("Primary Server")."</a> / <a class='popUpLink' href='{$caPaths['application-feedBackup']}' target='_blank'> ".tr("Backup Server")."</a>
-        </td>
-      </tr>
-    </table>
-  <div class='ca_center'>
-    <a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank'>".tr("Application Policy")."</a>
-  </div>";
-
-  postReturn(['statistics'=>$o]);
+  postReturn(['statistics'=>$statistics]);
 }
 
 ####################################################
@@ -2628,7 +2499,7 @@ function enableActionCentre() {
   $extraBlacklist = readJsonFile($caPaths['extraBlacklist']);
   $extraDeprecated = readJsonFile($caPaths['extraDeprecated']);
 
-  if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
+  if ( caIsDockerRunning() ) {
     $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
   } else {
     $dockerUpdateStatus = [];
@@ -2638,7 +2509,7 @@ function enableActionCentre() {
 # $info contains all installed containers
 # now correlate that to a template;
 # this section handles containers that have not been renamed from the appfeed
-  if ( $caSettings['dockerRunning'] ) {
+  if ( caIsDockerRunning() ) {
     $all_files = glob("{$caPaths['dockerManTemplates']}/*.xml");
     $all_files = $all_files ?: [];
     foreach ($all_files as $xmlfile) {

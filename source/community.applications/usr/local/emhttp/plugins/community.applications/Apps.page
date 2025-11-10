@@ -22,8 +22,6 @@ $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
 
 $caSettings = parse_plugin_cfg($plugin);
-$caSettings['dockerSearch'] = "yes";
-$caSettings['unRaidVersion'] = $var['version'];
 
 require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
 require_once("$docroot/plugins/$plugin/include/paths.php");
@@ -95,13 +93,6 @@ exec("mkdir -p {$caPaths['tempFiles']}");
 if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime($caPaths['updateTime']) ) > 3600 ) ) {
   touch($caPaths['updateTime']);
   exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
-}
-
-if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
-  $caSettings['dockerRunning'] = true;
-} else {
-  $caSettings['dockerSearch'] = "no";
-  unset($caSettings['dockerRunning']);
 }
 
 // Create a symlink for plugin pre and post hooks to drop the attribute cache
@@ -2399,7 +2390,48 @@ function showCredits() {
 function showStatistics() {
   showAlternateView();
   post({action:'statistics'},function(result) {
-    $(".alternateViewContent").html(result.statistics).css("font-weight","bold").show();
+    const stats = result.statistics || {};
+    const unknownLabel = "<?=tr("unknown");?>";
+    const primaryServerLabel = "<?=tr("Primary Server");?>";
+    const safeValue = (value, fallback = "0") => {
+      if (value === undefined || value === null || value === "") return fallback;
+      return value;
+    };
+    const safeUrl = (url) => (typeof url === "string" && url.length) ? url : "#";
+    const $content = $($("#caStatisticsTemplate").html());
+    const setText = (key, value, fallback = "0") => {
+      const $el = $content.find(`[data-stat-text='${key}']`);
+      if ($el.length) $el.text(safeValue(value, fallback));
+    };
+    const setHtml = (key, value, fallback = "") => {
+      const $el = $content.find(`[data-stat-html='${key}']`);
+      if ($el.length) $el.html(value !== undefined && value !== null && value !== "" ? value : fallback);
+    };
+
+    setText("updateTime", stats.updateTime, "");
+    setHtml("currentServer", stats.currentServer, primaryServerLabel);
+    setText("docker", stats.docker);
+    setText("plugin", stats.plugin);
+    setText("totalApplications", stats.totalApplications);
+    setText("official", stats.official);
+    setText("repositories", stats.repositories, unknownLabel);
+    const hasPrivate = parseInt(stats.private, 10) > 0;
+    const $privateRow = $content.find("[data-stat-row='private']");
+    if (hasPrivate) {
+      setText("private", stats.private);
+    } else {
+      $privateRow.remove();
+    }
+    setText("invalidXML", stats.invalidXML, unknownLabel);
+    setText("caFixed", `${safeValue(stats.caFixed)}+`);
+    setText("blacklist", stats.blacklist);
+    setText("totalIncompatible", stats.totalIncompatible);
+    setText("totalDeprecated", stats.totalDeprecated);
+    setText("totalModeration", `${safeValue(stats.totalModeration)}+`);
+    $content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
+    $content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
+
+    $(".alternateViewContent").html($content).css("font-weight","bold").show();
   });
 }
 
