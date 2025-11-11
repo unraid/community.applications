@@ -276,8 +276,11 @@ jQuery.fn.fitText = function(overFlowType=false) {
 }
 
 jQuery.fn.showAlternateView = function() {
-  $(".alternateViewContent").html($(this).html());
+  const $src = $(this);
+  const $dest = $(".alternateViewContent");
+  $dest.empty().append($src.contents().clone(true, true)).scrollTop(0);
   showAlternateView();
+  return this;
 }
 
 jQuery.fn.getWidth = function(everything=true) {

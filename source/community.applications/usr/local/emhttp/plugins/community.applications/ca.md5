@@ -1,9 +1,9 @@
-cde68e1e1f889ad630cd38662fd51f23  ./Apps.page
+3a9b816df1a7204aafcc792197087d72  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 2491d72544be3002226ff2e9a3654295  ./ca_settings.page
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
-5c563a65f71c0526f57e84b430d4bd0e  ./include/exec.php
+d747e803face2247b2e3bc8c8b94522a  ./include/exec.php
 83fd8f1da14d9b929575cb33aa9d492b  ./include/helpers.php
 bf280aac71f87e773e8da0bb543a63bf  ./include/paths.php
 9614583fbc5afc1d31a5d8b82bd782a3  ./include/get_content_helpers.php
@@ -11,7 +11,7 @@ bf280aac71f87e773e8da0bb543a63bf  ./include/paths.php
 dd80311a61111e981948473f65d1d2ed  ./include/previous_apps_helpers.php
 3707d22609be391b7fcdb6ed31638763  ./include/pinned_apps_helpers.php
 b811e52a68892dceb8fd36325568597f  ./include/populate_autocomplete_helpers.php
-4a87755daa6ebdd81e6eca7e124cc111  ./javascript/helpers.js
+9f5a72e8d1ef5f30735b31d1c195bcb6  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
@@ -38,5 +38,5 @@ a94263995f1142883d4adae465b136d4  ./skins/Narrow/styles/community.applications.c
 050461ac4912b68087f43b5f74639aa2  ./skins/Narrow/themes/black.css
 adb497cab4c9b4ae94ee127dc5e63229  ./skins/Narrow/themes/gray.css
 b5abf1dff9efa2e23e233a19a714620a  ./skins/Narrow/themes/white.css
-865ad26f7446c99ec835d6e8c2559b9b  ./skins/Narrow/skin_helpers.php
+c69a0d2995379a27240f475e4f40c288  ./skins/Narrow/skin_helpers.php
 edc5ea6c423f82c62615ca7da0bee0c7  ./skins/Narrow/skin.php

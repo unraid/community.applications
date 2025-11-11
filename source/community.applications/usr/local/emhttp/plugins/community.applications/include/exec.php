@@ -813,7 +813,9 @@ function get_content() {
   $categoryContext = GetContentHelpers::resolveCategoryContext($categoryRaw);
 
   if ( $categoryContext['action'] === 'repos' ) {
-    postReturn(displayRepositories());
+       displayRepositories(); // writes repositoriesDisplayed cache
+       $o['display'] = display_apps();
+       postReturn($o);
     return;
   }
 

@@ -2364,11 +2364,15 @@ function restoreState() {
   });
 
 }
+function showSettings() {
+  $("#caSettings").showAlternateView();
+}
 function showAlternateView() {
   $("#alternateView").show();
 }
 
 function hideAlternateView() {
+  $("#alternateView").scrollTop(0);
   $(".alternateViewContent").html("");
   $("#alternateView").hide();
   $("#alternateView,.ca_display_area").removeClass("mobileMenu");
