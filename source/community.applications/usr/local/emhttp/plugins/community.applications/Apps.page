@@ -2939,14 +2939,14 @@ function showSidebarApp(apppath,appname) {
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       $("#sidenavContent").html(result.description);
+      
       $('img').on("error",function() {
-        if ( $(this).hasClass("spotlightIcon") )
-          $(this).attr('src','<?=$caPaths['SpotlightIcon-backup']?>');
-        else
-          if ( ! $(this).hasClass("licence") ) {
-            $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
-          }
+        $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
+        if ( $(this).parent().is('a') ) {
+          $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
+        }
       });
+      
       $('.screenshot').magnificPopup({
         closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
@@ -3017,6 +3017,12 @@ function showRepoPopup(repository) {
     if (fromCard) {
       $(".popUpBack").hide();
     }
+    $('img').on("error",function() {
+      $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
+      if ( $(this).parent().is('a') ) {
+        $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
+      }
+    });
     $('.screenshot').magnificPopup({
       type:'image',
       closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
