@@ -105,6 +105,14 @@ a {
 .ca_href {
   cursor: pointer;
 }
+.magnificPopup.caButton {
+  position: absolute;
+  right: 0;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: var(--magnificCloseColor);
+}
 
 .ca_display_area {
   display: flex;
@@ -293,7 +301,7 @@ a {
   /* Typography */
   font-size: 1.2rem;
   line-height: 2rem;
-  color: var(--support-popup-text) !important;
+  color: var(--support-popup-text);
   
   /* Visual */
   background: linear-gradient(
@@ -1137,9 +1145,6 @@ li.context {
   overflow-x: scroll;
   overflow-y: scroll;
 }
-.Theme--azure #alternateView {
-  opacity: 0.95;
-}
 
 li.debugging {
   cursor: pointer;
@@ -1195,7 +1200,6 @@ img.displayIcon {
 .templateSearch {
   display: inline-block;
   cursor: pointer;
-  color: var(--unraid-66-color);
   margin-bottom: 1rem;
 }
 

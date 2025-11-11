@@ -2364,17 +2364,14 @@ function restoreState() {
   });
 
 }
-function showSettings() {
-  $("#caSettings").showAlternateView();
-}
+
 function showAlternateView() {
   $("#alternateView").show();
 }
 
 function hideAlternateView() {
-  $("#alternateView").scrollTop(0);
   $(".alternateViewContent").html("");
-  $("#alternateView").hide();
+  $("#alternateView").scrollTop(0).hide();
   $("#alternateView,.ca_display_area").removeClass("mobileMenu");
 }
 
@@ -2951,7 +2948,7 @@ function showSidebarApp(apppath,appname) {
           }
       });
       $('.screenshot').magnificPopup({
-        closeMarkup: "<span class='mfp-close narrow'>"+tr("CLOSE")+"</span>",
+        closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
         type:'image',
         removalDelay: 300,
@@ -3022,7 +3019,7 @@ function showRepoPopup(repository) {
     }
     $('.screenshot').magnificPopup({
       type:'image',
-      closeMarkup: "<span class='mfp-close narrow'>"+tr("CLOSE")+"</span>",
+      closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
       closeOnContentClick: true,
       removalDelay: 300,
       mainClass: 'mfp-fade',
