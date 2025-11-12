@@ -228,7 +228,10 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     CURLOPT_RETURNTRANSFER=>true,
     CURLOPT_FOLLOWLOCATION=>true,
     CURLOPT_FAILONERROR=>true,
-    CURLOPT_URL=>$url
+    CURLOPT_NOPROGRESS=>false,
+    CURLOPT_URL=>$url,
+    CURLOPT_MAX_RECV_SPEED_LARGE=>241 * 1024,
+    CURLOPT_PROGRESSFUNCTION=>"testProgress"
   ];
 
   if ( $timeout > 0 ) {
@@ -273,12 +276,49 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     @unlink($path);
   }
   curl_close($ch);
-
+  
+  publish("ca_downloadProgress","");
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
   return $out ?: false;
 }
 
+function MakeReadable($bytes) {
+  if (!is_numeric($bytes) || $bytes < 0) {
+    return "";
+  }
+
+  if ($bytes == 0) {
+    return "0B";
+  }
+
+  $units = ['B','kB','MB','GB','TB','PB','EB'];
+  $precision = [0,0,1,1,3,3,3];
+
+  $i = (int)floor(log($bytes, 1024));
+  $i = max(0, min($i, count($units) - 1));
+
+  return round($bytes / pow(1024, $i), $precision[$i]).$units[$i];
+}
+function testProgress($ch,$download_total,$download_current,$upload_total,$upload_current) {
+  $testProgress = curl_getinfo($ch);
+
+  $percentage = $download_total > 0 ? intval($download_current / $download_total * 100) : "Unknown";
+
+  ca_publish("ca_downloadProgress",basename($testProgress['url'])." - ".MakeReadable($download_current)." of ".MakeReadable($download_total)." at ".MakeReadable($testProgress['speed_download'])."/s ($percentage%)");
+
+}
+function ca_publish($endpoint,$message) {
+  if ( ! function_exists("publish") ) {
+    debug("including publish.php");
+    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
+  }
+  if ( ! function_exists("publish_noDupe") ) {
+    return publish($endpoint,$message);
+  } else {
+    return publish_noDupe($endpoint,$message);
+  }
+}
 function download_json($url,$path="",$bg=false,$timeout=45) {
   // download the URL, but don't sae it yet
   $result = download_url($url,"",$bg,$timeout);

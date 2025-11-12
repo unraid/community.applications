@@ -27,7 +27,7 @@ $(function() {
   <? endif; ?>
 
   // Move the sidebar to the body so it fills the entire screen.
-  $(".sidebar").appendTo("body");
+  $(".sidebar,.ca_statusArea").appendTo("body");
   
   // Add caDimmable to other elements outside of CA's DOM
   // Elements within CA's DOM have the class within the HTML below
@@ -62,6 +62,13 @@ $(function() {
   </div>
 </div>
 
+<!-- Status Bar.   This gets moved to the body -->
+<div class='ca_statusArea'>
+  <span class='caDownloadProgress'></span>
+  <span class='caStatusText'></span>
+</div>
+
+</div>
 <!-- Main Display Area -->
 <div class='ca_display_area caDimmable'>
   <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
@@ -154,7 +161,7 @@ $(function() {
   </div>
   <!-- Change log view -->
   <div id="caChangeLog">
-    <div style='margin:auto;width:500px;'>
+    <div>
       <div class='ca_center caLogoIcon'></div>
       <div class='ca_center caChangelogTitle'><?tr("Community Applications Changelog")?></div>
       <div class='ca_center ca_italic'><?tr("Copyright")?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
@@ -176,14 +183,14 @@ $(function() {
       <div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
       <div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
-      <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon, Lime Technology Inc</div>
+      <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
       <div class='ca_center ca_credit'>
         <div>Awesomeplete (Lea Verou)</div>
         <div>Chart.js (various)</div>
         <div>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
-        <div>XML2Array/Array2XML (Miles Johnson)</div>
-        <div>Magnific-Popup (Dmytro Semenov) - Modified by Andrew Zawadzki</div>
+        <div>XML2Array/Array2XML (Miles Johnson) - <?tr("Modified by Andrew Zawadzki");?></div>
+        <div>Magnific-Popup (Dmytro Semenov) - <?tr("Modified by Andrew Zawadzki");?></div>
       </div>
       <br>
       <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
@@ -191,23 +198,22 @@ $(function() {
   </div>
   <!-- Statistics view -->
   <div id='caStatisticsTemplate'>    
-    <div class='ca_statistics' style="height:auto;overflow:scroll; overflow-x:scroll; overflow-y:hidden;margin:auto;width:fit-content;">
+    <div class='ca_statistics'>
       <div>
-        <table style='margin-top:1rem;'>
-          <tr style='height:6rem;'>
+        <table>
+          <thead>
+           <tr style='height:6rem;'>
             <td colspan='2'>
-              <div class='ca_center'>
-                <i class='fa fa-users' style='font-size:6rem;'></i>
-              </div>
+              <div class='ca_center caLogoIcon'></div>
             </td>
           </tr>
           <tr>
             <td colspan='2'>
-              <div class='ca_center'>
-                <font size='5rem;'>Community Applications</font>
-              </div>
+              <div class='ca_center' style='font-size:2rem;'>Community Applications</div>
             </td>
           </tr>
+          </thead>
+          <tbody>
           <tr>
             <td class='ca_table'>
               <?tr("Last Change To Application Feed");?>
@@ -317,6 +323,7 @@ $(function() {
               <a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank'> <?tr("Backup Server");?></a>
             </td>
           </tr>
+          </tbody>
         </table>
       </div>
       <div class='ca_center'>

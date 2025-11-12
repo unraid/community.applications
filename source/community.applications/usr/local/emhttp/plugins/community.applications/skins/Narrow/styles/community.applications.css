@@ -592,6 +592,22 @@ body:has(.sidenavHide) .sidebar {
   z-index: -1;
 }
 
+.caChangelog > div:first-child {
+  margin:auto;
+  width:500px;
+}
+.ca_statistics {
+  height:auto;
+  overflow:scroll; 
+  overflow-x:scroll; 
+  overflow-y:hidden;
+  margin:auto;
+  width:fit-content;
+  background-color: revert;
+} 
+.ca_statistics > table {
+  margin-top:1rem;
+}
 /* Utility Classes */
 .ca_multiselect {
   float: right;
@@ -1368,6 +1384,19 @@ input[type=button][disabled] {
   line-height: 1.5rem;
 }
 
+.caDownloadProgress {
+  margin-top: 3rem;
+}
+.ca_statusArea {
+  left: 2rem;
+  position: fixed;
+  bottom: 3rem;
+  z-index: 10000;
+  background: black;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
 .ca_creditTitle {
   font-size: 5rem;
 }

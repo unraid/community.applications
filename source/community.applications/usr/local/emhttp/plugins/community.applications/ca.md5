@@ -1,10 +1,10 @@
-b0ad9116596cf4d610c8b5ccfab23891  ./Apps.page
+d137b3eba65a1f6aa3c8297644322e19  ./Apps.page
 336a5c83caad71f27846c82642963536  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 2491d72544be3002226ff2e9a3654295  ./ca_settings.page
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
-d747e803face2247b2e3bc8c8b94522a  ./include/exec.php
-7506d3a4e10c631345ef005233d96dc1  ./include/helpers.php
+188bc367a0c85441fd54c986c7c20c42  ./include/exec.php
+138c76bd7c36b586adb65e262a752148  ./include/helpers.php
 bf280aac71f87e773e8da0bb543a63bf  ./include/paths.php
 9614583fbc5afc1d31a5d8b82bd782a3  ./include/get_content_helpers.php
 252422889bfd1c7dea00e0def1c28e55  ./include/force_update_helpers.php
@@ -30,9 +30,9 @@ dc4d447c0314597e1e8febe19ea26b4f  ./scripts/pluginInstall.php
 0a595d0e8f7cdceebd4d0aeab9439bd7  ./scripts/showStatistics.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 a9fe91cd323a12ef6806232df86da952  ./scripts/updatePluginSupport.php
-376236a412b38187d1dfc2bfe4640bf4  ./skins/Narrow/skin.html
+f5fd1ea71c434907321bd3bf80941db6  ./skins/Narrow/skin.html
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-f961ff86ca2055b7f494c0ecc8810793  ./skins/Narrow/styles/community.applications.css
+2925247a63aa1b397b7756ee99f25c2d  ./skins/Narrow/styles/community.applications.css
 9c982610b15aa2d0c4701e522377ef37  ./skins/Narrow/styles/community.applications.responsive.css
 ab67e1c067a37d4776760a7224f48366  ./skins/Narrow/themes/azure.css
 73f73479bc5740d6e2392f306557e132  ./skins/Narrow/themes/black.css

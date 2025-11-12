@@ -447,7 +447,22 @@ $(function(){
   <?endif;?>
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
- 
+ var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
+ var downloadProgressTimer;
+ downloadProgress.on('message', function(message) {
+  if ( !downloadProgressTimer ) {
+    downloadProgressTimer = setTimeout(function() {
+      $(".downloadProgressHolder").removeClass("ca_hide").addClass("caDownloadProgress");
+    }, 5000);
+  }
+  $(".caDownloadProgress").html(message);
+  if ( message == "" ) {
+    clearTimeout(downloadProgressTimer);
+    downloadProgressTimer = null;
+    $(".downloadProgressHolder").addClass("ca_hide");
+  }
+ });
+ downloadProgress.start();
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
@@ -1023,8 +1038,10 @@ $(function(){
       <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
-        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
+        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='downloadProgressHolder ca_hide'></div>","","",false,false,false,"info");
+
         updateContent();
+       // clearTimeout(downloadStatusTimer);
         if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
           var appname = $.cookie("sidebarAppName");

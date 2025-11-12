@@ -230,7 +230,7 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = json_decode(file_get_contents($caPaths['application-feed-local']),true);
   } else {
     $downloadURL = randomFile();
-    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",30);
+    $ApplicationFeed = download_json($caPaths['application-feed'],$downloadURL,"",-1);
     if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
       $currentFeed = "Backup Server";
       $ApplicationFeed = download_json($caPaths['pluginProxy'].$caPaths['application-feedBackup'],$downloadURL,"",-1);
