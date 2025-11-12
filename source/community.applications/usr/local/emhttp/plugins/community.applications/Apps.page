@@ -162,9 +162,6 @@ function tr($string,$ret=false) {
 }
 
 ?>
-<script>
-$("html").addClass("<?=$htmlClasses?>");
-</script>
 
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
@@ -176,6 +173,10 @@ $("html").addClass("<?=$htmlClasses?>");
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
+
+<!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
+<?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
+
 <script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -361,7 +362,6 @@ $(function(){
   <? endif;?>
 
 
-  $(".content").addClass("menuAdjust");
   
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
@@ -429,9 +429,7 @@ $(function(){
     }
   );
 
-// Override the OS switch language function so that CA can save it's current state when switching via the OS
-  $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-  
+
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
 
@@ -449,7 +447,7 @@ $(function(){
   <?endif;?>
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
-  $("body").addClass("menuAdjust");
+ 
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
@@ -1647,8 +1645,6 @@ function getPrevApps(installed,filter,dontClear) {
     $(".category").html(msg);
     changeSortOrder(null,null,"true");
     enableMultiInstall();
-
-//		saveState();
   });
 }
 
@@ -2985,7 +2981,7 @@ function showRepoPopup(repository) {
   context.destroy("#actionsPopup");
   var fromCard = false;
 
-  if ( ! $(".sidebar").is(":visible") ) {
+  if ( ! $(".sidenavShow").length ) {
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     var fromCard = true;
@@ -3160,5 +3156,3 @@ function postCheckForUpdates() {
 }
 
 </script>
-
-<?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>

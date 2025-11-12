@@ -18,6 +18,9 @@
 <script>
 
 $(function() {
+  // Add the HTML classes to the html element
+  $("html").addClass("<?=$htmlClasses?>");
+
   // Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
   <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
     $(".searchAreaHolder").insertAfter("#menu");
@@ -31,6 +34,12 @@ $(function() {
 
   // Dimming happens when certain conditions are met within the main CA CSS file
   $("#header, #menu,#footer,.upgrade_notice").addClass("caDimmable");
+
+  $("body,.content").addClass("menuAdjust");
+
+  // Override the OS switch language function so that CA can save it's current state when switching via the OS
+  $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
+  
 });
 </script>
 
