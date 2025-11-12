@@ -293,9 +293,6 @@ function displayPopup($template) {
 
   ob_start();
   ?>
-  <div class='popupCloseArea'>
-    <span class='popUpClose caButton'><?= tr("CLOSE") ?></span>
-  </div>
   <div class='popup'>
     <div class='popupContent'>
       <div class='ca_popupIconArea'>
@@ -742,12 +739,7 @@ function getRepoDescriptionSkin($repository) {
     </div>
   ";
 
-  $popup = "
-  <div class='popupCloseArea'>
-    <span class='popUpClose caButton'>$closeLabel</span>
-    <span class='popUpBack caButton'>$backLabel</span>
-  </div>
-  <div class='popup'>$popupContent</div>";
+  $popup = "<div class='popup'>$popupContent</div>";
 
   return ["description"=>$popup];
 }

@@ -277,7 +277,7 @@ jQuery.fn.fitText = function(overFlowType=false) {
 
 jQuery.fn.showAlternateView = function() {
   const $src = $(this);
-  const $dest = $(".alternateViewContent");
+  const $dest = $("#sidenavContent");
   $dest.empty().append($src.contents().clone(true, true)).scrollTop(0);
   showAlternateView();
   return this;
