@@ -26,9 +26,19 @@ body {
 body.menuShowing {
   overflow: hidden !important;
 }
+/* Stop the main area from being scrolled when the alternate view or sidebar is visible */
 body:has(#alternateView[style]:not([style*="display: none"])),
-body:has(.sidebar[style]:not([style*="display: none"])) {
+body:has(.sidenavShow) {
   overflow: hidden !important;
+}
+/* Dim the main area when the sidebar is visible */
+/* Also apply when a sweet alert is being displayed */
+body:has(.sidenavShow) .caDimmable,
+body:has(.sweet-alert.showSweetAlert) .caDimmable {
+  opacity: 0.5;
+}
+.caDimmable {
+  transition: opacity 250ms ease-in-out;
 }
 .subCategory ul {
   padding-left: 20px;
@@ -545,7 +555,8 @@ input[type="button"][disabled] {
   bottom: 1.6rem;
   margin-bottom: 1rem;
   padding-top: 4rem;
-  
+  width: 90%;
+  max-width: 70rem;
   /* Visual */
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
@@ -555,15 +566,28 @@ input[type="button"][disabled] {
   overflow-y: scroll;
 }
 
-.sidenavHide {
-  display: none;
-}
-
 .sidenavShow {
   width: 90%;
   max-width: 70rem;
 }
+.sidebar .sidenav {
+  transform: translateX(100%);          /* default: off-screen right */
+  opacity: 0;
+  transition: transform 500ms ease, opacity 500ms ease;
+}
 
+.sidebar .sidenav.sidenavShow {
+  transform: translateX(0);             /* slide into view */
+  opacity: 1;
+}
+
+.sidebar .sidenav.sidenavHide {
+  transform: translateX(100%);          /* slide back out */
+  opacity: 0;
+}
+body:has(.sidenavHide) .sidebar {
+  z-index: -1;
+}
 /* Utility Classes */
 .ca_multiselect {
   float: right;
@@ -1150,10 +1174,6 @@ li.debugging {
   cursor: pointer;
 }
 
-.dim {
-  opacity: 0.5;
-  filter: grayscale(100%);
-}
 
 i.displayIcon {
   font-size: 5.5rem;

@@ -360,8 +360,6 @@ $(function(){
   });
   <? endif;?>
 
-  // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
-  setupSwalDim();
 
   $(".content").addClass("menuAdjust");
   
@@ -1376,9 +1374,6 @@ function clearSearchBox() {
 }
 
 function closeSidebar(cookie=false,visible=false) {
-  if ( ! $(".sidenav").hasClass("sidenavShow") ) {
-    return;
-  }
   if ( ! cookie ) {
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
@@ -1387,10 +1382,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  dimScreen(false);
-  $("#sidenavContent").html("");
   $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
-  $(".sidebar").fadeOut();
   $(".nav-user.show").show();
   enableSearch();
 }
@@ -2922,8 +2914,7 @@ function popUpChart(descData) {
 }
 
 function showSidebarApp(apppath,appname) {
-  $(".screenshot").remove();
-
+  mySpinner();
   disableSearch();
   clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
@@ -2931,15 +2922,15 @@ function showSidebarApp(apppath,appname) {
   data.sidebarapppath = apppath;
   data.sidebarappname = appname;
   $(".nav-user.show").hide();
-  $("#sidenavContent").html("");
-  $(".sidebar").fadeIn();
+  $("#sidenavContent").html($("#sidebarLoading").html());
+  $(".sidebar").show();
   $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
-  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  dimScreen(true);
+  $(".sidenav").removeClass("sidenavHide");
   setTimeout(function() {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
-      $("#sidenavContent").html(result.description);
-      
+      myCloseSpinner();
+     $("#sidenavContent").html(result.description);
+     $(".sidenav").addClass("sidenavShow");
       $('img').on("error",function() {
         $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
         if ( $(this).parent().is('a') ) {
@@ -2961,11 +2952,9 @@ function showSidebarApp(apppath,appname) {
         },
         callbacks: {
           open: function() {
-            dimScreen(true);
             closeSidebar();
           },
           close: function() {
-            dimScreen(false);
             setTimeout(function() {showSidebarApp(data.sidebarapppath,data.sidebarappname);},250);
           }
         }
@@ -3004,15 +2993,14 @@ function showRepoPopup(repository) {
   var sidebarAppName = $.cookie("sidebarAppName");
   var sidebarAppPath = $.cookie("sidebarAppPath");
 
-  $("#sidenavContent").html("");
+  $("#sidenavContent").html($("#sidebarLoading").html());
 
-  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  dimScreen(true);
-  $(".sidebar").fadeIn();
   $(".nav-user.show").hide();
 
   post({action:'getRepoDescription',repository:repository},function(result) {
-    $("#sidenavContent").html(result.description);
+    $("#sidenavContent").html(result.description); 
+    $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+
     $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
     if (fromCard) {
       $(".popUpBack").hide();
@@ -3036,11 +3024,9 @@ function showRepoPopup(repository) {
       },
       callbacks: {
         open: function() {
-          dimScreen(true);
           closeSidebar();
         },
         close: function() {
-          dimScreen(false);
           $('body').removeClass("mfp-zoom-out-cur");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});

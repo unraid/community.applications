@@ -990,7 +990,7 @@ function portsUsed($template) {
       $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'];
     }
   }
-  return json_encode($portsUsed);
+  return json_encode($portsUsed,JSON_NUMERIC_CHECK);
 }
 
 ########################
