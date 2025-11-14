@@ -515,7 +515,6 @@ input[type="button"][disabled] {
   margin-bottom: 10px;
   /* Visual */
  background-color: transparent;
- display: none;
  position: fixed;
  z-index: 1000;
 
@@ -589,7 +588,8 @@ input[type="button"][disabled] {
   opacity: 0;
 }
 body:has(.sidenavHide) .sidebar {
-  z-index: -1;
+pointer-events: none;
+display: none;
 }
 
 .caChangelog > div:first-child {
