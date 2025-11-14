@@ -213,18 +213,19 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
-  if ( ! function_exists("publish") ) {
-    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
-  }
   global $caPaths;
 
   static $proxycfg = false;
+
+
+  if ( ! function_exists("publish") ) {
+    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
+  }
+
   
   $downloading_already = false;
 
-  $lockPath = tempnam("/tmp/","ca_download_".basename($url)."_");
-  touch($lockPath);
-  while ( true ) {
+  while ( true && $path ) {
     $downloadLocks = readJsonFile($caPaths['downloadLocks']);
     if ( $downloadLocks[$url]??false) {
       $downloading_already = true;
@@ -234,18 +235,10 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     }
   }
   if ( $downloading_already ) {
-    $out = $path ? file_get_contents($path) : file_get_contents("/tmp/ca_download_".basename($url));
-    @unlink($lockPath);
-    $downloads = glob("/tmp/ca_download_".basename($url)."*");
-    if ( count($downloads) < 1 ) {
-      @unlink("/tmp/ca_download_".basename($url));
-    }
-    return $out;
+    return file_get_contents($path);
   }
-
-$downloadLocks[$url] = true;
-writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
-
+  $downloadLocks[$url] = true;
+  writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
 
   if ($proxycfg === false) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
@@ -294,6 +287,7 @@ writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
     $url = str_replace($caPaths['pluginProxy'],"",$url);
     $curl_options[CURLOPT_URL] = $url;
     curl_close($ch);
+    sleep(3);
     $ch = curl_init();
     curl_setopt_array($ch,$curl_options);
     $out = curl_exec($ch);
