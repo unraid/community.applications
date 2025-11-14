@@ -18,4 +18,11 @@
   --search-area-mobile-top: 0;
   --tooltipster-content: #101010;
   --chart-grid: #dddddd;
+  --magnificCloseColor: var(--sidebar-background);
 } 
+.Theme--white .magnificPopup.caButton {
+  filter: invert(100%);
+}
+.Theme--white .magnificPopup.caButton:hover {
+  filter: invert(0);
+}

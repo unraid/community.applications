@@ -18,4 +18,9 @@
     --search-area-mobile-top: 0;
     --tooltipster-content: #101010;
     --chart-grid: #dddddd;
+    --magnificCloseColor: var(--support-popup-text);
 } 
+.Theme--azure #alternateView {
+    opacity: 0.95;
+}
+  
