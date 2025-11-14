@@ -452,7 +452,7 @@ $(function(){
  downloadProgress.on('message', function(message) {
   if ( !downloadProgressTimer ) {
     downloadProgressTimer = setTimeout(function() {
-      $(".downloadProgressHolder").removeClass("ca_hide").addClass("caDownloadProgress");
+      $(".caDownloadProgress").removeClass("ca_hide");
     }, 5000);
   }
   $(".caDownloadProgress").html(message);
@@ -1038,7 +1038,7 @@ $(function(){
       <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
-        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='downloadProgressHolder ca_hide'></div>","","",false,false,false,"info");
+        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
 
         updateContent();
        // clearTimeout(downloadStatusTimer);

@@ -213,10 +213,40 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
+  if ( ! function_exists("publish") ) {
+    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
+  }
   global $caPaths;
 
   static $proxycfg = false;
   
+  $downloading_already = false;
+
+  $lockPath = tempnam("/tmp/","ca_download_".basename($url)."_");
+  touch($lockPath);
+  while ( true ) {
+    $downloadLocks = readJsonFile($caPaths['downloadLocks']);
+    if ( $downloadLocks[$url]??false) {
+      $downloading_already = true;
+      sleep(1);
+    } else {
+      break;  
+    }
+  }
+  if ( $downloading_already ) {
+    $out = $path ? file_get_contents($path) : file_get_contents("/tmp/ca_download_".basename($url));
+    @unlink($lockPath);
+    $downloads = glob("/tmp/ca_download_".basename($url)."*");
+    if ( count($downloads) < 1 ) {
+      @unlink("/tmp/ca_download_".basename($url));
+    }
+    return $out;
+  }
+
+$downloadLocks[$url] = true;
+writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
+
+
   if ($proxycfg === false) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
   }
@@ -277,9 +307,13 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   }
   curl_close($ch);
   
-  publish("ca_downloadProgress","");
+  ca_publish("ca_downloadProgress","");
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
+
+  $downloadLocks = readJsonFile($caPaths['downloadLocks']);
+  unset($downloadLocks[$url]);
+  writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
   return $out ?: false;
 }
 
@@ -309,10 +343,6 @@ function testProgress($ch,$download_total,$download_current,$upload_total,$uploa
 
 }
 function ca_publish($endpoint,$message) {
-  if ( ! function_exists("publish") ) {
-    debug("including publish.php");
-    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
-  }
   if ( ! function_exists("publish_noDupe") ) {
     return publish($endpoint,$message);
   } else {
