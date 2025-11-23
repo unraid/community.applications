@@ -34,6 +34,7 @@ if ( ! isset($dockerManPaths) ) {
 $dynamixSettings = parse_plugin_cfg("dynamix");
 
 define("CA_PATHS",[
+  'tempFiles'                           => "/tmp/$CA/tempFiles",
   'flashDrive'                          => "/boot/config/plugins/$CA",
   'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
   'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",

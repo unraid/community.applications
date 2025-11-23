@@ -5,15 +5,14 @@
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
 257a18b373de34c708d1d8c5fd226c15  ./include/exec.php
 5d14db724c709b9cc5744d5cad5ca900  ./include/force_update_helpers.php
-0aa5e4a7073c95d19935ca743fb34c2a  ./include/get_content_helpers.php
+4dfb7c1e5811ce84c802277885bc94c9  ./include/get_content_helpers.php
 6d9f72fe0f0832adfa51f55721bad854  ./include/helpers.php
-e28036d772e2f5b0e89d730cb6f8a8fd  ./include/paths.php
+2d32fc7af7de89574473e1c24b0f3109  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
 29f7846d2935f378944c1d6c1aa9090b  ./include/previous_apps_helpers.php
 97639c6ff8b940c48111cebff5118b06  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
-0592a44b3ec97f6fbc13cbe8910199a6  ./phpstan.neon
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 990115343968b431b99bbaf3802a9a7f  ./scripts/checkForUpdates.php
@@ -40,4 +39,4 @@ ab67e1c067a37d4776760a7224f48366  ./skins/Narrow/themes/azure.css
 ab63d68dc2f1ff531a328649cb9dccf9  ./skins/Narrow/themes/white.css
 82dd20d77ac3f00573bbe80ee9a16c1a  ./skins/Narrow/skin.html
 464d60ca96f568d6b2f5c5a774cb2ee3  ./skins/Narrow/skin.php
-9a884b9b12c96cc84ef0056e1b8cc3d0  ./skins/Narrow/skin_helpers.php
+29120c0e66609b1e849cb8aa60ce756b  ./skins/Narrow/skin_helpers.php

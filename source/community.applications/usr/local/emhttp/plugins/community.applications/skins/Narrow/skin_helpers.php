@@ -1132,7 +1132,7 @@ function findTemplateMatch(array $templates, string $repository) {
   $templateIndex = searchArray($templates, "Repository", $repository);
 
   if ($templateIndex === false) {
-    $templateIndex = searchArray($templates, "Repository", "{$repository}.latest");
+    $templateIndex = searchArray($templates, "Repository", "{$repository}:latest");
   }
 
   return $templateIndex;

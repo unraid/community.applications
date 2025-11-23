@@ -323,7 +323,7 @@ class GetContentHelpers {
     if ( ! $filter ) {
       writeJsonFile(CA_PATHS['community-templates-displayed'],$displayApplications);
 
-      @unlink(CA_PATHS['community-templates-allsearchResults']);
+      @unlink(CA_PATHS['community-templates-allSearchResults']);
       @unlink(CA_PATHS['community-templates-catSearchResults']);
 
       return;
