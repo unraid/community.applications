@@ -25,7 +25,7 @@ $_SERVER['REQUEST_URI'] = "apps";
 require_once("$docroot/plugins/dynamix/include/Translations.php");
 
 $plugins = glob("/boot/config/plugins/*.plg");
-$templates = readJsonFile($caPaths['community-templates-info']);
+$templates = readJsonFile(CA_PATHS['community-templates-info']);
 if ( ! $templates ) {
   echo "You must enter the apps tab before using this script\n";
   return;

@@ -29,7 +29,7 @@ $caSettings = $cfg = parse_plugin_cfg("community.applications");
 $unraid = parse_ini_file("/etc/unraid-version");
 $caSettings['unRaidVersion']= $unraid['version'];
 
-@mkdir($caPaths['CA_logs'],0777,true);
+@mkdir(CA_PATHS['CA_logs'],0777,true);
 if ( $cfg['notifications'] == "no" ) {
   echo json_encode([]);
   exit();
@@ -47,11 +47,9 @@ if ( ! $action ){
   $action = 'scan';
 }
 
-if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
-  $dockerRunning = true;
+if ( caIsDockerRunning() ) {
   $DockerClient = new DockerClient();
-} else
-  $dockerRunning = false;
+} 
 
 function debug1($message) {
   global $debugging;
@@ -103,7 +101,7 @@ switch ($action) {
 
       $plugin = ( startsWith($app,"https://") || strtolower(pathinfo($app,PATHINFO_EXTENSION)) == "plg");
 
-      if ( ! $plugin && $dockerRunning) {
+      if ( ! $plugin && caIsDockerRunning() ) {
         $info = $DockerClient->getDockerContainers();
         $search = explode(":",$app);
         if ( ! ($search[1] ?? false) )

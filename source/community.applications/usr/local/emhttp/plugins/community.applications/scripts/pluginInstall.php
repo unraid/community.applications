@@ -9,6 +9,8 @@
 # Licenced under GPLv2                 #
 #                                      #
 ########################################
+$DOCROOT = $DOCROOT ?? "/usr/local/emhttp";
+
 require_once "/usr/local/emhttp/plugins/community.applications/include/paths.php";
 require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
 
@@ -18,7 +20,7 @@ if ( ! $pluginURL ) {
   echo "No URL passed";
   exit(1);
 }
-$apps = readJsonFile($caPaths['community-templates-info']);
+$apps = readJsonFile(CA_PATHS['community-templates-info']);
 if ( searchArray($apps,"PluginURL",$pluginURL) !== false || $argv[1] == "update" || $argv[1] == "remove") {
   passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
   passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");

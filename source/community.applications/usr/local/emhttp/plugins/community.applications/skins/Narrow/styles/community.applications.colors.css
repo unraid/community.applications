@@ -53,6 +53,7 @@
   --ca-named-grey: grey;
   --mainAreaHeight: unset;
   --mobileDevice: false;
+  
 } 
 .Theme--fontSize50:root {
   --ca_legacySearchMarginTop: 15rem;
