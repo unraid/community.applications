@@ -12,8 +12,8 @@ class PopulateAutoCompleteHelpers {
     }
   }
 
-  public static function buildBaseSuggestions($caPaths) {
-    $categories = (array)readJsonFile($caPaths['categoryList']);
+  public static function buildBaseSuggestions() {
+    $categories = (array)readJsonFile(CA_PATHS['categoryList']);
 
     return array_map(function ($category) {
       return str_replace(":", "", tr($category['Cat']));

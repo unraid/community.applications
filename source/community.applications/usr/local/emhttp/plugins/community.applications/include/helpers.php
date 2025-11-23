@@ -13,11 +13,10 @@
 # Populate $GLOBALS['templates'] if it's not already populated #
 ###############################################################
 function getGlobals() {
-  global $caPaths;
 
-  if ( is_file($caPaths['community-templates-info']) ) {
+  if ( is_file(CA_PATHS['community-templates-info']) ) {
     if ( ! isset($GLOBALS['templates']) ) {
-      $GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
+      $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
     }
   } else {
     $GLOBALS['templates'] = [];
@@ -28,7 +27,6 @@ function getGlobals() {
 # Sanitize output from plugin function #
 ########################################
 function ca_plugin($method, $plugin_file = '',$dontCache = false) {
-  global $caPaths;
   static $attributeCache = [];
   static $PLUGIN_METHODS = ['dump', 'changes', 'alert', 'validate', 'check', 'checkall', 'update', 'remove', 'install', 'attributes'];
 
@@ -42,13 +40,13 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 
   //  If the method is not a method, then it's an attribute.  Populate the attribute cache if it's not already populated and return
 
-  if ( ! is_file($caPaths['pluginAttributesCache']) ) {
+  if ( ! is_file(CA_PATHS['pluginAttributesCache']) ) {
     $attributeCache = [];
   }
 
   if ( ! $dontCache ) {
-    if ( empty($attributeCache) && file_exists($caPaths['pluginAttributesCache']) ) {
-      $attributeCache = @unserialize(file_get_contents($caPaths['pluginAttributesCache']))??[];
+    if ( empty($attributeCache) && file_exists(CA_PATHS['pluginAttributesCache']) ) {
+      $attributeCache = @unserialize(file_get_contents(CA_PATHS['pluginAttributesCache']))??[];
       if ( empty($attributeCache) ) {
         $attributeCache = [];
         dropAttributeCache();
@@ -71,7 +69,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
       } else {
         unset($attributeCache[$plugin_file]);
       }
-      file_put_contents($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+      file_put_contents(CA_PATHS['pluginAttributesCache'], serialize($attributeCache));  
     
       // return the cached result if it exists.  If it doesn't return false;;
       return $attributeCache[$plugin_file]['@attributes'][$method]??false;
@@ -87,10 +85,9 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 # Drop the attribute cache #
 ############################
 function dropAttributeCache() {
-  global $caPaths;
 
   debug("Dropping attribute cache");
-  @unlink($caPaths['pluginAttributesCache']);
+  @unlink(CA_PATHS['pluginAttributesCache']);
 }
 ##################################################################################################################
 # Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
@@ -119,9 +116,8 @@ function checkPluginUpdate($filename) {
 # returns a random file name (/tmp/community.applications/tempFiles/34234234.tmp) #
 ###################################################################################
 function randomFile() {
-  global $caPaths;
 
-  return tempnam($caPaths['tempFiles'],"CA-Temp-");
+  return tempnam(CA_PATHS['tempFiles'],"CA-Temp-");
 }
 ##################################################################
 # 7 Functions to avoid typing the same lines over and over again #
@@ -174,12 +170,11 @@ function caIsDockerRunning() {
   return $dockerRunning = true;
 }
 
-// This function writes a serialized file of an array.  If the filename is $caPaths['community-templates-info'], then it will also write a JSON file to $caPaths['community-templates-info-old']
+// This function writes a serialized file of an array.  If the filename is CA_PATHS['community-templates-info'], then it will also write a JSON file to CA_PATHS['community-templates-info-old']
 function writeJsonFile($filename,$jsonArray) {
-  global $caPaths;
 
   debug("{$_POST['action']} - Write JSON File $filename");
-  if ( $caPaths['humanReadable'] ) {
+  if ( CA_PATHS['humanReadable'] ) {
     $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
   } else {
     $result = ca_file_put_contents($filename,serialize($jsonArray));
@@ -188,8 +183,8 @@ function writeJsonFile($filename,$jsonArray) {
   // The plugin script needs a template.json in JSON format to update support URLs on plugins
   // If we're writing $template, then save templates.json but filtered only for plugins to save space
 
-  if ( $filename == $caPaths['community-templates-info'] ) {
-    ca_file_put_contents($caPaths['community-templates-info-old'],json_encode(array_map(function($t) {
+  if ( $filename == CA_PATHS['community-templates-info'] ) {
+    ca_file_put_contents(CA_PATHS['community-templates-info-old'],json_encode(array_map(function($t) {
       return ["PluginURL"=>$t['PluginURL'],"Support"=>$t['Support']];
     },array_filter($jsonArray, function($t1) {
         return $t1['Plugin']??false;
@@ -213,12 +208,12 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
-  global $caPaths;
 
   static $proxycfg = false;
 
 
   if ( ! function_exists("publish") ) {
+    $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
     require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
   }
 
@@ -226,7 +221,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   $downloading_already = false;
 
   while ( true && $path ) {
-    $downloadLocks = readJsonFile($caPaths['downloadLocks']);
+    $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
     if ( $downloadLocks[$url]??false) {
       $downloading_already = true;
       sleep(1);
@@ -238,7 +233,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     return file_get_contents($path);
   }
   $downloadLocks[$url] = true;
-  writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
+  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
 
   if ($proxycfg === false) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
@@ -282,9 +277,9 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     $out = curl_exec($ch);
   }
 
-  if ( curl_error($ch) && startsWith($url,$caPaths['pluginProxy']) ) {
+  if ( curl_error($ch) && startsWith($url,CA_PATHS['pluginProxy']) ) {
     debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
-    $url = str_replace($caPaths['pluginProxy'],"",$url);
+    $url = str_replace(CA_PATHS['pluginProxy'],"",$url);
     $curl_options[CURLOPT_URL] = $url;
     curl_close($ch);
     sleep(3);
@@ -305,9 +300,9 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
 
-  $downloadLocks = readJsonFile($caPaths['downloadLocks']);
+  $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
   unset($downloadLocks[$url]);
-  writeJsonFile($caPaths['downloadLocks'],$downloadLocks);
+  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
   return $out ?: false;
 }
 
@@ -652,7 +647,7 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 # If appfeed is updated, this is done when creating the templates #
 ###################################################################
 function moderateTemplates() {
-  global $caPaths,$caSettings;
+  global $caSettings;
 
   getGlobals();
 
@@ -673,7 +668,7 @@ function moderateTemplates() {
     $template['ModeratorComment'] = $template['CaComment'] ?? ($template['ModeratorComment']??null);
     $o[] = $template;
   }
-  writeJsonFile($caPaths['community-templates-info'],$o);
+  writeJsonFile(CA_PATHS['community-templates-info'],$o);
   $GLOBALS['templates'] = $o;
   pluginDupe();
 }
@@ -705,7 +700,6 @@ function filterMatch($filter,$searchArray,$exact=true) {
 # Used to figure out which plugins have duplicated names #
 ##########################################################
 function pluginDupe() {
-  global $caPaths;
 
   getGlobals();
   
@@ -722,13 +716,12 @@ function pluginDupe() {
     if ( $pluginList[$plugin] > 1 )
       $dupeList[$plugin] = 1;
   }
-  writeJsonFile($caPaths['pluginDupes'],$dupeList);
+  writeJsonFile(CA_PATHS['pluginDupes'],$dupeList);
 }
 ###################################
 # Checks if a plugin is installed #
 ###################################
 function checkInstalledPlugin($template) {
-  global $caPaths;
 
   $pluginName = basename($template['PluginURL']);
   if ( ! file_exists("/var/log/plugins/$pluginName") ) return false;
@@ -944,13 +937,12 @@ if ( ! function_exists("tr") ) {
 # Check for language update #
 #############################
 function languageCheck($template) {
-  global $caPaths;
 
   if ( ! $template['LanguageURL'] ) return false;
 
   $countryCode = $template['LanguagePack'];
-  $installedLanguage = "{$caPaths['installedLanguages']}/lang-$countryCode.xml";
-  $dynamixUpdate = "{$caPaths['dynamixUpdates']}/lang-$countryCode.xml";
+  $installedLanguage = CA_PATHS['installedLanguages']."/lang-$countryCode.xml";
+  $dynamixUpdate = CA_PATHS['dynamixUpdates']."/lang-$countryCode.xml";
   if ( ! is_file($installedLanguage) )
     return false;
 
@@ -985,9 +977,9 @@ function write_ini_file($file,$array) {
 # Gets all the information about what's installed #
 ###################################################
 function getAllInfo($force=false) {
-  global $caSettings, $DockerTemplates, $DockerClient, $caPaths;
+  global $caSettings, $DockerTemplates, $DockerClient;
 
-  $containers = readJsonFile($caPaths['info']);
+  $containers = readJsonFile(CA_PATHS['info']);
 
   if ( $force || ! $containers || empty($containers) ) {
     if ( caIsDockerRunning() ) {
@@ -1001,7 +993,7 @@ function getAllInfo($force=false) {
       }
     }
     debug("Forced info update");
-    writeJsonFile($caPaths['info'],$containers);
+    writeJsonFile(CA_PATHS['info'],$containers);
   } else {
     debug("Cached info update");
   }
@@ -1011,10 +1003,10 @@ function getAllInfo($force=false) {
 # Logs the debug info #
 #######################
 function debug($str) {
-  global $caSettings, $caPaths;
+  global $caSettings;
 
-  if ( ! is_file($caPaths['logging']) ) {
-    touch($caPaths['logging']);
+  if ( ! is_file(CA_PATHS['logging']) ) {
+    touch(CA_PATHS['logging']);
     $caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
 
     debug("Community Applications Version: $caVersion");
@@ -1024,14 +1016,14 @@ function debug($str) {
     debug("Language: $lingo");
     debug("Settings:\n".print_r($caSettings,true));
 
-    $phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
+    $phpErrors = @parse_ini_file(CA_PATHS['phpErrorSettings']);
 
     if (boolval($phpErrors['display_errors']??false)) {
       debug("PHP errors set to be displayed!");
     }
 
   }
-  @file_put_contents($caPaths['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
+  @file_put_contents(CA_PATHS['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
 }
 ########################################
 # Gets the default ports in a template #
@@ -1061,11 +1053,11 @@ function portsUsed($template) {
 # Get the ports in use #
 ########################
 function getPortsInUse() {
-  global $var, $caPaths;
+  global $var;
 
   $addr = null;
   if ( !$var )
-    $var = parse_ini_file($caPaths['unRaidVars']);
+    $var = parse_ini_file(CA_PATHS['unRaidVars']);
 
   $portsInUse = [];
   exec("lsof -Pni|awk '/LISTEN/ && \$9!~/127.0.0.1/ && \$9!~/\\[::1\\]/{print \$9}'|sort -u", $output);

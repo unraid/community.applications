@@ -60,17 +60,16 @@ class GetContentHelpers {
   }
 
   public static function handleHomeStartupDisplay(array &$file, $maxHomeApps) {
-    global $caPaths, $caSettings;
+    global $caSettings;
 
     getConvertedTemplates();  // Only scan for private XMLs when going HOME
 
-    ca_file_put_contents($caPaths['startupDisplayed'],"startup");
+    ca_file_put_contents(CA_PATHS['startupDisplayed'],"startup");
 
     if (count($file) <= 200) {
       return false;
     }
 
-    $displayApplications = ['community' => []];
     $startupTypes = [
       [
         "type"=>"onlynew",
@@ -138,6 +137,8 @@ class GetContentHelpers {
     $maxHomeApps = self::normalizeMaxHomeApps($maxHomeApps);
 
     foreach ($startupTypes as $type) {
+      $displayApplications = ['community' => []];
+
       $display = [];
       $homeCount = 0;
 
@@ -189,14 +190,14 @@ class GetContentHelpers {
         $o['display'] .=  "<br><div class='ca_center'><font size='4' color='purple'><span class='ca_bold'>".sprintf(tr("An error occurred.  Could not find any %s Apps"),$startupType)."</span></font><br><br>";
         $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();";
 
-        writeJsonFile($caPaths['community-templates-displayed'],$displayApplications);
+        writeJsonFile(CA_PATHS['community-templates-displayed'],$displayApplications);
         postReturn($o);
         return true;
       }
     }
-    @unlink($caPaths['community-templates-allSearchResults']);
-    @unlink($caPaths['community-templates-catSearchResults']);
-    writeJsonFile($caPaths['community-templates-displayed'],$displayApplications);
+    @unlink(CA_PATHS['community-templates-allSearchResults']);
+    @unlink(CA_PATHS['community-templates-catSearchResults']);
+    writeJsonFile(CA_PATHS['community-templates-displayed'],$displayApplications);
     postReturn($o);
     return true;
   }
@@ -318,25 +319,24 @@ class GetContentHelpers {
   }
 
   public static function cacheDisplayApplications($categoryRegex, $filter, $displayApplications) {
-    global $caPaths;
 
     if ( ! $filter ) {
-      writeJsonFile($caPaths['community-templates-displayed'],$displayApplications);
+      writeJsonFile(CA_PATHS['community-templates-displayed'],$displayApplications);
 
-      @unlink($caPaths['community-templates-allsearchResults']);
-      @unlink($caPaths['community-templates-catSearchResults']);
+      @unlink(CA_PATHS['community-templates-allsearchResults']);
+      @unlink(CA_PATHS['community-templates-catSearchResults']);
 
       return;
     }
 
     if ( ! $categoryRegex ) {
-      writeJsonFile($caPaths['community-templates-allSearchResults'],$displayApplications);
-      writeJsonFile($caPaths['community-templates-catSearchResults'],$displayApplications);
+      writeJsonFile(CA_PATHS['community-templates-allSearchResults'],$displayApplications);
+      writeJsonFile(CA_PATHS['community-templates-catSearchResults'],$displayApplications);
 
       return;
     }
 
-    writeJsonFile($caPaths['community-templates-catSearchResults'],$displayApplications);
+    writeJsonFile(CA_PATHS['community-templates-catSearchResults'],$displayApplications);
   }
 }
 ?>

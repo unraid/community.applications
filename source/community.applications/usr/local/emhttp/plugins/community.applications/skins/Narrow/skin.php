@@ -15,7 +15,7 @@ require_once __DIR__.'/skin_helpers.php';
 # Generate the display for the popup #
 ######################################
 function displayPopup($template) {
-  global $caSettings, $caPaths;
+  global $caSettings;
 
   $template = is_array($template) ? $template : [];
   extract($template);
@@ -155,7 +155,7 @@ function displayPopup($template) {
       $RecommendedBlock = "
       <div class='spotlightPopup'>
         <div class='spotlightIconArea ca_center'>
-          <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+          <div><img class='spotlightIcon' src='".CA_PATHS['SpotlightIcon']."' alt='Spotlight'></img></div>
           <div class='spotlightDate spotlightDateSidebar'>".tr(date("M Y", $RecommendedDate), 0)."</div>
         </div>
         <div class='spotlightInfoArea'>
@@ -275,7 +275,7 @@ function displayPopup($template) {
   }
 
   $moderationBlock = "";
-  $moderation = readJsonFile($caPaths['statistics']);
+  $moderation = readJsonFile(CA_PATHS['statistics']);
   $repoKey = str_replace("library/", "", $Repository);
   if (isset($moderation['fixedTemplates'][$Repo][$repoKey])) {
     $errors = array_map(static function ($error) {
@@ -394,12 +394,11 @@ function displayPopup($template) {
 }
 
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths;
 
   $filesToCheck = [
-    $caPaths['repositoriesDisplayed'] ?? null,
-    $caPaths['community-templates-catSearchResults'] ?? null,
-    $caPaths['community-templates-displayed'] ?? null
+    CA_PATHS['repositoriesDisplayed'] ?? null,
+    CA_PATHS['community-templates-catSearchResults'] ?? null,
+    CA_PATHS['community-templates-displayed'] ?? null
   ];
 
   $file = [];
@@ -422,17 +421,17 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
 }
 
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caPaths, $caSettings;
+  global $caSettings;
 
-  $repositories = readJsonFile($caPaths['repositoryList']);
-  $extraBlacklist = readJsonFile($caPaths['extraBlacklist']);
-  $extraDeprecated = readJsonFile($caPaths['extraDeprecated']);
-  $pinnedApps = readJsonFile($caPaths['pinnedV2']);
+  $repositories = readJsonFile(CA_PATHS['repositoryList']);
+  $extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
+  $extraDeprecated = readJsonFile(CA_PATHS['extraDeprecated']);
+  $pinnedApps = readJsonFile(CA_PATHS['pinnedV2']);
 
   $ct = "";
   $count = 0;
 
-  $dockerContext = caDockerContext($caSettings, $caPaths);
+  $dockerContext = caDockerContext($caSettings);
   $displayHeader = $dockerContext['displayHeader'];
 
   [$selectedApps, $checkedOffApps] = caNormalizeSelectedApps($selectedApps);
@@ -470,11 +469,11 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     if (! $template['Language']) {
       if (! $template['Plugin']) {
         if ($canInstall) {
-          [$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus'], $caSettings, $caPaths, $installComment);
+          [$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus'], $caSettings, $installComment);
         }
       } else {
         if ($canInstall) {
-          [$template, $actionsContext] = caProcessPluginTemplate($template, $caPaths, $caSettings, $installComment);
+          [$template, $actionsContext] = caProcessPluginTemplate($template, $caSettings, $installComment);
         } else {
           $template['Installed'] = checkInstalledPlugin($template);
         }
@@ -482,7 +481,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     }
 
     if ($template['Language']) {
-      [$template, $actionsContext] = caProcessLanguageTemplate($template, $caPaths, $caSettings, $actionsContext);
+      [$template, $actionsContext] = caProcessLanguageTemplate($template, $caSettings, $actionsContext);
     }
 
     $template['actionsContext'] = $actionsContext;
@@ -528,7 +527,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     }
 
     if ($template['Language']) {
-      $template['Installed'] = is_dir("{$caPaths['languageInstalled']}{$template['LanguagePack']}") && ! $template['Uninstall'];
+      $template['Installed'] = is_dir(CA_PATHS['languageInstalled']."{$template['LanguagePack']}") && ! $template['Uninstall'];
     }
 
     if (startsWith($template['Repository'], ["library/", "registry.hub.docker.com/library/"]) || strpos($template['Repository'], "/") === false) {
@@ -568,30 +567,30 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 # Generate the display for the popup #
 ######################################
 function getPopupDescriptionSkin($appNumber) {
-  global $caSettings, $caPaths, $language, $DockerClient;
+  global $caSettings, $language, $DockerClient;
 
   getGlobals();
 
-  $allRepositories = readJsonFile($caPaths['repositoryList'], []);
+  $allRepositories = readJsonFile(CA_PATHS['repositoryList'], []);
   $allRepositories = is_array($allRepositories) ? $allRepositories : [];
-  $extraBlacklist = readJsonFile($caPaths['extraBlacklist'], []);
+  $extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist'], []);
   $extraBlacklist = is_array($extraBlacklist) ? $extraBlacklist : [];
-  $extraDeprecated = readJsonFile($caPaths['extraDeprecated'], []);
+  $extraDeprecated = readJsonFile(CA_PATHS['extraDeprecated'], []);
   $extraDeprecated = is_array($extraDeprecated) ? $extraDeprecated : [];
-  $pinnedApps = readJsonFile($caPaths['pinnedV2'], []);
+  $pinnedApps = readJsonFile(CA_PATHS['pinnedV2'], []);
   $pinnedApps = is_array($pinnedApps) ? $pinnedApps : [];
 
   $templateDescription = "";
 
-  [$info, $dockerRunning, $dockerUpdateStatus] = caInitializeDockerState($DockerClient, $caPaths, $caSettings);
+  [$info, $dockerRunning, $dockerUpdateStatus] = caInitializeDockerState($DockerClient, $caSettings);
 
-  if (!is_file($caPaths['warningAccepted'])) {
+  if (!is_file(CA_PATHS['warningAccepted'])) {
     $caSettings['NoInstalls'] = true;
   }
 
-  $displayedPath = is_file($caPaths['community-templates-allSearchResults'])
-    ? $caPaths['community-templates-allSearchResults']
-    : $caPaths['community-templates-displayed'];
+  $displayedPath = is_file(CA_PATHS['community-templates-allSearchResults'])
+    ? CA_PATHS['community-templates-allSearchResults']
+    : CA_PATHS['community-templates-displayed'];
   $displayed = readJsonFile($displayedPath, []);
   $displayed = is_array($displayed) ? $displayed : [];
 
@@ -622,7 +621,7 @@ function getPopupDescriptionSkin($appNumber) {
   $template['Profile'] = $allRepositories[$template['RepoName']]['profile'] ?? "";
   $template['ProfileIcon'] = $allRepositories[$template['RepoName']]['icon'] ?? "";
 
-  $countryCode = caPrepareLanguagePack($template, $caPaths, $language);
+  $countryCode = caPrepareLanguagePack($template, $language);
 
   $donatelink = $template['DonateLink'];
   if ($donatelink) {
@@ -633,7 +632,7 @@ function getPopupDescriptionSkin($appNumber) {
 
   $template['display_ovr'] = caFormatOverview($template);
 
-  caFormatTemplateChanges($template, $caPaths);
+  caFormatTemplateChanges($template);
 
   $template['Icon'] = $template['Icon'] ?: "/plugins/dynamix.docker.manager/images/question.png";
   if ($template['IconFA']) {
@@ -649,10 +648,10 @@ function getPopupDescriptionSkin($appNumber) {
   $template['CAComment'] = caApplySidebarSearchLinks($template['CAComment']);
   $template['Requires'] = caNormalizeRequiresField($template['Requires']);
 
-  $actionsContext = caBuildActionsContext($template, $caSettings, $info, $dockerRunning, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null, $caPaths);
+  $actionsContext = caBuildActionsContext($template, $caSettings, $info, $dockerRunning, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
 
   if ($template['Language']) {
-    $actionsContext = caBuildLanguageActions($template, $caPaths, $countryCode, $actionsContext);
+    $actionsContext = caBuildLanguageActions($template, $countryCode, $actionsContext);
   }
 
   $supportContext = caBuildSupportContext($template, $allRepositories, $caSettings);
@@ -668,7 +667,7 @@ function getPopupDescriptionSkin($appNumber) {
   $template['actionsContext'] = $actionsContext;
   $template['supportContext'] = $supportContext;
 
-  @unlink($caPaths['pluginTempDownload']);
+  @unlink(CA_PATHS['pluginTempDownload']);
 
   return [
     "description"=>displayPopup($template),
@@ -688,11 +687,11 @@ function getPopupDescriptionSkin($appNumber) {
 # Generate the display for the repo #
 #####################################
 function getRepoDescriptionSkin($repository) {
-  global $caSettings, $caPaths;
+  global $caSettings;
 
   getGlobals();
 
-  $repositories = readJsonFile($caPaths['repositoryList']);
+  $repositories = readJsonFile(CA_PATHS['repositoryList']);
   $templates = &$GLOBALS['templates'];
 
   $repo = $repositories[$repository] ?? [];
@@ -748,15 +747,15 @@ function getRepoDescriptionSkin($repository) {
 # function that actually displays the results from dockerHub #
 ##############################################################
 function displaySearchResults($pageNumber) {
-  global $caPaths, $caSettings;
+  global $caSettings;
 
   getGlobals();
 
-  $searchData = readJsonFile($caPaths['dockerSearchResults']);
+  $searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
   $numPages = $searchData['num_pages'] ?? 0;
   $results = $searchData['results'] ?? [];
   $templates = &$GLOBALS['templates'];
-  $caSettings['NoInstalls'] = !is_file($caPaths['warningAccepted']);
+  $caSettings['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
 
   $cards = array_map(
     function ($result) use ($templates, $caSettings) {
@@ -775,7 +774,6 @@ function displaySearchResults($pageNumber) {
 # Generate the app's card #
 ###########################
 function displayCard($template) {
-  global $caPaths;
 
   if (!is_array($template)) {
     return "";
@@ -853,7 +851,7 @@ function displayCard($template) {
   if (!empty($template['RecommendedDate'])) {
     $card .= "
       <div class='homespotlightIconArea ca_center''>
-        <div><img class='spotlightIcon' src='{$caPaths['SpotlightIcon']}' alt='Spotlight'></img></div>
+        <div><img class='spotlightIcon' src='".CA_PATHS['SpotlightIcon']."' alt='Spotlight'></img></div>
         <div class='spotlightDate'>".tr(date("M Y", $template['RecommendedDate']), 0)."</div>
       </div>
     ";

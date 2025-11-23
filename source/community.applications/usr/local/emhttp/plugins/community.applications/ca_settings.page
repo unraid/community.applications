@@ -34,7 +34,7 @@ function tr($string,$ret=false) {
 ?>
 <script>
 $(function() {
-  <?if ( is_file($caPaths['logging']) ):?>
+  <?if ( is_file(CA_PATHS['logging']) ):?>
     $("#debugging").show();
   <?endif;?>
 });

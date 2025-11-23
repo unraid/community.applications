@@ -1,7 +1,7 @@
 <?php
 
 class PreviousAppsHelpers {
-  public static function clearPreviousAppsCaches($caPaths) {
+  public static function clearPreviousAppsCaches() {
     $paths = [
       'community-templates-allSearchResults',
       'community-templates-catSearchResults',
@@ -11,35 +11,35 @@ class PreviousAppsHelpers {
     ];
 
     foreach ($paths as $pathKey) {
-      if ( isset($caPaths[$pathKey]) ) {
-        @unlink($caPaths[$pathKey]);
+      if ( isset(CA_PATHS[$pathKey]) ) {
+        @unlink(CA_PATHS[$pathKey]);
       }
     }
   }
 
-  public static function resolvePreviousAppsContext($enableActionCentre, $caPaths) {
+  public static function resolvePreviousAppsContext($enableActionCentre) {
     if ( $enableActionCentre ) {
       return ['installed' => "action", 'filter' => ""];
     }
 
     $installed = getPost("installed","");
     $filter = getPost("filter","");
-    self::clearPreviousAppsCaches($caPaths);
+    self::clearPreviousAppsCaches();
 
     return ['installed' => $installed, 'filter' => $filter];
   }
 
-  public static function loadDockerUpdateStatus($dockerRunning, $caPaths) {
+  public static function loadDockerUpdateStatus($dockerRunning) {
     if ( ! $dockerRunning ) {
       return [];
     }
 
-    $status = readJsonFile($caPaths['dockerUpdateStatus']);
+    $status = readJsonFile(CA_PATHS['dockerUpdateStatus']);
 
     return $status ?: [];
   }
 
-  public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $caPaths, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
+  public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
     if ( ! $dockerRunning ) {
       return [];
     }
@@ -48,7 +48,7 @@ class PreviousAppsHelpers {
       return [];
     }
 
-    $allFiles = glob("{$caPaths['dockerManTemplates']}/*.xml") ?: [];
+    $allFiles = glob(CA_PATHS['dockerManTemplates']."/*.xml") ?: [];
     $isActionCentre = ($installed === "action");
 
     if ( $installed === "true" || $isActionCentre ) {
@@ -58,7 +58,7 @@ class PreviousAppsHelpers {
     return self::collectLegacyDockerApplications($allFiles, $info, $templates);
   }
 
-  public static function collectPluginApplications($installed, $filter, $templates, $caPaths, $caSettings, &$updateCount) {
+  public static function collectPluginApplications($installed, $filter, $templates, $caSettings, &$updateCount) {
     if ( $filter && $filter !== "plugins" ) {
       return [];
     }
@@ -66,7 +66,7 @@ class PreviousAppsHelpers {
     $isActionCentre = ($installed === "action");
 
     if ( $installed === "true" || $isActionCentre ) {
-      return self::collectInstalledPluginApplications($templates, $caPaths, $isActionCentre, $updateCount);
+      return self::collectInstalledPluginApplications($templates, $isActionCentre, $updateCount);
     }
 
     return self::collectLegacyPluginApplications($templates, $caSettings);
@@ -256,7 +256,7 @@ class PreviousAppsHelpers {
     return $displayed;
   }
 
-  private static function collectInstalledPluginApplications($templates, $caPaths, $isActionCentre, &$updateCount) {
+  private static function collectInstalledPluginApplications($templates, $isActionCentre, &$updateCount) {
     $displayed = [];
 
     foreach ($templates as $template) {
@@ -302,14 +302,14 @@ class PreviousAppsHelpers {
       $displayed[] = $template;
     }
 
-    $displayed = array_merge($displayed, self::collectInstalledLanguagePacks($templates, $caPaths, $isActionCentre, $updateCount));
+    $displayed = array_merge($displayed, self::collectInstalledLanguagePacks($templates, $isActionCentre, $updateCount));
 
     return $displayed;
   }
 
-  private static function collectInstalledLanguagePacks($templates, $caPaths, $isActionCentre, &$updateCount) {
+  private static function collectInstalledLanguagePacks($templates, $isActionCentre, &$updateCount) {
     $displayed = [];
-    $languagesDir = $caPaths['languageInstalled'] ?? null;
+    $languagesDir = CA_PATHS['languageInstalled'] ?? null;
 
     if ( ! $languagesDir || ! is_dir($languagesDir) ) {
       return $displayed;

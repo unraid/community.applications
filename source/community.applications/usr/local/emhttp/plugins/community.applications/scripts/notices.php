@@ -29,7 +29,7 @@ $caSettings = $cfg = parse_plugin_cfg("community.applications");
 $unraid = parse_ini_file("/etc/unraid-version");
 $caSettings['unRaidVersion']= $unraid['version'];
 
-@mkdir($caPaths['CA_logs'],0777,true);
+@mkdir(CA_PATHS['CA_logs'],0777,true);
 if ( $cfg['notifications'] == "no" ) {
   echo json_encode([]);
   exit();

@@ -1,25 +1,25 @@
 <?php
 
 class ForceUpdateHelpers {
-  public static function resetTemplatesCache(array $caPaths, bool $ensureTemplatesDirectory = false): void {
-    exec("rm -rf '{$caPaths['tempFiles']}'");
+  public static function resetTemplatesCache(bool $ensureTemplatesDirectory = false): void {
+    exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
 
     if ($ensureTemplatesDirectory) {
-      @mkdir($caPaths['templates-community'], 0777, true);
+      @mkdir(CA_PATHS['templates-community'], 0777, true);
     }
 
     $GLOBALS['templates'] = [];
   }
 
-  public static function fetchLatestUpdateMetadata(array $caPaths): array {
-    @unlink($caPaths['lastUpdated']);
+  public static function fetchLatestUpdateMetadata(): array {
+    @unlink(CA_PATHS['lastUpdated']);
 
-    $latestUpdate = download_json($caPaths['application-feed-last-updated'], $caPaths['lastUpdated'], "", 5);
+    $latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated'], "", 5);
 
     if (!self::isValidUpdateMetadata($latestUpdate)) {
       $latestUpdate = download_json(
-        $caPaths['pluginProxy'] . $caPaths['application-feed-last-updatedBackup'],
-        $caPaths['lastUpdated'],
+        CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'],
+        CA_PATHS['lastUpdated'],
         "",
         5
       );
@@ -31,7 +31,7 @@ class ForceUpdateHelpers {
 
     if (!isset($latestUpdate['last_updated_timestamp'])) {
       $latestUpdate['last_updated_timestamp'] = INF;
-      @unlink($caPaths['lastUpdated']);
+      @unlink(CA_PATHS['lastUpdated']);
     }
 
     debug("new appfeed timestamp: ".($latestUpdate['last_updated_timestamp'] ?? ""));
@@ -43,11 +43,11 @@ class ForceUpdateHelpers {
     return ($latestUpdate['last_updated_timestamp'] ?? 0) != ($lastUpdatedOld['last_updated_timestamp'] ?? 0);
   }
 
-  public static function templatesAvailable(array $caPaths): bool {
-    return file_exists($caPaths['community-templates-info']) && !empty($GLOBALS['templates']);
+  public static function templatesAvailable(): bool {
+    return file_exists(CA_PATHS['community-templates-info']) && !empty($GLOBALS['templates']);
   }
 
-  public static function buildDownloadFailureResponse(array $caPaths): array {
+  public static function buildDownloadFailureResponse(): array {
     $response = ['script' => "$('.onlyShowWithFeed').hide();"];
 
     if (checkServerDate()) {
@@ -60,7 +60,7 @@ class ForceUpdateHelpers {
         . "</span></font><font size='3'><br><br>Community Applications requires your server to have internet access.  This could be because it appears that the current date and time of your server is incorrect.  Correct this within Settings - Date And Time.  See also <a href='https://forums.unraid.net/topic/120220-fix-common-problems-more-information/page/2/?tab=comments#comment-1101084' target='_blank'>this post</a> for more information";
     }
 
-    $tempFile = @file_get_contents($caPaths['appFeedDownloadError']);
+    $tempFile = @file_get_contents(CA_PATHS['appFeedDownloadError']);
     $downloaded = @file_get_contents($tempFile);
 
     if (strlen($downloaded) > 100) {
@@ -72,15 +72,15 @@ class ForceUpdateHelpers {
     $response['data'] .= json_last_error_msg();
     $response['data'] .= "</div>";
 
-    @unlink($caPaths['appFeedDownloadError']);
-    @unlink($caPaths['community-templates-info']);
+    @unlink(CA_PATHS['appFeedDownloadError']);
+    @unlink(CA_PATHS['community-templates-info']);
     $GLOBALS['templates'] = [];
 
     return $response;
   }
 
-  public static function buildUpdateScript(array $caPaths, array $caSettings): string {
-    $appFeedTime = readJsonFile($caPaths['lastUpdated-old']);
+  public static function buildUpdateScript(array $caSettings): string {
+    $appFeedTime = readJsonFile(CA_PATHS['lastUpdated-old']);
     $timestamp = $appFeedTime['last_updated_timestamp'] ?? 0;
     $updateTime = tr(date("F", $timestamp), 0) . date(" d, Y @ g:i a", $timestamp);
     $updateTime = str_replace("'", "&apos;", $updateTime);

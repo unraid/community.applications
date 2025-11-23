@@ -52,7 +52,7 @@ div.spinner .unraid_mark_7{animation:mark_7 1.5s ease infinite}
 </style>
 <div class='spinner fixed' id='spinner'><?readfile("/usr/local/emhttp/plugins/dynamix/images/animated-logo.svg");?></div>
 <?
-$repositories = readJsonFile($caPaths['repositoryList']);
+$repositories = readJsonFile(CA_PATHS['repositoryList']);
 switch ($_GET['arg1']) {
   case 'Repository':
     foreach ($repositories as $name => $repo) {
@@ -66,7 +66,7 @@ switch ($_GET['arg1']) {
     echo "</table></tt>";
     break;
   case 'Invalid':
-    $moderation = json_encode(readJsonFile($caPaths['invalidXML_txt']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    $moderation = json_encode(readJsonFile(CA_PATHS['invalidXML_txt']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     if ( ! $moderation ) {
       echo "<br><br><div class='ca_center'><span class='ca_bold'>".tr("No invalid templates found")."</span></div>";
       return;
@@ -76,7 +76,7 @@ switch ($_GET['arg1']) {
     echo "<tt>".tr("These templates are invalid and the application they are referring to is unknown")."<br><br>$moderation";
     break;
   case 'Fixed':
-    $json = $moderation = readJsonFile($caPaths['fixedTemplates_txt']);
+    $json = $moderation = readJsonFile(CA_PATHS['fixedTemplates_txt']);
     if ( ! $moderation ) {
       echo "<br><br><div class='ca_center'><span class='ca_bold'>".tr("No templates were automatically fixed")."</span></div>";
     } else {
@@ -94,9 +94,9 @@ switch ($_GET['arg1']) {
       }
     }
 
-    $dupeList = readJsonFile($caPaths['pluginDupes']);
+    $dupeList = readJsonFile(CA_PATHS['pluginDupes']);
     if ($dupeList) {
-      $templates = readJsonFile($caPaths['community-templates-info']);
+      $templates = readJsonFile(CA_PATHS['community-templates-info']);
       echo "<br><br><span class='ca_bold'></tt>".tr("The following plugins have duplicated filenames and are not able to be installed simultaneously:")."</span><br><br>";
       foreach (array_keys($dupeList) as $dupe) {
         echo "<span class='ca_bold'>$dupe</span><br>";
@@ -108,7 +108,7 @@ switch ($_GET['arg1']) {
         echo "<br>";
       }
     }
-    $templates = readJsonFile($caPaths['community-templates-info']);
+    $templates = readJsonFile(CA_PATHS['community-templates-info']);
     $dupeRepos = "";
     foreach ($templates as $template) {
       $template['Repository'] = str_replace(":latest","",$template['Repository']);
@@ -133,7 +133,7 @@ switch ($_GET['arg1']) {
     break;
   case 'Moderation':
     echo "<br><div class='ca_center'><strong>".tr("If any of these entries are incorrect then contact the moderators of CA to discuss")."</strong></div><br><br>";
-    $moderation = json_encode(readJsonFile($caPaths['moderation']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    $moderation = json_encode(readJsonFile(CA_PATHS['moderation']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     $repoComment = "";
     foreach ($repositories as $repo) {
       if ($repo['RepoComment']??false) {

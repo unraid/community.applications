@@ -1,10 +1,10 @@
 <?php
 
 class PinnedAppsHelpers {
-  public static function clearPinnedCacheFiles($caPaths, $cacheKeys) {
+  public static function clearPinnedCacheFiles($cacheKeys) {
     foreach ((array)$cacheKeys as $key) {
-      if (!empty($caPaths[$key])) {
-        @unlink($caPaths[$key]);
+      if (!empty(CA_PATHS[$key])) {
+        @unlink(CA_PATHS[$key]);
       }
     }
   }

@@ -32,10 +32,10 @@ $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
 
 // Restart logging over at start of every session (save old log)
-exec("mkdir -p {$caPaths['CA_logs']}");
-@copy($caPaths['logging'],$caPaths['logging'].".old");
-@unlink($caPaths['logging']);
-exec("mkdir -p {$caPaths['tempFiles']}");
+exec("mkdir -p ".escapeshellarg(CA_PATHS['CA_logs']));
+@copy(CA_PATHS['logging'],CA_PATHS['logging'].".old");
+@unlink(CA_PATHS['logging']);
+exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
 exec("rm $docroot/CA-Logging*.zip");
 
 $diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
@@ -51,14 +51,14 @@ switch ($caSettings['maxPerPage']) {
     break;
 }
 
-$firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
-$pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
+$firstRun = is_file(CA_PATHS['warningAccepted']) ? "false" : "true";
+$pluginWarning = is_file(CA_PATHS['pluginWarning']) ? "true": "false";
 
-if ( ! is_file($caPaths['docker_cfg']) ) {
+if ( ! is_file(CA_PATHS['docker_cfg']) ) {
   exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
-$unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
+$unRaidSettings = parse_ini_file(CA_PATHS['unRaidVersion']);
 $responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 
 // Check md5's of files
@@ -72,7 +72,7 @@ $ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';
 $allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
 $fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
 
-if ( is_file($caPaths['addConverted']) )
+if ( is_file(CA_PATHS['addConverted']) )
   $dockerConvertFlag = "true";
 else
   $dockerConvertFlag = "false";
@@ -80,18 +80,18 @@ else
 $date = (date("n/d"));
 
 $ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
-$startupDisplayed = is_file($caPaths['startupDisplayed']) ? "true" : "false";
+$startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
   $killCookie = "true";
 else
   $killCookie = "false";
 
-$dockerSearchActive = is_file($caPaths['dockerSearchActive']);
+$dockerSearchActive = is_file(CA_PATHS['dockerSearchActive']);
 
 // Only check for updates to containers / plugins max once per hour
-exec("mkdir -p {$caPaths['tempFiles']}");
-if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime($caPaths['updateTime']) ) > 3600 ) ) {
-  touch($caPaths['updateTime']);
+exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
+if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime(CA_PATHS['updateTime']) ) > 3600 ) ) {
+  touch(CA_PATHS['updateTime']);
   exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
 }
 
@@ -105,7 +105,7 @@ if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_p
 // Drop the attribute cache
 dropAttributeCache();
 // Drop the docker info cache
-@unlink($caPaths['info']);
+@unlink(CA_PATHS['info']);
 
 // Check memory to see if CA's minimums are met (4G same as base OS) - Test is actually for 2.5G though
 
@@ -385,7 +385,7 @@ $(function(){
     });
     return;
   <? endif;?>
-  <? if ( ! is_file($caPaths['docker_cfg']) ):?>
+  <? if ( ! is_file(CA_PATHS['docker_cfg']) ):?>
     // This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
     $(".mainArea,.menuItems").html("");
     swal({
@@ -439,10 +439,10 @@ $(function(){
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
-  <?if ( $caPaths['localONLY'] == true ):?>
+  <?if ( CA_PATHS['localONLY'] == true ):?>
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
-  <?if ( $caPaths['humanReadable'] ):?>
+  <?if ( CA_PATHS['humanReadable'] ):?>
     addBannerWarning("<?tr("Human readable files are enabled.  DO NOT RELEASE PUBLIC WITH THIS ENABLED");?>",true,true);
   <?endif;?>
   context.init({preventDoubleContext:false,left:true,above:'auto'});
@@ -1440,7 +1440,7 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
 function actuallyInstallPlugin(pluginURL,update=false,comment="") {
   var type = update ? "update" : "install";
   if ( ! update ) {
-    pluginURL = "<?=$caPaths['pluginProxy']?>" + pluginURL;
+    pluginURL = "<?=CA_PATHS['pluginProxy']?>" + pluginURL;
   }
   title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
   closeSidebar(true);
@@ -2241,7 +2241,7 @@ function updateDisplay(content) {
   enableSearch();
   $('img').on("error",function() {
     if ( $(this).hasClass("spotlightIcon") )
-      $(this).attr('src','<?=$caPaths['SpotlightIcon-backup']?>');
+      $(this).attr('src','<?=CA_PATHS['SpotlightIcon-backup']?>');
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });

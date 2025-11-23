@@ -47,17 +47,17 @@ function caFormatOverview(array $template) {
   return strip_tags($ovr,"<br>");
 }
 
-function caFormatTemplateChanges(array &$template, array $caPaths) {
+function caFormatTemplateChanges(array &$template) {
   if ($template['Plugin']) {
     $templateURL = $template['PluginURL'];
-    download_url($templateURL,$caPaths['pluginTempDownload'],"",5);
-    $template['Changes'] = @ca_plugin("changes",$caPaths['pluginTempDownload']) ?: $template['Changes'];
-    $template['pluginVersion'] = @ca_plugin("version",$caPaths['pluginTempDownload']) ?: $template['pluginVersion'];
+    download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
+    $template['Changes'] = @ca_plugin("changes",CA_PATHS['pluginTempDownload']) ?: $template['Changes'];
+    $template['pluginVersion'] = @ca_plugin("version",CA_PATHS['pluginTempDownload']) ?: $template['pluginVersion'];
   } else {
     if (!$template['Changes'] && $template['ChangeLogPresent']) {
       $templateURL = $template['caTemplateURL'] ?: $template['TemplateURL'];
-      download_url($templateURL,$caPaths['pluginTempDownload'],"",5);
-      $xml = readXmlFile($caPaths['pluginTempDownload']);
+      download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
+      $xml = readXmlFile(CA_PATHS['pluginTempDownload']);
       if ($xml) {
         $template['Changes'] = $xml['Changes'];
       }
@@ -78,7 +78,7 @@ function caFormatTemplateChanges(array &$template, array $caPaths) {
 ################################################################################
 # Collect docker state used by popups (running containers and update metadata) #
 ################################################################################
-function caInitializeDockerState($DockerClient, array $caPaths, array &$caSettings) {
+function caInitializeDockerState($DockerClient, array &$caSettings) {
   $info = [];
 
   if (caIsDockerRunning()) {
@@ -87,7 +87,7 @@ function caInitializeDockerState($DockerClient, array $caPaths, array &$caSettin
       $info[$container['Name']] = $container;
     }
     $dockerRunning = $DockerClient->getDockerContainers();
-    $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus'], []);
+    $dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus'], []);
     $dockerUpdateStatus = is_array($dockerUpdateStatus) ? $dockerUpdateStatus : [];
   } else {
     $dockerRunning = [];
@@ -301,17 +301,17 @@ function caResolvePinnedState(array &$template, array $pinnedApps) {
 ############################################################################
 # Retrieve language pack metadata and load translation files when required #
 ############################################################################
-function caPrepareLanguagePack(array &$template, array $caPaths, array &$language) {
+function caPrepareLanguagePack(array &$template, array &$language) {
     if (!$template['Language']) {
       return null;
     }
 
     $countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
     if ($countryCode !== "en_US") {
-      if (!is_file("{$caPaths['tempFiles']}/CA_language-$countryCode")) {
-        download_url("{$caPaths['CA_languageBase']}$countryCode","{$caPaths['tempFiles']}/CA_language-$countryCode");
+      if (!is_file(CA_PATHS['tempFiles']."/CA_language-$countryCode")) {
+        download_url(CA_PATHS['CA_languageBase']."$countryCode",CA_PATHS['tempFiles']."/CA_language-$countryCode");
       }
-      $language = is_file("{$caPaths['tempFiles']}/CA_language-$countryCode") ? @parse_lang_file("{$caPaths['tempFiles']}/CA_language-$countryCode") : [];
+      $language = is_file(CA_PATHS['tempFiles']."/CA_language-$countryCode") ? @parse_lang_file(CA_PATHS['tempFiles']."/CA_language-$countryCode") : [];
     } else {
       $language = [];
     }
@@ -322,7 +322,7 @@ function caPrepareLanguagePack(array &$template, array $caPaths, array &$languag
 #######################################################################
 # Build the context menu for template actions (install/update/manage) #
 #######################################################################
-function caBuildActionsContext(array &$template, array &$caSettings, array $info, array $dockerRunning, array $dockerUpdateStatus, $selected, $name, $pluginName, array $caPaths) {
+function caBuildActionsContext(array &$template, array &$caSettings, array $info, array $dockerRunning, array $dockerUpdateStatus, $selected, $name, $pluginName) {
     $actionsContext = [];
 
     if ($template['Language']) {
@@ -393,8 +393,8 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
         $template['Installed'] = true;
         $template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
         if ($template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName"))) {
-          if (is_file($caPaths['pluginTempDownload'])) {
-            @copy($caPaths['pluginTempDownload'],"/tmp/plugins/$pluginName");
+          if (is_file(CA_PATHS['pluginTempDownload'])) {
+            @copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
             $template['UpdateAvailable'] = true;
             $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin('$pluginName',true);"];
           }
@@ -430,7 +430,7 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
           $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
         }
       }
-      if (is_file($caPaths['pluginPending'].$pluginName)) {
+      if (is_file(CA_PATHS['pluginPending'].$pluginName)) {
         $actionsContext = [["text"=>tr("Pending")]];
       }
     }
@@ -441,12 +441,12 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
 ##############################################################################
 # Build action contexts for language pack templates within the card renderer #
 ##############################################################################
-function caBuildLanguageActions(array &$template, array $caPaths, ?string $countryCode, array $actionsContext) {
+function caBuildLanguageActions(array &$template, ?string $countryCode, array $actionsContext) {
     if (!$template['Language']) {
       return $actionsContext;
     }
 
-    $dynamixSettings = @parse_ini_file($caPaths['dynamixSettings'],true);
+    $dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'],true);
     $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
     $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"),[".",".."]);
     $installedLanguages = array_filter($installedLanguages,function ($v) {
@@ -482,7 +482,7 @@ function caBuildLanguageActions(array &$template, array $caPaths, ?string $count
       unset($template['Changes']);
     }
 
-    if (file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml")) {
+    if (file_exists(CA_PATHS['pluginPending'].$template['LanguagePack']) || file_exists(CA_PATHS['pluginPending']."lang-{$template['LanguagePack']}.xml")) {
       $actionsContext = [["text"=>tr("Pending")]];
     }
 
@@ -494,12 +494,12 @@ function caBuildLanguageActions(array &$template, array $caPaths, ?string $count
 ########################################################################
 # Assemble docker-related context (warnings, info caches) for listings #
 ########################################################################
-function caDockerContext(array &$caSettings, array $caPaths): array {
-  $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
+function caDockerContext(array &$caSettings): array {
+  $dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
 
   if ( caIsDockerRunning() ) {
     $info = getAllInfo();
-    $dockerUpdateStatus = readJsonFile($caPaths['dockerUpdateStatus']);
+    $dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
   } else {
     $info = [];
     $dockerUpdateStatus = [];
@@ -509,8 +509,8 @@ function caDockerContext(array &$caSettings, array $caPaths): array {
   $dockerNotEnabled = $dockerWarningFlag;
 
   if ($dockerNotEnabled === "true") {
-    $unRaidVars = parse_ini_file($caPaths['unRaidVars']);
-    $dockerVars = parse_ini_file($caPaths['docker_cfg']);
+    $unRaidVars = parse_ini_file(CA_PATHS['unRaidVars']);
+    $dockerVars = parse_ini_file(CA_PATHS['docker_cfg']);
 
     if ($unRaidVars['mdState'] === "STARTED" && $dockerVars['DOCKER_ENABLED'] !== "yes") {
       $dockerNotEnabled = 1; // Array started, docker not enabled
@@ -629,7 +629,7 @@ function caPrepareTemplateComments(array $template): array {
 #############################################################################
 # Build action contexts and flags for docker templates when rendering cards #
 #############################################################################
-function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus, array $caSettings, array $caPaths, string $installComment): array {
+function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus, array $caSettings, string $installComment): array {
   $actionsContext = [];
   $selected = false;
   $name = "";
@@ -698,11 +698,11 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
         $actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove from Previous Apps"), "alternate" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','{$template['Name']}');"];
       } else {
         if (! ($template['BranchID'] ?? null)) {
-          if (is_file("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml")) {
-            $test = readXmlFile("{$caPaths['dockerManTemplates']}/my-{$template['Name']}.xml", true);
+          if (is_file(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml")) {
+            $test = readXmlFile(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml", true);
             if ($template['Repository'] == $test['Repository']) {
               $userTemplate = readXmlFile($template['InstallPath'], false, false);
-              $actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes("{$caPaths['dockerManTemplates']}/my-{$template['Name']}").".xml','user','','".portsUsed($userTemplate)."');"];
+              $actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}").".xml','user','','".portsUsed($userTemplate)."');"];
               $actionsContext[] = ["divider" => true];
             }
           }
@@ -721,7 +721,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 #############################################################################
 # Build action contexts and state for plugin templates when rendering cards #
 #############################################################################
-function caProcessPluginTemplate(array $template, array $caPaths, array $caSettings, string $installComment): array {
+function caProcessPluginTemplate(array $template, array $caSettings, string $installComment): array {
   $actionsContext = [];
   $pluginName = basename($template['PluginURL']);
   $template['Installed'] = checkInstalledPlugin($template);
@@ -737,7 +737,7 @@ function caProcessPluginTemplate(array $template, array $caPaths, array $caSetti
     $template['pluginVersion'] = ca_plugin("version", "/tmp/plugins/$pluginName");
 
     if ((strcmp($pluginInstalledVersion, $template['pluginVersion']) < 0 || $template['UpdateAvailable']) && $template['Name'] !== "Community Applications" && (! ($template['UninstallOnly'] ?? false))) {
-      @copy($caPaths['pluginTempDownload'], "/tmp/plugins/$pluginName");
+      @copy(CA_PATHS['pluginTempDownload'], "/tmp/plugins/$pluginName");
       $template['UpdateAvailable'] = true;
       $actionsContext[] = ["icon" => "ca_fa-update", "text" => tr("Update"), "action" => "installPlugin('$pluginName',true,'','{$template['RequiresFile']}');"];
     } else {
@@ -798,7 +798,7 @@ function caProcessPluginTemplate(array $template, array $caPaths, array $caSetti
     }
   }
 
-  if (file_exists($caPaths['pluginPending'].$pluginName)) {
+  if (file_exists(CA_PATHS['pluginPending'].$pluginName)) {
     $actionsContext = [];
     $actionsContext[] = ["text" => tr("Pending")];
   }
@@ -808,9 +808,9 @@ function caProcessPluginTemplate(array $template, array $caPaths, array $caSetti
 
 ##############################################################################
 ##############################################################################
-function caProcessLanguageTemplate(array $template, array $caPaths, array $caSettings, array $actionsContext): array {
+function caProcessLanguageTemplate(array $template, array $caSettings, array $actionsContext): array {
   $countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
-  $dynamixSettings = @parse_ini_file($caPaths['dynamixSettings'], true);
+  $dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'], true);
   $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
   $installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"), [".", ".."]);
   $installedLanguages = array_filter($installedLanguages, function ($v) {
@@ -841,12 +841,12 @@ function caProcessLanguageTemplate(array $template, array $caPaths, array $caSet
     }
   }
 
-  if (file_exists($caPaths['pluginPending'].$template['LanguagePack']) || file_exists("{$caPaths['pluginPending']}lang-{$template['LanguagePack']}.xml")) {
+  if (file_exists(CA_PATHS['pluginPending'].$template['LanguagePack']) || file_exists(CA_PATHS['pluginPending']."lang-{$template['LanguagePack']}.xml")) {
     $actionsContext = [];
     $actionsContext[] = ["text" => tr("Pending")];
   }
 
-  $template['Installed'] = is_dir("{$caPaths['languageInstalled']}{$template['LanguagePack']}") && ! $template['Uninstall'];
+  $template['Installed'] = is_dir(CA_PATHS['languageInstalled']."{$template['LanguagePack']}") && ! $template['Uninstall'];
 
   return [$template, $actionsContext];
 }
