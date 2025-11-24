@@ -23,7 +23,7 @@ require_once "$docroot/plugins/community.applications/include/paths.php";
 require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 
-$unRaidVersion = parse_ini_file($caPaths['unRaidVersion']);
+$unRaidVersion = parse_ini_file(CA_PATHS['unRaidVersion']);
 
 function tr($string,$ret=true) {
   if ( function_exists("_") )

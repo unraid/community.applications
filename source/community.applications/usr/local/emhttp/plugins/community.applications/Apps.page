@@ -22,8 +22,6 @@ $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
 
 $caSettings = parse_plugin_cfg($plugin);
-$caSettings['dockerSearch'] = "yes";
-$caSettings['unRaidVersion'] = $var['version'];
 
 require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
 require_once("$docroot/plugins/$plugin/include/paths.php");
@@ -34,10 +32,10 @@ $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
 
 // Restart logging over at start of every session (save old log)
-exec("mkdir -p {$caPaths['CA_logs']}");
-@copy($caPaths['logging'],$caPaths['logging'].".old");
-@unlink($caPaths['logging']);
-exec("mkdir -p {$caPaths['tempFiles']}");
+exec("mkdir -p ".escapeshellarg(CA_PATHS['CA_logs']));
+@copy(CA_PATHS['logging'],CA_PATHS['logging'].".old");
+@unlink(CA_PATHS['logging']);
+exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
 exec("rm $docroot/CA-Logging*.zip");
 
 $diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
@@ -53,14 +51,14 @@ switch ($caSettings['maxPerPage']) {
     break;
 }
 
-$firstRun = is_file($caPaths['warningAccepted']) ? "false" : "true";
-$pluginWarning = is_file($caPaths['pluginWarning']) ? "true": "false";
+$firstRun = is_file(CA_PATHS['warningAccepted']) ? "false" : "true";
+$pluginWarning = is_file(CA_PATHS['pluginWarning']) ? "true": "false";
 
-if ( ! is_file($caPaths['docker_cfg']) ) {
+if ( ! is_file(CA_PATHS['docker_cfg']) ) {
   exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
-$unRaidSettings = parse_ini_file($caPaths['unRaidVersion']);
+$unRaidSettings = parse_ini_file(CA_PATHS['unRaidVersion']);
 $responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 
 // Check md5's of files
@@ -74,7 +72,7 @@ $ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';
 $allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
 $fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
 
-if ( is_file($caPaths['addConverted']) )
+if ( is_file(CA_PATHS['addConverted']) )
   $dockerConvertFlag = "true";
 else
   $dockerConvertFlag = "false";
@@ -82,26 +80,19 @@ else
 $date = (date("n/d"));
 
 $ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
-$startupDisplayed = is_file($caPaths['startupDisplayed']) ? "true" : "false";
+$startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
   $killCookie = "true";
 else
   $killCookie = "false";
 
-$dockerSearchActive = is_file($caPaths['dockerSearchActive']);
+$dockerSearchActive = is_file(CA_PATHS['dockerSearchActive']);
 
 // Only check for updates to containers / plugins max once per hour
-exec("mkdir -p {$caPaths['tempFiles']}");
-if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime($caPaths['updateTime']) ) > 3600 ) ) {
-  touch($caPaths['updateTime']);
+exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
+if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime(CA_PATHS['updateTime']) ) > 3600 ) ) {
+  touch(CA_PATHS['updateTime']);
   exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
-}
-
-if ( is_file("/var/run/dockerd.pid") && is_dir("/proc/".@file_get_contents("/var/run/dockerd.pid")) ) {
-  $caSettings['dockerRunning'] = true;
-} else {
-  $caSettings['dockerSearch'] = "no";
-  unset($caSettings['dockerRunning']);
 }
 
 // Create a symlink for plugin pre and post hooks to drop the attribute cache
@@ -114,7 +105,7 @@ if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_p
 // Drop the attribute cache
 dropAttributeCache();
 // Drop the docker info cache
-@unlink($caPaths['info']);
+@unlink(CA_PATHS['info']);
 
 // Check memory to see if CA's minimums are met (4G same as base OS) - Test is actually for 2.5G though
 
@@ -171,9 +162,6 @@ function tr($string,$ret=false) {
 }
 
 ?>
-<script>
-$("html").addClass("<?=$htmlClasses?>");
-</script>
 
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
@@ -185,6 +173,10 @@ $("html").addClass("<?=$htmlClasses?>");
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
+
+<!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
+<?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
+
 <script>
 var execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
@@ -228,7 +220,7 @@ var iconHoverTimer;
 var ca_done_override = false;
 
 // handle 3rd party links on older versions of OS
-<?
+<?php
 if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
   echo "var gui_pages_available = [];";
   $gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
@@ -369,10 +361,7 @@ $(function(){
   });
   <? endif;?>
 
-  // Setup the dim effect for swal.  If the swal is not initialized yet, it will get setup once it is in the background.
-  setupSwalDim();
 
-  $(".content").addClass("menuAdjust");
   
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
@@ -396,7 +385,7 @@ $(function(){
     });
     return;
   <? endif;?>
-  <? if ( ! is_file($caPaths['docker_cfg']) ):?>
+  <? if ( ! is_file(CA_PATHS['docker_cfg']) ):?>
     // This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
     $(".mainArea,.menuItems").html("");
     swal({
@@ -440,14 +429,6 @@ $(function(){
     }
   );
 
-// Override the OS switch language function so that CA can save it's current state when switching via the OS
-  $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
-  
-// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
-  <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
-    $(".searchAreaHolder").insertAfter("#menu");
-  <? endif; ?>
-  $("body").append("<div class='sidebar hide' role='modal'><div class='sidebarClose'></div><div class='sidenav sidenavHide'><div id='sidenavContent'></div></div>");
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
@@ -458,15 +439,30 @@ $(function(){
   if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
   if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
   if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
-  <?if ( $caPaths['localONLY'] == true ):?>
+  <?if ( CA_PATHS['localONLY'] == true ):?>
     addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
   <?endif;?>
-  <?if ( $caPaths['humanReadable'] ):?>
+  <?if ( CA_PATHS['humanReadable'] ):?>
     addBannerWarning("<?tr("Human readable files are enabled.  DO NOT RELEASE PUBLIC WITH THIS ENABLED");?>",true,true);
   <?endif;?>
   context.init({preventDoubleContext:false,left:true,above:'auto'});
 
-  $("body").addClass("menuAdjust");
+ var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
+ var downloadProgressTimer;
+ downloadProgress.on('message', function(message) {
+  if ( !downloadProgressTimer ) {
+    downloadProgressTimer = setTimeout(function() {
+      $(".caDownloadProgress").removeClass("ca_hide");
+    }, 5000);
+  }
+  $(".caDownloadProgress").html(message);
+  if ( message == "" ) {
+    clearTimeout(downloadProgressTimer);
+    downloadProgressTimer = null;
+    $(".caDownloadProgress").addClass("ca_hide");
+  }
+ });
+ downloadProgress.start();
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
@@ -539,12 +535,6 @@ $(function(){
   $('body').keydown(function(e) {
     switch (e.which) {
       case 27:
-        if ( $("#alternateView").is(":visible") ) {
-          e.preventDefault();
-          e.stopPropagation();
-          hideAlternateView();
-          return;
-        }
         if ( $(".sidenav").hasClass("sidenavShow") ) {
           e.preventDefault();
           e.stopPropagation();  
@@ -854,7 +844,6 @@ $(function(){
 
     var section = $(this).attr("data-category");
     showSortIcons();
-    hideAlternateView();
     switch (section) {
       case "installed_apps":
         data.previousAppsSection = "";
@@ -915,7 +904,6 @@ $(function(){
   });
 
   $('body').on("click",".debugging",function() {
-    hideAlternateView();
     var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
     var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
     var filename='CA-Logging-'+localISOTime.substr(0,16).replace(/[-:]/g,'').replace('T','-')+'.zip';
@@ -932,7 +920,6 @@ $(function(){
   $("body").on("click",".startupButton",function() { 
     $(".category").html("");
     $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
-    hideAlternateView();
     $(".maxPerPage").hide();
     hideSortIcons();
     updateContent(this);
@@ -978,11 +965,6 @@ $(function(){
 
   $("body").on("click",".popUpClose",function() {
     closeSidebar();
-  });
-
-  $(".alternateViewClose").on("click",function() {
-    event.stopPropagation();
-    hideAlternateView();
   });
 
   $("body").on("click",".similarSearch",function() {
@@ -1056,8 +1038,10 @@ $(function(){
       <? endif;?>
     } else {
       post({action:"defaultSortOrder"},function() {
-        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span>","","",false,false,false,"info");
+        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
+
         updateContent();
+       // clearTimeout(downloadStatusTimer);
         if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
           var appname = $.cookie("sidebarAppName");
@@ -1135,6 +1119,7 @@ function updateContent(button) {
 }
 
 function showSpecialCategory(button) {
+  closeSidebar();
   clearSearchBox();
   var sortButton = false;
   $(".sortIcons").each(function() {
@@ -1168,7 +1153,6 @@ function changeCategory(button,subSwitch) {
   var description = $(button).text();
   var category = $(button).attr("data-category");
 
-  hideAlternateView();
   $(".multi_installDiv").hide();
   getContent(false,category,description,false);
 }
@@ -1391,9 +1375,6 @@ function clearSearchBox() {
 }
 
 function closeSidebar(cookie=false,visible=false) {
-  if ( ! $(".sidenav").hasClass("sidenavShow") ) {
-    return;
-  }
   if ( ! cookie ) {
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
@@ -1402,11 +1383,6 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  dimScreen(false);
-  $("#sidenavContent").html("");
-  $(".back_to_top,.move_to_end").removeClass("back_to_top_hide");
-  $("body").removeClass("body_sidebarScroll");
-  $(".sidebar").fadeOut();
   $(".nav-user.show").show();
   enableSearch();
 }
@@ -1464,7 +1440,7 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
 function actuallyInstallPlugin(pluginURL,update=false,comment="") {
   var type = update ? "update" : "install";
   if ( ! update ) {
-    pluginURL = "<?=$caPaths['pluginProxy']?>" + pluginURL;
+    pluginURL = "<?=CA_PATHS['pluginProxy']?>" + pluginURL;
   }
   title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
   closeSidebar(true);
@@ -1580,6 +1556,7 @@ function showDesc_openBox(cmd,title,height,width,load,func) {
 }
 
 function showModeration(script,title) {
+  closeSidebar();
   $("#sb-nav-close").css("visisbility","visible");
   showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,"showStatistics()");
 }
@@ -1671,8 +1648,6 @@ function getPrevApps(installed,filter,dontClear) {
     $(".category").html(msg);
     changeSortOrder(null,null,"true");
     enableMultiInstall();
-
-//		saveState();
   });
 }
 
@@ -2266,7 +2241,7 @@ function updateDisplay(content) {
   enableSearch();
   $('img').on("error",function() {
     if ( $(this).hasClass("spotlightIcon") )
-      $(this).attr('src','<?=$caPaths['SpotlightIcon-backup']?>');
+      $(this).attr('src','<?=CA_PATHS['SpotlightIcon-backup']?>');
     else
       $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
   });
@@ -2380,26 +2355,57 @@ function restoreState() {
   });
 
 }
-function showAlternateView() {
-  $("#alternateView").show();
-  $("body").addClass("body_sidebarScroll");
-}
 
-function hideAlternateView() {
-  $("#alternateView").hide();
-  $("#alternateView,.ca_display_area").removeClass("mobileMenu");
-  $("body").removeClass("body_sidebarScroll");
-}
+
 
 function showCredits() {
-  showAlternateView();
-  $(".alternateViewContent").html($("#caCredits").html());
+  $("#caCredits").showAlternateView();
 }
 
 function showStatistics() {
-  showAlternateView();
   post({action:'statistics'},function(result) {
-    $(".alternateViewContent").html(result.statistics).css("font-weight","bold").show();
+    const stats = result.statistics || {};
+    const unknownLabel = "<?=tr("unknown");?>";
+    const primaryServerLabel = "<?=tr("Primary Server");?>";
+    const safeValue = (value, fallback = "0") => {
+      if (value === undefined || value === null || value === "") return fallback;
+      return value;
+    };
+    const safeUrl = (url) => (typeof url === "string" && url.length) ? url : "#";
+    const $content = $("#caStatisticsTemplate");
+    const setText = (key, value, fallback = "0") => {
+      const $el = $content.find(`[data-stat-text='${key}']`);
+      if ($el.length) $el.text(safeValue(value, fallback));
+    };
+    const setHtml = (key, value, fallback = "") => {
+      const $el = $content.find(`[data-stat-html='${key}']`);
+      if ($el.length) $el.html(value !== undefined && value !== null && value !== "" ? value : fallback);
+    };
+
+    setText("updateTime", stats.updateTime, "");
+    setHtml("currentServer", stats.currentServer, primaryServerLabel);
+    setText("docker", stats.docker);
+    setText("plugin", stats.plugin);
+    setText("totalApplications", stats.totalApplications);
+    setText("official", stats.official);
+    setText("repositories", stats.repositories, unknownLabel);
+    const hasPrivate = parseInt(stats.private, 10) > 0;
+    const $privateRow = $content.find("[data-stat-row='private']");
+    if (hasPrivate) {
+      setText("private", stats.private);
+    } else {
+      $privateRow.remove();
+    }
+    setText("invalidXML", stats.invalidXML, unknownLabel);
+    setText("caFixed", `${safeValue(stats.caFixed)}+`);
+    setText("blacklist", stats.blacklist);
+    setText("totalIncompatible", stats.totalIncompatible);
+    setText("totalDeprecated", stats.totalDeprecated);
+    setText("totalModeration", `${safeValue(stats.totalModeration)}+`);
+    $content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
+    $content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
+
+    $content.showAlternateView();
   });
 }
 
@@ -2426,9 +2432,9 @@ function closeMenu() {
 }
 
 function caChangeLog() {
-  showAlternateView();
   post({action:'caChangeLog'},function(result) {
-    $(".alternateViewContent").html(result.changelog);
+    $(".caChanges").html(result.changelog);
+    $("#caChangeLog").showAlternateView();
   });
 }
 
@@ -2897,36 +2903,42 @@ function popUpChart(descData) {
     });
   }
 }
+function showAlternateView(content="") {
+  if ( content ) {
+    $("#sidenavContent").html(content);
+  }
+  $(".sidebar").show();
+  $(".sidenav").removeClass("sidenavHide");
+
+  $(".popupCloseArea").addClass("ca_hide");
+  $(".popUpBack").addClass("ca_hide");
+
+  slideInSidebar();
+  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+}
 
 function showSidebarApp(apppath,appname) {
-  $(".screenshot").remove();
-
+  mySpinner();
   disableSearch();
   clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
   $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
   data.sidebarapppath = apppath;
   data.sidebarappname = appname;
-  $("body").addClass("body_sidebarScroll");
+
+  if ( ! $(".sidenavShow").length ) {
+    $(".popupCloseArea").addClass("ca_hide");
+  }
+  $(".popUpBack").addClass("ca_hide");
+  $(".sidenav").removeClass("sidenavHide");
   $(".nav-user.show").hide();
-  $("#sidenavContent").html("");
-  $(".sidebar").fadeIn();
-  $(".back_to_top,.move_to_end").addClass("back_to_top_hide");
-  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  dimScreen(true);
-  setTimeout(function() {
+  $("#sidenavContent").html($("#sidebarLoading").html()); 
+  $(".sidebar").show();
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
+      myCloseSpinner();
       $("#sidenavContent").html(result.description);
-      $('img').on("error",function() {
-        if ( $(this).hasClass("spotlightIcon") )
-          $(this).attr('src','<?=$caPaths['SpotlightIcon-backup']?>');
-        else
-          if ( ! $(this).hasClass("licence") ) {
-            $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
-          }
-      });
       $('.screenshot').magnificPopup({
-        closeMarkup: "<span class='mfp-close narrow'>"+tr("CLOSE")+"</span>",
+        closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
         type:'image',
         removalDelay: 300,
@@ -2939,16 +2951,24 @@ function showSidebarApp(apppath,appname) {
         },
         callbacks: {
           open: function() {
-            dimScreen(true);
+            event.stopPropagation();
             closeSidebar();
           },
           close: function() {
-            dimScreen(false);
-            $('body').addClass("body_sidebarScroll");
             setTimeout(function() {showSidebarApp(data.sidebarapppath,data.sidebarappname);},250);
           }
         }
       });
+      slideInSidebar();
+
+      $('img').on("error",function() {
+        $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
+        if ( $(this).parent().is('a') ) {
+          $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
+        }
+      });
+      
+      
       $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
       setupContext(result.supportContext,"#supportPopup");
@@ -2965,9 +2985,21 @@ function showSidebarApp(apppath,appname) {
         }
       });
     })
-  },500);
 }
 
+function slideInSidebar() {
+  const $sidenav = $(".sidenav");
+      
+  function handleTransitionEnd(event) {
+    if (event.target !== event.currentTarget) return;
+    const propertyName = event.originalEvent ? event.originalEvent.propertyName : undefined;
+    if (propertyName && propertyName !== "transform" && propertyName !== "opacity") return;
+    $sidenav.off("transitionend", handleTransitionEnd);
+    $(".popupCloseArea").removeClass("ca_hide");
+  }
+
+  $sidenav.off("transitionend", handleTransitionEnd).addClass("sidenavShow").on("transitionend", handleTransitionEnd);
+}
 function showRepoPopup(repository) {
   if ( !repository ) return;
   data.repository = repository;
@@ -2975,7 +3007,7 @@ function showRepoPopup(repository) {
   context.destroy("#actionsPopup");
   var fromCard = false;
 
-  if ( ! $(".sidebar").is(":visible") ) {
+  if ( ! $(".sidenavShow").length ) {
     $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
     $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
     var fromCard = true;
@@ -2983,23 +3015,29 @@ function showRepoPopup(repository) {
   var sidebarAppName = $.cookie("sidebarAppName");
   var sidebarAppPath = $.cookie("sidebarAppPath");
 
-  $("#sidenavContent").html("");
+  $("#sidenavContent").html($("#sidebarLoading").html());
 
-  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-  dimScreen(true);
-  $(".sidebar").fadeIn();
-  $("body").addClass("body_sidebarScroll");
   $(".nav-user.show").hide();
 
   post({action:'getRepoDescription',repository:repository},function(result) {
-    $("#sidenavContent").html(result.description);
+    $("#sidenavContent").html(result.description); 
+    $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+
     $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
     if (fromCard) {
-      $(".popUpBack").hide();
+      $(".popUpBack").addClass("ca_hide");
+    } else {
+      $(".popUpBack").removeClass("ca_hide");
     }
+    $('img').on("error",function() {
+      $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
+      if ( $(this).parent().is('a') ) {
+        $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
+      }
+    });
     $('.screenshot').magnificPopup({
       type:'image',
-      closeMarkup: "<span class='mfp-close narrow'>"+tr("CLOSE")+"</span>",
+      closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
       closeOnContentClick: true,
       removalDelay: 300,
       mainClass: 'mfp-fade',
@@ -3010,12 +3048,11 @@ function showRepoPopup(repository) {
       },
       callbacks: {
         open: function() {
-          dimScreen(true);
+          event.stopPropagation();
           closeSidebar();
         },
         close: function() {
-          dimScreen(false);
-          $('body').removeClass("mfp-zoom-out-cur").addClass("body_sidebarScroll");
+          $('body').removeClass("mfp-zoom-out-cur");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
           $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
@@ -3148,5 +3185,3 @@ function postCheckForUpdates() {
 }
 
 </script>
-
-<?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>

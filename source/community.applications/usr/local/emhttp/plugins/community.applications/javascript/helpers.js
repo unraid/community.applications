@@ -275,6 +275,13 @@ jQuery.fn.fitText = function(overFlowType=false) {
   return el;
 }
 
+jQuery.fn.showAlternateView = function() {
+  const $src = $(this);
+  const $dest = $("#sidenavContent");
+  $dest.empty().append($src.contents().clone(true, true)).scrollTop(0);
+  showAlternateView();
+  return this;
+}
 
 jQuery.fn.getWidth = function(everything=true) {
   var width = $(this).css("width").replace("px","");
@@ -361,36 +368,4 @@ $.fn.onVisibilityHidden = function(callback) {
 // Save the state of CA if GUI Search takes us away from the page
 function guiSearchOnUnload() {
   saveState();
-}
-
-// Dims the display area
-function dimScreen(dim) {
-  if ( dim ) {
-    $("#header, #menu").addClass("dim",250);
-    if ( $(".mobileMenu").is(":visible") ) {
-      $(".mainArea").addClass("dim",250);
-    } else {
-      $(".ca_display_area").addClass("dim",250);
-    }
-  } else {
-    $("#header, #menu, .ca_display_area, .mainArea").removeClass("dim",250);
-  }
-}
-
-function setupSwalDim() {
-  if ( $(".sweet-alert").length == 0 ) {
-    setTimeout(function() {
-      setupSwalDim();
-    }, 100);
-    return; // Wait for swal to be initialized
-  }
-  $(".sweet-alert").onClassChange(function(el,className) {
-    if ( className.includes("showSweetAlert") ) {
-      dimScreen(true);
-      // If the spinner is showing, close it.  It may be showing due to the post calls when updating content.
-    } else {
-      dimScreen(false);
-    }
-  });
-  $(".sweet-alert").addClass("triggerClassChange");
 }

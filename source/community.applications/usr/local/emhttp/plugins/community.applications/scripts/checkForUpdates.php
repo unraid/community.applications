@@ -16,12 +16,12 @@ $_SERVER['REQUEST_URI'] = "docker/apps";
 require_once "$docroot/plugins/community.applications/include/paths.php";
 require_once "$docroot/plugins/community.applications/include/helpers.php";
 
-if ( is_file($caPaths['updateRunning']) && file_exists("/proc/".@file_get_contents($caPaths['updateRunning'])) ) {
+if ( is_file(CA_PATHS['updateRunning']) && file_exists("/proc/".@file_get_contents(CA_PATHS['updateRunning'])) ) {
   echo tr("Check for updates already running")."\n";
   exit();
 }
 
-file_put_contents($caPaths['updateRunning'],getmypid());
+file_put_contents(CA_PATHS['updateRunning'],getmypid());
 
 $updateFile = is_file("$docroot/plugins/dynamix.docker.manager/scripts/dockerupdate") ? "dockerupdate" : "dockerupdate.php";
 echo tr("Checking for docker container updates")."\n";
@@ -39,5 +39,5 @@ foreach (glob("/var/log/plugins/lang-*.xml") as $lang) {
   echo sprintf(tr("Checking %s"),basename($lingo))."\n";
   exec("$docroot/plugins/dynamix.plugin.manager/scripts/language check ".basename($lingo));
 }
-@unlink($caPaths['updateRunning']);
+@unlink(CA_PATHS['updateRunning']);
 ?>

@@ -17,7 +17,7 @@ if (! $file ) {
   return;
 }
 @copy("/var/log/phplog", "/tmp/phplog.txt");
-exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg($caPaths['logging'])." /tmp/phplog.txt");
+exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg(CA_PATHS['logging'])." /tmp/phplog.txt");
 @unlink("/tmp/phplog.txt");
 echo "/$file";
 ?>

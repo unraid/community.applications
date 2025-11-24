@@ -6,6 +6,14 @@ body {
   cursor: default !important;
 }
 
+.caChangelogTitle {
+  font-size: 2rem;
+}
+
+.caLogoIcon {
+  font-size: 6rem;
+}
+
 .caLogoIcon::before {
   content: "\f0c0";
   font-family: fontAwesome;
@@ -15,8 +23,27 @@ body {
   display: none;
   z-index: 0;
 }
-body.menuShowing,body.body_sidebarScroll {
+body.menuShowing {
   overflow: hidden !important;
+}
+/* Stop the main area from being scrolled when the alternate view or sidebar is visible */
+body:has(#alternateView[style]:not([style*="display: none"])),
+body:has(.sidenavShow) {
+  overflow: hidden !important;
+}
+/* Hide the back to top and move to end buttons (on main area) when the sidebar is visible */
+body:has(.sidenavShow) .back_to_top,
+body:has(.sidenavShow) .move_to_end {
+  z-index: 0;
+}
+/* Dim the main area when the sidebar is visible */
+/* Also apply when a sweet alert is being displayed */
+body:has(.sidenavShow) .caDimmable,
+body:has(.sweet-alert.showSweetAlert) .caDimmable {
+  opacity: 0.5;
+}
+.caDimmable {
+  transition: opacity 250ms ease-in-out;
 }
 .subCategory ul {
   padding-left: 20px;
@@ -79,6 +106,11 @@ a {
   text-align: center;
 }
 
+/* Move the banners to the very top of the page.  When displayed, it covers up part of the search area when display scrolled */
+.upgrade_notice {
+  top: 0rem !important;
+}
+
 .invisible {
   opacity: 0;
   pointer-events: none; 
@@ -87,6 +119,14 @@ a {
 
 .ca_href {
   cursor: pointer;
+}
+.magnificPopup.caButton {
+  position: absolute;
+  right: 0;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 1.5rem;
+  color: var(--magnificCloseColor);
 }
 
 .ca_display_area {
@@ -104,9 +144,7 @@ a {
   align-items: stretch;
   width: 100%;
 }
-.mainArea.menuShowing {
-  height: var(--mainAreaHeight);
-}
+
 /* ==========================================================================
   Components
   ========================================================================== */
@@ -276,7 +314,7 @@ a {
   /* Typography */
   font-size: 1.2rem;
   line-height: 2rem;
-  color: var(--support-popup-text) !important;
+  color: var(--support-popup-text);
   
   /* Visual */
   background: linear-gradient(
@@ -394,10 +432,7 @@ input[type="button"][disabled] {
   height: auto;
   display: none;
 }
-.ca_hide{
-  display: none;
-}
-.menuShowing.hideWithMenu,#searchFilter.menuShowing {
+.ca_hide,.menuShowing.hideWithMenu,#searchFilter.menuShowing {
   display: none;
 
 }
@@ -415,12 +450,11 @@ input[type="button"][disabled] {
 .showMenuButton.menuShowing {
   display: none;
 }
-.closeMenuButton.menuShowing {
-  display: inline-block;
-}
+.closeMenuButton.menuShowing,
 .showMenuButton.menuHidden {
   display: inline-block;
 }
+
 .closeMenuButton.menuHidden {
   display: none;
 }
@@ -481,7 +515,6 @@ input[type="button"][disabled] {
   margin-bottom: 10px;
   /* Visual */
  background-color: transparent;
- display: none;
  position: fixed;
  z-index: 1000;
 
@@ -524,7 +557,8 @@ input[type="button"][disabled] {
   bottom: 1.6rem;
   margin-bottom: 1rem;
   padding-top: 4rem;
-  
+  width: 90%;
+  max-width: 70rem;
   /* Visual */
   background-color: var(--sidebar-background);
   color: var(--sidebar-text);
@@ -534,15 +568,46 @@ input[type="button"][disabled] {
   overflow-y: scroll;
 }
 
-.sidenavHide {
-  width: 0;
-}
-
 .sidenavShow {
   width: 90%;
   max-width: 70rem;
 }
+.sidebar .sidenav {
+  transform: translateX(100%);          /* default: off-screen right */
+  opacity: 0;
+  transition: transform 500ms ease, opacity 500ms ease;
+}
 
+.sidebar .sidenav.sidenavShow {
+  transform: translateX(0);             /* slide into view */
+  opacity: 1;
+}
+
+.sidebar .sidenav.sidenavHide {
+  transform: translateX(100%);          /* slide back out */
+  opacity: 0;
+}
+body:has(.sidenavHide) .sidebar {
+pointer-events: none;
+display: none;
+}
+
+.caChangelog > div:first-child {
+  margin:auto;
+  width:500px;
+}
+.ca_statistics {
+  height:auto;
+  overflow:scroll; 
+  overflow-x:scroll; 
+  overflow-y:hidden;
+  margin:auto;
+  width:fit-content;
+  background-color: revert;
+} 
+.ca_statistics > table {
+  margin-top:1rem;
+}
 /* Utility Classes */
 .ca_multiselect {
   float: right;
@@ -565,7 +630,9 @@ input[type="button"][disabled] {
   opacity: 0.7;
   margin-left: 1rem;
 }
-
+.ca_statistics table {
+  background-color: revert;
+}
 .appDocker::before {
   font-family: Unraid;
   content: '\e90b';
@@ -658,10 +725,6 @@ a.appIconsPopUp {
 .appRepository::before {
   font-family: 'fontAwesome';
   content: '\f2be';
-}
-
-.back_to_top_hide {
-  z-index: 0;
 }
 
 .betaPopupBackground,
@@ -1124,18 +1187,11 @@ li.context {
   overflow-x: scroll;
   overflow-y: scroll;
 }
-.Theme--azure #alternateView {
-  opacity: 0.95;
-}
 
 li.debugging {
   cursor: pointer;
 }
 
-.dim {
-  opacity: 0.5;
-  filter: grayscale(100%);
-}
 
 i.displayIcon {
   font-size: 5.5rem;
@@ -1182,7 +1238,6 @@ img.displayIcon {
 .templateSearch {
   display: inline-block;
   cursor: pointer;
-  color: var(--unraid-66-color);
   margin-bottom: 1rem;
 }
 
@@ -1329,6 +1384,18 @@ input[type=button][disabled] {
   line-height: 1.5rem;
 }
 
+.caDownloadProgress {
+  margin-top: 3rem;
+}
+.ca_statusArea {
+  left: 2rem;
+  position: fixed;
+  bottom: 3rem;
+  z-index: 10000;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
 .ca_creditTitle {
   font-size: 5rem;
 }
@@ -1514,16 +1581,19 @@ img.popupAuthorIcon {
 }
 
 .popupCloseArea {
-    position: fixed;
-    margin-left: 10px;
-    margin-top: -2rem;
-    padding-top: 2rem;
-    padding-bottom: 1rem;
-    width: 100%;
-    background-color: var(--sidebar-background);
-    z-index: 5;
+  position: fixed;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  width: 90%;
+  background-color: var(--sidebar-background);
+  z-index: 5;
+  max-width: 70rem;
+  right: 0;
+  top: 0;
 }
-
+.popupCloseArea > div:first-child {
+  margin-left: 2rem;
+}
 .popupDescription {
   font-size: 1.5rem;
   line-height: 1.7rem !important;

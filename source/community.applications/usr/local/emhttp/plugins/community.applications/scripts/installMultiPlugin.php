@@ -12,7 +12,7 @@
 require_once "/usr/local/emhttp/plugins/community.applications/include/paths.php";
 require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
 
-$apps = readJsonFile($caPaths['community-templates-info']);
+$apps = readJsonFile(CA_PATHS['community-templates-info']);
 $plugins = explode("*",$argv[1]);
 foreach ($plugins as $plugin) {
   echo $plugin;
@@ -33,7 +33,7 @@ foreach ($plugins as $plugin) {
     }
   } else
     echo "$plugin not found in application feed\n";
-  @unlink("{$caPaths['pluginPending']}/$pluginName");
+  @unlink(CA_PATHS['pluginPending']."/".$pluginName);
 }
 passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
 ?>

@@ -1,3 +1,49 @@
+<?
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2025, Lime Technology #
+# Copyright 2015-2025, Andrew Zawadzki #
+#                                      #
+# Licenced under GPLv2                 #
+#                                      #
+########################################
+?>
+
+<?
+#############################################################################################################
+# JS to adjust the layout of the DOM and move elements around as needed outside of the Dynamix display area #
+#############################################################################################################
+?>
+<script>
+
+$(function() {
+  // Add the HTML classes to the html element
+  $("html").addClass("<?=$htmlClasses?>");
+
+  // Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
+  <? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
+    $(".searchAreaHolder").insertAfter("#menu");
+  <? endif; ?>
+
+  // Move the sidebar to the body so it fills the entire screen.
+  $(".sidebar,.ca_statusArea").appendTo("body");
+  
+  // Add caDimmable to other elements outside of CA's DOM
+  // Elements within CA's DOM have the class within the HTML below
+
+  // Dimming happens when certain conditions are met within the main CA CSS file
+  $("#header, #menu,#footer,.upgrade_notice").addClass("caDimmable");
+
+  $("body,.content").addClass("menuAdjust");
+
+  // Override the OS switch language function so that CA can save it's current state when switching via the OS
+  $(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
+  
+});
+</script>
+
+<!-- Search Area - This gets moved to body on responsive and black and white themes on legacy OS -->
 <div class="searchAreaHolder menuAdjust">
   <div class='searchArea onlyShowWithFeed'>
     <div class='mobileMenuButton'>
@@ -15,7 +61,16 @@
     <div class='category altCategoryLine hideWithMenu'></div>
   </div>
 </div>
-<div class='ca_display_area'>
+
+<!-- Status Bar.   This gets moved to the body -->
+<div class='ca_statusArea'>
+  <span class='caDownloadProgress ca_hide'></span>
+  <span class='caStatusText'></span>
+</div>
+
+</div>
+<!-- Main Display Area -->
+<div class='ca_display_area caDimmable'>
   <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
   <div class='mobileMenu' id='mobileMenu'>
     <div class='menuItems menuAdjust'>
@@ -78,36 +133,202 @@
     </div>
   </div>
 </div>
-<div id='alternateView'>
-  <div class='caButton alternateViewClose'><?tr("CLOSE");?></div>
-  <div class='alternateViewContent'></div>
+
+<!-- Sidebar for the application description.   This gets moved to the body -->
+<div class='sidebar' role='modal'>
+  <div class='sidebarClose'></div>
+  <div class='popupCloseArea'>
+    <div class='popupCloseAreaButtons'>
+      <span class='popUpClose caButton'><?tr("CLOSE");?></span>
+      <span class='popUpBack caButton'><?tr("BACK");?></span>
+    </div>
+  </div>
+  <div class='sidenav sidenavHide'>
+    <div id='sidenavContent'></div>
+  </div>
 </div>
+
+<!-- Templates / HTML for alternate views -->
 <div class='ca_hide'>
+  <!-- Loading screen for the sidebar -->
+  <div id='sidebarLoading'>
+    <div class='ca_center caLogoIcon'></div>
+    <div class='ca_center ca_italic'><?tr("LOADING...")?></div>
+  </div>
+  <!-- Change log view -->
+  <div id="caChangeLog">
+    <div>
+      <div class='ca_center caLogoIcon'></div>
+      <div class='ca_center caChangelogTitle'><?tr("Community Applications Changelog")?></div>
+      <div class='ca_center ca_italic'><?tr("Copyright")?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
+      <div class='ca_center ca_italic'><?tr("All rights reserved.")?></div>
+      <div class="caChanges"></div>
+    </div>
+  </div>
+  <!-- Credits view -->
   <div id='caCredits'>
     <div class='credits'>
-      <div class='ca_center ca_creditTitle caLogoIcon'></div>
+      <div class='ca_center caLogoIcon'></div>
       <div class='ca_center ca_creditTitle'>Community Applications</div>
       <div class='ca_center ca_creditheader'><?tr("Development");?></div>
-      <div class='ca_center ca_credit'>Andrew Zawadzki</div>
+      <div class='ca_center ca_credit'>Andrew Zawadzki, Lime Technology Inc</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
       <div class='ca_center ca_credit'>bonienl, Lime Technology Inc</div>
       <div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
-      <div class='ca_center ca_credit'>Magnus Engø</div>
+      <div class='ca_center ca_credit'>Magnus Engø, Andrew Zawadzki, Lime Technology Inc</div>
       <div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
       <div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
       <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
       <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
       <div class='ca_center ca_credit'>
-        <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
-        <div class='ca_libraries'>Chart.js (various)</div>
-        <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
-        <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
-        <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
+        <div>Awesomeplete (Lea Verou)</div>
+        <div>Chart.js (various)</div>
+        <div>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
+        <div>XML2Array/Array2XML (Miles Johnson) - <?tr("Modified by Andrew Zawadzki");?></div>
+        <div>Magnific-Popup (Dmytro Semenov) - <?tr("Modified by Andrew Zawadzki");?></div>
       </div>
       <br>
       <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
     </div>
   </div>
+  <!-- Statistics view -->
+  <div id='caStatisticsTemplate'>    
+    <div class='ca_statistics'>
+      <div>
+        <table>
+          <thead>
+           <tr style='height:6rem;'>
+            <td colspan='2'>
+              <div class='ca_center caLogoIcon'></div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan='2'>
+              <div class='ca_center' style='font-size:2rem;'>Community Applications</div>
+            </td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td class='ca_table'>
+              <?tr("Last Change To Application Feed");?>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='updateTime'></span><br><span data-stat-html='currentServer'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <?tr("Docker Applications");?>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='docker'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <?tr("Plugin Applications");?>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='plugin'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <?tr("Templates");?>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='totalApplications'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <?tr("Official Containers");?>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='official'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a onclick='event.stopPropagation();showModeration("Repository","<?tr("Repositories");?>");' class='popUpLink'><?tr("Repositories");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='repositories'></span>
+            </td>
+          </tr>
+          <tr data-stat-row='private'>
+            <td class='ca_table'>
+              <a class='popUpLink' data-category='PRIVATE' onclick='showSpecialCategory(this);'><?tr("Private Docker Applications");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='private'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' onclick='event.stopPropagation();showModeration("Invalid","<?tr("Invalid Templates");?>");'><?tr("Invalid Templates");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='invalidXML'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' onclick='event.stopPropagation();showModeration("Fixed","<?tr("Template Errors");?>");'><?tr("Template Errors");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='caFixed'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' data-category='BLACKLIST' onclick='showSpecialCategory(this);'><?tr("Blacklisted Apps");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='blacklist'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' data-category='INCOMPATIBLE' onclick='showSpecialCategory(this);'><?tr("Incompatible Applications");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='totalIncompatible'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' data-category='DEPRECATED' onclick='showSpecialCategory(this);'><?tr("Deprecated Applications");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='totalDeprecated'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' onclick='event.stopPropagation();showModeration("Moderation","<?tr("Moderation Entries");?>");'><?tr("Moderation Entries");?></a>
+            </td>
+            <td class='ca_stat'>
+              <span data-stat-text='totalModeration'></span>
+            </td>
+          </tr>
+          <tr>
+            <td class='ca_table'>
+              <a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank'> <?tr("Backup Server");?></a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class='ca_center'>
+        <a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank'><?tr("Application Policy");?></a>
+      </div>
+    </div>
+  </div>
 </div>
+<!-- Debugging span 
+  Not currently used, but a span at bottom of page that can be used to display debugging information
+-->
 <span id='debugging'></span>

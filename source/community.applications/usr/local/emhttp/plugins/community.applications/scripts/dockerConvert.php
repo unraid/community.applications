@@ -23,7 +23,7 @@ require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 require_once "$docroot/plugins/community.applications/include/helpers.php";
 
 $caSettings = parse_plugin_cfg("community.applications");
-$unRaidVersion = parse_ini_file($caPaths['unRaidVersion']);
+$unRaidVersion = parse_ini_file(CA_PATHS['unRaidVersion']);
 $unRaid69 = version_compare($unRaidVersion['version'],"6.9.9","<=");
 $exeFile = "/usr/local/emhttp/plugins/dynamix.docker.manager/include/CreateDocker.php";
 
@@ -32,7 +32,7 @@ echo "<script>$javascript</script>";
 
 if ( $_GET['ID'] !== false) {
   $dockerID = $_GET['ID'];
-  $file = readJsonFile($caPaths['dockerSearchResults']);
+  $file = readJsonFile(CA_PATHS['dockerSearchResults']);
   $dockerIndex = searchArray($file['results'],"ID",$dockerID);
   $docker = $file['results'][$dockerIndex];
   $docker['Description'] = str_replace("&", "&amp;", $docker['Description']);
@@ -156,16 +156,16 @@ function addCloseButton() {
       $dockerfile['Name'] .= "-1";
   }
 
-  file_put_contents($caPaths['dockerSearchInstall'],makeXML($dockerfile));
+  file_put_contents(CA_PATHS['dockerSearchInstall'],makeXML($dockerfile));
 }
 ?>
 <script>
   <? if ( $json ):?>
-    window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=$caPaths['dockerSearchInstall']?>";
+    window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=CA_PATHS['dockerSearchInstall']?>";
 
   <? else:?>
     alert("<?=$error?>");
-    window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=$caPaths['dockerSearchInstall']?>";
+    window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=CA_PATHS['dockerSearchInstall']?>";
 
   <? endif;?>
 </script>

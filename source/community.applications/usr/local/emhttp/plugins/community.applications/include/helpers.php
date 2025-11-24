@@ -13,11 +13,10 @@
 # Populate $GLOBALS['templates'] if it's not already populated #
 ###############################################################
 function getGlobals() {
-  global $caPaths;
 
-  if ( is_file($caPaths['community-templates-info']) ) {
+  if ( is_file(CA_PATHS['community-templates-info']) ) {
     if ( ! isset($GLOBALS['templates']) ) {
-      $GLOBALS['templates'] = readJsonFile($caPaths['community-templates-info']);
+      $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
     }
   } else {
     $GLOBALS['templates'] = [];
@@ -28,7 +27,6 @@ function getGlobals() {
 # Sanitize output from plugin function #
 ########################################
 function ca_plugin($method, $plugin_file = '',$dontCache = false) {
-  global $caPaths;
   static $attributeCache = [];
   static $PLUGIN_METHODS = ['dump', 'changes', 'alert', 'validate', 'check', 'checkall', 'update', 'remove', 'install', 'attributes'];
 
@@ -42,13 +40,13 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 
   //  If the method is not a method, then it's an attribute.  Populate the attribute cache if it's not already populated and return
 
-  if ( ! is_file($caPaths['pluginAttributesCache']) ) {
+  if ( ! is_file(CA_PATHS['pluginAttributesCache']) ) {
     $attributeCache = [];
   }
 
   if ( ! $dontCache ) {
-    if ( empty($attributeCache) && file_exists($caPaths['pluginAttributesCache']) ) {
-      $attributeCache = @unserialize(file_get_contents($caPaths['pluginAttributesCache']))??[];
+    if ( empty($attributeCache) && file_exists(CA_PATHS['pluginAttributesCache']) ) {
+      $attributeCache = @unserialize(file_get_contents(CA_PATHS['pluginAttributesCache']))??[];
       if ( empty($attributeCache) ) {
         $attributeCache = [];
         dropAttributeCache();
@@ -71,7 +69,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
       } else {
         unset($attributeCache[$plugin_file]);
       }
-      file_put_contents($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+      file_put_contents(CA_PATHS['pluginAttributesCache'], serialize($attributeCache));  
     
       // return the cached result if it exists.  If it doesn't return false;;
       return $attributeCache[$plugin_file]['@attributes'][$method]??false;
@@ -87,10 +85,9 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 # Drop the attribute cache #
 ############################
 function dropAttributeCache() {
-  global $caPaths;
 
   debug("Dropping attribute cache");
-  @unlink($caPaths['pluginAttributesCache']);
+  @unlink(CA_PATHS['pluginAttributesCache']);
 }
 ##################################################################################################################
 # Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
@@ -119,20 +116,19 @@ function checkPluginUpdate($filename) {
 # returns a random file name (/tmp/community.applications/tempFiles/34234234.tmp) #
 ###################################################################################
 function randomFile() {
-  global $caPaths;
 
-  return tempnam($caPaths['tempFiles'],"CA-Temp-");
+  return tempnam(CA_PATHS['tempFiles'],"CA-Temp-");
 }
 ##################################################################
 # 7 Functions to avoid typing the same lines over and over again #
 ##################################################################
 // This function reads either a serialized or JSON file
-function readJsonFile($filename) {
+function readJsonFile($filename, $default = []) {
   debug( ($GLOBALS['action']?? "Unknown") . " - Read Serialized file $filename");
 
   if ( ! is_file($filename) ) {
     debug("$filename not found");
-    return [];
+    return $default;
   }
 
   $json = @unserialize(@file_get_contents($filename));
@@ -142,7 +138,7 @@ function readJsonFile($filename) {
     $json = json_decode(@file_get_contents($filename),true);
       if ( $json === false ) {
         debug("JSON Read Error ($filename)");
-        return [];
+        return $default;
       }
   }
 
@@ -150,12 +146,34 @@ function readJsonFile($filename) {
   return $json;
 }
 
-// This function writes a serialized file of an array.  If the filename is $caPaths['community-templates-info'], then it will also write a JSON file to $caPaths['community-templates-info-old']
-function writeJsonFile($filename,$jsonArray) {
-  global $caPaths;
+function caIsDockerRunning() {
+  static $dockerRunning = null;
 
-  debug("{$_POST['action']} - Write JSON File $filename");
-  if ( $caPaths['humanReadable'] ) {
+  if ($dockerRunning !== null) {
+    return $dockerRunning;
+  }
+
+  $pidFile = "/var/run/dockerd.pid";
+  if (!is_file($pidFile)) {
+    return $dockerRunning = false;
+  }
+
+  $pid = trim(@file_get_contents($pidFile));
+  if ($pid === "") {
+    return $dockerRunning = false;
+  }
+
+  if (!is_dir("/proc/$pid")) {
+    return $dockerRunning = false;
+  }
+
+  return $dockerRunning = true;
+}
+
+// This function writes a serialized file of an array.  If the filename is CA_PATHS['community-templates-info'], then it will also write a JSON file to CA_PATHS['community-templates-info-old']
+function writeJsonFile($filename,$jsonArray) {
+  debug($_POST['action']??'Unknown'." - Write JSON File $filename");
+  if ( CA_PATHS['humanReadable'] ) {
     $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
   } else {
     $result = ca_file_put_contents($filename,serialize($jsonArray));
@@ -164,8 +182,8 @@ function writeJsonFile($filename,$jsonArray) {
   // The plugin script needs a template.json in JSON format to update support URLs on plugins
   // If we're writing $template, then save templates.json but filtered only for plugins to save space
 
-  if ( $filename == $caPaths['community-templates-info'] ) {
-    ca_file_put_contents($caPaths['community-templates-info-old'],json_encode(array_map(function($t) {
+  if ( $filename == CA_PATHS['community-templates-info'] ) {
+    ca_file_put_contents(CA_PATHS['community-templates-info-old'],json_encode(array_map(function($t) {
       return ["PluginURL"=>$t['PluginURL'],"Support"=>$t['Support']];
     },array_filter($jsonArray, function($t1) {
         return $t1['Plugin']??false;
@@ -189,10 +207,33 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
-  global $caPaths;
 
   static $proxycfg = false;
+
+
+  if ( ! function_exists("publish") ) {
+    $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
+    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
+  }
+
   
+  $downloading_already = false;
+
+  while ( true && $path ) {
+    $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
+    if ( $downloadLocks[$url]??false) {
+      $downloading_already = true;
+      sleep(1);
+    } else {
+      break;  
+    }
+  }
+  if ( $downloading_already ) {
+    return file_get_contents($path);
+  }
+  $downloadLocks[$url] = true;
+  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
+
   if ($proxycfg === false) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
   }
@@ -204,7 +245,10 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     CURLOPT_RETURNTRANSFER=>true,
     CURLOPT_FOLLOWLOCATION=>true,
     CURLOPT_FAILONERROR=>true,
-    CURLOPT_URL=>$url
+    CURLOPT_NOPROGRESS=>false,
+    CURLOPT_URL=>$url,
+    CURLOPT_MAX_RECV_SPEED_LARGE=>241 * 1024,
+    CURLOPT_PROGRESSFUNCTION=>"testProgress"
   ];
 
   if ( $timeout > 0 ) {
@@ -232,11 +276,12 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     $out = curl_exec($ch);
   }
 
-  if ( curl_error($ch) && startsWith($url,$caPaths['pluginProxy']) ) {
+  if ( curl_error($ch) && startsWith($url,CA_PATHS['pluginProxy']) ) {
     debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
-    $url = str_replace($caPaths['pluginProxy'],"",$url);
+    $url = str_replace(CA_PATHS['pluginProxy'],"",$url);
     $curl_options[CURLOPT_URL] = $url;
     curl_close($ch);
+    sleep(3);
     $ch = curl_init();
     curl_setopt_array($ch,$curl_options);
     $out = curl_exec($ch);
@@ -249,12 +294,49 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
     @unlink($path);
   }
   curl_close($ch);
-
+  
+  ca_publish("ca_downloadProgress","");
   $totalTime = time() - $startTime;
   debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
+
+  $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
+  unset($downloadLocks[$url]);
+  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
   return $out ?: false;
 }
 
+function MakeReadable($bytes) {
+  if (!is_numeric($bytes) || $bytes < 0) {
+    return "";
+  }
+
+  if ($bytes == 0) {
+    return "0B";
+  }
+
+  $units = ['B','kB','MB','GB','TB','PB','EB'];
+  $precision = [0,0,1,1,3,3,3];
+
+  $i = (int)floor(log($bytes, 1024));
+  $i = max(0, min($i, count($units) - 1));
+
+  return round($bytes / pow(1024, $i), $precision[$i]).$units[$i];
+}
+function testProgress($ch,$download_total,$download_current,$upload_total,$upload_current) {
+  $testProgress = curl_getinfo($ch);
+
+  $percentage = $download_total > 0 ? intval($download_current / $download_total * 100) : "Unknown";
+
+  ca_publish("ca_downloadProgress",basename($testProgress['url'])." - ".MakeReadable($download_current)." of ".MakeReadable($download_total)." at ".MakeReadable($testProgress['speed_download'])."/s ($percentage%)");
+
+}
+function ca_publish($endpoint,$message) {
+  if ( ! function_exists("publish_noDupe") ) {
+    return publish($endpoint,$message);
+  } else {
+    return publish_noDupe($endpoint,$message);
+  }
+}
 function download_json($url,$path="",$bg=false,$timeout=45) {
   // download the URL, but don't sae it yet
   $result = download_url($url,"",$bg,$timeout);
@@ -564,7 +646,7 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 # If appfeed is updated, this is done when creating the templates #
 ###################################################################
 function moderateTemplates() {
-  global $caPaths,$caSettings;
+  global $caSettings;
 
   getGlobals();
 
@@ -585,7 +667,7 @@ function moderateTemplates() {
     $template['ModeratorComment'] = $template['CaComment'] ?? ($template['ModeratorComment']??null);
     $o[] = $template;
   }
-  writeJsonFile($caPaths['community-templates-info'],$o);
+  writeJsonFile(CA_PATHS['community-templates-info'],$o);
   $GLOBALS['templates'] = $o;
   pluginDupe();
 }
@@ -617,7 +699,6 @@ function filterMatch($filter,$searchArray,$exact=true) {
 # Used to figure out which plugins have duplicated names #
 ##########################################################
 function pluginDupe() {
-  global $caPaths;
 
   getGlobals();
   
@@ -634,13 +715,12 @@ function pluginDupe() {
     if ( $pluginList[$plugin] > 1 )
       $dupeList[$plugin] = 1;
   }
-  writeJsonFile($caPaths['pluginDupes'],$dupeList);
+  writeJsonFile(CA_PATHS['pluginDupes'],$dupeList);
 }
 ###################################
 # Checks if a plugin is installed #
 ###################################
 function checkInstalledPlugin($template) {
-  global $caPaths;
 
   $pluginName = basename($template['PluginURL']);
   if ( ! file_exists("/var/log/plugins/$pluginName") ) return false;
@@ -655,13 +735,7 @@ function checkInstalledPlugin($template) {
 function alphaNumeric($string) {
   return preg_replace("/[^a-zA-Z0-9]+/", "", $string);
 }
-##################################################################
-# mobile browser detection from http://detectmobilebrowsers.com/ #
-##################################################################
-function isMobile() {
-  $useragent=$_SERVER['HTTP_USER_AGENT'];
-  return (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i',$useragent)||preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i',substr($useragent,0,4)));
-}
+
 ################################################
 # Returns the author from the Repository entry #
 ################################################
@@ -734,49 +808,93 @@ function myStopContainer($id) {
 # Fix Descriptions on previous apps #
 #####################################
 function fixDescription($Description) {
-  if ( is_string($Description) ) {
-    $Description = preg_replace("#\[br\s*\]#i", "{}", $Description);
-    $Description = preg_replace("#\[b[\\\]*\s*\]#i", "||", $Description);
-    $Description = preg_replace('#\[([^\]]*)\]#', '<$1>', $Description);
-    $Description = preg_replace("#<span.*#si", "", $Description);
-    $Description = preg_replace("#<[^>]*>#i", '', $Description);
-    $Description = preg_replace("#"."{}"."#i", '<br>', $Description);
-    $Description = preg_replace("#"."\|\|"."#i", '<b>', $Description);
-    $Description = str_replace("&lt;","<",$Description);
-    $Description = str_replace("&gt;",">",$Description);
-    $Description = strip_tags($Description);
-    $Description = trim($Description);
+  if ( !is_string($Description) ) {
+    return "";
   }
-  return is_string($Description) ? $Description : "";
+
+  $patterns = [
+    "#\[br\s*\]#i"   => "{}",
+    "#\[b[\\\]*\s*\]#i" => "||",
+    '#\[([^\]]*)\]#' => '<$1>',
+    "#<span.*#si"    => "",
+    "#<[^>]*>#i"     => "",
+  ];
+
+  $Description = preg_replace(
+    array_keys($patterns),
+    array_values($patterns),
+    $Description
+  );
+
+  if ( $Description === null ) {
+    return "";
+  }
+
+  $Description = strtr($Description, [
+    "{}"    => "<br>",
+    "||"    => "<b>",
+    "&lt;"  => "<",
+    "&gt;"  => ">",
+  ]);
+
+  return trim(strip_tags($Description));
 }
 ############################
 # displays the branch tags #
 ############################
 function formatTags($leadTemplate,$rename="false") {
   getGlobals();
-  
-  $type = $rename == "true" ? "second" : "default";
 
-  $file = &$GLOBALS['templates'];
-
-  $template = $file[$leadTemplate];
-  $childTemplates = $file[$leadTemplate]['BranchID'];
-  if ( ! is_array($childTemplates) )
-    $o =  tr("Something really went wrong here");
-  else {
-    $defaultTag = $template['BranchDefault'] ? $template['BranchDefault'] : "latest";
-
-    $o = "<table>";
-    $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$template['Path']}'>Default</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$template['Path']}'>".tr("Install Using The Template's Default Tag")." (<span class='ca_bold'>:$defaultTag</span>)</td></tr>";
-    if ( ($template['DefaultTagDescription']??null) && ! is_array($template['DefaultTagDescription']) ) {
-      $o .= "<tr><td></td><td></td><td>{$template['DefaultTagDescription']}</td></tr>";
-    }
-    foreach ($childTemplates as $child) {
-      $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchName']}</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchDescription']}</td></tr>";
-    }
-    $o .= "</table>";
+  $templates = &$GLOBALS['templates'];
+  if ( ! isset($templates[$leadTemplate]) ) {
+    return tr("Something really went wrong here");
   }
-  return $o;
+
+  $template = $templates[$leadTemplate];
+  $childTemplates = $template['BranchID'] ?? null;
+
+  if ( ! is_array($childTemplates) ) {
+    return tr("Something really went wrong here");
+  }
+
+  $type = $rename === "true" ? "second" : "default";
+  $branchDefault = $template['BranchDefault'] ?? null;
+  $defaultTag = $branchDefault ? $branchDefault : "latest";
+
+  $buildRow = function($path, $label, $description) use ($type) {
+    return "<tr>"
+      . "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
+      . "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$label</a></td>"
+      . "<td class='xmlInstall ca_normal' data-type='default' data-xml='$path'>$description</td>"
+      . "</tr>";
+  };
+
+  $rows = [];
+  $rows[] = $buildRow(
+    $template['Path'],
+    "Default",
+    tr("Install Using The Template's Default Tag") . " (<span class='ca_bold'>:$defaultTag</span>)"
+  );
+
+  $defaultTagDescription = $template['DefaultTagDescription'] ?? null;
+  if ( $defaultTagDescription && ! is_array($defaultTagDescription) ) {
+    $rows[] = "<tr><td></td><td></td><td>$defaultTagDescription</td></tr>";
+  }
+
+  foreach ($childTemplates as $child) {
+    if ( ! isset($templates[$child]) ) {
+      continue;
+    }
+
+    $childTemplate = $templates[$child];
+    $rows[] = $buildRow(
+      $childTemplate['Path'] ?? "",
+      $childTemplate['BranchName'] ?? "",
+      $childTemplate['BranchDescription'] ?? ""
+    );
+  }
+
+  return "<table>" . implode("", $rows) . "</table>";
 }
 ###########################
 # handles the POST return #
@@ -818,13 +936,12 @@ if ( ! function_exists("tr") ) {
 # Check for language update #
 #############################
 function languageCheck($template) {
-  global $caPaths;
 
   if ( ! $template['LanguageURL'] ) return false;
 
   $countryCode = $template['LanguagePack'];
-  $installedLanguage = "{$caPaths['installedLanguages']}/lang-$countryCode.xml";
-  $dynamixUpdate = "{$caPaths['dynamixUpdates']}/lang-$countryCode.xml";
+  $installedLanguage = CA_PATHS['installedLanguages']."/lang-$countryCode.xml";
+  $dynamixUpdate = CA_PATHS['dynamixUpdates']."/lang-$countryCode.xml";
   if ( ! is_file($installedLanguage) )
     return false;
 
@@ -859,12 +976,12 @@ function write_ini_file($file,$array) {
 # Gets all the information about what's installed #
 ###################################################
 function getAllInfo($force=false) {
-  global $caSettings, $DockerTemplates, $DockerClient, $caPaths;
+  global $caSettings, $DockerTemplates, $DockerClient;
 
-  $containers = readJsonFile($caPaths['info']);
+  $containers = readJsonFile(CA_PATHS['info']);
 
   if ( $force || ! $containers || empty($containers) ) {
-    if ( $caSettings['dockerRunning'] ?? false ) {
+    if ( caIsDockerRunning() ) {
       $info = $DockerTemplates->getAllInfo(false,true,true);
       $containers = $DockerClient->getDockerContainers();
       foreach ($containers as &$container) {
@@ -875,7 +992,7 @@ function getAllInfo($force=false) {
       }
     }
     debug("Forced info update");
-    writeJsonFile($caPaths['info'],$containers);
+    writeJsonFile(CA_PATHS['info'],$containers);
   } else {
     debug("Cached info update");
   }
@@ -885,10 +1002,10 @@ function getAllInfo($force=false) {
 # Logs the debug info #
 #######################
 function debug($str) {
-  global $caSettings, $caPaths;
+  global $caSettings;
 
-  if ( ! is_file($caPaths['logging']) ) {
-    touch($caPaths['logging']);
+  if ( ! is_file(CA_PATHS['logging']) ) {
+    touch(CA_PATHS['logging']);
     $caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
 
     debug("Community Applications Version: $caVersion");
@@ -898,14 +1015,14 @@ function debug($str) {
     debug("Language: $lingo");
     debug("Settings:\n".print_r($caSettings,true));
 
-    $phpErrors = @parse_ini_file($caPaths['phpErrorSettings']);
+    $phpErrors = @parse_ini_file(CA_PATHS['phpErrorSettings']);
 
     if (boolval($phpErrors['display_errors']??false)) {
       debug("PHP errors set to be displayed!");
     }
 
   }
-  @file_put_contents($caPaths['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
+  @file_put_contents(CA_PATHS['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
 }
 ########################################
 # Gets the default ports in a template #
@@ -928,18 +1045,18 @@ function portsUsed($template) {
       $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'];
     }
   }
-  return json_encode($portsUsed);
+  return json_encode($portsUsed,JSON_NUMERIC_CHECK);
 }
 
 ########################
 # Get the ports in use #
 ########################
 function getPortsInUse() {
-  global $var, $caPaths;
+  global $var;
 
   $addr = null;
   if ( !$var )
-    $var = parse_ini_file($caPaths['unRaidVars']);
+    $var = parse_ini_file(CA_PATHS['unRaidVars']);
 
   $portsInUse = [];
   exec("lsof -Pni|awk '/LISTEN/ && \$9!~/127.0.0.1/ && \$9!~/\\[::1\\]/{print \$9}'|sort -u", $output);
