@@ -1392,7 +1392,6 @@ input[type=button][disabled] {
   position: fixed;
   bottom: 3rem;
   z-index: 10000;
-  background: black;
   margin-top: 1rem;
   padding-top: 1rem;
   padding-bottom: 1rem;

@@ -220,7 +220,7 @@ var iconHoverTimer;
 var ca_done_override = false;
 
 // handle 3rd party links on older versions of OS
-<?
+<?php
 if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
   echo "var gui_pages_available = [];";
   $gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
@@ -459,7 +459,7 @@ $(function(){
   if ( message == "" ) {
     clearTimeout(downloadProgressTimer);
     downloadProgressTimer = null;
-    $(".downloadProgressHolder").addClass("ca_hide");
+    $(".caDownloadProgress").addClass("ca_hide");
   }
  });
  downloadProgress.start();

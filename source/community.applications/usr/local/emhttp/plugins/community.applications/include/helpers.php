@@ -172,8 +172,7 @@ function caIsDockerRunning() {
 
 // This function writes a serialized file of an array.  If the filename is CA_PATHS['community-templates-info'], then it will also write a JSON file to CA_PATHS['community-templates-info-old']
 function writeJsonFile($filename,$jsonArray) {
-
-  debug("{$_POST['action']} - Write JSON File $filename");
+  debug($_POST['action']??'Unknown'." - Write JSON File $filename");
   if ( CA_PATHS['humanReadable'] ) {
     $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
   } else {
