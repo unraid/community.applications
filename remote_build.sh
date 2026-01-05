@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Configuration
-UNRAID_HOST="root@192.168.1.192"
+# Allow overriding UNRAID_HOST via first argument or environment variable
+# Usage: ./remote_build.sh [user@ip]
+UNRAID_HOST="${1:-${UNRAID_HOST:-root@192.168.1.192}}"
+
 PLUGIN_NAME="community.applications"
 REMOTE_BUILD_DIR="/tmp/ca_build_workspace"
 LOCAL_OUTPUT_DIR="./dist"
@@ -14,6 +17,8 @@ OUTPUT_FILENAME="dev.${PLUGIN_NAME}-${VERSION}-x86_64-1.txz"
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+echo -e "${GREEN}==> Target Unraid Host: $UNRAID_HOST${NC}"
+
 # Kill any existing python servers we started
 pkill -f "python3 -m http.server $PORT" 2>/dev/null
 
@@ -24,7 +29,7 @@ if [ -d "$LOCAL_OUTPUT_DIR" ]; then
 fi
 mkdir -p "$LOCAL_OUTPUT_DIR"
 
-echo -e "${GREEN}==> Syncing source code to Unraid server ($UNRAID_HOST)...${NC}"
+echo -e "${GREEN}==> Syncing source code to Unraid server...${NC}"
 # We exclude .git and other dev files to keep the transfer fast and clean
 rsync -avz --delete \
   --exclude '.git' \
@@ -48,7 +53,6 @@ ssh "$UNRAID_HOST" "bash -s" <<EOF
     echo "Created temp build root at \$BUILD_ROOT"
     
     # 4. Copy files to build root (replicating the plugin structure)
-    # The source structure seems to be source/community.applications/usr/...
     cp -R * "\$BUILD_ROOT/"
     
     # 5. Run makepkg
@@ -70,41 +74,54 @@ echo -e "${GREEN}==> Cleanup remote workspace...${NC}"
 ssh "$UNRAID_HOST" "rm -rf $REMOTE_BUILD_DIR"
 
 # 2. Detect Local IP for the HTTP Server
-# We find which interface routes to the Unraid IP
 UNRAID_IP=$(echo "$UNRAID_HOST" | cut -d@ -f2)
-INTERFACE=$(route -n get "$UNRAID_IP" | grep 'interface:' | awk '{print $2}')
-LOCAL_IP=$(ipconfig getifaddr "$INTERFACE")
+# Try to find the interface used to reach the Unraid server
+if command -v route >/dev/null; then
+    INTERFACE=$(route -n get "$UNRAID_IP" | grep 'interface:' | awk '{print $2}')
+    LOCAL_IP=$(ipconfig getifaddr "$INTERFACE")
+else
+    # Fallback if strict routing check fails (e.g. linux/other)
+    # For macOS, 'en0' is common. For Linux, 'eth0' or 'enpXsY' might be used.
+    # This is a best-effort attempt. User might need to manually specify if it fails.
+    if command -v ipconfig >/dev/null; then # macOS
+        LOCAL_IP=$(ipconfig getifaddr en0)
+    elif command -v hostname >/dev/null; then # Linux
+        LOCAL_IP=$(hostname -I | awk '{print $1}')
+    else # Generic fallback
+        echo "Warning: Could not reliably determine local IP. Using 127.0.0.1. Please adjust if necessary."
+        LOCAL_IP="127.0.0.1"
+    fi
+fi
 PORT="8000"
 
 echo -e "${GREEN}==> Generating .plg file for installation...${NC}"
-# Calculate MD5 of the local .txz file
-# BSD md5 (macOS) vs GNU md5sum (Linux)
+# Calculate MD5
 if command -v md5 > /dev/null; then
     MD5_CHECKSUM=$(md5 -q "$LOCAL_OUTPUT_DIR/$OUTPUT_FILENAME")
 else
     MD5_CHECKSUM=$(md5sum "$LOCAL_OUTPUT_DIR/$OUTPUT_FILENAME" | awk '{print $1}')
 fi
 
-# Define the PLG filename
-# We MUST name it community.applications.plg so Unraid recognizes it as the official plugin
+# We MUST name the .plg file community.applications.plg for the filename spoofing
 PLG_FILENAME="${PLUGIN_NAME}.plg"
 PLG_PATH="$LOCAL_OUTPUT_DIR/$PLG_FILENAME"
 
-# 3. Create the .plg file using HTTP URLs
-# We use the official 'Run="upgradepkg --install-new"' attribute to ensure installation happens.
+# 3. Create the .plg file
+# We use separate 'name' (internal for paths) and 'displayName' (for UI)
 cat <<EOF > "$PLG_PATH"
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
-<!ENTITY name      "community.applications">
-<!ENTITY author    "DevBuild">
-<!ENTITY version   "${VERSION}">
-<!ENTITY md5       "${MD5_CHECKSUM}">
-<!ENTITY launch    "Apps">
-<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "http://${LOCAL_IP}:${PORT}/${PLG_FILENAME}">
+<!ENTITY name        "community.applications">
+<!ENTITY displayName "Community Applications (LOCAL_DEV_BUILD)">
+<!ENTITY author      "DevBuild">
+<!ENTITY version     "${VERSION}">
+<!ENTITY md5         "${MD5_CHECKSUM}">
+<!ENTITY launch      "Apps">
+<!ENTITY plugdir     "/usr/local/emhttp/plugins/&name;">
+<!ENTITY pluginURL   "http://${LOCAL_IP}:${PORT}/${PLG_FILENAME}">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="users">
+<PLUGIN name="&displayName;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="users">
 
 <FILE Name="/boot/config/plugins/community.applications/${OUTPUT_FILENAME}" Run="upgradepkg --install-new">
 <URL>http://${LOCAL_IP}:${PORT}/${OUTPUT_FILENAME}</URL>
@@ -118,6 +135,16 @@ echo "----------------------------------------------------"
 echo " Dev Build Installed Successfully!"
 echo " Version: &version;"
 echo "----------------------------------------------------"
+</INLINE>
+</FILE>
+
+<!-- Removal Script -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+removepkg &name;-&version;-x86_64-1
+rm -rf &plugdir;
+rm -rf /boot/config/plugins/&name;
+echo "Cleanup complete."
 </INLINE>
 </FILE>
 
