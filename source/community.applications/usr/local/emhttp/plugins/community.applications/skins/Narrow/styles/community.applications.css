@@ -1,7 +1,11 @@
 /* ==========================================================================
   Base Styles & Reset
   ========================================================================== */
-body {
+@layer default{
+	@scope (:root) to (.unapi) {
+		
+
+  body {
   scrollbar-gutter: stable;
   cursor: default !important;
 }
@@ -2525,4 +2529,6 @@ img.mfp-img {
   color: var(--unraid-66-color);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   transform: translate(-50%, -50%) scale(1.0);
+}
+	}
 }
