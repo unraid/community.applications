@@ -68,3 +68,4 @@ test
 # Temp files
 ~
 PR_DESCRIPTION.md
+*.diff
