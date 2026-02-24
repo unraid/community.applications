@@ -1,3 +1,4 @@
 [submodule "tests/framework"]
 	path = tests/framework
-	url = https://github.com/mstrhakr/plugin-tests
+	url = https://github.com/mstrhakr/plugin-tests.git
+	branch = v0.2
