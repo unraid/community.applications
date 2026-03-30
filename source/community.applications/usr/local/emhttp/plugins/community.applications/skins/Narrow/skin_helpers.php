@@ -2,8 +2,8 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #
@@ -1553,7 +1553,7 @@ function caBuildApplicationHeader(array $template, string $name, string $author,
 # Normalize overview/description copy for display in template cards #
 #####################################################################
 function caNormalizeOverview(array $template, string $name): string {
-  $overview = $template['Overview'] ?? ($template['Description'] ?? "");
+  $overview = $template['Overview'] ?: ($template['Description'] ?: $template['Bio'] ?: "");
 
   if (! $overview) {
     $overview = tr("No description present");

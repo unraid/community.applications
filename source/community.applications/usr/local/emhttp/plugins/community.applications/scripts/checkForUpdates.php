@@ -3,8 +3,8 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #

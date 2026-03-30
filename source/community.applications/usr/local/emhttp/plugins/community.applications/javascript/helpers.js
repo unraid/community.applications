@@ -2,8 +2,8 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #
@@ -57,9 +57,7 @@ function mySpinner() {
 function myCloseSpinner() {
   clearTimeout(spinnerTimer);
   spinnerTimer = null;
-  clearTimeout(ca_longLoading);
-  clearTimeout(ca_veryLongLoading);
-  clearTimeout(ca_somethingWrong);
+
   $("div.spinner,.spinnerBackground").hide();
   $(".long-loading").html("");
 }
@@ -141,10 +139,6 @@ function postNoSpin(options,callback) {
   post(options,callback);
 }
 
-var ca_longLoading = false;
-var ca_veryLongLoading = false;
-var ca_somethingWrong = false;
-
 function post(options,callback) {
   if ( typeof options === "function" ) {
     callback = options;
@@ -157,18 +151,7 @@ function post(options,callback) {
       if ( ! $(".sweet-overlay").is(":visible") ) {
         mySpinner();
       }
-      ca_longLoading = setTimeout(function() {
-        slowPost(tr('Taking longer than expected. Please wait...'));
-      }, 20000);
-      ca_veryLongLoading = setTimeout(function() {
-        clearTimeout(ca_longLoading);
-        slowPost(tr('Still taking longer than expected. Please wait...'));
-      },30000);
-  
-      ca_somethingWrong = setTimeout(function() {
-        clearTimeout(ca_veryLongLoading);
-        slowPost(tr('Taking far longer than expected.  Investigate possible network / internet connection hardware issues. Still attempting to load.  Please wait... Aborting will recover, but might cause Community Applications some issues.')+"<div class='long-loading-abort-button caButton'>"+tr('Abort')+"</div>");
-      }, 40000);
+
     }
     postCount++;
   }

@@ -2,8 +2,8 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #
@@ -1042,7 +1042,7 @@ function portsUsed($template) {
     foreach ($template['Config'] as $config) {
       if ( ($config['@attributes']['Type'] ?? null) !== "Port" )
         continue;
-      $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'];
+      $portsUsed[] = $config['value'] ?: $config['@attributes']['Default'] ?: $config['@attributes']['Target'] ?? null;
     }
   }
   return json_encode($portsUsed,JSON_NUMERIC_CHECK);

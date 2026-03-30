@@ -9,8 +9,8 @@ Code="f0db"
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #
@@ -1383,6 +1383,7 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+  $(".popupCloseArea").removeClass("ca_show").addClass("ca_hide");
   $(".nav-user.show").show();
   enableSearch();
 }
@@ -2988,17 +2989,8 @@ function showSidebarApp(apppath,appname) {
 }
 
 function slideInSidebar() {
-  const $sidenav = $(".sidenav");
-      
-  function handleTransitionEnd(event) {
-    if (event.target !== event.currentTarget) return;
-    const propertyName = event.originalEvent ? event.originalEvent.propertyName : undefined;
-    if (propertyName && propertyName !== "transform" && propertyName !== "opacity") return;
-    $sidenav.off("transitionend", handleTransitionEnd);
-    $(".popupCloseArea").removeClass("ca_hide");
-  }
-
-  $sidenav.off("transitionend", handleTransitionEnd).addClass("sidenavShow").on("transitionend", handleTransitionEnd);
+  $(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
+  $(".popupCloseArea").removeClass("ca_hide").addClass("ca_show");
 }
 function showRepoPopup(repository) {
   if ( !repository ) return;
