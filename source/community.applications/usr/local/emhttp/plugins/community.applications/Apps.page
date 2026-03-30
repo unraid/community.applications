@@ -323,6 +323,25 @@ $('body').on("click","a,.ca_href,.dockerPopup", function(e) {
 <?endif;?>
 
 $(function(){
+
+  window.addEventListener('error', function (event) {
+    const target = event.target;
+
+    // 1. Ensure it's an image
+    if (target.tagName === 'IMG') {
+      // 2. Check for the specific class
+      if (target.classList.contains('spotlightIcon')) {
+          target.src = '<?=CA_PATHS['SpotlightIcon-backup']?>';
+      } else {
+          target.src = '/plugins/dynamix.docker.manager/images/question.png';
+      }
+
+      // 3. IMPORTANT: Clear the handler so it doesn't loop 
+      // if the fallback URL is also broken
+      target.onerror = null;
+    }
+  }, true); // The 'true' enables the CAPTURE phase (required for error events)
+
   window.onerror = function(msg,url,lineNo,columnNo, error) {
     post({action:'javascriptError',msg:msg,url:url,lineNo:lineNo,columnNo:columnNo,error:error});
   }
@@ -466,7 +485,6 @@ $(function(){
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
-
 
   $("body").on("click",".long-loading-abort-button",function() {
     var abortBanner = addBannerWarning("<?tr('Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum',false,true);?>");
@@ -2240,12 +2258,7 @@ function updateDisplay(content) {
     $(".navigationSection").removeClass("navigationSectionShift");
   }
   enableSearch();
-  $('img').on("error",function() {
-    if ( $(this).hasClass("spotlightIcon") )
-      $(this).attr('src','<?=CA_PATHS['SpotlightIcon-backup']?>');
-    else
-      $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
-  });
+
   context.init({preventDoubleContext:false,left:true,above:'auto'});
   $('.supportButtonCardContext').each(function() {
     var supportContext = $(this).data("context");
@@ -2962,13 +2975,7 @@ function showSidebarApp(apppath,appname) {
       });
       slideInSidebar();
 
-      $('img').on("error",function() {
-        $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
-        if ( $(this).parent().is('a') ) {
-          $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
-        }
-      });
-      
+
       
       $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
@@ -3021,12 +3028,7 @@ function showRepoPopup(repository) {
     } else {
       $(".popUpBack").removeClass("ca_hide");
     }
-    $('img').on("error",function() {
-      $(this).attr('src',"/plugins/dynamix.docker.manager/images/question.png");
-      if ( $(this).parent().is('a') ) {
-        $(this).parent().attr('href',"/plugins/dynamix.docker.manager/images/question.png");
-      }
-    });
+
     $('.screenshot').magnificPopup({
       type:'image',
       closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
