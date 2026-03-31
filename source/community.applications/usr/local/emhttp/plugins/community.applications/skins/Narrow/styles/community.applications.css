@@ -42,9 +42,19 @@ body:has(.sidenavShow) .caDimmable,
 body:has(.sweet-alert.showSweetAlert) .caDimmable {
   opacity: 0.5;
 }
+/* Keep the dock/menu readable while the CA sidebar is open (overrides .caDimmable dimming) */
+body:has(.sidenavShow) #menu,
+body:has(.sidenavShow) .upgrade_notice,
+body:has(.sweet-alert.showSweetAlert) #menu,
+body:has(.sweet-alert.showSweetAlert) .upgrade_notice {
+  opacity: 1;
+  filter: grayscale(30%) brightness(50%); 
+}
+
 .caDimmable {
   transition: opacity 250ms ease-in-out;
 }
+
 .subCategory ul {
   padding-left: 20px;
 }
@@ -1163,6 +1173,10 @@ li.context {
 }
 .Theme--sidebar .alternateViewClose {
   left: 8.5rem;
+}
+/* Prevent a banner warning from covering the search bar when scrolling */
+.Theme--sidebar .upgrade_notice {
+  position: absolute;
 }
 
 #alternateView {

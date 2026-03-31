@@ -233,7 +233,7 @@ function displayPopup($template) {
     }
   }
   if ($Plugin && ! isset($installedVersion)) {
-    $detailsRows[] = "<tr><td calss='popupTableLeft'>".tr("Current Version")."</td><td class='popupTableRight'>$pluginVersion</td></tr>";
+    $detailsRows[] = "<tr><td class='popupTableLeft'>".tr("Current Version")."</td><td class='popupTableRight'>$pluginVersion</td></tr>";
   }
 
   if ($Plugin || ! ($Compatible ?? null)) {
