@@ -27,7 +27,9 @@
   .searchAreaHolder {
     top: var(--search-area-mobile-top);
   }
- 
+  .upgrade_notice {
+    position: absolute;
+  }
   .mobileMenu {
     position: absolute;
     display: none;
