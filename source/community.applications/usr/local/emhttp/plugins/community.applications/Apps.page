@@ -3021,7 +3021,7 @@ function showRepoPopup(repository) {
   post({action:'getRepoDescription',repository:repository},function(result) {
     $("#sidenavContent").html(result.description); 
     $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-
+    $(".popupCloseArea").removeClass("ca_hide").addClass("ca_show");
     $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
     if (fromCard) {
       $(".popUpBack").addClass("ca_hide");

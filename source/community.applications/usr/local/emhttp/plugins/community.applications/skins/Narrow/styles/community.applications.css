@@ -611,7 +611,7 @@ display: none;
   overflow:scroll; 
   overflow-x:scroll; 
   overflow-y:hidden;
-  margin:auto;
+  margin:3rem auto auto auto;
   width:fit-content;
   background-color: revert;
 } 
