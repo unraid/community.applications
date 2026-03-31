@@ -55,11 +55,13 @@ function caFormatTemplateChanges(array &$template) {
     $template['pluginVersion'] = @ca_plugin("version",CA_PATHS['pluginTempDownload']) ?: $template['pluginVersion'];
   } else {
     if (!$template['Changes'] && $template['ChangeLogPresent']) {
-      $templateURL = $template['caTemplateURL'] ?: $template['TemplateURL'];
-      download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
-      $xml = readXmlFile(CA_PATHS['pluginTempDownload']);
-      if ($xml) {
-        $template['Changes'] = $xml['Changes'];
+      $templateURL = $template['caTemplateURL'] ?: ($template['TemplateURL']??"");
+      if ( $templateURL ) {
+        download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
+        $xml = readXmlFile(CA_PATHS['pluginTempDownload']);
+        if ($xml) {
+          $template['Changes'] = $xml['Changes'];
+        }
       }
     }
   }
@@ -1553,7 +1555,7 @@ function caBuildApplicationHeader(array $template, string $name, string $author,
 # Normalize overview/description copy for display in template cards #
 #####################################################################
 function caNormalizeOverview(array $template, string $name): string {
-  $overview = $template['Overview'] ?: ($template['Description'] ?: $template['Bio'] ?: "");
+  $overview = $template['Overview'] ?: ($template['Description'] ?: ($template['Bio']??"") ?: "");
 
   if (! $overview) {
     $overview = tr("No description present");

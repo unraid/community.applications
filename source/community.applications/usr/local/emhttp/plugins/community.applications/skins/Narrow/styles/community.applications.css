@@ -35,15 +35,11 @@ body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
   z-index: 0;
 }
 /* Dim all page content except the visible sidebar and its children */
-body:has(.sidenavShow) > :not(.sidebar),
-body:has(.sidenavShow) > :not(.sweet-alert) {
+body:has(.sidenavShow) > :not(.sidebar,.sweet-alert,.dropdown-menu) {
   opacity: 0.5;
   transition: opacity 250ms ease-in-out;
 }
-body:has(.sidenavShow) .sidebar {
-  opacity: 1;
-  filter: none;
-}
+
 body:has(.sidenavShow) :is(#menu, .upgrade_notice,#footer),
 body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice,#footer) {
   opacity: 1;
@@ -284,10 +280,7 @@ a {
     color-mix(in srgb, var(--template-background) 10%, transparent) 30%, 
     color-mix(in srgb, var(--template-background) 30%, transparent) 70%, 
     color-mix(in srgb, var(--template-background) 80%, transparent) 100%);
-  
-  /* Ensure it overlays the text */
-  z-index: 10;
-  
+
   /* Padding for spacing */
   padding-left: 0.5rem;
   
