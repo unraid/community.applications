@@ -28,12 +28,6 @@ $(function() {
 
   // Move the sidebar to the body so it fills the entire screen.
   $(".sidebar,.ca_statusArea").appendTo("body");
-  
-  // Add caDimmable to other elements outside of CA's DOM
-  // Elements within CA's DOM have the class within the HTML below
-
-  // Dimming happens when certain conditions are met within the main CA CSS file
-  $("#header, #menu,#footer,.upgrade_notice").addClass("caDimmable");
 
   $("body,.content").addClass("menuAdjust");
 
@@ -70,7 +64,7 @@ $(function() {
 
 </div>
 <!-- Main Display Area -->
-<div class='ca_display_area caDimmable'>
+<div class='ca_display_area'>
   <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
   <div class='mobileMenu' id='mobileMenu'>
     <div class='menuItems menuAdjust'>

@@ -20,7 +20,5 @@
     --chart-grid: #dddddd;
     --magnificCloseColor: var(--support-popup-text);
 } 
-.Theme--azure #alternateView {
-    opacity: 0.95;
-}
+
   

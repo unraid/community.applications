@@ -27,7 +27,6 @@ body.menuShowing {
   overflow: hidden !important;
 }
 /* Stop the main area from being scrolled when the alternate view or sidebar is visible */
-body:has(#alternateView[style]:not([style*="display: none"])),
 body:has(.sidenavShow) {
   overflow: hidden !important;
 }
@@ -35,22 +34,21 @@ body:has(.sidenavShow) {
 body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
   z-index: 0;
 }
-/* Dim the main area when the sidebar is visible */
-/* Also apply when a sweet alert is being displayed */
-body:has(.sidenavShow) .caDimmable,
-body:has(.sweet-alert.showSweetAlert) .caDimmable {
+/* Dim all page content except the visible sidebar and its children */
+body:has(.sidenavShow) > :not(.sidebar),
+body:has(.sidenavShow) > :not(.sweet-alert) {
   opacity: 0.5;
+  transition: opacity 250ms ease-in-out;
 }
-/* Keep the dock/menu readable while the CA sidebar is open (overrides .caDimmable dimming) */
-body:is(:has(.sidenavShow), :has(.sweet-alert.showSweetAlert)) :is(#menu, .upgrade_notice) {
+body:has(.sidenavShow) .sidebar {
+  opacity: 1;
+  filter: none;
+}
+body:has(.sidenavShow) :is(#menu, .upgrade_notice,#footer),
+body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice,#footer) {
   opacity: 1;
   filter: grayscale(30%) brightness(50%); 
 }
-
-.caDimmable {
-  transition: opacity 250ms ease-in-out;
-}
-
 .subCategory ul {
   padding-left: 20px;
 }
@@ -344,10 +342,7 @@ a {
 .caButton {
   cursor: pointer;
 }
-.alternateViewClose.caButton {
-  font-size: 20px;
-  line-height: 25px;
-}
+
 .popupRepoDescription,
 .popupDescription {
   width: 90%;
@@ -578,18 +573,21 @@ input[type="button"][disabled] {
   width: 90%;
   max-width: 70rem;
 }
-.sidebar .sidenav {
+.sidebar .sidenav,
+.popupCloseArea {
   transform: translateX(100%);          /* default: off-screen right */
   opacity: 0;
   transition: transform 500ms ease, opacity 500ms ease;
 }
 
-.sidebar .sidenav.sidenavShow {
+.sidebar .sidenav.sidenavShow,
+.popupCloseArea {
   transform: translateX(0);             /* slide into view */
   opacity: 1;
 }
 
-.sidebar .sidenav.sidenavHide {
+.sidebar .sidenav.sidenavHide,
+.popupCloseArea {
   transform: translateX(100%);          /* slide back out */
   opacity: 0;
 }
@@ -1067,10 +1065,6 @@ ul.caMenu {
   color: var(--ca-yellow-color);
 }
 
-#alternateView table {
-  background-color: var(--sidebar-background);
-}
-
 .ca_stat {
   color: coral;
   font-size: 1.5rem;
@@ -1180,39 +1174,11 @@ li.context {
   font-size: 1.5rem;
 }
 
-.alternateViewClose {
-  position: fixed;
-}
-.Theme--sidebar .alternateViewClose {
-  left: 8.5rem;
-}
 /* Prevent a banner warning from covering the search bar when scrolling */
 .Theme--sidebar .upgrade_notice {
   position: absolute;
 }
 
-#alternateView {
-  /* Layout */
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 1.6rem;
-  margin-bottom: 10px;
-  padding-top: 15rem;
-  width:100%;
-  z-index:10000;
-  
-  /* Visual */
-  background-color: var(--sidebar-background);
-  color: var(--sidebar-text);
-  opacity: 0.9;
-  display:none;
-
-  
-  /* Interactive */
-  overflow-x: scroll;
-  overflow-y: scroll;
-}
 
 li.debugging {
   cursor: pointer;
@@ -1606,7 +1572,7 @@ img.popupAuthorIcon {
   margin-bottom: 2rem;
 }
 
-.popupCloseArea {
+body:has(.sidenavShow) .popupCloseArea {
   position: fixed;
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -1616,6 +1582,9 @@ img.popupAuthorIcon {
   max-width: 70rem;
   right: 0;
   top: 0;
+  transform: translateX(0);             /* slide into view */
+  opacity: 1;
+  
 }
 .popupCloseArea > div:first-child {
   margin-left: 2rem;

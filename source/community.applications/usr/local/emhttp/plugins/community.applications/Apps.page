@@ -583,7 +583,7 @@ $(function(){
         }
         break;
       case 37:
-        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
+        if ( $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
         if ( ! $(".pageLeft").hasClass("pageNavNoClick") ) {
@@ -593,7 +593,7 @@ $(function(){
         }
         break;
       case 39:
-        if ( $("#alternateView").is(":visible") || $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
+        if ( $(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible") ) {
           return;
         }
         if ( ! $(".pageRight").hasClass("pageNavNoClick") ) {
@@ -1409,7 +1409,6 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".popupCloseArea").removeClass("ca_show").addClass("ca_hide");
   $(".nav-user.show").show();
   enableSearch();
 }
@@ -2930,7 +2929,6 @@ function showAlternateView(content="") {
   $(".sidebar").show();
   $(".sidenav").removeClass("sidenavHide");
 
-  $(".popupCloseArea").addClass("ca_hide");
   $(".popUpBack").addClass("ca_hide");
 
   slideInSidebar();
@@ -2946,9 +2944,7 @@ function showSidebarApp(apppath,appname) {
   data.sidebarapppath = apppath;
   data.sidebarappname = appname;
 
-  if ( ! $(".sidenavShow").length ) {
-    $(".popupCloseArea").addClass("ca_hide");
-  }
+
   $(".popUpBack").addClass("ca_hide");
   $(".sidenav").removeClass("sidenavHide");
   $(".nav-user.show").hide();
@@ -2981,8 +2977,6 @@ function showSidebarApp(apppath,appname) {
       });
       slideInSidebar();
 
-
-      
       $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
       popUpChart(result);
       setupContext(result.supportContext,"#supportPopup");
@@ -3003,7 +2997,6 @@ function showSidebarApp(apppath,appname) {
 
 function slideInSidebar() {
   $(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
-  $(".popupCloseArea").removeClass("ca_hide").addClass("ca_show");
 }
 function showRepoPopup(repository) {
   if ( !repository ) return;
@@ -3027,7 +3020,6 @@ function showRepoPopup(repository) {
   post({action:'getRepoDescription',repository:repository},function(result) {
     $("#sidenavContent").html(result.description); 
     $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-    $(".popupCloseArea").removeClass("ca_hide").addClass("ca_show");
     $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
     if (fromCard) {
       $(".popUpBack").addClass("ca_hide");
