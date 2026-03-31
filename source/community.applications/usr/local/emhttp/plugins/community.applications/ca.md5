@@ -2,14 +2,14 @@
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
-c761c69d09bbd2e567b2efc197477390  ./include/exec.php
+3577729ce91f35ea71e5ba42861c6342  ./include/exec.php
 5d14db724c709b9cc5744d5cad5ca900  ./include/force_update_helpers.php
 4dfb7c1e5811ce84c802277885bc94c9  ./include/get_content_helpers.php
-3156ad7a45a698e9807ae9170273369c  ./include/helpers.php
+e22f540c03d48235fa5ff1f29fd14056  ./include/helpers.php
 751939aaf2528a04f1596358f8dc73b7  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
-f290a7f50dda00f7581df92e849cba7e  ./include/previous_apps_helpers.php
+a594a4ca7a8bba338e55663a40040e26  ./include/previous_apps_helpers.php
 79f2cd8364397b0defbffe431e57e3e5  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 cdaa56b094f5dea3d730c82b91261a3b  ./phpstan.neon

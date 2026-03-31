@@ -181,7 +181,10 @@ class PreviousAppsHelpers {
       if ( ! $template ) {
         continue;
       }
-
+      if ( $template['Blacklist'] ?? false ) {
+        continue;
+      }
+        
       $template['Overview'] = fixDescription($template['Overview']);
       $template['Description'] = $template['Overview'];
       $template['CardDescription'] = $template['Overview'];

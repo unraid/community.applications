@@ -462,16 +462,17 @@ function favouriteSort($a,$b) {
 # return value === false if not found         #
 ###############################################
 function searchArray($array,$key,$value,$startingIndex=0) {
-  $result = false;
   if (is_array($array) && count($array) ) {
-    for ($i = $startingIndex; $i <= max(array_keys($array)); $i++) {
-      if ( ($array[$i][$key] ?? null) == $value ) {
-        $result = $i;
-        break;
+    foreach ($array as $i => $item) {
+      if ( $i < $startingIndex ) {
+        continue;
+      }
+      if ( ($item[$key] ?? null) == $value ) {
+        return $i;
       }
     }
   }
-  return $result;
+  return false;
 }
 ########################################################
 # Fix common problems (maintainer errors) in templates #
@@ -998,6 +999,7 @@ function getAllInfo($force=false) {
   }
   return $containers;
 }
+
 #######################
 # Logs the debug info #
 #######################
