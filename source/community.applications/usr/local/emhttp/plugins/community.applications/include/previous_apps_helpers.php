@@ -291,7 +291,7 @@ class PreviousAppsHelpers {
         }
       }
 
-      if ( $isActionCentre && ! $template['Blacklist'] && ! $template['Deprecated'] && $template['Compatible'] && ! ($template['actionCentre'] ?? null) ) {
+      if ( $isActionCentre && ! $template['Blacklist'] && ! $template['Deprecated'] && ($template['Compatible'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
         continue;
       }
 

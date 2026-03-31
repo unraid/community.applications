@@ -757,6 +757,9 @@ $(function(){
     if ( $(this).hasClass("showStatistics") ) {
       event.stopPropagation();
       showStatistics();
+    } else if ( $(this).hasClass("showSettings") ) {
+      event.stopPropagation();
+      showSettings();
     } else if ( $(this).hasClass("showCredits") ) {
       event.stopPropagation();
       showCredits();
@@ -2379,6 +2382,57 @@ function restoreState() {
 
 function showCredits() {
   $("#caCredits").showAlternateView();
+}
+
+function showSettings() {
+  const $content = $(".settingsContainer");
+  $content.showAlternateView();
+  const $sidenav = $("#sidenavContent");
+  const $form = $sidenav.find(".ca_settingsForm");
+  const $applyButton = $sidenav.find(".ca_settingsApply");
+  const $resetButton = $sidenav.find(".ca_settingsDone");
+
+  const initialFormState = $form.serialize();
+  const updateSettingsButtonState = function() {
+    const hasChanges = $form.serialize() !== initialFormState;
+    $resetButton.prop("disabled", !hasChanges);
+    $applyButton.prop("disabled", !hasChanges);
+  };
+
+  updateSettingsButtonState();
+  $sidenav.off("change.caSettings input.caSettings", ".ca_settingsForm :input").on("change.caSettings input.caSettings", ".ca_settingsForm :input", function() {
+    updateSettingsButtonState();
+  });
+
+  $sidenav.off("click.caSettings", ".ca_settingsDone").on("click.caSettings", ".ca_settingsDone", function() {
+    showSettings();
+  });
+
+  $sidenav.off("submit.caSettings", ".ca_settingsForm").on("submit.caSettings", ".ca_settingsForm", function() {
+    const $form = $(this);
+    if ($form.data("submitting")) {
+      return false;
+    }
+    $form.data("submitting", true);
+    $sidenav.find(".ca_settingsApply,.ca_settingsDone").prop("disabled", true);
+
+    addBannerWarning("<?=tr("Saving settings...",true);?>", false, true);
+    const onSaved = function() {
+      addBannerWarning("<?=tr("Settings saved. Refreshing...",true);?>", false, true);
+      setTimeout(function() {
+        window.location.reload();
+      }, 400);
+    };
+
+    const $progressFrame = $("iframe[name='progressFrame']");
+    if ($progressFrame.length) {
+      $progressFrame.off("load.caSettings").one("load.caSettings", function() {
+        setTimeout(onSaved, 100);
+      });
+    } else {
+      setTimeout(onSaved, 800);
+    }
+  });
 }
 
 function showStatistics() {

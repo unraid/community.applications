@@ -92,7 +92,7 @@ $(function() {
         <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
         <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
         <li><hr class='category_hr onlyShowWithFeed'/></li>
-        <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
+        <li class='caMenuItem showSettings noSelect'><?tr("Settings");?></li>
         <li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
         <li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
         <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'><?tr("Support");?></a></li>
@@ -320,6 +320,87 @@ $(function() {
       <div class='ca_center'>
         <a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank'><?tr("Application Policy");?></a>
       </div>
+    </div>
+  </div>
+  <div class='settingsContainer'>
+    <div class='ca_settingsPanel'>
+      <div class='ca_center caLogoIcon'></div>
+      <div class='ca_center ca_settingsTitle'><?tr("Community Applications Settings");?></div>
+      <form class='ca_settingsForm js-confirm-leave' method='POST' action='/update.php' target='progressFrame'>
+        <input type='hidden' name='#file' value='community.applications/community.applications.cfg'>
+
+        <div class='ca_settingsGrid'>
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Hide Deprecated Applications");?></span>
+              <input type='hidden' name='hideDeprecated' value='false'>
+              <input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($caSettings['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Hide Incompatible Applications");?></span>
+              <input type='hidden' name='hideIncompatible' value='false'>
+              <input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($caSettings['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Allow install of second instance");?></span>
+              <input type='hidden' name='defaultReinstall' value='false'>
+              <input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($caSettings['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Show reinstall options to install additional instances of an already installed app using default template values.");?></div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Allow CA to check for updates to applications");?></span>
+              <input type='hidden' name='updateCheck' value='no'>
+              <input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($caSettings['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Allow CA to send emergency notifications");?></span>
+              <input type='hidden' name='notifications' value='no'>
+              <input type='checkbox' class='switch caSettingSwitch' name='notifications' value='yes' <?=($caSettings['notifications'] ?? "no") == "yes" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'>
+              <?tr("Allow periodic safety scans and emergency alerts for malware, security vulnerabilities, and critical app/server risks.");?>
+            </div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Disable Featured Applications");?></span>
+              <input type='hidden' name='featuredDisable' value='no'>
+              <input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($caSettings['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
+          </div>
+
+          <div class='ca_settingCard'>
+            <div class='ca_settingHeader'>
+              <span><?tr("Enable developer mode");?></span>
+              <input type='hidden' name='dev' value='no'>
+              <input type='checkbox' class='switch caSettingSwitch' name='dev' value='yes' <?=($caSettings['dev'] ?? "no") == "yes" ? "checked" : ""; ?>>
+            </div>
+            <div class='ca_settingDescription'><?tr("Unlock additional developer-focused features. Not generally recommended.");?></div>
+          </div>
+        </div>
+
+        <div class='ca_settingsButtons'>
+          <input type='submit' name='#apply' class='ca_settingsApply' value='<?tr("Apply");?>'>
+          <input type='button' class='ca_settingsDone' value='<?tr("Reset");?>'>
+        </div>
+      </form>
     </div>
   </div>
 </div>

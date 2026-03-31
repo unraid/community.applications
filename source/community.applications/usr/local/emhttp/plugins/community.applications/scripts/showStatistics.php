@@ -31,10 +31,27 @@ function tr($string,$ret=true) {
     echo $string;
 }
 
+function ca_moderation_value($value) {
+  if (is_bool($value)) {
+    return $value ? tr("Yes") : tr("No");
+  }
+  if (is_array($value)) {
+    $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
+    return htmlspecialchars($encoded ?: "", ENT_QUOTES);
+  }
+  if ($value === null) {
+    return "";
+  }
+  $text = (string)$value;
+  return nl2br(htmlspecialchars($text, ENT_QUOTES));
+}
+
 ?>
 
 <?
 $repositories = readJsonFile(CA_PATHS['repositoryList']);
+echo "<div class='ca_center caLogoIcon'></div>";
+echo "<div class='ca_center ca_settingsTitle'>".tr("Community Applications")."</div>";
 switch ($_GET['arg1']) {
   case 'Repository':
     foreach ($repositories as $name => $repo) {
@@ -48,14 +65,51 @@ switch ($_GET['arg1']) {
     echo "</table></tt>";
     break;
   case 'Invalid':
-    $moderation = json_encode(readJsonFile(CA_PATHS['invalidXML_txt']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    if ( ! $moderation ) {
+    $invalidTemplates = readJsonFile(CA_PATHS['invalidXML_txt']);
+    if ( ! is_array($invalidTemplates) || ! count($invalidTemplates) ) {
       echo "<br><br><div class='ca_center'><span class='ca_bold'>".tr("No invalid templates found")."</span></div>";
       return;
     }
-    $moderation = str_replace(" ","&nbsp;",$moderation);
-    $moderation = str_replace("\n","<br>",$moderation);
-    echo "<tt>".tr("These templates are invalid and the application they are referring to is unknown")."<br><br>$moderation";
+    ksort($invalidTemplates,SORT_NATURAL | SORT_FLAG_CASE);
+    echo "<div class='ca_moderationList'>";
+    echo "<div class='ca_moderationItem'><div class='ca_moderationTitle'>".tr("These templates are invalid and the application they are referring to is unknown")."</div></div>";
+    foreach ($invalidTemplates as $template => $errors) {
+      $title = (string)$template;
+      $details = "";
+      if (is_array($errors)) {
+        $templatePath = $errors['TemplatePath'] ?? $errors['templatePath'] ?? $errors['templatepath'] ?? null;
+        if ($templatePath) {
+          $title = (string)$templatePath;
+        }
+        $errorList = $errors['errors'] ?? $errors['Errors'] ?? null;
+        if (is_array($errorList) && count($errorList)) {
+          $details .= "<div class='ca_moderationRule'><span class='ca_bold'>errors:</span></div>";
+          foreach ($errorList as $errorEntry) {
+            $details .= "<div class='ca_moderationRule ca_moderationSubRule'>".ca_moderation_value($errorEntry)."</div>";
+          }
+        }
+        foreach ($errors as $key => $value) {
+          $keyLower = strtolower((string)$key);
+          if ($keyLower === "templatepath" || $keyLower === "errors" || $keyLower === "firstseen") {
+            continue;
+          }
+          if (is_int($key)) {
+            $details .= "<div class='ca_moderationRule'>".ca_moderation_value($value)."</div>";
+          } else {
+            $safeKey = htmlspecialchars((string)$key, ENT_QUOTES);
+            $details .= "<div class='ca_moderationRule'><span class='ca_bold'>$safeKey:</span> ".ca_moderation_value($value)."</div>";
+          }
+        }
+      } else {
+        $details = "<div class='ca_moderationRule'>".ca_moderation_value($errors)."</div>";
+      }
+      if (!$details) {
+        $details = "<div class='ca_moderationRule'>&mdash;</div>";
+      }
+      $title = htmlspecialchars($title, ENT_QUOTES);
+      echo "<div class='ca_moderationItem'><div class='ca_moderationTitle'>$title</div><div class='ca_moderationDetails'>$details</div></div>";
+    }
+    echo "</div>";
     break;
   case 'Fixed':
     $json = $moderation = readJsonFile(CA_PATHS['fixedTemplates_txt']);
@@ -64,16 +118,22 @@ switch ($_GET['arg1']) {
     } else {
       ksort($json,SORT_NATURAL | SORT_FLAG_CASE);
       echo tr("All of these errors found have been fixed automatically")."<br><br>".tr("Note that many of these errors can be avoided by following the directions")." <a href='https://forums.unraid.net/topic/57181-real-docker-faq/#comment-566084' target='_blank'>".tr("HERE")."</a><br><br>";
+      echo "<div class='ca_moderationList'>";
       foreach (array_keys($json) as $repository) {
-        echo "<br><b><span style='font-size:20px;'>$repository</span></b><br>";
+        $safeRepository = htmlspecialchars((string)$repository, ENT_QUOTES);
+        echo "<div class='ca_moderationItem'>";
+        echo "<div class='ca_moderationTitle'>$safeRepository</div>";
+        echo "<div class='ca_moderationDetails'>";
         foreach (array_keys($json[$repository]) as $repo) {
-          echo "<code>&nbsp;&nbsp;&nbsp;&nbsp;<b><span style='font-size:16px;'>$repo:</span></b><br>";
+          $safeRepo = htmlspecialchars((string)$repo, ENT_QUOTES);
+          echo "<div class='ca_moderationRule'><span class='ca_bold'>$safeRepo</span></div>";
           foreach ($json[$repository][$repo] as $error) {
-            echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;".str_replace(" ","&nbsp;",$error)."<br>";
+            echo "<div class='ca_moderationRule ca_moderationSubRule'>".htmlspecialchars((string)$error, ENT_QUOTES)."</div>";
           }
-          echo "</code>";
         }
+        echo "</div></div>";
       }
+      echo "</div>";
     }
 
     $dupeList = readJsonFile(CA_PATHS['pluginDupes']);
@@ -115,23 +175,48 @@ switch ($_GET['arg1']) {
     break;
   case 'Moderation':
     echo "<br><div class='ca_center'><strong>".tr("If any of these entries are incorrect then contact the moderators of CA to discuss")."</strong></div><br><br>";
-    $moderation = json_encode(readJsonFile(CA_PATHS['moderation']),JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    $moderation = readJsonFile(CA_PATHS['moderation']);
     $repoComment = "";
     foreach ($repositories as $repo) {
       if ($repo['RepoComment']??false) {
-        $repoComment .= "<tr><td>{$repo['name']}</td><td>{$repo['RepoComment']}</td></tr>";
+        $repoName = htmlspecialchars($repo['name'] ?? "", ENT_QUOTES);
+        $repoText = nl2br(htmlspecialchars($repo['RepoComment'], ENT_QUOTES));
+        $repoComment .= "<div class='ca_moderationItem'><div class='ca_moderationTitle'>$repoName</div><div class='ca_moderationDetails'><div class='ca_moderationRule'>$repoText</div></div></div>";
       }
     }
     if ( $repoComment ) {
-      echo "<br><div class='ca_center'><strong>".tr("Global Repository Comments:")."</strong><br>".tr("(Applied to all applications)")."</div><br><br><tt><table>$repoComment</table><br><br>";
+      echo "<br><div class='ca_center'><strong>".tr("Global Repository Comments:")."</strong><br>".tr("(Applied to all applications)")."</div><br><br><div class='ca_moderationList'>$repoComment</div><br>";
     }
-    if ( ! $moderation ) {
+    if ( ! is_array($moderation) || ! count($moderation) ) {
       echo "<br><br><div class='ca_center'><span class='ca_bold'>No moderation entries found</span></div>";
+      break;
     }
-    echo "</tt><div class='ca_center'><strong>".tr("Individual Application Moderation")."</strong></div><br><br>";
-    $moderation = str_replace(" ","&nbsp;",$moderation);
-    $moderation = str_replace("\n","<br>",$moderation);
-    echo "<tt>$moderation";
+    ksort($moderation,SORT_NATURAL | SORT_FLAG_CASE);
+    echo "<div class='ca_center'><strong>".tr("Individual Application Moderation")."</strong></div>";
+    echo "<div class='ca_center' style='margin-top:.5rem;'>".tr("Total entries:")." ".count($moderation)."</div><br>";
+    echo "<div class='ca_moderationList'>";
+    foreach ($moderation as $item => $rules) {
+      $safeItem = htmlspecialchars((string)$item, ENT_QUOTES);
+      $itemHtml = $safeItem;
+      $ruleHtml = "";
+      if (is_array($rules)) {
+        foreach ($rules as $rule => $value) {
+          if (strcasecmp((string)$rule, "ModeratorComment") === 0) {
+            $ruleHtml .= "<div class='ca_moderationRule'><span class='ca_bold'>".tr("Moderator Comment").":</span> ".ca_moderation_value($value)."</div>";
+            continue;
+          }
+          $ruleName = htmlspecialchars((string)$rule, ENT_QUOTES);
+          $ruleHtml .= "<div class='ca_moderationRule'><span class='ca_bold'>$ruleName:</span> ".ca_moderation_value($value)."</div>";
+        }
+      } else {
+        $ruleHtml = "<div class='ca_moderationRule'>".ca_moderation_value($rules)."</div>";
+      }
+      if (!$ruleHtml) {
+        $ruleHtml = "<div class='ca_moderationRule'>&mdash;</div>";
+      }
+      echo "<div class='ca_moderationItem'><div class='ca_moderationTitle'>$itemHtml</div><div class='ca_moderationDetails'>$ruleHtml</div></div>";
+    }
+    echo "</div>";
     break;
 }
 ?>

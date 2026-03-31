@@ -602,6 +602,75 @@ display: none;
   width:fit-content;
   background-color: revert;
 } 
+.ca_settingsPanel {
+  margin: 3rem auto;
+  width: min(96%, 90rem);
+}
+
+.ca_settingsTitle {
+  font-size: 2.6rem;
+  margin-bottom: 2rem;
+}
+
+.ca_settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+  gap: 1.2rem;
+}
+
+.ca_settingCard {
+  background-color: var(--template-background);
+  border: 1px solid var(--border-color);
+  border-radius: 0.8rem;
+  padding: 1.2rem 1.4rem;
+}
+
+.ca_settingHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1.8rem;
+}
+
+.ca_settingHeader .caSettingSwitch {
+  flex-shrink: 0;
+}
+
+.ca_settingDescription {
+  margin-top: 0.8rem;
+  font-size: 1.2rem;
+  line-height: 1.55rem;
+}
+
+.ca_settingsButtons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin: 2.5rem 0 1.5rem 0;
+}
+
+.ca_settingsButtons input[type="button"],
+.ca_settingsButtons input[type="submit"] {
+  font-size: 1.4rem;
+}
+
+.ca_settingsButtons input[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ca_settingsSupport {
+  margin-bottom: 1rem;
+}
+
+.ca_settingsSupport a {
+  font-size: 1.3rem;
+}
+
 .ca_statistics > table {
   margin-top:1rem;
 }
@@ -619,8 +688,44 @@ body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
 }
 
 .moderationContainer {
-  margin: 3rem auto auto auto;
+  margin: 3rem 3rem auto 3rem;
 }
+
+.moderationContainer table {
+  background-color: unset !important;
+}
+
+.moderationContainer .ca_moderationList {
+  margin-top: .25rem;
+}
+
+.moderationContainer .ca_moderationItem {
+  margin: 0 0 .9rem 0;
+}
+
+.moderationContainer .ca_moderationTitle {
+  font-family: monospace;
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.moderationContainer .ca_moderationDetails {
+  margin-left: 1.2rem;
+  margin-top: .2rem;
+}
+
+.moderationContainer .ca_moderationRule {
+  font-family: monospace;
+  font-size: 1.2rem;
+  line-height: 1.25;
+  margin: .1rem 0;
+}
+
+.moderationContainer .ca_moderationSubRule {
+  margin-left: 2rem;
+}
+
 /* Utility Classes */
 .ca_multiselect {
   float: right;
@@ -778,7 +883,9 @@ a.appIconsPopUp {
 .caChangeLog {
   cursor: pointer;
 }
-
+.caChanges {
+  margin: auto 3rem auto 3rem;
+}
 .caChart {
   height: 1px;
   width: 3px;
