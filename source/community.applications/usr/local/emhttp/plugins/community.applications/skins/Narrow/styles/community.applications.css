@@ -32,8 +32,7 @@ body:has(.sidenavShow) {
   overflow: hidden !important;
 }
 /* Hide the back to top and move to end buttons (on main area) when the sidebar is visible */
-body:has(.sidenavShow) .back_to_top,
-body:has(.sidenavShow) .move_to_end {
+body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
   z-index: 0;
 }
 /* Dim the main area when the sidebar is visible */
@@ -43,10 +42,7 @@ body:has(.sweet-alert.showSweetAlert) .caDimmable {
   opacity: 0.5;
 }
 /* Keep the dock/menu readable while the CA sidebar is open (overrides .caDimmable dimming) */
-body:has(.sidenavShow) #menu,
-body:has(.sidenavShow) .upgrade_notice,
-body:has(.sweet-alert.showSweetAlert) #menu,
-body:has(.sweet-alert.showSweetAlert) .upgrade_notice {
+body:is(:has(.sidenavShow), :has(.sweet-alert.showSweetAlert)) :is(#menu, .upgrade_notice) {
   opacity: 1;
   filter: grayscale(30%) brightness(50%); 
 }
@@ -617,6 +613,22 @@ display: none;
 } 
 .ca_statistics > table {
   margin-top:1rem;
+}
+body:has(.sidenavShow):has(.moderationContainer) .sidenav {
+  overflow: scroll;
+}
+body:has(.sidenavShow):has(.moderationContainer) :is(.popUpClose, .popUpBack) {
+  display: none !important;
+}
+body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
+  display: inline-block;
+}
+.popUpStat {
+  display: none;
+}
+
+.moderationContainer {
+  margin: 3rem auto auto auto;
 }
 /* Utility Classes */
 .ca_multiselect {

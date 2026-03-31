@@ -505,8 +505,13 @@ $(function(){
   });
 
   $(".sidebarClose").on("click",function(e) {
-    closeSidebar();
+    if ( $(".moderationContainer").length ) {
+      showStatistics();
+    } else {
+      closeSidebar();
+    }
   });
+
   $(".mobileOverlay").on("click",function(e) {
     closeMenu();
   });
@@ -983,6 +988,9 @@ $(function(){
 
   $("body").on("click",".popUpClose",function() {
     closeSidebar();
+  });
+  $("body").on("click",".popUpStat",function() {
+    showStatistics();
   });
 
   $("body").on("click",".similarSearch",function() {
@@ -1567,17 +1575,15 @@ function OpenSidebarAndRefreshDisplay() {
   });
 }
 
-function showDesc_openBox(cmd,title,height,width,load,func) {
-  // open shadowbox window (run in foreground)
-  var run = cmd.split('?')[0].substr(-4)=='.php' ? cmd : '/logging.htm?cmd='+cmd+'&csrf_token=<?=$var['csrf_token']?>';
-  var options = load ? {modal:false,onClose:function(){ eval(func); }} : {modal:true};
-  Shadowbox.open({content:run, player:'iframe', title:title, height:height, width:width, options:options});
-}
-
 function showModeration(script,title) {
-  closeSidebar();
-  $("#sb-nav-close").css("visisbility","visible");
-  showDesc_openBox("/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+script,title,550,900,true,"showStatistics()");
+  var moderationUrl = "/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+encodeURIComponent(script);
+  $("#sidenavContent").html("<div class='moderationContainer'><div>");
+  $(".moderationContainer").html($("#sidebarLoading").html())
+  $(".moderationContainer").load(moderationUrl,function(responseText,status) {
+    if (status == "error") {
+      $("#sidenavContent").html("<div class='notice warning'>"+tr("Unable to load moderation data")+"</div>");
+    }
+  });
 }
 
 function previousApps(installed,dontClear=false,filter="") {
