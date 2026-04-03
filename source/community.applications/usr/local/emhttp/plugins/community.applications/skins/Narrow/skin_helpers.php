@@ -50,14 +50,14 @@ function caFormatOverview(array $template) {
 function caFormatTemplateChanges(array &$template) {
   if ($template['Plugin']) {
     $templateURL = $template['PluginURL'];
-    download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
+    download_url($templateURL,CA_PATHS['pluginTempDownload']);
     $template['Changes'] = @ca_plugin("changes",CA_PATHS['pluginTempDownload']) ?: $template['Changes'];
     $template['pluginVersion'] = @ca_plugin("version",CA_PATHS['pluginTempDownload']) ?: $template['pluginVersion'];
   } else {
     if (!$template['Changes'] && $template['ChangeLogPresent']) {
       $templateURL = $template['caTemplateURL'] ?: ($template['TemplateURL']??"");
       if ( $templateURL ) {
-        download_url($templateURL,CA_PATHS['pluginTempDownload'],"",5);
+        download_url($templateURL,CA_PATHS['pluginTempDownload']);
         $xml = readXmlFile(CA_PATHS['pluginTempDownload']);
         if ($xml) {
           $template['Changes'] = $xml['Changes'];

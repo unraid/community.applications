@@ -944,11 +944,7 @@ $(function(){
   $(".multi_deleteButton").click(function()   { deleteMulti(); });
   $(".multi_installAll").click(function()     { selectAllPrevious(); enableMultiInstall(); });
   $("body").on("click",".startupButton",function() { 
-    $(".category").html("");
-    $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
-    $(".maxPerPage").hide();
-    hideSortIcons();
-    updateContent(this);
+    window.location.reload();
   });
 
   $(".multi_installButton").click(function()  {
@@ -1069,7 +1065,7 @@ $(function(){
       post({action:"defaultSortOrder"},function() {
         myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
 
-        updateContent();
+        updateContent(false,false);
        // clearTimeout(downloadStatusTimer);
         if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
           var apppath = $.cookie("sidebarAppPath");
@@ -1107,7 +1103,7 @@ function ca_openPlugin(cmd,title,plg,func) {
   },250);
 }
 
-function updateContent(button) {
+function updateContent(button,skipAppfeed=true) {
   clearSearchBox();
   clearCategory();
   $(".caMenuItem").removeClass("selectedMenu");
@@ -1120,8 +1116,8 @@ function updateContent(button) {
   $.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
   $.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
   disableSearch();
-
-  post({action:'force_update'}, function(result) {
+  var postAction = skipAppfeed ? "force_update_skip" : "force_update";
+  post({action:postAction}, function(result) {
     if ( result.data ) {
       updateDisplay(result.data);
     } else {

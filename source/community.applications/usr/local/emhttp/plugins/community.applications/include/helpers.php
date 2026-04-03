@@ -206,7 +206,7 @@ function ca_file_put_contents($filename,$data,$flags=0) {
   return ($result === strlen($data)) ? strlen($data) : false;
 }
 
-function download_url($url, $path = "", $bg = false, $timeout = 45) {
+function download_url($url, $path = "", $timeout = 0) {
 
   static $proxycfg = false;
 
@@ -337,9 +337,9 @@ function ca_publish($endpoint,$message) {
     return publish_noDupe($endpoint,$message);
   }
 }
-function download_json($url,$path="",$bg=false,$timeout=45) {
+function download_json($url,$path="",$timeout=0) {
   // download the URL, but don't sae it yet
-  $result = download_url($url,"",$bg,$timeout);
+  $result = download_url($url,"",$timeout);
   if ( $result === false ) {
     @unlink($path);
     return false;

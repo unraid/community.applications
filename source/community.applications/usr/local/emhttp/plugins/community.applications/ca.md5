@@ -1,12 +1,12 @@
-1914c343ce4581e81653dc0c6cbbca70  ./Apps.page
+13e791fb80d1266809ca75fd1a626bfe  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
-45e87606ea14dc83b03f75a46e124adc  ./include/exec.php
-5d14db724c709b9cc5744d5cad5ca900  ./include/force_update_helpers.php
+e306eb00072831ae4baab948012d414c  ./include/exec.php
+fd3efd61653406c97770bb2714060a23  ./include/force_update_helpers.php
 4dfb7c1e5811ce84c802277885bc94c9  ./include/get_content_helpers.php
-e22f540c03d48235fa5ff1f29fd14056  ./include/helpers.php
-751939aaf2528a04f1596358f8dc73b7  ./include/paths.php
+1a0c53d786cb137189050071dbec3de8  ./include/helpers.php
+6a347004b5282f321118de72cd3ac26d  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
 a594a4ca7a8bba338e55663a40040e26  ./include/previous_apps_helpers.php
@@ -39,4 +39,4 @@ f490873cd9259558146e2a3eb2843fd9  ./scripts/notices.php
 ab63d68dc2f1ff531a328649cb9dccf9  ./skins/Narrow/themes/white.css
 c8e9f6bab1dda4e4eaa623999bd806d5  ./skins/Narrow/skin.html
 e2fad28185da5371f6edc45a2b64faf4  ./skins/Narrow/skin.php
-45a73f963b5377a02c42f9bb1a9eb684  ./skins/Narrow/skin_helpers.php
+41f2f7370b48e4d863f64e7d7f51818d  ./skins/Narrow/skin_helpers.php

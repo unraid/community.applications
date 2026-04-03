@@ -41,7 +41,8 @@ define("CA_PATHS",[
   'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",
   'community-templates-info'            => "$tempFiles/templates_new.json",                     /* json file containing all of the templates */
   'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
-  'haveTemplates'												=> "$tempFiles/haveTemplates",
+  'haveTemplates'												=> "/tmp/ca_haveTemplates",
+  'gettingTemplates'										=> "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
   'community-templates-displayed'       => "$tempFiles/displayed.json",                     /* json file containing all of the templates currently displayed */
   'community-templates-allSearchResults'=> "$tempFiles/allSearchResults.json",
   'community-templates-catSearchResults'=> "$tempFiles/catSearchResults.json",

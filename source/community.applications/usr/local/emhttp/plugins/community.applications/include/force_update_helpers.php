@@ -14,15 +14,10 @@ class ForceUpdateHelpers {
   public static function fetchLatestUpdateMetadata(): array {
     @unlink(CA_PATHS['lastUpdated']);
 
-    $latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated'], "", 5);
+    $latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated']);
 
     if (!self::isValidUpdateMetadata($latestUpdate)) {
-      $latestUpdate = download_json(
-        CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'],
-        CA_PATHS['lastUpdated'],
-        "",
-        5
-      );
+      $latestUpdate = download_json(CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'], CA_PATHS['lastUpdated']);
     }
 
     if (!self::isValidUpdateMetadata($latestUpdate)) {

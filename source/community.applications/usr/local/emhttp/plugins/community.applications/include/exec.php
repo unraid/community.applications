@@ -84,6 +84,9 @@ switch ($_POST['action']) {
   case 'force_update':
     force_update();
     break;
+  case 'force_update_skip':
+    force_update_skip();
+    break;
   case 'display_content':
     display_content();
     break;
@@ -229,10 +232,10 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = json_decode(file_get_contents(CA_PATHS['application-feed-local']),true);
   } else {
     $downloadURL = randomFile();
-    $ApplicationFeed = download_json(CA_PATHS['application-feed'],$downloadURL,"",-1);
+    $ApplicationFeed = download_json(CA_PATHS['application-feed'],$downloadURL);
     if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
       $currentFeed = "Backup Server";
-      $ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'],$downloadURL,"",-1);
+      $ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'],$downloadURL);
     }
     @unlink($downloadURL);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
@@ -900,7 +903,13 @@ function get_content() {
 
   postReturn($o);
 }
-
+function force_update_skip() {
+  if ( ! is_file(CA_PATHS['gettingTemplates']) && is_file(CA_PATHS['community-templates-info']) ) {
+    postReturn(['status' => "ok"]);
+    return;
+  }
+  force_update();
+}
 ########################################################
 # force_update -> forces an update of the applications #
 ########################################################
@@ -908,8 +917,13 @@ function force_update() {
   global $caSettings;
 
   require_once __DIR__ . '/force_update_helpers.php';
+  while ( is_file(CA_PATHS['gettingTemplates']) ) {
+    sleep(1);
+    clearstatcache();
+  }
+  touch(CA_PATHS['gettingTemplates']);
 
-  getGlobals();
+  getGlobals(true);
 
   if (!empty(CA_PATHS['localONLY'])) {
     ForceUpdateHelpers::resetTemplatesCache(true);
@@ -926,6 +940,8 @@ function force_update() {
 
   if (!ForceUpdateHelpers::templatesAvailable()) {
     if (!DownloadApplicationFeed()) {
+      @unlink(CA_PATHS['gettingTemplates']);
+      @unlink(CA_PATHS['haveTemplates']);
       postReturn(ForceUpdateHelpers::buildDownloadFailureResponse());
       return;
     }
@@ -933,9 +949,10 @@ function force_update() {
 
   getConvertedTemplates();
   moderateTemplates();
-
+  touch(CA_PATHS['haveTemplates']);
+  @unlink(CA_PATHS['gettingTemplates']);
   $script = ForceUpdateHelpers::buildUpdateScript($caSettings);
-
+  
   postReturn(['status' => "ok", 'script' => $script]);
 }
 
@@ -1373,7 +1390,7 @@ function createXML() {
     }
     $template = $templates[$index];
 
-    download_url(CA_PATHS['RepositoryAssets'].str_replace("/","___",explode(":",$template['Repository'])[0]),"","",5);
+    download_url(CA_PATHS['RepositoryAssets'].str_replace("/","___",explode(":",$template['Repository'])[0]));
 
     if ( $template['OriginalOverview'] ?? false )
       $template['Overview'] = $template['OriginalOverview'];
@@ -1762,7 +1779,7 @@ function search_dockerhub() {
 
   $filter = str_replace(" ","%20",$filter);
   $filter = str_replace("/","%20",$filter);
-  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber","",false,-1);
+  $jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber");
   //$jsonPage = shell_exec("curl -s -X GET 'https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber'");
   $pageresults = json_decode($jsonPage,true);
   $num_pages = $pageresults['num_pages'];
@@ -1916,6 +1933,122 @@ function enableActionCentre() {
   }
   $displayed = previous_apps(true);
 
+  /*
+  $file = readJsonFile(CA_PATHS['community-templates-info']);
+  $extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
+  $extraDeprecated = readJsonFile(CA_PATHS['extraDeprecated']);
+
+  if ( caIsDockerRunning() ) {
+    $dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
+  } else {
+    $dockerUpdateStatus = [];
+  }
+
+  $info = getAllInfo();
+# $info contains all installed containers
+# now correlate that to a template;
+# this section handles containers that have not been renamed from the appfeed
+  if ( caIsDockerRunning() ) {
+    $all_files = glob(CA_PATHS['dockerManTemplates']."/*.xml");
+    $all_files = $all_files ?: [];
+    foreach ($all_files as $xmlfile) {
+      $o = readXmlFile($xmlfile);
+      if ( ! $o ) continue;
+
+      $runningflag = false;
+      foreach ($info as $installedDocker) {
+        if ( $installedDocker['Name'] == $o['Name'] ) {
+          if ( startsWith(str_replace("library/","",$installedDocker['Image']), $o['Repository']) || startsWith($installedDocker['Image'],$o['Repository'])  ) {
+            $runningflag = true;
+            $searchResult = searchArray($file,'Repository',$o['Repository']);
+            if ( $searchResult === false) {
+              $searchResult = searchArray($file,'Repository',explode(":",$o['Repository'])[0]);
+            }
+            if ( $searchResult !== false )
+              $o = $file[$searchResult];
+
+            if ( $searchResult === false ) {
+              $runningFlag = true;
+              if ( $extraBlacklist[$o['Repository']] ?? false ) {
+                $o['Blacklist'] = true;
+              }
+              if ( $extraDeprecated[$o['Repository']] ?? false ) {
+                $o['Deprecated'] = true;
+              }
+            }
+            break;
+          }
+        }
+      }
+      if ( $runningflag ) {
+        $tmpRepo = strpos($o['Repository'],":") ? $o['Repository'] : $o['Repository'].":latest";
+        $tmpRepo = strpos($tmpRepo,"/") ? $tmpRepo : "library/$tmpRepo";
+        if ( $tmpRepo ) {
+          if ( isset($dockerUpdateStatus[$tmpRepo]['status']) && $dockerUpdateStatus[$tmpRepo]['status'] == "false" )
+            $o['actionCentre'] = true;
+        }
+        if ( ! $o['Blacklist'] && ! $o['Deprecated'] ) {
+          if ( isset($extraBlacklist[$o['Repository']]) ) {
+            $o['Blacklist'] = true;
+          }
+          if ( isset($extraDeprecated[$o['Repository']]) ) {
+            $o['Deprecated'] = true;
+          }
+        }
+
+        if ( !($o['Blacklist']??false) && !($o['Deprecated']??false) && !($o['actionCentre']??false)  )
+          continue;
+
+        $displayed[] = $o;
+        break;
+      }
+    }
+  }
+# Now work on plugins
+  foreach ($file as $template) {
+    if ( ! ($template['Plugin']??null) ) continue;
+
+    if ( $template['Name'] == "Community Applications" )
+      continue;
+
+    $filename = pathinfo($template['Repository'],PATHINFO_BASENAME);
+
+    if ( checkInstalledPlugin($template) ) {
+      $template['InstallPath'] = "/var/log/plugins/$filename";
+      $template['Uninstall'] = true;
+      if ( plugin("pluginURL","/var/log/plugins/$filename") !== $template['PluginURL'] )
+        continue;
+
+      $installedVersion = plugin("version","/var/log/plugins/$filename");
+      if ( ( strcmp($installedVersion,$template['pluginVersion']) < 0 || ($template['UpdateAvailable']??null) ) ) {
+        $template['actionCentre'] = true;
+      }
+      if ( ! ($template['actionCentre']??null) && is_file("/tmp/plugins/$filename") ) {
+        if ( strcmp($installedVersion,plugin("version","/tmp/plugins/$filename")) < 0 )
+          $template['actionCentre'] = true;
+      }
+
+      if ( !$template['Blacklist'] && !$template['Deprecated'] && $template['Compatible'] && !($template['actionCentre']??null) )
+        continue;
+      $displayed[] = $template;
+      break;
+    }
+  }
+  $installedLanguages = array_diff(scandir(CA_PATHS['languageInstalled']),[".","..","en_US"]);
+  foreach ($installedLanguages as $language) {
+    $index = searchArray($file,"LanguagePack",$language);
+    if ( $index !== false ) {
+      $tmpL = $file[$index];
+      $tmpL['Uninstall'] = true;
+
+      if ( !languageCheck($tmpL) )
+        continue;
+
+      $displayed[] = $tmpL;
+      break;
+    }
+  }
+*/
   if ( $displayed ) {
     debug("action center enabled");
     postReturn(['status'=>"action"]);
