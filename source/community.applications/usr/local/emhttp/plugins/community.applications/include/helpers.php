@@ -9,6 +9,8 @@
 #                                      #
 ########################################
 
+require_once __DIR__ . "/paths.php";
+
 ###############################################################
 # Populate $GLOBALS['templates'] if it's not already populated #
 ###############################################################
@@ -207,19 +209,17 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $timeout = 0) {
-
   static $proxycfg = false;
-
 
   if ( ! function_exists("publish") ) {
     $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
     require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
   }
 
-  
   $downloading_already = false;
 
   while ( true && $path ) {
+    clearstatcache();
     $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
     if ( $downloadLocks[$url]??false) {
       $downloading_already = true;
@@ -241,13 +241,13 @@ function download_url($url, $path = "", $timeout = 0) {
   debug("DOWNLOAD starting $url\n");
   $startTime = time();
   $curl_options = [
+    CURLOPT_ENCODING=>"",
     CURLOPT_FRESH_CONNECT=>true,
     CURLOPT_RETURNTRANSFER=>true,
     CURLOPT_FOLLOWLOCATION=>true,
     CURLOPT_FAILONERROR=>true,
     CURLOPT_NOPROGRESS=>false,
     CURLOPT_URL=>$url,
-    CURLOPT_MAX_RECV_SPEED_LARGE=>241 * 1024,
     CURLOPT_PROGRESSFUNCTION=>"testProgress"
   ];
 
@@ -325,11 +325,14 @@ function MakeReadable($bytes) {
 function testProgress($ch,$download_total,$download_current,$upload_total,$upload_current) {
   $testProgress = curl_getinfo($ch);
 
-  $percentage = $download_total > 0 ? intval($download_current / $download_total * 100) : "Unknown";
-
-  ca_publish("ca_downloadProgress",basename($testProgress['url'])." - ".MakeReadable($download_current)." of ".MakeReadable($download_total)." at ".MakeReadable($testProgress['speed_download'])."/s ($percentage%)");
-
+  if ( $download_total > 0 ) {
+    $percentage = intval($download_current / $download_total * 100);
+    ca_publish("ca_downloadProgress",basename($testProgress['url'])." - ".MakeReadable($download_current)." of ".MakeReadable($download_total)." at ".MakeReadable($testProgress['speed_download'])."/s ($percentage%)");
+  } else {
+    ca_publish("ca_downloadProgress",basename($testProgress['url'])." - ".MakeReadable($download_current)." at ".MakeReadable($testProgress['speed_download'])."/s");
+  }
 }
+
 function ca_publish($endpoint,$message) {
   if ( ! function_exists("publish_noDupe") ) {
     return publish($endpoint,$message);

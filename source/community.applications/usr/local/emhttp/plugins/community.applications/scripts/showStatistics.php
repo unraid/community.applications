@@ -173,50 +173,5 @@ switch ($_GET['arg1']) {
     }
 
     break;
-  case 'Moderation':
-    echo "<br><div class='ca_center'><strong>".tr("If any of these entries are incorrect then contact the moderators of CA to discuss")."</strong></div><br><br>";
-    $moderation = readJsonFile(CA_PATHS['moderation']);
-    $repoComment = "";
-    foreach ($repositories as $repo) {
-      if ($repo['RepoComment']??false) {
-        $repoName = htmlspecialchars($repo['name'] ?? "", ENT_QUOTES);
-        $repoText = nl2br(htmlspecialchars($repo['RepoComment'], ENT_QUOTES));
-        $repoComment .= "<div class='ca_moderationItem'><div class='ca_moderationTitle'>$repoName</div><div class='ca_moderationDetails'><div class='ca_moderationRule'>$repoText</div></div></div>";
-      }
-    }
-    if ( $repoComment ) {
-      echo "<br><div class='ca_center'><strong>".tr("Global Repository Comments:")."</strong><br>".tr("(Applied to all applications)")."</div><br><br><div class='ca_moderationList'>$repoComment</div><br>";
-    }
-    if ( ! is_array($moderation) || ! count($moderation) ) {
-      echo "<br><br><div class='ca_center'><span class='ca_bold'>No moderation entries found</span></div>";
-      break;
-    }
-    ksort($moderation,SORT_NATURAL | SORT_FLAG_CASE);
-    echo "<div class='ca_center'><strong>".tr("Individual Application Moderation")."</strong></div>";
-    echo "<div class='ca_center' style='margin-top:.5rem;'>".tr("Total entries:")." ".count($moderation)."</div><br>";
-    echo "<div class='ca_moderationList'>";
-    foreach ($moderation as $item => $rules) {
-      $safeItem = htmlspecialchars((string)$item, ENT_QUOTES);
-      $itemHtml = $safeItem;
-      $ruleHtml = "";
-      if (is_array($rules)) {
-        foreach ($rules as $rule => $value) {
-          if (strcasecmp((string)$rule, "ModeratorComment") === 0) {
-            $ruleHtml .= "<div class='ca_moderationRule'><span class='ca_bold'>".tr("Moderator Comment").":</span> ".ca_moderation_value($value)."</div>";
-            continue;
-          }
-          $ruleName = htmlspecialchars((string)$rule, ENT_QUOTES);
-          $ruleHtml .= "<div class='ca_moderationRule'><span class='ca_bold'>$ruleName:</span> ".ca_moderation_value($value)."</div>";
-        }
-      } else {
-        $ruleHtml = "<div class='ca_moderationRule'>".ca_moderation_value($rules)."</div>";
-      }
-      if (!$ruleHtml) {
-        $ruleHtml = "<div class='ca_moderationRule'>&mdash;</div>";
-      }
-      echo "<div class='ca_moderationItem'><div class='ca_moderationTitle'>$itemHtml</div><div class='ca_moderationDetails'>$ruleHtml</div></div>";
-    }
-    echo "</div>";
-    break;
 }
 ?>

@@ -11,6 +11,10 @@
 
 ini_set('memory_limit','256M');  // REQUIRED LINE
 ini_set('display_errors', 'Off'); // All display errors wind up breaking CA
+if (false) {
+  // IDE-only hint for static analyzers; never executed at runtime.
+  require_once __DIR__ . "/_ide_stubs.php";
+}
 
 $unRaidSettings = parse_ini_file("/etc/unraid-version");
 
@@ -76,7 +80,7 @@ if ( ! $sortOrder ) {
 ## BEGIN MAIN ROUTINES CALLED BY THE HTML ##
 ##                                        ##
 ############################################
-
+$GLOBALS['action'] = $_POST['action'] ?? "Unknown";
 switch ($_POST['action']) {
   case 'get_content':
     get_content();
@@ -222,9 +226,8 @@ switch ($_POST['action']) {
 #  DownloadApplicationFeed MUST BE CALLED prior to DownloadCommunityTemplates in order for private repositories to be merged correctly.
 
 function DownloadApplicationFeed() {
-
-  //$info = readJsonFile(CA_PATHS['info']);
   exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
+  @unlink(CA_PATHS['downloadLocks']);
   @mkdir(CA_PATHS['templates-community'],0777,true);
 
   $currentFeed = "Primary Server";

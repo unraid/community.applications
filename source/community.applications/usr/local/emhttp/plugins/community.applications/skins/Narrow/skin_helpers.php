@@ -590,36 +590,18 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
   return $template;
 }
 
-###########################################################################
-# Inject clickable search links into strings that contain //term\ markers #
-###########################################################################
-function caAddSearchLinks(?string $text): ?string {
-  if (! $text) {
-    return $text;
-  }
-
-  preg_match_all("/\/\/(.*?)&#92;/m", $text, $searchMatches);
-  if (count($searchMatches[1])) {
-    foreach ($searchMatches[1] as $searchResult) {
-      $text = str_replace("//$searchResult&#92;", "<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>", $text);
-    }
-  }
-
-  return $text;
-}
-
 ##########################################################################
 # Prepare moderator/CA comments and requirements for use in cards/popups #
 ##########################################################################
 function caPrepareTemplateComments(array $template): array {
-  $template['ModeratorComment'] = caAddSearchLinks($template['ModeratorComment'] ?? "");
-  $template['CAComment'] = caAddSearchLinks($template['CAComment'] ?? "");
+  $template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment'] ?? "");
+  $template['CAComment'] = caApplySidebarSearchLinks($template['CAComment'] ?? "");
 
   $installComment = $template['ModeratorComment'] ? "<span class=ca_bold>{$template['ModeratorComment']}</span>" : ($template['CAComment'] ?? "");
 
   if ($template['Requires']) {
     $template['Requires'] = markdown(strip_tags(str_replace(["\r", "\n", "&#xD;", "'"], ["", "<br>", "", "&#39;"], trim($template['Requires'])), "<br>"));
-    $template['Requires'] = caAddSearchLinks($template['Requires']);
+    $template['Requires'] = caApplySidebarSearchLinks($template['Requires']);
     $installComment = tr("This application has additional requirements")."<br>{$template['Requires']}<br>$installComment";
   }
 

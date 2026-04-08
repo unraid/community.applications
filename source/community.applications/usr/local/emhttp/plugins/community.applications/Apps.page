@@ -16,6 +16,10 @@ Code="f0db"
 #                                      #
 ########################################
 */
+if (false) {
+  // IDE-only hint for static analyzers; never executed at runtime.
+  require_once __DIR__ . "/include/_ide_stubs.php";
+}
 
 $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
@@ -2470,7 +2474,6 @@ function showStatistics() {
     setText("blacklist", stats.blacklist);
     setText("totalIncompatible", stats.totalIncompatible);
     setText("totalDeprecated", stats.totalDeprecated);
-    setText("totalModeration", `${safeValue(stats.totalModeration)}+`);
     $content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
     $content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
 
