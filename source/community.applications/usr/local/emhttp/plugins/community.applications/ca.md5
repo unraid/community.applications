@@ -1,12 +1,12 @@
-2f5b1eabd7415653741a3f051e2b08f3  ./Apps.page
+21cdb91aea7ab73d04a6a8fdbf8d8800  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
 c133339ebbe89134c415b0cc22cb65f0  ./include/_ide_stubs.php
 c8f78a9163adceb22f9fb925ad24e042  ./include/exec.php
-fd3efd61653406c97770bb2714060a23  ./include/force_update_helpers.php
-4dfb7c1e5811ce84c802277885bc94c9  ./include/get_content_helpers.php
-6f6a6221226ab3f4f676ae9106968241  ./include/helpers.php
+1c5155d461b1704e1da15863566d23d0  ./include/force_update_helpers.php
+ae2062cd3b2883e8074b7d826022da57  ./include/get_content_helpers.php
+79fe6c8d66235261a094badab62aa517  ./include/helpers.php
 6a347004b5282f321118de72cd3ac26d  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
@@ -40,4 +40,4 @@ a1cfc783a08596b2c5cb4fe5b38c8fa2  ./scripts/showStatistics.php
 ab63d68dc2f1ff531a328649cb9dccf9  ./skins/Narrow/themes/white.css
 45e33a3c36a4abf7829890cbde5ff327  ./skins/Narrow/skin.html
 e2fad28185da5371f6edc45a2b64faf4  ./skins/Narrow/skin.php
-cb5d6eec67d82308561c3096784f2872  ./skins/Narrow/skin_helpers.php
+94a6c279292e954d0d266973d78c1e79  ./skins/Narrow/skin_helpers.php

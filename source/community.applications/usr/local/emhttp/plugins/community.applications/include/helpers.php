@@ -229,7 +229,12 @@ function download_url($url, $path = "", $timeout = 0) {
     }
   }
   if ( $downloading_already ) {
-    return file_get_contents($path);
+    if (is_file($path) && filesize($path) > 0) {
+      return file_get_contents($path);
+    } else {
+      @unlink($path);
+      $downloading_already = false;
+    }
   }
   $downloadLocks[$url] = true;
   writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);

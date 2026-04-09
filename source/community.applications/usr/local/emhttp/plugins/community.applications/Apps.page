@@ -68,7 +68,7 @@ $responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
 // Check md5's of files
 exec("cd /usr/local/emhttp/plugins/$plugin/ && md5sum -c ca.md5",$output,$md5Error);
 
-$previousLocale = $_COOKIE["locale"] ?? "";
+$previousLocale = strip_tags($_COOKIE["locale"] ?? "");
 
 $allowedThemes = ['black', 'white', 'azure', 'gray'];
 $ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';

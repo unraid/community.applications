@@ -346,7 +346,7 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
           }
           $tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
           $tmpRepo = strpos($tmpRepo,"/") ? $tmpRepo : "library/$tmpRepo";
-          if ($dockerUpdateStatus[$tmpRepo]['status'] == "false") {
+          if ( ($dockerUpdateStatus[$tmpRepo]['status'] ?? "") == "false") {
             $template['UpdateAvailable'] = true;
             $actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"updateDocker('$name');"];
           } else {

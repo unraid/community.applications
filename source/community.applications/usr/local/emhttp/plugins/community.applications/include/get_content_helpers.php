@@ -176,7 +176,7 @@ class GetContentHelpers {
           case "new":
             $startupType = "Updated"; break;
           case "trending":
-            $startupType = "Top Performing"; break;
+            $startupType = "Trending"; break;
           case "topPlugins":
             $startupType = "Top Plugins"; break;
           case "random":
@@ -185,6 +185,10 @@ class GetContentHelpers {
             $startupType = "Trending"; break;
           case "featured":
             $startupType = "Featured"; break;
+          case "spotlight":
+            $startupType = "Spotlight"; break;
+          case "topperforming":
+            $startupType = "Top Performing"; break;
         }
 
         $o['display'] .=  "<br><div class='ca_center'><font size='4' color='purple'><span class='ca_bold'>".sprintf(tr("An error occurred.  Could not find any %s Apps"),$startupType)."</span></font><br><br>";
