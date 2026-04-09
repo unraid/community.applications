@@ -6,7 +6,7 @@ c133339ebbe89134c415b0cc22cb65f0  ./include/_ide_stubs.php
 c8f78a9163adceb22f9fb925ad24e042  ./include/exec.php
 1c5155d461b1704e1da15863566d23d0  ./include/force_update_helpers.php
 ae2062cd3b2883e8074b7d826022da57  ./include/get_content_helpers.php
-79fe6c8d66235261a094badab62aa517  ./include/helpers.php
+4a2a8f92082200929ded7a209b7faa7b  ./include/helpers.php
 6a347004b5282f321118de72cd3ac26d  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php

@@ -874,7 +874,7 @@ function formatTags($leadTemplate,$rename="false") {
     return "<tr>"
       . "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
       . "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$label</a></td>"
-      . "<td class='xmlInstall ca_normal' data-type='default' data-xml='$path'>$description</td>"
+      . "<td class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$description</td>"
       . "</tr>";
   };
 
