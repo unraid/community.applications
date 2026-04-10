@@ -23,12 +23,14 @@ require_once "$docroot/plugins/community.applications/include/helpers.php";
 
 $caSettings = parse_plugin_cfg("community.applications");
 
-function tr($string,$ret=true) {
-  $string =  str_replace('"',"&#34;",str_replace("'","&#39;",_($string)));
-  if ( $ret )
-    return $string;
-  else
-    echo $string;
+if ( ! function_exists("tr") ) {
+  function tr($string,$ret=true) {
+    $string =  str_replace('"',"&#34;",str_replace("'","&#39;",_($string)));
+    if ( $ret )
+      return $string;
+    else
+      echo $string;
+  }
 }
 
 function ca_moderation_value($value) {
@@ -79,7 +81,7 @@ switch ($_GET['arg1']) {
       if (is_array($errors)) {
         $templatePath = $errors['TemplatePath'] ?? $errors['templatePath'] ?? $errors['templatepath'] ?? null;
         if ($templatePath) {
-          $title = (string)$templatePath;
+          $title = str_replace("/tmp/GitHub/repositoryClone/", "", (string)$templatePath);
         }
         $errorList = $errors['errors'] ?? $errors['Errors'] ?? null;
         if (is_array($errorList) && count($errorList)) {
@@ -118,12 +120,83 @@ switch ($_GET['arg1']) {
     } else {
       ksort($json,SORT_NATURAL | SORT_FLAG_CASE);
       echo tr("All of these errors found have been fixed automatically")."<br><br>".tr("Note that many of these errors can be avoided by following the directions")." <a href='https://forums.unraid.net/topic/57181-real-docker-faq/#comment-566084' target='_blank'>".tr("HERE")."</a><br><br>";
+      echo "<script>
+function caToggleFixedDetails(id, button) {
+  var section = document.getElementById(id);
+  if (!section) return;
+  var isHidden = section.style.display === 'none';
+  section.style.display = isHidden ? 'block' : 'none';
+  if (button) {
+    button.innerHTML = isHidden ? '<i class=\"fa fa-minus\" aria-hidden=\"true\"></i>' : '<i class=\"fa fa-plus\" aria-hidden=\"true\"></i>';
+  }
+}
+function caSetAllFixedDetails(showAll) {
+  var sections = document.querySelectorAll('.ca_fixedDetails');
+  var buttons = document.querySelectorAll('.ca_fixedToggle');
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].style.display = showAll ? 'block' : 'none';
+  }
+  for (var j = 0; j < buttons.length; j++) {
+    buttons[j].innerHTML = showAll ? '<i class=\"fa fa-minus\" aria-hidden=\"true\"></i>' : '<i class=\"fa fa-plus\" aria-hidden=\"true\"></i>';
+  }
+  var allButton = document.getElementById('caFixedToggleAll');
+  if (allButton) {
+    allButton.dataset.showAll = showAll ? '1' : '0';
+    allButton.textContent = showAll ? '".tr("Hide All")."' : '".tr("Show All")."';
+  }
+}
+function caToggleAllFixedDetails(button) {
+  var showAll = !(button && button.dataset && button.dataset.showAll === '1');
+  caSetAllFixedDetails(showAll);
+}
+function caJumpToFixedRepository(select) {
+  if (!select || !select.value) return;
+  var row = document.getElementById(select.value);
+  if (!row) return;
+  var details = row.querySelector('.ca_fixedDetails');
+  var toggle = row.querySelector('.ca_fixedToggle');
+  if (details && details.style.display === 'none') {
+    details.style.display = 'block';
+    if (toggle) toggle.innerHTML = '<i class=\"fa fa-minus\" aria-hidden=\"true\"></i>';
+  }
+  row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>";
+      echo "<div class='ca_center' style='margin-bottom:.5rem;'>";
+      echo "<label for='caFixedRepoJump' style='margin-right:.35rem;'>".tr("Jump to repository").":</label>";
+      echo "<select id='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>";
+      echo "<option value=''>".tr("Select repository")."</option>";
+      $repoJumpIndex = 0;
+      foreach (array_keys($json) as $repository) {
+        $repoItemId = "caFixedItem".$repoJumpIndex;
+        $repoJumpIndex++;
+        $safeRepoItemId = htmlspecialchars($repoItemId, ENT_QUOTES);
+        $safeRepositoryOption = htmlspecialchars((string)$repository, ENT_QUOTES);
+        echo "<option value='$safeRepoItemId'>$safeRepositoryOption</option>";
+      }
+      echo "</select>";
+      echo "</div>";
+      echo "<div class='ca_center' style='margin-bottom:.75rem;'><button type='button' id='caFixedToggleAll' class='ca_button' data-show-all='0' onclick='caToggleAllFixedDetails(this);'>".tr("Show All")."</button></div>";
       echo "<div class='ca_moderationList'>";
+      $repoIndex = 0;
       foreach (array_keys($json) as $repository) {
         $safeRepository = htmlspecialchars((string)$repository, ENT_QUOTES);
-        echo "<div class='ca_moderationItem'>";
-        echo "<div class='ca_moderationTitle'>$safeRepository</div>";
-        echo "<div class='ca_moderationDetails'>";
+        $detailsId = "caFixedDetails".$repoIndex;
+        $itemId = "caFixedItem".$repoIndex;
+        $repoIndex++;
+        $fixCount = 0;
+        foreach ((array)$json[$repository] as $repoErrors) {
+          if (is_array($repoErrors)) {
+            $fixCount += count($repoErrors);
+          }
+        }
+        $safeDetailsId = htmlspecialchars($detailsId, ENT_QUOTES);
+        $safeItemId = htmlspecialchars($itemId, ENT_QUOTES);
+        $safeFixCount = htmlspecialchars((string)$fixCount, ENT_QUOTES);
+        $fixLabel = $fixCount === 1 ? tr("fix") : tr("fixes");
+        echo "<div class='ca_moderationItem' id='$safeItemId'>";
+        echo "<div class='ca_moderationTitle'><button type='button' class='ca_fixedToggle' style='margin-right:.5rem;padding:0 .4rem;min-width:2rem;font-size:1.35rem;line-height:1.1;font-weight:700;background:transparent;border:none;cursor:pointer;' onclick='caToggleFixedDetails(\"$safeDetailsId\", this);' aria-label='".tr("Toggle repository details")."'><i class='fa fa-plus' aria-hidden='true'></i></button>$safeRepository (".$safeFixCount." ".$fixLabel.")</div>";
+        echo "<div class='ca_moderationDetails ca_fixedDetails' id='$safeDetailsId' style='display:none;'>";
         foreach (array_keys($json[$repository]) as $repo) {
           $safeRepo = htmlspecialchars((string)$repo, ENT_QUOTES);
           echo "<div class='ca_moderationRule'><span class='ca_bold'>$safeRepo</span></div>";

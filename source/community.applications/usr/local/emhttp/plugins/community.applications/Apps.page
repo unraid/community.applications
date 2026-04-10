@@ -519,6 +519,15 @@ $(function(){
   $(".mobileOverlay").on("click",function(e) {
     closeMenu();
   });
+  
+  $(".sidenav").on("scroll", function() {
+    updateSidenavBackToTopVisibility();
+  });
+  
+  $(".sidebar").on("click", "#sidenavBackToTop", function(e) {
+    e.preventDefault();
+    $(".sidenav").stop(true).animate({scrollTop: 0}, 250);
+  });
 
   $(".mainArea").on("click",".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect",function() {
     data.actions = true;
@@ -1412,8 +1421,15 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+  $(".sidenav").removeClass("sidenavBackToTopVisible");
   $(".nav-user.show").show();
   enableSearch();
+}
+
+function updateSidenavBackToTopVisibility() {
+  var $sidenav = $(".sidenav");
+  var showButton = $sidenav.hasClass("sidenavShow") && ($sidenav.scrollTop() > 300);
+  $sidenav.toggleClass("sidenavBackToTopVisible", showButton);
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
@@ -1578,14 +1594,197 @@ function OpenSidebarAndRefreshDisplay() {
 }
 
 function showModeration(script,title) {
-  var moderationUrl = "/plugins/<?=$plugin?>/scripts/showStatistics.php?arg1="+encodeURIComponent(script);
   $("#sidenavContent").html("<div class='moderationContainer'><div>");
-  $(".moderationContainer").html($("#sidebarLoading").html())
-  $(".moderationContainer").load(moderationUrl,function(responseText,status) {
-    if (status == "error") {
+  $(".moderationContainer").html($("#sidebarLoading").html());
+  post({action:"showModeration",script:script},function(result) {
+    if (result && result.data) {
+      $("#sidenavContent").html("<div class='moderationContainer'>"+renderModerationContent(script, result.data)+"</div>");
+    } else {
       $("#sidenavContent").html("<div class='notice warning'>"+tr("Unable to load moderation data")+"</div>");
     }
   });
+}
+
+function caEscapeHtml(value) {
+  if (value === undefined || value === null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function caValueToHtml(value) {
+  if (value === undefined || value === null) return "";
+  if (Array.isArray(value)) {
+    return caEscapeHtml(JSON.stringify(value));
+  }
+  if (typeof value === "boolean") {
+    return value ? "<?=tr("Yes",true);?>" : "<?=tr("No",true);?>";
+  }
+  return caEscapeHtml(String(value)).replace(/\n/g, "<br>");
+}
+
+function renderModerationContent(script, payload) {
+  switch (script) {
+    case "Repository":
+      return renderModerationRepositories(payload);
+    case "Invalid":
+      return renderModerationInvalid(payload);
+    case "Fixed":
+      return renderModerationFixed(payload);
+    default:
+      return "<div class='notice warning'>"+tr("Unable to load moderation data")+"</div>";
+  }
+}
+
+function renderModerationRepositories(payload) {
+  const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
+  let html = "<div class='ca_center caLogoIcon'></div>";
+  html += "<div class='ca_center ca_settingsTitle'><?=tr("Community Applications",true);?></div>";
+  html += "<tt><table>";
+  repos.forEach(function(repo) {
+    const name = caEscapeHtml(repo.name || "");
+    const url = caEscapeHtml(repo.url || "");
+    html += "<tr><td><span class='ca_bold'>"+name+"</span></td><td><a class='popUpLink' href='"+url+"' target='_blank'>"+url+"</a></td></tr>";
+  });
+  html += "</table></tt>";
+  return html;
+}
+
+function renderModerationInvalid(payload) {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  let html = "<div class='ca_center caLogoIcon'></div>";
+  html += "<div class='ca_center ca_settingsTitle'><?=tr("Community Applications",true);?></div>";
+  if (!items.length) {
+    return html + "<br><br><div class='ca_center'><span class='ca_bold'><?=tr("No invalid templates found",true);?></span></div>";
+  }
+  html += "<div class='ca_moderationList'>";
+  html += "<div class='ca_moderationItem'><div class='ca_moderationTitle'>"+caEscapeHtml(payload.intro || "")+"</div></div>";
+  items.forEach(function(item) {
+    const title = caEscapeHtml(item.title || "");
+    const details = Array.isArray(item.details) ? item.details : [];
+    let detailsHtml = "";
+    details.forEach(function(detail) {
+      const label = caEscapeHtml(detail.label || "");
+      const valueHtml = caValueToHtml(detail.value);
+      const subClass = detail.isSubRule ? " ca_moderationSubRule" : "";
+      if (label) {
+        detailsHtml += "<div class='ca_moderationRule"+subClass+"'><span class='ca_bold'>"+label+":</span> "+valueHtml+"</div>";
+      } else {
+        detailsHtml += "<div class='ca_moderationRule"+subClass+"'>"+valueHtml+"</div>";
+      }
+    });
+    html += "<div class='ca_moderationItem'><div class='ca_moderationTitle'>"+title+"</div><div class='ca_moderationDetails'>"+detailsHtml+"</div></div>";
+  });
+  html += "</div>";
+  return html;
+}
+
+function renderModerationFixed(payload) {
+  const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
+  const pluginDupes = Array.isArray(payload.pluginDupes) ? payload.pluginDupes : [];
+  const duplicateRepos = Array.isArray(payload.duplicateRepos) ? payload.duplicateRepos : [];
+  let html = "<div class='ca_center caLogoIcon'></div>";
+  html += "<div class='ca_center ca_settingsTitle'><?=tr("Community Applications",true);?></div>";
+  if (!repos.length) {
+    return html + "<br><br><div class='ca_center'><span class='ca_bold'><?=tr("No templates were automatically fixed",true);?></span></div>";
+  }
+
+  html += caEscapeHtml(payload.intro || "")+"<br><br>"+caEscapeHtml(payload.notes || "")+" ";
+  html += "<a href='"+caEscapeHtml(payload.helpUrl || "#")+"' target='_blank'><?=tr("HERE",true);?></a><br><br>";
+  html += "<div class='ca_center' style='margin-bottom:.5rem;'>";
+  html += "<label for='caFixedRepoJump' style='margin-right:.35rem;'><?=tr("Jump to repository",true);?>:</label>";
+  html += "<select id='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>";
+  html += "<option value=''><?=tr("Select repository",true);?></option>";
+  repos.forEach(function(repo, idx) {
+    html += "<option value='caFixedItem"+idx+"'>"+caEscapeHtml(repo.name || "")+"</option>";
+  });
+  html += "</select></div>";
+  html += "<div class='ca_center' style='margin-bottom:.75rem;'><button type='button' id='caFixedToggleAll' class='ca_button' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?=tr("Show All",true);?></button></div>";
+  html += "<div class='ca_moderationList'>";
+  repos.forEach(function(repo, idx) {
+    const itemId = "caFixedItem"+idx;
+    const detailsId = "caFixedDetails"+idx;
+    const fixCount = parseInt(repo.fixCount || 0, 10) || 0;
+    const fixLabel = fixCount === 1 ? "<?=tr("fix",true);?>" : "<?=tr("fixes",true);?>";
+    html += "<div class='ca_moderationItem' id='"+itemId+"'>";
+    html += "<div class='ca_moderationTitle'><button type='button' class='ca_fixedToggle' style='margin-right:.5rem;padding:0 .4rem;min-width:2rem;font-size:1.35rem;line-height:1.1;font-weight:700;background:transparent;border:none;cursor:pointer;' onclick='caToggleFixedDetails(\""+detailsId+"\", this);' aria-label='<?=tr("Toggle repository details",true);?>'><i class='fa fa-plus' aria-hidden='true'></i></button>"+caEscapeHtml(repo.name || "")+" ("+fixCount+" "+fixLabel+")</div>";
+    html += "<div class='ca_moderationDetails ca_fixedDetails' id='"+detailsId+"' style='display:none;'>";
+    (Array.isArray(repo.items) ? repo.items : []).forEach(function(entry) {
+      html += "<div class='ca_moderationRule'><span class='ca_bold'>"+caEscapeHtml(entry.name || "")+"</span></div>";
+      (Array.isArray(entry.errors) ? entry.errors : []).forEach(function(error) {
+        html += "<div class='ca_moderationRule ca_moderationSubRule'>"+caEscapeHtml(error)+"</div>";
+      });
+    });
+    html += "</div></div>";
+  });
+  html += "</div>";
+
+  if (pluginDupes.length) {
+    html += "<br><br><span class='ca_bold'>"+caEscapeHtml(payload.pluginDupesTitle || "")+"</span><br><br>";
+    pluginDupes.forEach(function(item) {
+      html += "<span class='ca_bold'>"+caEscapeHtml(item.filename || "")+"</span><br>";
+      (Array.isArray(item.entries) ? item.entries : []).forEach(function(entry) {
+        html += "<tt>"+caEscapeHtml(entry)+"<br></tt>";
+      });
+      html += "<br>";
+    });
+  }
+
+  if (duplicateRepos.length) {
+    html += "<br><span class='ca_bold'>"+caEscapeHtml(payload.duplicateReposTitle || "")+"</span><br><br><tt>";
+    duplicateRepos.forEach(function(line) {
+      html += caEscapeHtml(line)+"<br>";
+    });
+    html += "</tt>";
+  }
+  return html;
+}
+
+function caToggleFixedDetails(id, button) {
+  var section = document.getElementById(id);
+  if (!section) return;
+  var isHidden = section.style.display === "none";
+  section.style.display = isHidden ? "block" : "none";
+  if (button) {
+    button.innerHTML = isHidden ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>";
+  }
+}
+
+function caSetAllFixedDetails(showAll) {
+  var sections = document.querySelectorAll(".ca_fixedDetails");
+  var buttons = document.querySelectorAll(".ca_fixedToggle");
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].style.display = showAll ? "block" : "none";
+  }
+  for (var j = 0; j < buttons.length; j++) {
+    buttons[j].innerHTML = showAll ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>";
+  }
+  var allButton = document.getElementById("caFixedToggleAll");
+  if (allButton) {
+    allButton.dataset.showAll = showAll ? "1" : "0";
+    allButton.textContent = showAll ? "<?=tr("Hide All",true);?>" : "<?=tr("Show All",true);?>";
+  }
+}
+
+function caToggleAllFixedDetails(button) {
+  var showAll = !(button && button.dataset && button.dataset.showAll === "1");
+  caSetAllFixedDetails(showAll);
+}
+
+function caJumpToFixedRepository(select) {
+  if (!select || !select.value) return;
+  var row = document.getElementById(select.value);
+  if (!row) return;
+  var details = row.querySelector(".ca_fixedDetails");
+  var toggle = row.querySelector(".ca_fixedToggle");
+  if (details && details.style.display === "none") {
+    details.style.display = "block";
+    if (toggle) toggle.innerHTML = "<i class='fa fa-minus' aria-hidden='true'></i>";
+  }
+  row.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function previousApps(installed,dontClear=false,filter="") {
@@ -3050,6 +3249,7 @@ function showSidebarApp(apppath,appname) {
 
 function slideInSidebar() {
   $(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
+  updateSidenavBackToTopVisibility();
 }
 function showRepoPopup(repository) {
   if ( !repository ) return;
