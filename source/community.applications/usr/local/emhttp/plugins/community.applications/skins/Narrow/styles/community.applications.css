@@ -700,6 +700,48 @@ body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
   display: none;
 }
 
+.caModerationJumpWrap {
+  margin-bottom: .5rem;
+}
+
+.caModerationJumpLabel {
+  margin-right: .35rem;
+}
+
+.caModerationJumpLinks {
+  margin-left: .75rem;
+  white-space: nowrap;
+}
+
+.caModerationToggleAllWrap {
+  margin-bottom: .75rem;
+}
+
+.caModerationFixedToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: .5rem;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.caModerationFixedDetails {
+  display: none;
+}
+
+.caStatisticsHeaderRow {
+  height: 6rem;
+}
+
+.caStatisticsTitle {
+  font-size: 2rem;
+}
+
 .moderationContainer {
   margin: 3rem 3rem auto 3rem;
 }

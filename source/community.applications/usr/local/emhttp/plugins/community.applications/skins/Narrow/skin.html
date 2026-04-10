@@ -151,6 +151,69 @@ $(function() {
     <div class='ca_center caLogoIcon'></div>
     <div class='ca_center ca_italic'><?tr("LOADING...")?></div>
   </div>
+  <div id='caModerationShellTemplate'>
+    <div>
+      <div class='ca_center caLogoIcon'></div>
+      <div class='ca_center ca_settingsTitle'><?tr("Community Applications");?></div>
+      <div class='caModerationBody'></div>
+    </div>
+  </div>
+  <div id='caModerationRepositoryTableTemplate'>
+    <tt><table class='caModerationRepoTable'></table></tt>
+  </div>
+  <div id='caModerationInvalidListTemplate'>
+    <div class='ca_moderationList'>
+      <div class='ca_moderationItem caModerationInvalidIntro'>
+        <div class='ca_moderationTitle'></div>
+      </div>
+      <div class='caModerationInvalidItems'></div>
+    </div>
+  </div>
+  <div id='caModerationInvalidItemTemplate'>
+    <div class='ca_moderationItem'>
+      <div class='ca_moderationTitle'></div>
+      <div class='ca_moderationDetails'></div>
+    </div>
+  </div>
+  <div id='caModerationFixedTemplate'>
+    <div class='caModerationFixedRoot'>
+      <div class='caModerationFixedIntro'></div>
+      <div class='ca_center caModerationJumpWrap'>
+        <label for='caFixedRepoJump' class='caModerationJumpLabel'><?tr("Jump to repository");?>:</label>
+        <select id='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>
+          <option value=''><?tr("Select repository");?></option>
+        </select>
+        <span class='caModerationJumpLinks'>
+          <span class='popUpLink caModerationJumpPluginDupes ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection("#caFixedPluginDupesSection");'><?tr("Duplicated plugin filenames");?></span>
+          <span class='caModerationJumpSep ca_hide'> | </span>
+          <span class='popUpLink caModerationJumpDuplicateRepos ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection("#caFixedDuplicateReposSection");'><?tr("Duplicated repositories");?></span>
+        </span>
+      </div>
+      <div class='ca_center caModerationToggleAllWrap'>
+        <button type='button' id='caFixedToggleAll' class='ca_button' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></button>
+      </div>
+      <div class='ca_moderationList caModerationFixedList'></div>
+      <div id='caFixedPluginDupesSection' class='caModerationFixedPluginDupes'></div>
+      <div id='caFixedDuplicateReposSection' class='caModerationFixedDuplicateRepos'></div>
+    </div>
+  </div>
+  <div id='caModerationFixedRepoTemplate'>
+    <div class='ca_moderationItem'>
+      <div class='ca_moderationTitle'>
+        <span class='ca_fixedToggle caModerationFixedToggle' role='button' tabindex='0'>
+          <i class='fa fa-plus' aria-hidden='true'></i>
+        </span>
+        <span class='caModerationFixedRepoTitle'></span>
+      </div>
+      <div class='ca_moderationDetails ca_fixedDetails caModerationFixedDetails'></div>
+    </div>
+  </div>
+  <div id='caModerationFixedEntryTemplate'>
+    <div>
+      <div class='ca_moderationRule'><span class='ca_bold caModerationFixedEntryName'></span></div>
+      <div class='caModerationFixedErrors'></div>
+    </div>
+  </div>
   <!-- Change log view -->
   <div id="caChangeLog">
     <div>
@@ -194,14 +257,14 @@ $(function() {
       <div>
         <table>
           <thead>
-           <tr style='height:6rem;'>
+           <tr class='caStatisticsHeaderRow'>
             <td colspan='2'>
               <div class='ca_center caLogoIcon'></div>
             </td>
           </tr>
           <tr>
             <td colspan='2'>
-              <div class='ca_center' style='font-size:2rem;'>Community Applications</div>
+              <div class='ca_center caStatisticsTitle'>Community Applications</div>
             </td>
           </tr>
           </thead>

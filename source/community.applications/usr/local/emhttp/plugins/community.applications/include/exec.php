@@ -175,6 +175,9 @@ switch ($_POST['action']) {
   case 'javascriptError':
     javascriptError();
     break;
+  case 'downloadDebugging':
+    downloadDebugging();
+    break;
   case 'onStartupScreen':
     onStartupScreen();
     break;
@@ -685,6 +688,25 @@ function getConvertedTemplates() {
   }
   writeJsonFile(CA_PATHS['community-templates-info'],$myTemplates);
   $GLOBALS['templates'] = $myTemplates;
+}
+
+#######################################
+# Builds and returns debugging zip URL #
+#######################################
+function downloadDebugging() {
+  global $docroot;
+
+  $file = basename((string)getPost("file", ""));
+  if (!$file || strpos($file, "CA-Logging-") !== 0 || substr($file, -4) !== ".zip") {
+    postReturn(["zip" => ""]);
+    return;
+  }
+
+  @copy("/var/log/phplog", "/tmp/phplog.txt");
+  exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg(CA_PATHS['logging'])." /tmp/phplog.txt");
+  @unlink("/tmp/phplog.txt");
+
+  postReturn(["zip" => "/$file"]);
 }
 
 #############################
