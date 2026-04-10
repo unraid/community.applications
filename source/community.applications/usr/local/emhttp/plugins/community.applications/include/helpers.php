@@ -209,7 +209,7 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 }
 
 function download_url($url, $path = "", $timeout = 0) {
-  static $proxycfg = false;
+  static $proxycfg = null;
 
   if ( ! function_exists("publish") ) {
     $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
@@ -239,8 +239,8 @@ function download_url($url, $path = "", $timeout = 0) {
   $downloadLocks[$url] = true;
   writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
 
-  if ($proxycfg === false) {
-    $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : null;
+  if ($proxycfg === null) {
+    $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : false;
   }
 
   debug("DOWNLOAD starting $url\n");
@@ -274,7 +274,12 @@ function download_url($url, $path = "", $timeout = 0) {
 
   if ( curl_errno($ch) == 23 ) {
     debug("cURL error 23.  Switching encoding to deflate");
-    curl_close($ch);
+    
+    // curl_close is NOP in php 8+ and issues a warning in 8.5+
+    if ( PHP_MAJOR_VERSION < 8 ) {
+      call_user_func('curl_close', $ch);
+    }
+
     $curl_options[CURLOPT_ENCODING] = "deflate";
     $ch = curl_init();
     curl_setopt_array($ch,$curl_options);
@@ -285,7 +290,9 @@ function download_url($url, $path = "", $timeout = 0) {
     debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
     $url = str_replace(CA_PATHS['pluginProxy'],"",$url);
     $curl_options[CURLOPT_URL] = $url;
-    curl_close($ch);
+    if ( PHP_MAJOR_VERSION < 8 ) {
+      call_user_func('curl_close', $ch);
+    }
     sleep(3);
     $ch = curl_init();
     curl_setopt_array($ch,$curl_options);
@@ -298,7 +305,9 @@ function download_url($url, $path = "", $timeout = 0) {
     debug("cURL error: ".curl_error($ch));
     @unlink($path);
   }
-  curl_close($ch);
+  if ( PHP_MAJOR_VERSION < 8 ) {
+    call_user_func('curl_close', $ch);
+  }
   
   ca_publish("ca_downloadProgress","");
   $totalTime = time() - $startTime;
