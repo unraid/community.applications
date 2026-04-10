@@ -127,6 +127,9 @@ switch ($_POST['action']) {
   case 'statistics':
     statistics();
     break;
+  case 'showModeration':
+    showModeration();
+    break;
   case 'populateAutoComplete':
     populateAutoComplete();
     break;
@@ -448,6 +451,162 @@ function DownloadApplicationFeed() {
   touch(CA_PATHS['haveTemplates']);
 
   return true;
+}
+
+########################################################
+# Return moderation/statistics details for sidebar popups
+########################################################
+function showModeration() {
+  $script = getPost("script", "");
+  $allowedScripts = ["Repository", "Invalid", "Fixed"];
+  if ( ! in_array($script, $allowedScripts, true) ) {
+    postReturn(["moderationType" => $script, "data" => []]);
+    return;
+  }
+
+  switch ($script) {
+    case "Repository":
+      $repositories = readJsonFile(CA_PATHS['repositoryList'], []);
+      $repos = [];
+      foreach ((array)$repositories as $name => $repo) {
+        $url = is_array($repo) ? ($repo['url'] ?? "") : "";
+        if ($url) {
+          $repos[] = ["name" => (string)$name, "url" => (string)$url];
+        }
+      }
+      usort($repos, function($a, $b) {
+        return strnatcasecmp($a['name'], $b['name']);
+      });
+      postReturn(["moderationType" => $script, "data" => ["repositories" => $repos]]);
+      return;
+
+    case "Invalid":
+      $invalidTemplates = readJsonFile(CA_PATHS['invalidXML_txt'], []);
+      if ( ! is_array($invalidTemplates) || ! count($invalidTemplates) ) {
+        postReturn(["moderationType" => $script, "data" => ["items" => []]]);
+        return;
+      }
+      ksort($invalidTemplates, SORT_NATURAL | SORT_FLAG_CASE);
+      $items = [];
+      foreach ($invalidTemplates as $template => $errors) {
+        $title = (string)$template;
+        $details = [];
+        if (is_array($errors)) {
+          $templatePath = $errors['TemplatePath'] ?? $errors['templatePath'] ?? $errors['templatepath'] ?? null;
+          if ($templatePath) {
+            $title = str_replace("/tmp/GitHub/repositoryClone/", "", (string)$templatePath);
+          }
+          $errorList = $errors['errors'] ?? $errors['Errors'] ?? null;
+          if (is_array($errorList) && count($errorList)) {
+            $details[] = ["label" => "errors", "value" => "", "isSubRule" => false];
+            foreach ($errorList as $errorEntry) {
+              $details[] = ["label" => "", "value" => $errorEntry, "isSubRule" => true];
+            }
+          }
+          foreach ($errors as $key => $value) {
+            $keyLower = strtolower((string)$key);
+            if ($keyLower === "templatepath" || $keyLower === "errors" || $keyLower === "firstseen") {
+              continue;
+            }
+            if (is_int($key)) {
+              $details[] = ["label" => "", "value" => $value, "isSubRule" => false];
+            } else {
+              $details[] = ["label" => (string)$key, "value" => $value, "isSubRule" => false];
+            }
+          }
+        } else {
+          $details[] = ["label" => "", "value" => $errors, "isSubRule" => false];
+        }
+        if (!count($details)) {
+          $details[] = ["label" => "", "value" => "—", "isSubRule" => false];
+        }
+        $items[] = ["title" => $title, "details" => $details];
+      }
+      postReturn([
+        "moderationType" => $script,
+        "data" => [
+          "intro" => tr("These templates are invalid and the application they are referring to is unknown"),
+          "items" => $items
+        ]
+      ]);
+      return;
+
+    case "Fixed":
+      $fixedTemplates = readJsonFile(CA_PATHS['fixedTemplates_txt'], []);
+      $repositories = [];
+      if (is_array($fixedTemplates) && count($fixedTemplates)) {
+        ksort($fixedTemplates, SORT_NATURAL | SORT_FLAG_CASE);
+        foreach (array_keys($fixedTemplates) as $repository) {
+          $repoItems = [];
+          $fixCount = 0;
+          foreach ((array)$fixedTemplates[$repository] as $repo => $errors) {
+            $errorList = [];
+            foreach ((array)$errors as $error) {
+              $errorList[] = (string)$error;
+            }
+            $fixCount += count($errorList);
+            $repoItems[] = ["name" => (string)$repo, "errors" => $errorList];
+          }
+          $repositories[] = [
+            "name" => (string)$repository,
+            "fixCount" => $fixCount,
+            "items" => $repoItems
+          ];
+        }
+      }
+
+      $pluginDupes = [];
+      $dupeList = readJsonFile(CA_PATHS['pluginDupes'], []);
+      if ($dupeList) {
+        $templates = readJsonFile(CA_PATHS['community-templates-info'], []);
+        foreach (array_keys((array)$dupeList) as $dupe) {
+          $entries = [];
+          foreach ((array)$templates as $template) {
+            if (basename($template['PluginURL'] ?? "") == $dupe) {
+              $entries[] = trim(($template['Author'] ?? "")." - ".($template['Name'] ?? ""));
+            }
+          }
+          $pluginDupes[] = ["filename" => (string)$dupe, "entries" => $entries];
+        }
+      }
+
+      $duplicateRepos = [];
+      $templates = readJsonFile(CA_PATHS['community-templates-info'], []);
+      foreach ((array)$templates as $template) {
+        $templateRepo = str_replace(":latest", "", $template['Repository'] ?? "");
+        if (!$templateRepo) {
+          continue;
+        }
+        $count = 0;
+        foreach ((array)$templates as $searchTemplates) {
+          if ( $template['Language'] ?? false) continue;
+          if (str_replace(["lscr.io/","ghcr.io/"], "", $templateRepo) == str_replace(":latest", "", str_replace(["lscr.io/","ghcr.io/"], "", $searchTemplates['Repository'] ?? ""))) {
+            if (($searchTemplates['BranchName'] ?? false) || ($searchTemplates['Blacklist'] ?? false) || ($searchTemplates['Deprecated'] ?? false)) {
+              continue;
+            }
+            $count++;
+          }
+        }
+        if ($count > 1) {
+          $duplicateRepos[] = "Duplicated Template: ".($template['RepoName'] ?? "")." - ".$templateRepo." - ".($template['Name'] ?? "");
+        }
+      }
+
+      postReturn([
+        "moderationType" => $script,
+        "data" => [
+          "intro" => tr("All of these errors found have been fixed automatically"),
+          "notes" => tr("Note that many of these errors can be avoided by following the directions"),
+          "helpUrl" => "https://forums.unraid.net/topic/57181-real-docker-faq/#comment-566084",
+          "repositories" => $repositories,
+          "pluginDupesTitle" => tr("The following plugins have duplicated filenames and are not able to be installed simultaneously:"),
+          "pluginDupes" => $pluginDupes,
+          "duplicateReposTitle" => tr("The following docker applications refer to the same docker repository but may have subtle changes in the template to warrant this"),
+          "duplicateRepos" => $duplicateRepos
+        ]
+      ]);
+      return;
+  }
 }
 
 function updatePluginSupport($templates) {
