@@ -1932,7 +1932,6 @@ function convert_docker() {
   $docker['Description'] = str_replace("&", "&amp;", $docker['Description']);
 
   $dockerfile['Name'] = $docker['Name'];
-  $dockerfile['Support'] = $docker['DockerHub'];
   $dockerfile['Description'] = $docker['Description']."\n\nConverted By Community Applications   Always verify this template (and values)  against the support page for the container\n\n{$docker['DockerHub']}";
   $dockerfile['Overview'] = $dockerfile['Description'];
   $dockerfile['Registry'] = $docker['DockerHub'];

@@ -32,13 +32,32 @@ function caCompactPopupActionContext(array $actionsContext): array {
   return array_values($compacted);
 }
 
+##############################################################
+# Keep only valid support entries for popup button rendering #
+##############################################################
+function caNormalizePopupSupportContext(array $supportContext): array {
+  return array_values(array_filter($supportContext, static function ($context) {
+    if (!is_array($context)) {
+      return false;
+    }
+    $link = trim((string)($context['link'] ?? ""));
+    $text = trim(strip_tags((string)($context['text'] ?? "")));
+    return ($link !== "" && $text !== "");
+  }));
+}
+
 ###############################################################################
 # Remove popup shortcut actions from context and expose preferred quick action #
 ###############################################################################
 function caNormalizePopupActions(array $actionsContext): array {
   $popupShortcutContext = [];
-  $filteredContext = array_values(array_filter($actionsContext, static function ($context) use (&$popupShortcutContext) {
+  $popupUninstallAction = null;
+  $filteredContext = array_values(array_filter($actionsContext, static function ($context) use (&$popupShortcutContext, &$popupUninstallAction) {
     $text = trim(strip_tags((string)($context['text'] ?? "")));
+    if (in_array($text, [tr("Uninstall"), "Uninstall"], true)) {
+      $popupUninstallAction = $context;
+      return false;
+    }
     if (in_array($text, [tr("WebUI"), tr("Settings"), "WebUI", "Settings"], true)) {
       $popupShortcutContext[] = $context;
       return false;
@@ -60,7 +79,7 @@ function caNormalizePopupActions(array $actionsContext): array {
     $popupShortcut = $popupShortcutContext[0];
   }
 
-  return [$filteredContext, $popupShortcut];
+  return [$filteredContext, $popupShortcut, $popupUninstallAction];
 }
 
 ######################################
@@ -90,10 +109,15 @@ function displayPopup($template) {
 
   $actionsContext = is_array($actionsContext ?? null) ? $actionsContext : [];
   $supportContext = is_array($supportContext ?? null) ? $supportContext : [];
+  $supportContext = caNormalizePopupSupportContext($supportContext);
   $popupShortcut = is_array($popupShortcut ?? null) ? $popupShortcut : null;
-  [$actionsContext, $normalizedPopupShortcut] = caNormalizePopupActions($actionsContext);
+  $popupUninstallAction = is_array($popupUninstallAction ?? null) ? $popupUninstallAction : null;
+  [$actionsContext, $normalizedPopupShortcut, $normalizedPopupUninstallAction] = caNormalizePopupActions($actionsContext);
   if (!$popupShortcut) {
     $popupShortcut = $normalizedPopupShortcut;
+  }
+  if (!$popupUninstallAction) {
+    $popupUninstallAction = $normalizedPopupUninstallAction;
   }
   $NoPin = $NoPin ?? false;
   $Blacklist = $Blacklist ?? false;
@@ -353,6 +377,23 @@ function displayPopup($template) {
     $safeReadmeUrl = htmlspecialchars($template['ReadMe'], ENT_QUOTES);
     $readmeButton = "<div class='caButton actionsPopup'><a href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'><span class='ca_fa-readme'> ".tr("Read Me First")."</span></a></div>";
   }
+  $installFirstAction = null;
+  $actionsButtonItems = [];
+  if (count($actionsContext) === 1) {
+    $singleActionText = trim(strip_tags((string)($actionsContext[0]['text'] ?? "")));
+    if ($singleActionText === tr("Install") || $singleActionText === "Install") {
+      $installFirstAction = $actionsContext[0];
+    }
+  }
+  foreach ($actionsContext as $context) {
+    if (!empty($context['divider'])) {
+      continue;
+    }
+    if ($installFirstAction && (($context['action'] ?? "") === ($installFirstAction['action'] ?? ""))) {
+      continue;
+    }
+    $actionsButtonItems[] = $context;
+  }
 
   ob_start();
   ?>
@@ -366,12 +407,8 @@ function displayPopup($template) {
             <div class='popupAuthorMain'><?= $Author ?></div>
           <?php endif; ?>
 
-          <?php if ($actionsContext): ?>
-            <?php if (count($actionsContext) === 1): ?>
-              <div class='caButton actionsPopup'><span onclick="<?= $actionsContext[0]['action'] ?>"><?= str_replace("ca_red", "", $actionsContext[0]['text']) ?></span></div>
-            <?php else: ?>
-              <div class='caButton actionsPopup' id='actionsPopup'><?= tr("Actions") ?></div>
-            <?php endif; ?>
+          <?php if (!empty($installFirstAction['action'])): ?>
+            <div class='caButton actionsPopup'><span onclick="<?= $installFirstAction['action'] ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
           <?php endif; ?>
 
           <?php if (!empty($popupShortcut['action'])): ?>
@@ -387,6 +424,20 @@ function displayPopup($template) {
 
           <?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
             <div class='caButton pinPopup <?= $pinnedClass ?>' title='<?= $pinnedTitle ?>' data-pinnedalt='<?= $pinnedAlt ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= $pinned ?></span></div>
+          <?php endif; ?>
+
+          <?php if ($actionsButtonItems): ?>
+            <?php foreach ($actionsButtonItems as $actionItem): ?>
+              <?php if (!empty($actionItem['action'])): ?>
+                <div class='caButton actionsPopup'><span onclick="<?= $actionItem['action'] ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+              <?php else: ?>
+                <div class='caButton actionsPopup'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
+
+          <?php if (!empty($popupUninstallAction['action'])): ?>
+            <div class='caButton actionsPopup'><span onclick="<?= $popupUninstallAction['action'] ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
           <?php endif; ?>
 
           <?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
@@ -722,8 +773,9 @@ function getPopupDescriptionSkin($appNumber) {
   if ($template['Language']) {
     $actionsContext = caBuildLanguageActions($template, $countryCode, $actionsContext);
   }
-  [$actionsContext, $popupShortcut] = caNormalizePopupActions($actionsContext);
+  [$actionsContext, $popupShortcut, $popupUninstallAction] = caNormalizePopupActions($actionsContext);
   $template['popupShortcut'] = $popupShortcut;
+  $template['popupUninstallAction'] = $popupUninstallAction;
 
   $supportContext = caBuildSupportContext($template, $allRepositories, $caSettings);
 
@@ -897,6 +949,9 @@ function displayCard($template) {
 
   [$cardStart, $card, $backgroundClickable] = caBuildBottomLineSection($template, $cardClass, $popupType, $holderClass, $class, $name, $repoName);
 
+  if (!empty($template['DockerHub'])) {
+    $card .= caRenderActionsButtons($actionsContext, $template['PluginURL'] ?? "", $template['LanguagePack'] ?? "", $name, (string) $id);
+  }
   $card .= "<span class='{$appType}' title='".htmlentities($typeTitle)."'></span>";
   $card .= caRenderFavouriteSpan($template, $repoName, !empty($template['RepositoryTemplate']));
   $card .= caRenderPinnedSpan($template);

@@ -458,7 +458,7 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
         $actionsContext[] = ["icon"=>"ca_fa-switchto","text"=>$template['SwitchLanguage'],"action"=>"CAswitchLanguage('$countryCode');"];
       }
     } else {
-      $actionsContext[] = ["icon"=>"ca_fa-install","text"=>$template['InstallLanguage'],"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
+      $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
     }
 
     if (file_exists("/var/log/plugins/lang-$countryCode.xml")) {
@@ -470,7 +470,7 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
         if (!empty($actionsContext)) {
           $actionsContext[] = ["divider"=>true];
         }
-        $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove Language Pack")."</span>","action"=>"removeLanguage('$countryCode');"];
+        $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Uninstall")."</span>","action"=>"removeLanguage('$countryCode');"];
       }
     }
 
@@ -817,7 +817,7 @@ function caProcessLanguageTemplate(array $template, array $caSettings, array $ac
       if (! empty($actionsContext)) {
         $actionsContext[] = ["divider" => true];
       }
-      $actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove Language Pack"), "action" => "removeLanguage('$countryCode');"];
+      $actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "removeLanguage('$countryCode');"];
     }
   }
 
@@ -1054,7 +1054,7 @@ function caBuildRepoLinkSection(array $repo): string {
       continue;
     }
     $label = tr($definition['label']);
-    $links .= "<a class='appIconsPopUp {$definition['class']}' href='{$repo[$key]}' target='_blank'> {$label}</a>";
+    $links .= "<a class='caButton {$definition['class']}' href='{$repo[$key]}' target='_blank' rel='noopener noreferrer'> {$label}</a>";
   }
 
   return "<div class='repoLinkArea'>{$links}</div>";
@@ -1463,6 +1463,15 @@ function caBuildBottomLineSection(
 # Render the Support button(s) for a template card depending on context size #
 ##############################################################################
 function caRenderSupportButtons(array $supportContext, string $name, string $id): string {
+  $supportContext = array_values(array_filter($supportContext, static function ($context) {
+    if (!is_array($context)) {
+      return false;
+    }
+    $link = trim((string)($context['link'] ?? ""));
+    $text = trim(strip_tags((string)($context['text'] ?? "")));
+    return ($link !== "" && $text !== "");
+  }));
+
   if (empty($supportContext)) {
     return "";
   }

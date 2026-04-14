@@ -3,7 +3,7 @@ e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
 c133339ebbe89134c415b0cc22cb65f0  ./include/_ide_stubs.php
-e061f1e6119822d943c149c020239d36  ./include/exec.php
+32068d231c58c705da1088cf188e8263  ./include/exec.php
 1c5155d461b1704e1da15863566d23d0  ./include/force_update_helpers.php
 ae2062cd3b2883e8074b7d826022da57  ./include/get_content_helpers.php
 e40fd5b981336cac9e2f6b13b7f21f72  ./include/helpers.php
@@ -20,7 +20,7 @@ cdaa56b094f5dea3d730c82b91261a3b  ./phpstan.neon
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
 a12a5a778193b8fac7f7732f8243d83d  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
-ed5c06c37bf721692ed80a7f9d31ea26  ./scripts/dockerConvert.php
+4e1074278953eabf3c19a78535e655ab  ./scripts/dockerConvert.php
 5f9b417dfde40ec2c96ae2b141440c19  ./scripts/downloadPlugin
 2ae984f0128b5925da6fd2184b17694f  ./scripts/installMulti.php
 08615df77c7d997cd9ca6d9cc330c599  ./scripts/installMultiPlugin.php
@@ -32,12 +32,12 @@ f490873cd9259558146e2a3eb2843fd9  ./scripts/notices.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 1340ad737d40cf74c72cd3d76f67ee83  ./scripts/updatePluginSupport.php
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-b22afc724de944cabc58dbf1bebd5eee  ./skins/Narrow/styles/community.applications.css
+1d1451b8f6eaa024555e4712bbbaf692  ./skins/Narrow/styles/community.applications.css
 3229f106a0dab5771dc4919118b24314  ./skins/Narrow/styles/community.applications.responsive.css
 66290d590ddfa9e71717ef7ad96b092a  ./skins/Narrow/themes/azure.css
 73f73479bc5740d6e2392f306557e132  ./skins/Narrow/themes/black.css
 60bf8c79bd0f101bdeeb6c6a0d9443cb  ./skins/Narrow/themes/gray.css
 ab63d68dc2f1ff531a328649cb9dccf9  ./skins/Narrow/themes/white.css
 edeba1ea53edc3e909e0fee77dcefc95  ./skins/Narrow/skin.html
-c91978d7bb48d19be0135709989e5f20  ./skins/Narrow/skin.php
-f3a5fd254c5e01b198494b683b6e720f  ./skins/Narrow/skin_helpers.php
+cc52dd06cbf046460d1d180e37903968  ./skins/Narrow/skin.php
+3c1cb970d2c3a1d824bb2a5ca141f893  ./skins/Narrow/skin_helpers.php

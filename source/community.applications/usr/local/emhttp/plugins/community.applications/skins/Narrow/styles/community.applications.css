@@ -850,30 +850,6 @@ a.caMenuItem {
   font-weight: bold;
 }
 
-.appIconsPopUp {
-  font-size: 2rem !important;
-  cursor: pointer;
-  padding-left: .5rem;
-  padding-right: .5rem;
-  color: default;
-  display: inline-block;
-  margin-right: 5rem;
-}
-
-td.appIconsPopUp {
-  white-space: normal;
-  height: unset;
-}
-
-.appIconsPopUp:hover {
-  text-decoration: none;
-}
-
-a.appIconsPopUp {
-  text-decoration: none;
-  color: inherit;
-}
-
 .appRepository::before {
   font-family: 'fontAwesome';
   content: '\f2be';
@@ -1411,7 +1387,6 @@ img.displayIcon {
 .initDockerSearch:hover,
 #searchButton:hover,
 .caMenuItem:hover,
-.appIconsPopUp:hover,
 a.ca_repoPopup:hover,
 a.popUpLink:hover,
 .chartMenu:hover,
@@ -2723,4 +2698,17 @@ img.mfp-img {
 
 .ReadmeSection.readmore-js-expanded {
   height: unset !important;
+}
+
+.actionsPopup {
+  margin-bottom: 1rem;
+}
+
+.additionalRequirementsHeader {
+  margin-left: 2rem;
+  margin-top: 1rem;
+}
+
+.modComment {
+  margin-top: 1rem;
 }
