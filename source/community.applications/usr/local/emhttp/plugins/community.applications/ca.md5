@@ -1,4 +1,4 @@
-5e054ca2add2def78bb7db77d16eebb0  ./Apps.page
+c0a3a22b90cc8a755fd4f4b5e7d66ba9  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -7,11 +7,11 @@ e061f1e6119822d943c149c020239d36  ./include/exec.php
 1c5155d461b1704e1da15863566d23d0  ./include/force_update_helpers.php
 ae2062cd3b2883e8074b7d826022da57  ./include/get_content_helpers.php
 e40fd5b981336cac9e2f6b13b7f21f72  ./include/helpers.php
-6a347004b5282f321118de72cd3ac26d  ./include/paths.php
+63ca207a11d8fa2fa9219a035515c27e  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
 a594a4ca7a8bba338e55663a40040e26  ./include/previous_apps_helpers.php
-cda3d505ccee47440ed9e609543e3b39  ./javascript/clickHandlers.js
+b498aafc519c57c338b2db525599e805  ./javascript/clickHandlers.js
 79f2cd8364397b0defbffe431e57e3e5  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js
@@ -32,12 +32,12 @@ f490873cd9259558146e2a3eb2843fd9  ./scripts/notices.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 1340ad737d40cf74c72cd3d76f67ee83  ./scripts/updatePluginSupport.php
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-a6be66a81dba5b1099a4953a1f245fbe  ./skins/Narrow/styles/community.applications.css
+b22afc724de944cabc58dbf1bebd5eee  ./skins/Narrow/styles/community.applications.css
 3229f106a0dab5771dc4919118b24314  ./skins/Narrow/styles/community.applications.responsive.css
 66290d590ddfa9e71717ef7ad96b092a  ./skins/Narrow/themes/azure.css
 73f73479bc5740d6e2392f306557e132  ./skins/Narrow/themes/black.css
 60bf8c79bd0f101bdeeb6c6a0d9443cb  ./skins/Narrow/themes/gray.css
 ab63d68dc2f1ff531a328649cb9dccf9  ./skins/Narrow/themes/white.css
-5b25a159ab4a6be4864df26076b2b2b9  ./skins/Narrow/skin.html
-e2fad28185da5371f6edc45a2b64faf4  ./skins/Narrow/skin.php
-94a6c279292e954d0d266973d78c1e79  ./skins/Narrow/skin_helpers.php
+edeba1ea53edc3e909e0fee77dcefc95  ./skins/Narrow/skin.html
+c91978d7bb48d19be0135709989e5f20  ./skins/Narrow/skin.php
+f3a5fd254c5e01b198494b683b6e720f  ./skins/Narrow/skin_helpers.php

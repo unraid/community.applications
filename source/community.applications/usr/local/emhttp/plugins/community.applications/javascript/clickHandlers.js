@@ -86,16 +86,6 @@ function caInitializeClickHandlers() {
     });
   }
 
-  $("body").on("click", ".long-loading-abort-button", function() {
-    var abortBanner = addBannerWarning(tr("Aborting $.post call.  Issues may result.  Post your debugging information in the Support Forum"));
-    setTimeout(function() {
-      removeBannerWarning(abortBanner);
-    }, 20000);
-    myCloseAlert(true);
-    myCloseSpinner();
-    postCount = 0;
-  });
-
   $(".showMenuButton").on("click", function() { showMenu(); });
   $(".closeMenuButton,.menuOverlay").on("click", function() { closeMenu(); });
   $(".mobileOverlay").on("click", function() { closeMenu(); });

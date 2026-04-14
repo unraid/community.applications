@@ -1,6 +1,12 @@
 /* ==========================================================================
-  Base Styles & Reset
+  1) Base Styles & Reset
   ========================================================================== */
+/* File organization:
+ * 1) Base/typography/layout
+ * 2) Core CA components (cards/buttons/menu/sidebar/settings/moderation)
+ * 3) Legacy and supplemental CA UI blocks
+ * 4) Third-party components (Awesomplete / Magnific Popup)
+ */
 body {
   scrollbar-gutter: stable;
   cursor: default !important;
@@ -35,13 +41,13 @@ body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
   z-index: 0;
 }
 /* Dim all page content except the visible sidebar and its children */
-body:has(.sidenavShow) > :not(.sidebar,.sweet-alert,.dropdown-menu) {
+body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu) {
   opacity: 0.5;
   transition: opacity 250ms ease-in-out;
 }
 
-body:has(.sidenavShow) :is(#menu, .upgrade_notice,#footer),
-body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice,#footer) {
+body:has(.sidenavShow) :is(#menu, .upgrade_notice, #footer),
+body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice, #footer) {
   opacity: 1;
   filter: grayscale(30%) brightness(50%); 
 }
@@ -72,7 +78,7 @@ p {
 }
 
 /* ==========================================================================
-  Typography
+  1.1) Typography
   ========================================================================== */
 a {
   color: var(--a-color);
@@ -99,7 +105,7 @@ a {
 }
 
 /* ==========================================================================
-  Layout & Grid
+  1.2) Layout & Grid
   ========================================================================== */
 .ca_center {
   margin: auto;
@@ -146,10 +152,10 @@ a {
 }
 
 /* ==========================================================================
-  Components
+  2) Core CA Components
   ========================================================================== */
 
-/* Cards & Containers
+/* 2.1) Cards & Containers
   -------------------------------------------------------------------------- */
 .ca_holder,
 .dockerHubHolder {
@@ -181,7 +187,7 @@ a {
   background-color: var(--template-favourite) !important;
 }
 
-/* Home Templates Section */
+/* 2.2) Home Templates Section */
 .ca_homeTemplates {
   display: flex;
   flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
@@ -201,7 +207,7 @@ a {
   margin-bottom: 1rem;
 }
 
-/* Card Elements */
+/* 2.3) Card Elements */
 .ca_applicationName {
   /* Layout */
   width: 25rem;
@@ -227,11 +233,6 @@ a {
 
 .ca_bottomLineSpotLight {
   top: 15rem !important;
-}
-
-.ca_categories {
-  font-size: 1rem;
-  font-style: italic;
 }
 
 .cardCategory {
@@ -298,7 +299,7 @@ a {
   color: var(--ca-warning-color);
 }
 
-/* Buttons & Forms
+/* 2.4) Buttons & Forms
   -------------------------------------------------------------------------- */
 .caButton,
 .popupRepoDescription,
@@ -366,7 +367,7 @@ a.caButton:hover {
   font-size: 1rem;
 }
 
-/* Form Elements */
+/* 2.5) Form Elements */
 input[type="checkbox"] {
   width: 2rem;
   height: 2rem;
@@ -413,20 +414,11 @@ input[type="button"][disabled] {
   cursor: pointer;
 }
 
-/* Menu and Navigation */
-.menuHeader {
-  font-size: 2rem;
-  margin: 1rem 0;
-}
+/* 2.6) Menu and Navigation */
 
-.menuItemsHidden {
-  top: 1.5rem;
-  left: 2rem;
-  padding-right: 1rem;
-  height: auto;
-  display: none;
-}
-.ca_hide,.menuShowing.hideWithMenu,#searchFilter.menuShowing {
+.ca_hide,
+.menuShowing.hideWithMenu,
+#searchFilter.menuShowing {
   display: none;
 
 }
@@ -495,11 +487,9 @@ input[type="button"][disabled] {
 .caMenuDisabled:hover {
   color: inherit !important;
 }
-.caNonselectMenu:hover {
-  color: inherit !important;
-}
-/* Sidebar Navigation */
-.sidebar{
+
+/* 2.7) Sidebar Navigation */
+.sidebar {
   /* Layout */
   top: 0;
   right: 0;
@@ -508,10 +498,9 @@ input[type="button"][disabled] {
   height: 100vh;
   margin-bottom: 10px;
   /* Visual */
- background-color: transparent;
- position: fixed;
- z-index: 1000;
-
+  background-color: transparent;
+  position: fixed;
+  z-index: 1000;
 }
 
 .mobileOverlay {
@@ -598,23 +587,23 @@ input[type="button"][disabled] {
   opacity: 0;
 }
 body:has(.sidenavHide) .sidebar {
-pointer-events: none;
-display: none;
+  pointer-events: none;
+  display: none;
 }
 
-.caChangelog > div:first-child {
-  margin:auto;
-  width:500px;
+.caChangeLog > div:first-child {
+  margin: auto;
+  width: 500px;
 }
 .ca_statistics {
-  height:auto;
-  overflow:scroll; 
-  overflow-x:scroll; 
-  overflow-y:hidden;
-  margin:3rem auto auto auto;
-  width:fit-content;
+  height: auto;
+  overflow: scroll;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  margin: 3rem auto auto auto;
+  width: fit-content;
   background-color: revert;
-} 
+}
 .ca_settingsPanel {
   margin: 3rem auto;
   width: min(96%, 90rem);
@@ -674,14 +663,6 @@ display: none;
 .ca_settingsButtons input[disabled] {
   opacity: 0.45;
   cursor: default;
-}
-
-.ca_settingsSupport {
-  margin-bottom: 1rem;
-}
-
-.ca_settingsSupport a {
-  font-size: 1.3rem;
 }
 
 .ca_statistics > table {
@@ -781,7 +762,11 @@ body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
   margin-left: 2rem;
 }
 
-/* Utility Classes */
+/* ==========================================================================
+  3) Legacy & Supplemental CA Blocks
+  ========================================================================== */
+
+/* 3.1) Utility Classes */
 .ca_multiselect {
   float: right;
   cursor: pointer;
@@ -792,7 +777,7 @@ body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
   cursor: default !important;
 }
 
-/* Icon and Symbol Styles */
+/* 3.2) Icon and Symbol Styles */
 .appDocker,
 .appLanguage,
 .appDriver,
@@ -826,14 +811,8 @@ body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
   content: '\e986';
 }
 
-/* Menu and Navigation */
+/* 3.3) Navigation Lists (legacy/secondary block) */
 ul.caMenu,
-ul.nonselectMenu {
-  list-style-type: none;
-  margin: 0 0 20px 0;
-  padding: 0;
-  font-size: 1.5rem;
-}
 
 li.caMenuItem {
   padding: 0 0 5px 0;
@@ -861,7 +840,7 @@ a.caMenuItem {
   text-align: center;
 }
 
-/* Base link styles */
+/* 3.4) Links, badges, and metadata */
 .additionalRequirements {
   margin-left: 2rem;
 }
@@ -903,7 +882,7 @@ a.appIconsPopUp {
 .betaPopupBackground,
 .upgradePopupBackground,
 .installedPopup {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
   background-color: var(--unraid-66-color);
   top: var(--beta-popup-offset);
   height: 9rem;
@@ -953,6 +932,7 @@ a.appIconsPopUp {
   white-space: nowrap;
 }
 
+/* 3.5) Author/credit metadata */
 .ca_author {
   font-size: 1rem;
   margin-left: 0.75rem;
@@ -961,11 +941,6 @@ a.appIconsPopUp {
 }
 
 a.ca_author {
-  text-decoration: none;
-  color: inherit;
-}
-
-a.ca_categories {
   text-decoration: none;
   color: inherit;
 }
@@ -999,6 +974,7 @@ a.ca_categories {
   vertical-align: middle;
 }
 
+/* 3.6) Icon glyph helpers and card icon assets */
 img.ca_displayIcon {
   height: 8rem;
   width: 8rem;
@@ -1056,18 +1032,8 @@ a.ca_fa-delete {
   font-family: fontAwesome;
 }
 
-.ca_fa-film::before {
-  content: "\f04b";
-  font-family: fontAwesome;
-}
-
 .ca_fa-globe::before {
   content: "\f0ac";
-  font-family: fontAwesome;
-}
-
-.ca_fa-info::before {
-  content: "\f05a";
   font-family: fontAwesome;
 }
 
@@ -1111,11 +1077,6 @@ a.ca_fa-delete {
   font-family: fontAwesome;
 }
 
-.ca_fa-uninstall::before {
-  content: "\e92f";
-  font-family: Unraid;
-}
-
 .ca_fa-update::before {
   content: "\f0ed";
   font-family: fontAwesome;
@@ -1129,11 +1090,6 @@ a.ca_fa-delete {
 .ca_forum::before {
   content: "\f1cd";
   font-family: fontAwesome;
-}
-
-.ca_icon {
-  width: 6.4rem;
-  height: 6.4rem;
 }
 
 .ca_iconArea {
@@ -1166,7 +1122,8 @@ ul.caMenu {
 .ca_popupIconArea {
   height: 15.5rem;
   top: 1rem;
-  position: relative;}
+  position: relative;
+}
 
 .ca_profile::before {
   content: "\f2bb";
@@ -1228,19 +1185,7 @@ ul.caMenu {
 
 .ca_table {
   padding: .5rem 2rem .5rem 0;
-  font-size: 1.5rem;}
-
-.ca_template {
-  color: var(--ca-dark-blue-color);
-  border-radius: 0px 0px 2rem 2rem;
-  display: inline-block;
-  text-align: left;
-  overflow: auto;
-  height: 27rem;
-  width: 36rem;
-  padding-left: .5rem;
-  padding-right: .5rem;
-  background-color: var(--ca-light-bg-color);
+  font-size: 1.5rem;
 }
 
 .ca_templatesDisplay {
@@ -1258,6 +1203,7 @@ ul.caMenu {
   font-family: fontAwesome;
 }
 
+/* 3.7) Changelog, charts, and contextual list UI */
 .changelogMessage {
   font-size: 1rem;
   line-height: 1rem;
@@ -1335,6 +1281,7 @@ li.context {
 }
 
 
+/* 3.8) Misc application state / compatibility helpers */
 li.debugging {
   cursor: pointer;
 }
@@ -1361,6 +1308,7 @@ img.displayIcon {
   display: none;
 }
 
+/* 3.9) Template cards, favourite state, and discoverability */
 .docker::after {
   font-family: Unraid;
   content: '\e90b';
@@ -1397,8 +1345,7 @@ img.displayIcon {
 }
 
 .enabledIcon,
-.homeMore
-{
+.homeMore {
   cursor: pointer;
   color: var(--unraid-66-color) !important;
 }
@@ -1470,7 +1417,7 @@ a.popUpLink:hover,
 .chartMenu:hover,
 li.context:hover,
 .pageNumber:hover,
-.sortIcons:hover  {
+.sortIcons:hover {
   color: var(--unraid-66-color);
 }
 
@@ -1480,34 +1427,35 @@ a.initDockerSearch {
   color: unset;
 }
 
-input[type=checkbox] {
+input[type="checkbox"] {
   width: 2rem;
   height: 2rem;
   margin-left: 0rem;
 }
 
-input[type=button] {
+input[type="button"] {
   background: none;
   font-size: 1.5rem;
 }
 
-input:hover[type=button] {
+input:hover[type="button"] {
   color: var(--unraid-66-color) !important;
   background: none !important;
   background-color: none !important;
 }
 
-input:hover[type=button][disabled] {
+input:hover[type="button"][disabled] {
   background: none !important;
   color: currentColor !important;
   background-color: none !important;
 }
 
-input[type=button][disabled] {
+input[type="button"][disabled] {
   background: none !important;
   background-color: none !important;
 }
 
+/* 3.10) Moderation comments and install status areas */
 .modComment {
   padding: 2rem;
   border: 1px solid;
@@ -1546,9 +1494,6 @@ input[type=button][disabled] {
 .ca_creditTitle {
   font-size: 5rem;
 }
-.ca_creditLogo {
-  margin-top: 2rem;
-}
 
 .multi_installDiv {
   width: 100%;
@@ -1563,6 +1508,7 @@ input[type=button][disabled] {
   margin-top: 0px;
 }
 
+/* 3.11) Corner ribbons, pagination, and popup details */
 .officialCardBackground,
 .LTOfficialCardBackground,
 .spotlightCardBackground,
@@ -1570,7 +1516,7 @@ input[type=button][disabled] {
 .betaCardBackground,
 .greenCardBackground,
 .installedCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
   top: 0px;
   height: 9rem;
   width: 9rem;
@@ -1616,7 +1562,6 @@ input[type=button][disabled] {
   display: inline;
 }
 
-.officialPopupText,
 .LTOfficialPopupText {
   position: absolute;
   transform: rotate(45deg);
@@ -1727,6 +1672,7 @@ img.popupAuthorIcon {
   margin-bottom: 2rem;
 }
 
+/* 3.12) Popup detail content area */
 body:has(.sidenavShow) .popupCloseArea {
   position: fixed;
   padding-top: 1rem;
@@ -1918,6 +1864,7 @@ a.popUpLink {
 #displayBox {
   padding-top: 0;
 }
+/* 3.13) Search area, sort controls, and spotlight section */
 .searchAreaHolder {
   top: var(--search-area-top);
   position: sticky;
@@ -1972,14 +1919,16 @@ a.popUpLink {
   font-family: fontAwesome;
   font-size: 2rem;
 }
-.showMenuButton, .closeMenuButton { 
+.showMenuButton,
+.closeMenuButton {
   left: 2rem;
   top: 2rem;
   display: inline-block;
   cursor: pointer;
   margin-right: 1rem;
 }
-.showMenuButton:hover, .closeMenuButton:hover {
+.showMenuButton:hover,
+.closeMenuButton:hover {
   color: var(--unraid-66-color);
 }
 
@@ -2079,6 +2028,7 @@ a.popUpLink {
   text-decoration: none;
 }
 
+/* 3.14) Bottom navigation strip and warning actions */
 ul.subCategory {
   list-style-type: none;
   margin-left: 2rem;
@@ -2135,7 +2085,7 @@ ul.subCategory {
 }
 
 /* ==========================================================================
-  Third Party Components
+  4) Third Party Components
   ========================================================================== */
 
 /* Awesomplete Autocomplete Component */
@@ -2745,4 +2695,32 @@ img.mfp-img {
   color: var(--unraid-66-color);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   transform: translate(-50%, -50%) scale(1.0);
+}
+
+.ReadmeSection .inline_help {
+  display: block !important;
+}
+
+.ReadmeSection table {
+  background-color: revert !important;
+}
+
+.ReadmeSection table td {
+  white-space: normal;
+}
+
+.ReadmeSection img {
+  max-width: stretch;
+}
+
+.ReadmeSectionLabel {
+  margin-bottom: 1.5rem;
+}
+
+.ReadmeSection code {
+  white-space: normal;
+}
+
+.ReadmeSection.readmore-js-expanded {
+  height: unset !important;
 }

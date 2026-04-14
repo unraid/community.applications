@@ -177,10 +177,6 @@ function caNormalizeRequiresField($requires) {
 ##################################################################
 function caBuildSupportContext(array $template, array $allRepositories, array $caSettings) {
   $supportContext = [];
-
-  if ($template['ReadMe']) {
-    $supportContext[] = ["icon"=>"ca_fa-readme","link"=>$template['ReadMe'],"text"=>tr("Read Me First")];
-  }
   if ($template['Project']) {
     $supportContext[] = ["icon"=>"ca_fa-project","link"=>$template['Project'],"text"=>tr("Project")];
   }
@@ -1241,10 +1237,6 @@ function caResolveAuthor(array $template, string $repoName): string {
 ##################################################################
 function caBuildSupportContextForApplication(array $template): array {
   $context = [];
-
-  if (!empty($template['ReadMe'])) {
-    $context[] = ["icon" => "ca_fa-readme", "link" => $template['ReadMe'], "text" => tr("Read Me First")];
-  }
   if (!empty($template['Project'])) {
     $context[] = ["icon" => "ca_fa-project", "link" => $template['Project'], "text" => tr("Project")];
   }
@@ -1263,6 +1255,100 @@ function caBuildSupportContextForApplication(array $template): array {
   }
 
   return $context;
+}
+
+######################################################################
+# Build an inline ReadMe section placeholder for GitHub README links #
+######################################################################
+function caBuildReadmeSectionDiv(array $template): string {
+  $readmeUrl = trim($template['ReadMe'] ?? "");
+  if ($readmeUrl === "") {
+    return "";
+  }
+
+  $urlParts = @parse_url($readmeUrl);
+  if (!is_array($urlParts)) {
+    return "";
+  }
+
+  $host = strtolower($urlParts['host'] ?? "");
+  $fragment = $urlParts['fragment'] ?? "";
+  $path = $urlParts['path'] ?? "";
+  $pathParts = array_values(array_filter(explode("/", trim($path, "/"))));
+  $hasReadmeFragment = (strcasecmp($fragment, "README") === 0);
+  $hasReadmeFile = preg_match("/\/README\.md$/i", $path);
+  $isRepoRootPath = (count($pathParts) === 2);
+
+  if (!in_array($host, ["github.com", "www.github.com"], true) || (!$hasReadmeFragment && !$hasReadmeFile && !$isRepoRootPath)) {
+    return "";
+  }
+
+  $org = $pathParts[0] ?? "";
+  $repo = $pathParts[1] ?? "";
+  if ($org === "" || $repo === "") {
+    return "";
+  }
+
+  $rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/README.md";
+  $rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/README.md";
+  $tempReadmePath = CA_PATHS['tempFiles']."/readme_".md5("{$org}/{$repo}").".md";
+
+  $readmeContents = @download_url($rawMainUrl, $tempReadmePath);
+  if ($readmeContents === false) {
+    $readmeContents = @download_url($rawMasterUrl, $tempReadmePath);
+  }
+  @unlink($tempReadmePath);
+  if ($readmeContents === false) {
+    return "";
+  }
+
+  $readmeContents = strip_tags((string)$readmeContents);
+  $readmeContents = preg_replace_callback(
+    "/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
+    static function ($matches) {
+      $url = $matches[1];
+      return "[{$url}]({$url})";
+    },
+    $readmeContents
+  );
+  $readmeContents = Markdown($readmeContents);
+  $readmeContents = strip_tags($readmeContents, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
+  $readmeContents = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
+  $readmeContents = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
+  $readmeContents = preg_replace_callback(
+    "/<(a)\\b([^>]*)>/i",
+    static function ($matches) {
+      $attrs = $matches[2];
+      if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
+        $href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
+        if (!preg_match("/^https?:\\/\\//i", $href)) {
+          return "<a>";
+        }
+        $safeHref = htmlspecialchars($href, ENT_QUOTES);
+        return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
+      }
+      return "<a>";
+    },
+    $readmeContents
+  );
+  $readmeContents = preg_replace_callback(
+    "/<(img)\\b([^>]*)>/i",
+    static function ($matches) {
+      $attrs = $matches[2];
+      if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
+        $src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
+        if (!preg_match("/^https?:\\/\\//i", $src)) {
+          return "";
+        }
+        $safeSrc = htmlspecialchars($src, ENT_QUOTES);
+        return "<img src='{$safeSrc}' alt='README image'>";
+      }
+      return "";
+    },
+    $readmeContents
+  );
+  $safeReadmeUrl = htmlspecialchars($readmeUrl, ENT_QUOTES);
+  return "<div class='ReadmeSection popupDescription popup_readmore'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div>{$readmeContents}</div>";
 }
 
 #######################################################################
@@ -1366,7 +1452,7 @@ function caBuildBottomLineSection(
       <div class='ca_holder {$class} {$popupType} {$holderClass}' data-apppath='".($template['Path'] ?? "")."' data-appname='{$name}' data-repository='".htmlentities($repoName, ENT_QUOTES)."' {$dataPluginURL}>";
     $card .= "
       <div class='ca_bottomLine {$bottomClass}'>
-      <div class='caButton infoButton {$cardClass}'>".tr("Info")."</div>
+      <div class='caButton infoButton {$cardClass}'>".tr("Details")."</div>
     ";
   }
 

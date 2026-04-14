@@ -539,9 +539,7 @@ function changePage(pageNumber) {
 }
 
 function myCloseAlert(force=false) {
-  if ( data.section == "AppStore" && initialStartup && ! force ) {
-    return;
-  }
+
   swal.close();
   $("div.spinner, .sweet-alert").hide();
   enableSearch();
@@ -1112,7 +1110,11 @@ function uninstallDocker(application,humanName) {
     if ( isConfirm ) {
       myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
       post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
-        myCloseAlert();
+        if ( $(".selectedMenu").length == 0 ) {
+          appStore();
+        } else {
+          myCloseAlert();
+        }
         enableSearch();
         if ( $(".selectedMenu").data("category") == "action_centre" ) {
           post({action:'getPortsInUse'},function(data) {
@@ -1592,11 +1594,6 @@ function postMultiDockerInstall() {
   window.location.reload();
 }
 function updateDisplay(content) {
-  // This has to be first.  If this doesn't happen, performance gets worse the more you click around
-  $(".supportButtonCardContext,.actionsButtonContext").each(function() {
-    var ID = $(this).attr("id");
-    context.destroy("#"+ID);
-  });
   $("#templates_content").html(content);
   if ( $(".multi_installDiv").is(":visible") ) {
     $(".navigationSection").addClass("navigationSectionShift");
@@ -1604,24 +1601,6 @@ function updateDisplay(content) {
     $(".navigationSection").removeClass("navigationSectionShift");
   }
   enableSearch();
-
-  context.init({preventDoubleContext:false,left:true,above:'auto'});
-  $('.supportButtonCardContext').each(function() {
-    var supportContext = $(this).data("context");
-    if (supportContext) {
-      var ID = $(this).attr("id");
-      setupContext(supportContext,"#"+ID);
-    }
-  });
-
-  $('.actionsButtonContext').each(function() {
-    var actionsContext = $(this).data("context");
-    if (actionsContext) {
-      var ID = $(this).attr("id");
-      setupContext(actionsContext,"#"+ID);
-    }
-  });
-
 
   $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
 

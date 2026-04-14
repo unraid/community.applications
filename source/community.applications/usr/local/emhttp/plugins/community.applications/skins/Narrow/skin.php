@@ -11,6 +11,58 @@
 
 require_once __DIR__.'/skin_helpers.php';
 
+##########################################################
+# Remove orphan and duplicate dividers from action arrays #
+##########################################################
+function caCompactPopupActionContext(array $actionsContext): array {
+  $compacted = [];
+  foreach ($actionsContext as $context) {
+    if (!empty($context['divider'])) {
+      if (empty($compacted) || !empty($compacted[count($compacted) - 1]['divider'])) {
+        continue;
+      }
+    }
+    $compacted[] = $context;
+  }
+
+  while (!empty($compacted) && !empty($compacted[count($compacted) - 1]['divider'])) {
+    array_pop($compacted);
+  }
+
+  return array_values($compacted);
+}
+
+###############################################################################
+# Remove popup shortcut actions from context and expose preferred quick action #
+###############################################################################
+function caNormalizePopupActions(array $actionsContext): array {
+  $popupShortcutContext = [];
+  $filteredContext = array_values(array_filter($actionsContext, static function ($context) use (&$popupShortcutContext) {
+    $text = trim(strip_tags((string)($context['text'] ?? "")));
+    if (in_array($text, [tr("WebUI"), tr("Settings"), "WebUI", "Settings"], true)) {
+      $popupShortcutContext[] = $context;
+      return false;
+    }
+
+    return true;
+  }));
+
+  $filteredContext = caCompactPopupActionContext($filteredContext);
+  $popupShortcut = null;
+  foreach ($popupShortcutContext as $context) {
+    $text = trim(strip_tags((string)($context['text'] ?? "")));
+    if ($text === tr("WebUI") || $text === "WebUI") {
+      $popupShortcut = $context;
+      break;
+    }
+  }
+  if (!$popupShortcut && !empty($popupShortcutContext)) {
+    $popupShortcut = $popupShortcutContext[0];
+  }
+
+  return [$filteredContext, $popupShortcut];
+}
+
 ######################################
 # Generate the display for the popup #
 ######################################
@@ -38,6 +90,11 @@ function displayPopup($template) {
 
   $actionsContext = is_array($actionsContext ?? null) ? $actionsContext : [];
   $supportContext = is_array($supportContext ?? null) ? $supportContext : [];
+  $popupShortcut = is_array($popupShortcut ?? null) ? $popupShortcut : null;
+  [$actionsContext, $normalizedPopupShortcut] = caNormalizePopupActions($actionsContext);
+  if (!$popupShortcut) {
+    $popupShortcut = $normalizedPopupShortcut;
+  }
   $NoPin = $NoPin ?? false;
   $Blacklist = $Blacklist ?? false;
   $LanguagePack = $LanguagePack ?? "";
@@ -290,6 +347,12 @@ function displayPopup($template) {
   if (! $Plugin && ! $Language) {
     $statsNote = "<div><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
   }
+  $readmeSection = caBuildReadmeSectionDiv($template);
+  $readmeButton = "";
+  if ($readmeSection === "" && !empty($template['ReadMe'])) {
+    $safeReadmeUrl = htmlspecialchars($template['ReadMe'], ENT_QUOTES);
+    $readmeButton = "<div class='caButton actionsPopup'><a href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'><span class='ca_fa-readme'> ".tr("Read Me First")."</span></a></div>";
+  }
 
   ob_start();
   ?>
@@ -311,6 +374,11 @@ function displayPopup($template) {
             <?php endif; ?>
           <?php endif; ?>
 
+          <?php if (!empty($popupShortcut['action'])): ?>
+            <div class='caButton actionsPopup'><span onclick="<?= $popupShortcut['action'] ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
+          <?php endif; ?>
+          <?= $readmeButton ?>
+
           <?php if (count($supportContext) === 1): ?>
             <div class='caButton supportPopup'><a href='<?= $supportContext[0]['link'] ?>' target='_blank'><span class='<?= $supportContext[0]['icon'] ?>'> <?= $supportContext[0]['text'] ?></span></a></div>
           <?php elseif ($supportContext): ?>
@@ -328,6 +396,7 @@ function displayPopup($template) {
       </div>
       <div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
       <?= $RequiresMessage ?>
+      <?= $readmeSection ?>
       <?= $ModeratorCommentBlock ?>
       <?= $RecommendedBlock ?>
       <?= $mediaBlock ?>
@@ -653,6 +722,8 @@ function getPopupDescriptionSkin($appNumber) {
   if ($template['Language']) {
     $actionsContext = caBuildLanguageActions($template, $countryCode, $actionsContext);
   }
+  [$actionsContext, $popupShortcut] = caNormalizePopupActions($actionsContext);
+  $template['popupShortcut'] = $popupShortcut;
 
   $supportContext = caBuildSupportContext($template, $allRepositories, $caSettings);
 
@@ -826,8 +897,6 @@ function displayCard($template) {
 
   [$cardStart, $card, $backgroundClickable] = caBuildBottomLineSection($template, $cardClass, $popupType, $holderClass, $class, $name, $repoName);
 
-  $card .= caRenderSupportButtons($supportContext, $name, (string) $id);
-  $card .= caRenderActionsButtons($actionsContext, $template['PluginURL'] ?? "", $template['LanguagePack'] ?? "", $name, (string) $id);
   $card .= "<span class='{$appType}' title='".htmlentities($typeTitle)."'></span>";
   $card .= caRenderFavouriteSpan($template, $repoName, !empty($template['RepositoryTemplate']));
   $card .= caRenderPinnedSpan($template);

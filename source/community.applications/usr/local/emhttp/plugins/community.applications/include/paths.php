@@ -49,7 +49,7 @@ define("CA_PATHS",[
   'startupDisplayed'                    => "$tempFiles/startupDisplayed",
   'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed.json",
   'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
-  'humanReadable'                       => false,     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
+  'humanReadable'                       => true,     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
   'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
   'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
   'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",
