@@ -18,7 +18,9 @@ function getGlobals() {
   clearstatcache();
   if ( is_file(CA_PATHS['community-templates-info']) ) {
     if ( ! isset($GLOBALS['templates']) ) {
+      $start = microtime(true);
       $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
+      debug("getGlobals: ".microtime(true) - $start);
     }
   } else {
     $GLOBALS['templates'] = [];
@@ -187,7 +189,7 @@ function caIsDockerRunning() {
 
 // This function writes a serialized file of an array.  If the filename is CA_PATHS['community-templates-info'], then it will also write a JSON file to CA_PATHS['community-templates-info-old']
 function writeJsonFile($filename,$jsonArray) {
-  debug($_POST['action']??'Unknown'." - Write JSON File $filename");
+  debug(($_POST['action']??'Unknown')." - Write JSON File $filename");
   if ( CA_PATHS['humanReadable'] ) {
     $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
   } else {
@@ -1006,8 +1008,8 @@ function write_ini_file($file,$array) {
 # Gets all the information about what's installed #
 ###################################################
 function getAllInfo($force=false) {
-  global $caSettings, $DockerTemplates, $DockerClient;
-
+  global $DockerTemplates, $DockerClient;
+  
   $containers = readJsonFile(CA_PATHS['info']);
 
   if ( $force || ! $containers || empty($containers) ) {
