@@ -39,7 +39,8 @@ define("CA_PATHS",[
   'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
   'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",
   'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",
-  'community-templates-info'            => "$tempFiles/templates_new.json",                     /* json file containing all of the templates */
+  'community-templates-info'            => "$tempFiles/templates_new.json",   
+  'community-templates-info-full'       => "$tempFiles/templates_new_full.json", /* json file containing all of the templates */
   'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
   'haveTemplates'												=> "/tmp/ca_haveTemplates",
   'gettingTemplates'										=> "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
@@ -49,7 +50,7 @@ define("CA_PATHS",[
   'startupDisplayed'                    => "$tempFiles/startupDisplayed",
   'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed.json",
   'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
-  'humanReadable'                       => false,     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
+  'humanReadable'                       => true,     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
   'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
   'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
   'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",

@@ -344,6 +344,8 @@ function DownloadApplicationFeed() {
 
     $o = fixTemplates($o);
     if ( ! $o ) continue;
+    
+    $o['PortsUsed'] = portsUsed($o);
 
     if ( is_array($o['trends']??null) && count($o['trends']) > 1 ) {
       $o['trendDelta'] = round(end($o['trends']) - $o['trends'][0],4);
@@ -435,7 +437,7 @@ function DownloadApplicationFeed() {
   else
     @unlink(CA_PATHS['invalidXML_txt']);
 
-  writeGlobals($myTemplates);
+  $GLOBALS['templates'] = $myTemplates;
   writeJsonFile(CA_PATHS['categoryList'],$ApplicationFeed['categories']);
 
   foreach ($ApplicationFeed['repositories'] as &$repo) {
@@ -1104,7 +1106,7 @@ function force_update() {
   }
   touch(CA_PATHS['gettingTemplates']);
 
-  getGlobals(true);
+  getFullGlobals();
 
   if (!empty(CA_PATHS['localONLY'])) {
     ForceUpdateHelpers::resetTemplatesCache(true);
@@ -1134,6 +1136,7 @@ function force_update() {
   @unlink(CA_PATHS['gettingTemplates']);
   $script = ForceUpdateHelpers::buildUpdateScript($caSettings);
   
+  writeGlobals($GLOBALS['templates']);
   postReturn(['status' => "ok", 'script' => $script]);
 }
 
@@ -1549,7 +1552,7 @@ function getRepoDescription() {
 function createXML() {
   global $caSettings;
 
-  getGlobals();
+  getFullGlobals();
 
   $dockerSettings = parse_ini_file(CA_PATHS['dockerSettings']);
   $xmlFile = getPost("xml","");
@@ -1570,7 +1573,7 @@ function createXML() {
       return;
     }
     $template = $templates[$index];
-
+    
     download_url(CA_PATHS['RepositoryAssets'].str_replace("/","___",explode(":",$template['Repository'])[0]));
 
     if ( $template['OriginalOverview'] ?? false )

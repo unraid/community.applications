@@ -18,28 +18,55 @@ function getGlobals() {
   clearstatcache();
   if ( is_file(CA_PATHS['community-templates-info']) ) {
     if ( ! isset($GLOBALS['templates']) ) {
-      $start = microtime(true);
       $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
-      debug("getGlobals: ".microtime(true) - $start);
     }
   } else {
     $GLOBALS['templates'] = [];
   }
 }
 
+##########################################################
+# Get the full global templates array from the JSON file #
+########################################################## 
+function getFullGlobals() {
+  $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info-full']);
+}
+
 #####################################################
 # Write the global templates array to the JSON file #
 #####################################################
-function writeGlobals(&$templates) {
+function writeGlobals($templates) {
   if ( ! is_array($templates) || empty($templates) ) {
     @unlink(CA_PATHS['community-templates-info']);
     unset($GLOBALS['templates']);
     return;
   }
-  writeJsonFile(CA_PATHS['community-templates-info'],$templates);
-  $GLOBALS['templates'] = $templates;
+  $smallTemplates = duplicateArrayWithoutKeys($templates, ['Config','Network','MyIP','Shell','ExtraParams','PostArgs','CPUset','TailscaleEnabled','TailscaleIsExitNode','TailscaleDParams','TailscaleParams','TailscaleStateDir','TailscaleUserspaceNetworking']);
+  writeJsonFile(CA_PATHS['community-templates-info'],$smallTemplates);
+  writeJsonFile(CA_PATHS['community-templates-info-full'],$templates);
+  $GLOBALS['templates'] = $smallTemplates;
 }
 
+function duplicateArrayWithoutKeys($source, $keysToRemove = []): array {
+  $copy = [];
+  foreach ($source as $index => $item) {
+    // stamp index on the original
+    if (is_array($item)) {
+      $source[$index]['ArrayIndex'] = $index;
+    }
+    if (!is_array($item)) {
+      $copy[$index] = $item;
+      continue;
+    }
+    $row = $item;
+    foreach ($keysToRemove as $key) {
+      unset($row[$key]);
+    }
+    $row['ArrayIndex'] = $index;
+    $copy[$index] = $row;
+  }
+  return $copy;
+}
 ########################################
 # Sanitize output from plugin function #
 ########################################
@@ -681,8 +708,6 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 function moderateTemplates() {
   global $caSettings;
 
-  getGlobals();
-
   $templates = &$GLOBALS['templates'];
 
   if ( ! $templates ) return;
@@ -700,8 +725,9 @@ function moderateTemplates() {
     $template['ModeratorComment'] = $template['CaComment'] ?? ($template['ModeratorComment']??null);
     $o[] = $template;
   }
-  writeGlobals($o);
   pluginDupe();
+  $GLOBALS['templates'] = $o;
+
 }
 #######################################################
 # Function to check for a valid URL                   #
@@ -897,7 +923,7 @@ function formatTags($leadTemplate,$rename="false") {
     return "<tr>"
       . "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
       . "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$label</a></td>"
-      . "<td class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$description</td>"
+      . "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$description</a></td>"
       . "</tr>";
   };
 
@@ -1061,6 +1087,7 @@ function debug($str) {
 # Gets the default ports in a template #
 ########################################
 function portsUsed($template) {
+
   if ( ! is_array($template) ) {
     return json_encode([]);
   }
