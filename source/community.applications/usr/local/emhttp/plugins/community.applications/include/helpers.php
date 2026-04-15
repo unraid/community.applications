@@ -15,7 +15,7 @@ require_once __DIR__ . "/paths.php";
 # Populate $GLOBALS['templates'] if it's not already populated #
 ###############################################################
 function getGlobals() {
-
+  clearstatcache();
   if ( is_file(CA_PATHS['community-templates-info']) ) {
     if ( ! isset($GLOBALS['templates']) ) {
       $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
@@ -23,6 +23,19 @@ function getGlobals() {
   } else {
     $GLOBALS['templates'] = [];
   }
+}
+
+#####################################################
+# Write the global templates array to the JSON file #
+#####################################################
+function writeGlobals(&$templates) {
+  if ( ! is_array($templates) || empty($templates) ) {
+    @unlink(CA_PATHS['community-templates-info']);
+    unset($GLOBALS['templates']);
+    return;
+  }
+  writeJsonFile(CA_PATHS['community-templates-info'],$templates);
+  $GLOBALS['templates'] = $templates;
 }
 
 ########################################
@@ -685,8 +698,7 @@ function moderateTemplates() {
     $template['ModeratorComment'] = $template['CaComment'] ?? ($template['ModeratorComment']??null);
     $o[] = $template;
   }
-  writeJsonFile(CA_PATHS['community-templates-info'],$o);
-  $GLOBALS['templates'] = $o;
+  writeGlobals($o);
   pluginDupe();
 }
 #######################################################

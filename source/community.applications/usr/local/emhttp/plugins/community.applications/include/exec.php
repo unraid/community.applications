@@ -67,7 +67,6 @@ if ( !is_dir(CA_PATHS['templates-community']) ) {
 
 debug("POST CALLED ({$_POST['action']})\n".print_r($_POST,true));
 
-
 $sortOrder = readJsonFile(CA_PATHS['sortOrder']);
 if ( ! $sortOrder ) {
   $sortOrder['sortBy'] = "Name";
@@ -436,8 +435,7 @@ function DownloadApplicationFeed() {
   else
     @unlink(CA_PATHS['invalidXML_txt']);
 
-  writeJsonFile(CA_PATHS['community-templates-info'],$myTemplates);
-  $GLOBALS['templates'] = $myTemplates;
+  writeGlobals($myTemplates);
   writeJsonFile(CA_PATHS['categoryList'],$ApplicationFeed['categories']);
 
   foreach ($ApplicationFeed['repositories'] as &$repo) {
@@ -646,49 +644,47 @@ function updatePluginSupport($templates) {
   dropAttributeCache();
 }
 
-function getConvertedTemplates() {
+// function getConvertedTemplates() {
 
-  getGlobals();
-# Start by removing any pre-existing private (converted templates)
-  $templates = &$GLOBALS['templates'];
+//   getGlobals();
+// # Start by removing any pre-existing private (converted templates)
+//   $templates = &$GLOBALS['templates'];
 
-  if ( empty($templates) ) return false;
+//   if ( empty($templates) ) return false;
 
-  $myTemplates = [];
-  foreach ($templates as $template) {
-    if ( ! ($template['Private']??null) )
-      $myTemplates[] = $template;
-  }
-  $appCount = count($myTemplates);
-  $i = $appCount;
+//   if ( ! is_dir(CA_PATHS['convertedTemplates']) ) {
+//     return;
+//   }
 
-  if ( ! is_dir(CA_PATHS['convertedTemplates']) ) {
-    writeJsonFile(CA_PATHS['community-templates-info'],$myTemplates);
-    $GLOBALS['templates'] = $myTemplates;
-    return;
-  }
+//   $myTemplates = [];
+//   foreach ($templates as $template) {
+//     if ( ! ($template['Private']??null) )
+//       $myTemplates[] = $template;
+//   }
+//   $appCount = count($myTemplates);
+//   $i = $appCount;
 
-  $privateTemplates = glob(CA_PATHS['convertedTemplates']."*/*.xml");
-  foreach ($privateTemplates as $templateXML) {
-    $o = addMissingVars(readXmlFile($templateXML));
-    if ( ! $o['Repository'] ) continue;
+//   $privateTemplates = glob(CA_PATHS['convertedTemplates']."*/*.xml");
+//   foreach ($privateTemplates as $templateXML) {
+//     $o = addMissingVars(readXmlFile($templateXML));
+//     if ( ! $o['Repository'] ) continue;
 
-    $o['Private']      = true;
-    $o['RepoName']     = basename(pathinfo($templateXML,PATHINFO_DIRNAME))." Repository";
-    $o['ID']           = $i;
-    $o['Displayable']  = true;
-    $o['Date']         = ( $o['Date'] ) ? strtotime( $o['Date'] ) : 0;
-    $o['SortAuthor']   = $o['Author'];
-    $o['Compatible']   = versionCheck($o);
-    $o['Description']  = $o['Description'] ?: $o['Overview'];
-    $o['CardDescription'] = strip_tags(trim(markdown($o['Description'])));
-    $o = fixTemplates($o);
-    $myTemplates[$i]  = $o;
-    $i = ++$i;
-  }
-  writeJsonFile(CA_PATHS['community-templates-info'],$myTemplates);
-  $GLOBALS['templates'] = $myTemplates;
-}
+//     $o['Private']      = true;
+//     $o['RepoName']     = basename(pathinfo($templateXML,PATHINFO_DIRNAME))." Repository";
+//     $o['ID']           = $i;
+//     $o['Displayable']  = true;
+//     $o['Date']         = ( $o['Date'] ) ? strtotime( $o['Date'] ) : 0;
+//     $o['SortAuthor']   = $o['Author'];
+//     $o['Compatible']   = versionCheck($o);
+//     $o['Description']  = $o['Description'] ?: $o['Overview'];
+//     $o['CardDescription'] = strip_tags(trim(markdown($o['Description'])));
+//     $o = fixTemplates($o);
+//     $myTemplates[$i]  = $o;
+//     $i = ++$i;
+//   }
+//   writeJsonFile(CA_PATHS['community-templates-info'],$myTemplates);
+//   $GLOBALS['templates'] = $myTemplates;
+// }
 
 #######################################
 # Builds and returns debugging zip URL #
@@ -1088,6 +1084,7 @@ function get_content() {
   postReturn($o);
 }
 function force_update_skip() {
+  clearstatcache();
   if ( ! is_file(CA_PATHS['gettingTemplates']) && is_file(CA_PATHS['community-templates-info']) ) {
     postReturn(['status' => "ok"]);
     return;
@@ -1131,7 +1128,7 @@ function force_update() {
     }
   }
 
-  getConvertedTemplates();
+  //getConvertedTemplates();
   moderateTemplates();
   touch(CA_PATHS['haveTemplates']);
   @unlink(CA_PATHS['gettingTemplates']);

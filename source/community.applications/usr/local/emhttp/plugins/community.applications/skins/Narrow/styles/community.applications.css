@@ -117,12 +117,6 @@ a {
   top: 0rem !important;
 }
 
-.invisible {
-  opacity: 0;
-  pointer-events: none; 
-  visibility: hidden;
-}
-
 .ca_href {
   cursor: pointer;
 }

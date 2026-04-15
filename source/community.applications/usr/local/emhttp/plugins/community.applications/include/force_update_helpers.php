@@ -39,6 +39,7 @@ class ForceUpdateHelpers {
   }
 
   public static function templatesAvailable(): bool {
+    clearstatcache();
     return file_exists(CA_PATHS['community-templates-info']) && !empty($GLOBALS['templates']);
   }
 

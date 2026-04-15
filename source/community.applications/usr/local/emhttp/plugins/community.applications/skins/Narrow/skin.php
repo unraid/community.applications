@@ -487,24 +487,6 @@ function displayPopup($template) {
       <?= $chartBlock ?>
       <?= $changeLogBlock ?>
       <?= $moderationBlock ?>
-      <?php /* Don't show the flags in the popup - being switched to badges and they don't resize due to the refactors
-      if ($UpdateAvailable) {
-        echo "
-          <div class='upgradePopupBackground'>
-          <div class='upgradePopupText ca_center'>".tr("UPDATED")."</div></div>
-        ";
-      } elseif ($Beta) {
-        echo "
-          <div class='betaPopupBackground'>
-          <div class='betaPopupText ca_center'>".tr("BETA")."</div></div>
-        ";
-      } elseif ($Installed) {
-        echo "
-          <div class='installedPopup'>
-          <div class='installedPopupText ca_center'>".tr("INSTALLED")."</div></div>
-        ";
-      }
-      */ ?>
     </div>
   </div>
   </div>
@@ -835,8 +817,6 @@ function getRepoDescriptionSkin($repository) {
 
   $seeAllAppsLabel = tr("See All Apps");
   $favouriteLabel = tr("Favourite");
-  $closeLabel = tr("CLOSE");
-  $backLabel = tr("BACK");
   $repoBio = strip_tags($repoBio);
 
   $popupContent = "

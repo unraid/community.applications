@@ -65,7 +65,7 @@ define("CA_PATHS",[
   'lastUpdated'                         => "$tempFiles/lastUpdated.json",
   'lastUpdated-old'                     => "$tempFiles/lastUpdated-old.json",
   'addConverted'                        => "$tempFiles/TrippingTheRift",                    /* flag to indicate a rescan needed since a dockerHub container was added */
-  'convertedTemplates'                  => "$flashDrive/private/",                        /* path to private repositories on boot device */
+  //'convertedTemplates'                  => "$flashDrive/private/",                        /* path to private repositories on boot device */
   'moderationURL'                       => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Moderation.json",
   'moderation'                          => "$tempFiles/moderation.json",                    /* json file that has all of the moderation */
   'unRaidVersion'                       => "/etc/unraid-version",

@@ -62,7 +62,7 @@ class GetContentHelpers {
   public static function handleHomeStartupDisplay(array &$file, $maxHomeApps) {
     global $caSettings;
 
-    getConvertedTemplates();  // Only scan for private XMLs when going HOME
+   // getConvertedTemplates();  // Only scan for private XMLs when going HOME
 
     ca_file_put_contents(CA_PATHS['startupDisplayed'],"startup");
 
