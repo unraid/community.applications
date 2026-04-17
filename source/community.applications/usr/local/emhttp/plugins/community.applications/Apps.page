@@ -2241,7 +2241,7 @@ function showSidebarApp(apppath,appname) {
         closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
         type:'image',
-        removalDelay: 300,
+        removalDelay: 100,
         mainClass: 'mfp-fade',
         gallery: true,
         zoom: {
@@ -2250,12 +2250,12 @@ function showSidebarApp(apppath,appname) {
           easing: 'ease-in-out'
         },
         callbacks: {
-          open: function() {
+          beforeOpen: function() {
             event.stopPropagation();
             closeSidebar();
           },
-          close: function() {
-            setTimeout(function() {showSidebarApp(data.sidebarapppath,data.sidebarappname);},250);
+          afterClose: function() {
+            showSidebarApp(data.sidebarapppath,data.sidebarappname);
           }
         }
       });
@@ -2316,7 +2316,7 @@ function showRepoPopup(repository) {
       type:'image',
       closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
       closeOnContentClick: true,
-      removalDelay: 300,
+      removalDelay: 100,
       mainClass: 'mfp-fade',
       zoom: {
         enabled: true,
@@ -2324,11 +2324,11 @@ function showRepoPopup(repository) {
         easing: 'ease-in-out'
       },
       callbacks: {
-        open: function() {
+        beforeOpen: function() {
           event.stopPropagation();
           closeSidebar();
         },
-        close: function() {
+        afterClose: function() {
           $('body').removeClass("mfp-zoom-out-cur");
           $(".sidebar").show();
           $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
