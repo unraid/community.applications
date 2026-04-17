@@ -46,7 +46,7 @@ $caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*"
 $caSettings['dynamixTheme']  = $dynamixSettings['theme'];
 
 $caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 12; // Handle possible corruption on file
-if ( $caSettings['maxPerPage'] < 12 ) $caSettings['maxPerPage'] = 12;
+if ( $caSettings['maxPerPage'] < 6 ) $caSettings['maxPerPage'] = 12;
 
 if ( ! is_file(CA_PATHS['warningAccepted']) )
   $caSettings['NoInstalls'] = true;
@@ -985,7 +985,7 @@ function get_content() {
   $mobileDevice = filter_var(getPost("mobileDevice",false),FILTER_VALIDATE_BOOLEAN);
 
   if ( $mobileDevice ) {
-    $caSettings['maxPerPage'] = 12;
+    $caSettings['maxPerPage'] = 6;
   }
   $maxHomeApps = getPost("maxHomeApps",12);
 
@@ -1426,11 +1426,10 @@ function statistics() {
   else
     @unlink(CA_PATHS['fixedTemplates_txt']);
 
-  if ( is_file(CA_PATHS['lastUpdated-old']) )
-    $appFeedTime = readJsonFile(CA_PATHS['lastUpdated-old']);
-
+  $appFeedTime = is_file(CA_PATHS['lastUpdated-old']) ? readJsonFile(CA_PATHS['lastUpdated-old']) : ['last_updated_timestamp' => 1];
   $updateTime = tr(date("F",$appFeedTime['last_updated_timestamp']),0).date(" d, Y @ g:i a",$appFeedTime['last_updated_timestamp']);
   $defaultArray = ['caFixed' => 0,'totalApplications' => 0, 'repository' => 0, 'docker' => 0, 'plugin' => 0, 'invalidXML' => 0, 'blacklist' => 0, 'totalIncompatible' =>0, 'totalDeprecated' => 0, 'totalModeration' => 0, 'private' => 0, 'NoSupport' => 0];
+  
   $statistics = array_merge($defaultArray,$statistics);
 
   foreach ($statistics as &$stat) {

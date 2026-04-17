@@ -51,6 +51,10 @@ body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice, #footer) {
   opacity: 1;
   filter: grayscale(30%) brightness(50%); 
 }
+.showSweetAlert.visible {
+  opacity: revert !important;
+}
+
 .subCategory ul {
   padding-left: 20px;
 }

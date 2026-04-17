@@ -45,6 +45,7 @@ exec("rm $docroot/CA-Logging*.zip");
 $diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
 
 switch ($caSettings['maxPerPage']) {
+  case 6:
   case 12:
   case 24:
   case 48:
@@ -1089,6 +1090,7 @@ function postUninstallPlugin() {
   enableSearch();
   $(".selectedMenu").trigger("click");
   setupActionCentre();
+  refreshDisplay();
 }
 
 function uninstallDocker(application,humanName) {
@@ -2421,7 +2423,7 @@ function changeMax(max) {
 }
 
 function getPerPageOpts(value) {
-  var perPage = [12,24,48,96];
+  var perPage = [6,12,24,48,96];
   var maxPerPageOpts = [];
   perPage.forEach(function(entry) {
     if ( entry != value ) {
