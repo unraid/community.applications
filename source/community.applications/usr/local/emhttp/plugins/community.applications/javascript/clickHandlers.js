@@ -163,14 +163,18 @@ function caInitializeClickHandlers() {
     var type = $(this).data("type");
     var name = $(this).data("name");
     var app = $(this).data("app");
-    if (type === "docker") uninstallDocker(app, name); else uninstallApp(app, name);
+    if (type === "docker") 
+      uninstallDocker(app, name); 
+    else 
+      uninstallApp(app, name);
   });
   $("body").on("click", ".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function(e) {
     e.stopPropagation();
-    showRepoPopup($(this).data("repository"));
+    var repository = $(this).data("repository") ? $(this).data("repository") : $(this).closest(".ca_holder").data("repository");
+    showRepoPopup(repository);
   });
   $("body").on("click", ".ca_holder", function(e) {
-    if (data.actions) { data.actions = false; return; }
+   // if (data.actions) { data.actions = false; return; }
     data.actions = false;
     e.stopPropagation();
     if ($(this).hasClass("ca_repoPopup")) {

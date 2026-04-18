@@ -11,7 +11,7 @@ f9f07494739505f60ab1a5f1e57cb5fe  ./include/helpers.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
 a594a4ca7a8bba338e55663a40040e26  ./include/previous_apps_helpers.php
-3955f2aa5ad85ca702fd75cc070cf331  ./javascript/clickHandlers.js
+207a11f941ded7388f145748b9a08f8c  ./javascript/clickHandlers.js
 79f2cd8364397b0defbffe431e57e3e5  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js
