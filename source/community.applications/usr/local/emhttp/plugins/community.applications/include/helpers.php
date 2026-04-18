@@ -1088,7 +1088,7 @@ function debug($str) {
 ########################################
 function portsUsed($template) {
 
-  if ( ! is_array($template) ) {
+  if ( ! is_array($template) || ! isset($template['Config']) ) {
     return json_encode([]);
   }
 
@@ -1197,7 +1197,7 @@ function addMissingVars($o) {
   // Static array to avoid recreation on each call
   static $requiredVars = [
     'Category', 'CategoryList', 'CABlacklist', 'Blacklist', 'MinVer', 'MaxVer', 'UpdateMinVer',
-    'Plugin', 'PluginURL', 'Date', 'DonateText', 'DonateLink', 'Branch', 'OriginalOverview',
+    'Plugin', 'PluginURL', 'Date', 'Branch', 'OriginalOverview',
     'DateInstalled', 'Config', 'trending', 'CAComment', 'ModeratorComment', 'DeprecatedMaxVer',
     'downloads', 'FirstSeen', 'OriginalDescription', 'Deprecated', 'RecommendedRaw', 'Language',
     'RequiresFile', 'Requires', 'trends', 'Description', 'Overview', 'Repository', 'Tag',

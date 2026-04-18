@@ -663,11 +663,6 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
       if ($info[$ind]['template']) {
         $actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "uninstallDocker('".addslashes($info[$ind]['template'])."','{$template['Name']}');"];
       }
-
-      if ($template['DonateLink']) {
-        $actionsContext[] = ["divider" => true];
-        $actionsContext[] = ["icon" => "ca_fa-money", "text" => tr("Donate"), "action" => "openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
-      }
     } elseif (! ($template['Blacklist'] ?? false) || ! ($template['Compatible'] ?? false)) {
       if ($template['InstallPath']) {
         $userTemplate = readXmlFile($template['InstallPath'], false, false);
@@ -735,10 +730,6 @@ function caProcessPluginTemplate(array $template, array $caSettings, string $ins
         $actionsContext[] = ["divider" => true];
       }
       $actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ", "&#32;", $template['Name'])."');"];
-    }
-    if ($template['DonateLink']) {
-      $actionsContext[] = ["divider" => true];
-      $actionsContext[] = ["icon" => "ca_fa-money", "text" => tr("Donate"), "action" => "openNewWindow('".addslashes($template['DonateLink'])."','_blank');"];
     }
   } elseif (! $template['Blacklist'] || ! $template['Compatible']) {
     $buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
@@ -978,7 +969,7 @@ function caSummarizeRepositoryTemplates(array $templates, string $repository, ar
 # Build the donation section for repository popups               #
 ##################################################################
 function caBuildRepoDonationSection(array $repo): string {
-  if (empty($repo['DonateLink'])) {
+  if (empty($repo['DonateLink']??"")) {
     return "";
   }
 

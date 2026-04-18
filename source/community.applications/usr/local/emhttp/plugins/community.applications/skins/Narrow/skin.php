@@ -147,8 +147,6 @@ function displayPopup($template) {
   $MaxVer = $MaxVer ?? "";
   $Licence = $Licence ?? ($License ?? "");
   $ProfileIcon = $ProfileIcon ?? "";
-  $DonateLink = $DonateLink ?? "";
-  $DonateText = $DonateText ?? "";
   $display_changes = $display_changes ?? null;
   $display_changelogMessage = $display_changelogMessage ?? "";
   $downloadtrend = $downloadtrend ?? false;
@@ -458,10 +456,6 @@ function displayPopup($template) {
             <table class='popupTable contents'>
               <?= implode("", $detailsRows) ?>
             </table>
-            <?php if (! ($Repo || $Private) && $DonateLink): ?>
-              <div class='donateText'><?= $DonateText ?></div>
-              <div class='donateDiv'><span class='caButton donate'><a href='<?= $DonateLink ?>' target='_blank'><?= tr("Donate") ?></a></span></div>
-            <?php endif; ?>
           </div>
           <?php if ($Repo || $Private): ?>
             <div class='popupInfoLeft'>
@@ -475,10 +469,6 @@ function displayPopup($template) {
               <div class='caButton ca_repoSearchPopUp popupProfile' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("All Apps") ?></div>
               <div class='caButton repoPopup' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Profile") ?></div>
               <div class='caButton ca_favouriteRepo <?= $favRepoClass ?>' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Favourite") ?></div>
-              <?php if ($DonateLink): ?>
-                <div class='donateText'><?= $DonateText ?></div>
-                <div class='donateDiv'><span class='caButton donate'><a href='<?= $DonateLink ?>' target='_blank'><?= tr("Donate") ?></a></span></div>
-              <?php endif; ?>
             </div>
           <?php endif; ?>
         </div>
@@ -724,11 +714,6 @@ function getPopupDescriptionSkin($appNumber) {
   $template['ProfileIcon'] = $allRepositories[$template['RepoName']]['icon'] ?? "";
 
   $countryCode = caPrepareLanguagePack($template, $language);
-
-  $donatelink = $template['DonateLink'];
-  if ($donatelink) {
-    $donatetext = $template['DonateText'];
-  }
 
   [$selected, $name, $pluginName] = caResolveSelectionState($template, $dockerRunning);
 

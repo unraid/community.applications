@@ -90,7 +90,10 @@ function caInitializeClickHandlers() {
   $(".closeMenuButton,.menuOverlay").on("click", function() { closeMenu(); });
   $(".mobileOverlay").on("click", function() { closeMenu(); });
   $(".sidebarClose").on("click", function() {
-    if ($(".moderationContainer").length) showStatistics();
+    if ($(".moderationContainer").length) 
+      showStatistics(); 
+    else if ( ! $(".popUpBack").hasClass("ca_hide")) 
+      $(".popUpBack").click();
     else closeSidebar();
   });
   $(".sidebar").on("click", "#sidenavBackToTop", function(e) {
@@ -372,6 +375,14 @@ function caInitializeEventHandlers() {
         if ($(".sidenav").hasClass("sidenavShow")) {
           e.preventDefault();
           e.stopPropagation();
+          if ( ! $(".popUpBack").hasClass("ca_hide") ) {
+            $(".popUpBack").click();
+            return;
+          }
+          if ( $(".moderationContainer").length > 0 ) {
+            showStatistics();
+            return;
+          }
           closeSidebar();
           return;
         }
