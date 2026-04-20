@@ -460,12 +460,20 @@ input[type="button"][disabled] {
   z-index: 6;
 }
 .menuItems {
-  position: relative;
-  height: auto;
+  overflow-inline: scroll;
+  position: fixed;
+  top: 19rem;
+  bottom: 4rem;
   align-items: stretch;
   width: 14rem;
   z-index: 2;
   background-color: var(--ca-legacy-background-color);
+}
+.menuItems::-webkit-scrollbar {
+  width: 2px;  /* vertical scrollbar width */
+}
+.menuItems:hover::-webkit-scrollbar {
+  width: 6px;  /* vertical scrollbar width */
 }
 .menuItems.menuHidden {
   display: block;

@@ -495,7 +495,7 @@ function showSpecials(button) {
   data.section = "AppStore";
   changeCategory(button,false);
   $(".caRepositoryMenu").addClass("caMenuDisabled").removeClass("caMenuEnabled");
-  $(".category").append(" - <?tr("Installs not allowed from this page");?>");
+  //$(".category").append(" - <?tr("Installs not allowed from this page");?>");
 }
 
 function changeCategory(button,subSwitch) {
@@ -566,7 +566,7 @@ function doSearch(button,newSearch) {
   scrollToTop();
   if (filter) {
     $("#sortIconArea").show();
-    $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
+   // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
     data.searchFlag = true;
   } else {
     updateContent();
@@ -655,7 +655,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
       $('.dockerSearch,.templateSearch').hide();
     }
     if ( description && ! filter ) {
-      $(".category").html(description);
+     // $(".category").html(description);
     }
     post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
       updateDisplay(result.display);
@@ -986,7 +986,7 @@ function getPrevApps(installed,filter,dontClear) {
         var msg = "<?tr("Action Centre");?>";
         break;
     }
-    $(".category").html(msg);
+   // $(".category").html(msg);
     changeSortOrder(null,null,"true");
     enableMultiInstall();
   });
@@ -1163,7 +1163,7 @@ function setPageOne() {
 }
 
 function clearCategory() {
-  $(".category").html("&nbsp;");
+ // $(".category").html("&nbsp;");
   $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
 }
 
@@ -1191,7 +1191,7 @@ function pins() {
   clearSearchBox();
   clearCategory();
   showSortIcons();
-  $(".category").html("<?tr("Pinned Apps");?>");
+//  $(".category").html("<?tr("Pinned Apps");?>");
   $(".dockerSearch,.templateSearch,.multi_installDiv").hide();
   post({action:'pinnedApps'},function(result) {
     refreshDisplay();
@@ -1609,7 +1609,7 @@ function saveState(legacy=true) {
     return;
   }
   console.log("Save State");
-  $.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
+  //$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
   $.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
   $.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
   $.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
@@ -1630,7 +1630,7 @@ function restoreState() {
   console.log("Restore State");
   $.removeCookie("ca_languageSwitch",{path:'/'});
 
-  $(".category").html($.cookie("ca_categoryText"));
+  //$(".category").html($.cookie("ca_categoryText"));
   if ( $.cookie("ca_installMulti") == "true" ) {
     $(".multi_installDiv").show();
   } else {
@@ -2350,7 +2350,7 @@ function dockerSearch(pageNumber) {
   data.docker = "searching docker";
   $(".dockerSearch,.multi_installDiv").hide();
   $(".templateSearch").show();
-  $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
+ // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
     updateDisplay(result.display);
   });

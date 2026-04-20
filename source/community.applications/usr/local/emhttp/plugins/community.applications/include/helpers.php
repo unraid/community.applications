@@ -48,8 +48,8 @@ function getSettings() {
   $GLOBALS['caSettings']['favourite']     = isset($GLOBALS['caSettings']['favourite']) ? str_replace("*","'",$GLOBALS['caSettings']['favourite']) : "";
   $GLOBALS['caSettings']['dynamixTheme']  = $dynamixSettings['theme'];
 
-  $GLOBALS['caSettings']['maxPerPage']    = (integer)$GLOBALS['caSettings']['maxPerPage'] ?: 12; // Handle possible corruption on file
-  if ( $GLOBALS['caSettings']['maxPerPage'] < 6 ) $GLOBALS['caSettings']['maxPerPage'] = 12;
+ // $GLOBALS['caSettings']['maxPerPage']    = (integer)$GLOBALS['caSettings']['maxPerPage'] ?: 12; // Handle possible corruption on file
+  //if ( $GLOBALS['caSettings']['maxPerPage'] < 6 ) $GLOBALS['caSettings']['maxPerPage'] = 12;
 
   if ( ! is_file(CA_PATHS['warningAccepted']) ) {
     $GLOBALS['caSettings']['NoInstalls'] = true;
