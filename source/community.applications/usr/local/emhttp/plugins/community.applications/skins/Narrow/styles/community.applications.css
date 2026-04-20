@@ -133,19 +133,14 @@ a {
   color: var(--magnificCloseColor);
 }
 
-.ca_display_area {
-  display: flex;
-  overflow: hidden;
-  min-height: 100rem;
-}
 .mainArea {
-  right: 4rem;
-  top: 2rem;
+  /* right: 4rem; */
+  /* top: 2rem; */
   display: block;
   overflow-x: hidden;
   align-items: stretch;
   position: absolute;
-  left: 18.5rem;
+  left: 15.5rem;
 }
 
 /* ==========================================================================
@@ -595,6 +590,15 @@ body:has(.sidenavHide) .sidebar {
   pointer-events: none;
   display: none;
 }
+body:has(.ca_homeTemplates) .mainArea {
+  /* right: 4rem; */
+  /* top: 2rem; */
+  display: block;
+  /* overflow-x: hidden; */
+  align-items: stretch;
+  position: relative;
+  left: 18.5rem;
+}
 
 .caChangeLog > div:first-child {
   margin: auto;
@@ -959,6 +963,20 @@ a.ca_author {
 img.ca_displayIcon {
   height: 8rem;
   width: 8rem;
+}
+
+.ca_display_area {
+  display: block;
+  display: flex;
+  position: fixed;
+  overflow: hidden;
+  /* min-height: 100rem; */
+  top: 20rem;
+  bottom: 0;
+  left: 0rem;
+  /* height: auto; */
+  right: 5rem;
+  /* width: 100%; */
 }
 
 .ca_fa-additional::before {
