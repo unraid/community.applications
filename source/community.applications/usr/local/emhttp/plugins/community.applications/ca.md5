@@ -1,4 +1,4 @@
-589453f596e264653f78ff5d10a379b7  ./Apps.page
+e9851ec74281643f36399dddf4b0339c  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -7,11 +7,11 @@ c133339ebbe89134c415b0cc22cb65f0  ./include/_ide_stubs.php
 5257cd8274bfb255d56ad5894a71a0da  ./include/force_update_helpers.php
 707085e0225786ebfa394385c761eb11  ./include/get_content_helpers.php
 f9f07494739505f60ab1a5f1e57cb5fe  ./include/helpers.php
-4b77b7727b6874647107151a179e7758  ./include/paths.php
+7fc0becd4694e2a11280f814b46c276e  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 810f8104459fe14345c2fa7dcc942d3f  ./include/populate_autocomplete_helpers.php
 a594a4ca7a8bba338e55663a40040e26  ./include/previous_apps_helpers.php
-207a11f941ded7388f145748b9a08f8c  ./javascript/clickHandlers.js
+70453e376d10ef7a0977452e53ffd9e8  ./javascript/clickHandlers.js
 79f2cd8364397b0defbffe431e57e3e5  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js

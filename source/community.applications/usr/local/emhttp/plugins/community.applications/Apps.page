@@ -408,6 +408,7 @@ $(function(){
     }
     if ( <?=$ca_apps_referrer?> )
       actionCentreRestoreState = true;
+      
     setupActionCentre();
     $.cookie("ca_apps_referrer");
   }

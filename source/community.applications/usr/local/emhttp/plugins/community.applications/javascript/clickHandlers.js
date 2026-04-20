@@ -174,7 +174,7 @@ function caInitializeClickHandlers() {
     showRepoPopup(repository);
   });
   $("body").on("click", ".ca_holder", function(e) {
-   // if (data.actions) { data.actions = false; return; }
+    if (data.actions) { data.actions = false; return; }
     data.actions = false;
     e.stopPropagation();
     if ($(this).hasClass("ca_repoPopup")) {
