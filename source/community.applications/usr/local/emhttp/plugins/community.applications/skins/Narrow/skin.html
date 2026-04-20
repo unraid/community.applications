@@ -44,16 +44,18 @@ $(function() {
       <div class='showMenuButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
       <div class='closeMenuButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
     </div>
-    <div id='searchFilter' class='hideWithMenu'>
+    <div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
+      <span class='searchSubmit' title="<?tr('Search');?>"><i id='searchButton' class='fa fa-search fa-lg'></i></span>
       <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
-      <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
     </div>
     <div id='sortIconArea' class='menuAdjust'>
-      <?tr("Sort By:");?>
-      <a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
-      <a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
-      <a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
-      <a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
+      <div class='caButton hideWithMenu' id='sortByButton'></div>
+      <div id='sortIconOptions' class='ca_hide'>
+        <a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
+        <a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
+        <a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
+        <a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
+      </div>
     </div>
     <div class='caButton maxPerPage hideWithMenu' id='maxPerPage'></div>
     <div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
@@ -83,11 +85,16 @@ $(function() {
       <input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
     </div>
   </div>
+  <div id='ca_pageNavigation' class='navigationSection'></div>
 </div>
 <div class='mobileMenu' id='mobileMenu'>
     <div class='menuItems menuAdjust'>
       <ul class='caMenu '>
-        <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
+        <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'>
+          <?tr("Home");?>
+          <div id='ca_homeSectionSubtitle' class='ca_homeSectionSubtitle ca_hide'></div>
+          <div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>
+        </li>
         <li><hr class='onlyShowWithFeed'/></li>
         <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?>
         <li class='subCategory onlyShowWithFeed'>
@@ -456,6 +463,17 @@ $(function() {
           <input type='button' class='ca_settingsDone' value='<?tr("Reset");?>'>
         </div>
       </form>
+    </div>
+  </div>
+  <div id='caPageNavigationTemplate'>
+    <div class='pageNavigation'>
+      <span class='pageLeft pageNumber'></span>
+      <span class='pageRight pageNumber'></span>
+    </div>
+    <div class='ca_hide caPageNavTemplates'>
+      <a class='caPageNavLink pageNumber pageNavClick'></a>
+      <span class='caPageNavSelected pageNumber pageSelected'></span>
+      <span class='caPageNavDots pageDots'></span>
     </div>
   </div>
 </div>

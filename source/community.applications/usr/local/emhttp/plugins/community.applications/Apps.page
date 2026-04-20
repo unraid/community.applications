@@ -190,6 +190,7 @@ var searchBoxInput;
 var searchBoxAwesomplete;
 
 var data = new Object();
+data.committedSearchFilter = "";
 data.docker = "";
 data.section = "AppStore";
 data.selected_category = "";
@@ -207,6 +208,7 @@ data.searchInProgress = false;
 data.deprecated = false; // Only set by reinstalling a deprecated plugin
 data.loggedOut = false; // flag to prevent a second alert from popping up if you wind up being logged out due to a fatal error
 data.ignoreUnload = false;
+data.maxPerPage = 0;
 
 var dockerNotEnabled;
 var postCount = 0;
@@ -341,8 +343,11 @@ $(function(){
 
   $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$GLOBALS['caSettings']['maxPerPage']?>"));
   context.attach("#maxPerPage",getPerPageOpts(<?=$GLOBALS['caSettings']['maxPerPage']?>));
+  caInitializeSortMenu();
   caInitializeClickHandlers();
   caInitializeEventHandlers();
+  caSyncSearchFilterCollapsed();
+  caSyncHomeSearchSubtitle();
 
   /* Everything is now initialized.  This is the start of the actual "real" code */
 
@@ -507,10 +512,17 @@ function changeCategory(button,subSwitch) {
 }
 
 function changePage(pageNumber) {
+  var max = getMaxPerPage();
+  if ( max !== data.maxPerPage ) {
+    pageNumber = 1;
+    data.maxPerPage = max;
+  }
+  caRestoreCommittedSearchIfDrafted();
+  if (searchBoxAwesomplete) searchBoxAwesomplete.close();
   var selected = data.selected;
   data.currentpage = pageNumber;
 
-  post({action:'display_content',pageNumber:pageNumber,selected:selected},function(result) {
+  post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
     updateDisplay(result.display);
     scrollToTop();
   });
@@ -545,6 +557,13 @@ function doSearch(button,newSearch) {
   if ( ! filter ) {
     $("#searchBox").val(filter);
     data.searchInProgress = false;
+    if ( data.searchActive || data.searchFlag || data.docker ) {
+      appStore();
+      return;
+    }
+    data.committedSearchFilter = "";
+    caSyncSearchFilterCollapsed();
+    caSyncHomeSearchSubtitle();
     return;
   }
 
@@ -565,13 +584,21 @@ function doSearch(button,newSearch) {
 
   scrollToTop();
   if (filter) {
+    caClearHomeSectionSubtitle();
     $("#sortIconArea").show();
    // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
     data.searchFlag = true;
   } else {
-    updateContent();
+    if (searchBoxAwesomplete) searchBoxAwesomplete.close();
+    /* X clear: only leave search / go home via updateContent when a search was actually active. Draft text alone must not trigger home. */
+    if (data.searchActive || data.searchFlag || data.docker) {
+      updateContent();
+    }
     data.searchFlag = false;
     data.searchInProgress = false;
+    data.committedSearchFilter = "";
+    caSyncSearchFilterCollapsed();
+    caSyncHomeSearchSubtitle();
     return;
   }
   data.searchActive = true;
@@ -585,12 +612,16 @@ function doSearch(button,newSearch) {
   }
 
   data.searchInProgress = true;
+  data.committedSearchFilter = filter;
+  caSyncHomeSearchSubtitle();
+  alert();
   post({action:'get_content',filter:filter},function(result) {
     enableButtons();
     $(".selectedMenu").removeClass("selectedMenu");
     $(".subCategory").hide();
     $(".allApps").addClass("selectedMenu");
     updateDisplay(result.display);
+    caSyncSearchFilterCollapsed();
     data.section = "AppStore";
     post({action:'getCategoriesPresent'},function(result) {
       $(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
@@ -625,7 +656,8 @@ function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
   var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
-  
+  data.maxPerPage = Math.max(getMaxPerPage(), 4);
+
   enableSearch();
 
   if ( category != "NONE" ) {
@@ -634,8 +666,8 @@ function getContent(init,category,description,newApp,startupDisplay) {
       category = "NONE";
       initialize = true;
       enableButtons();
+    } 
 
-    }
     if ( (category == "New") || (category == "All") ) { 
       category = ""; 
     }
@@ -649,6 +681,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
       $(el_dl).html("<?=tr("Downloads");?>");
       $(el_tr).html("<?=tr("Trend");?>");
     }
+    caRefreshSortMenu();
 
     var filter = $('#searchBox').val();
     if ( ! filter ) {
@@ -657,7 +690,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
     if ( description && ! filter ) {
      // $(".category").html(description);
     }
-    post({action:'get_content',filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
+    post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
       updateDisplay(result.display);
       if ( initialize ) {
         populateAutoComplete();
@@ -719,6 +752,9 @@ function clearSearchBox() {
   if ($('#searchButton').hasClass('fa-remove')) {
     $('#searchButton').toggleClass('fa-remove fa-search');
   }
+  data.committedSearchFilter = "";
+  caSyncSearchFilterCollapsed();
+  caSyncHomeSearchSubtitle();
 }
 
 function closeSidebar(cookie=false,visible=false) {
@@ -1655,6 +1691,9 @@ function restoreState() {
   $("#searchBox").val(filter);
   if (filter)
     $("#searchButton").removeClass("fa-search").addClass("fa-remove");
+  data.committedSearchFilter = $.trim(filter || "");
+  caSyncSearchFilterCollapsed();
+  caSyncHomeSearchSubtitle();
 
   var ca_sortIcon = $.cookie("ca_sortIcon");
 //	enableIcon("#sortIcon",ca_sortIcon);
@@ -1669,6 +1708,8 @@ function restoreState() {
     populateAutoComplete();
     clearMultiInstall();
     restoreDone = true;
+    caSyncSearchFilterCollapsed();
+    caSyncHomeSearchSubtitle();
   });
 
 }
@@ -2330,18 +2371,24 @@ function checkSortOrder() {
 }
 
 function initDockerSearch() {
+  caClearHomeSectionSubtitle();
   dockerSearch(1);
   data.docker = "searching docker";
   data.section = "";
   data.selected_category = "";
+  data.committedSearchFilter = "";
   $(".selectedMenu").removeClass("selectedMenu");
   $(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
   hideSortIcons();
   $(".subCategory").hide();
   $(".maxPerPage").hide();
+  caSyncSearchFilterCollapsed();
+  caSyncHomeSearchSubtitle();
 }
 
 function dockerSearch(pageNumber) {
+  caRestoreCommittedSearchIfDrafted();
+  if (searchBoxAwesomplete) searchBoxAwesomplete.close();
   scrollToTop();
   $(".selectedMenu").removeClass("selectedMenu");
   $(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
@@ -2352,7 +2399,10 @@ function dockerSearch(pageNumber) {
   $(".templateSearch").show();
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
   post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+    data.committedSearchFilter = $.trim(String(filter || ""));
+    caSyncHomeSearchSubtitle();
     updateDisplay(result.display);
+    caSyncSearchFilterCollapsed();
   });
 }
 
@@ -2383,6 +2433,7 @@ function dockerConvert(dockerID) {
 }
 
 function changeMax(max) {
+  return;
   $("#maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>",max));
   context.destroy("#maxPerPage");
   context.attach("#maxPerPage",getPerPageOpts(max));
@@ -2408,6 +2459,58 @@ function getPerPageOpts(value) {
   });
 
   return maxPerPageOpts;
+}
+
+var caSortMenuObserver = null;
+function caInitializeSortMenu() {
+  caRefreshSortMenu();
+  if (caSortMenuObserver) {
+    return;
+  }
+  var sortContainer = document.getElementById("sortIconOptions");
+  if (!sortContainer) {
+    return;
+  }
+  caSortMenuObserver = new MutationObserver(function() {
+    caRefreshSortMenu();
+  });
+  caSortMenuObserver.observe(sortContainer, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+}
+
+function caRefreshSortMenu() {
+  if (!$("#sortByButton").length) {
+    return;
+  }
+  var $selectedSort = $(".sortIcons.enabledIcon").not(".startupMore").first();
+  if (!$selectedSort.length) {
+    $selectedSort = $("#defaultSort");
+  }
+  var selectedText = $.trim($selectedSort.text());
+  $("#sortByButton").html(sprintf("<?tr("Sort By: %s");?>", selectedText));
+  context.destroy("#sortByButton");
+  context.attach("#sortByButton", getSortOpts());
+}
+
+function getSortOpts() {
+  var sortOpts = [];
+  $(".sortIcons").each(function() {
+    var sortOption = this;
+    var $sortOption = $(sortOption);
+    var sortText = $.trim($sortOption.text());
+    var isSelected = $sortOption.hasClass("enabledIcon") && !$sortOption.hasClass("startupMore");
+    sortOpts.push({
+      icon: isSelected ? "ca_fa-checkmark" : " ",
+      text: isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText,
+      action: function() {
+        $(sortOption).trigger("click");
+      }
+    });
+  });
+  return sortOpts;
 }
 
 function setupActionCentre() {

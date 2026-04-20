@@ -134,14 +134,13 @@ a {
 }
 
 .mainArea {
-  /* right: 4rem; */
+  right: 6rem;
   /* top: 2rem; */
   display: block;
   overflow-x: hidden;
   align-items: stretch;
   position: absolute;
   left: 15.5rem;
-  right: 0;
 }
 
 /* ==========================================================================
@@ -188,7 +187,12 @@ a {
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: hidden; /* Hide vertical scrollbar */
 }
-
+.ca_homeTemplates::-webkit-scrollbar {
+  height: 0px;  /* horizontal scrollbar height */
+}
+.ca_homeTemplates:hover::-webkit-scrollbar {
+  height: 2px; /* horizontal scrollbar height */
+}
 .ca_homeTemplatesHeader {
   font-size: 2rem;
   margin-top: 1rem;
@@ -400,11 +404,15 @@ input[type="button"][disabled] {
   font-size: 1.1rem;
   
   /* Visual */
-  background: var(--template-hover-background);
+  background: transparent;
   border: none;
   
   /* Interactive */
   cursor: pointer;
+}
+
+.searchSubmit:hover {
+  background: transparent;
 }
 
 /* 2.6) Menu and Navigation */
@@ -466,10 +474,19 @@ input[type="button"][disabled] {
   background-color: var(--ca-legacy-background-color);
 }
 .menuItems::-webkit-scrollbar {
-  width: 2px;  /* vertical scrollbar width */
+  width: 0px;  /* vertical scrollbar width */
 }
 .menuItems:hover::-webkit-scrollbar {
-  width: 6px;  /* vertical scrollbar width */
+  width: 2px;  /* vertical scrollbar width */
+}
+::-webkit-scrollbar-thumb {
+  background: var(--unraid-66-color);
+}
+::-webkit-scrollbar-corner {
+  background: var(--unraid-66-color);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--unraid-66-color);
 }
 .menuItems.menuHidden {
   display: block;
@@ -483,6 +500,34 @@ input[type="button"][disabled] {
 .selectedMenu {
   color: var(--unraid-66-color);
   font-weight: bold;
+}
+
+/* Subtitle under Home: which home "Show More" section is expanded */
+.ca_homeSectionSubtitle {
+  display: block;
+  margin-top: 0.35rem;
+  padding-left: 0.25rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: normal;
+  color: var(--unraid-66-color);
+  white-space: normal;
+  word-break: break-word;
+}
+
+.ca_homeSearchSubtitle {
+  display: block;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  font-weight: normal;
+  font-style: italic;
+  color: var(--sidebar-text);
+  white-space: normal;
+  word-break: break-word;
+  cursor: default;
+  user-select: text;
 }
 
 .caMenuDisabled:hover {
@@ -1617,6 +1662,9 @@ input[type="button"][disabled] {
   margin-right: 1rem;
   cursor: pointer;
   text-decoration: none !important;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
 }
 
 .pageRight::after {
@@ -1627,6 +1675,11 @@ input[type="button"][disabled] {
 .pageSelected {
   cursor: default;
   color: var(--unraid-66-color);
+}
+
+.pageNavSpacer {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .pinnedCard {
@@ -1900,7 +1953,38 @@ a.popUpLink {
 
 #searchFilter {
   position: relative;
-  display:inline-block;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  vertical-align: middle;
+}
+
+/* Icon-only: hide input until focus-within (keyboard) or JS removes collapsed class (search icon click) */
+#searchFilter.ca_searchInputCollapsed #searchBox {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  opacity: 0;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+  border: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#searchFilter.ca_searchInputCollapsed:focus-within #searchBox {
+  width: 300px;
+  max-width: 300px;
+  min-width: 0;
+  opacity: 1;
+  padding: 0.6rem;
+  padding-right: 0.5rem;
+  margin-bottom: 1rem;
+  pointer-events: auto;
 }
 
 #searchBox {
@@ -1915,6 +1999,14 @@ a.popUpLink {
   padding-right: 0.5rem;
   width: 300px;
   font-size: 1.5rem;
+  flex: 0 1 auto;
+  box-sizing: border-box;
+}
+
+#searchFilter .searchSubmit {
+  left: 0;
+  flex: 0 0 auto;
+  background: transparent;
 }
 
 .showMenuButton::before {
@@ -2047,7 +2139,7 @@ ul.subCategory {
 .navigationSection {
   position: fixed;
   width: 6rem;
-  font-size: 2rem;
+  font-size: 3rem;
   background-color: var(--ca-legacy-background-color);
   top: 19rem;
   right: 0;
@@ -2056,6 +2148,26 @@ ul.subCategory {
   margin-left: auto;
   text-align: center;
   display: flex;
+  min-width: 0;
+  visibility: hidden;
+}
+.navigationSection.ca_navVisible {
+  visibility: visible;
+}
+/* Let page numbers measure overflow so fitText() can shrink font-size inside narrow strip */
+.navigationSection .pageNavigation {
+  width: 100%;
+  min-width: 0;
+}
+.navigationSection .pageNumber,
+.navigationSection a.pageNumber {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .Theme--fontSize50 .navigationSectionShift {
   bottom: 6rem;

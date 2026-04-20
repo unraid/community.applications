@@ -992,6 +992,8 @@ function get_content() {
     @unlink(CA_PATHS['startupDisplayed']);
   }
 
+  changeMax(getPost("maxPerPage",$GLOBALS['caSettings']['maxPerPage']));
+
   $displayApplications = [];
   $display  = [];
   $searchResults = [];
@@ -1110,7 +1112,10 @@ function force_update() {
 ####################################################################################
 function display_content() {
 
+
   $pageNumber = getPost("pageNumber","1");
+
+  changeMax(getPost("maxPerPage",$GLOBALS['caSettings']['maxPerPage']));
   $startup = getPost("startup",false);
   $selectedApps = json_decode(getPost("selected",false),true);
   $o['display'] = "";
@@ -1137,6 +1142,8 @@ function previous_apps($enableActionCentre=false) {
 
   require_once __DIR__ . '/previous_apps_helpers.php';
   
+  changeMax(getPost("maxPerPage",$GLOBALS['caSettings']['maxPerPage']));
+
   $context = PreviousAppsHelpers::resolvePreviousAppsContext($enableActionCentre);
   $installed = $context['installed'];
   $filter = $context['filter'];
@@ -2013,6 +2020,12 @@ function changeMaxPerPage() {
     $GLOBALS['caSettings']['maxPerPage'] = $max;
     write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
     postReturn(["status"=>"updated"]);
+  }
+}
+function changeMax($max) {
+  if ( $max !== $GLOBALS['caSettings']['maxPerPage'] ) {
+    $GLOBALS['caSettings']['maxPerPage'] = $max;
+    write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
   }
 }
 ################################################################

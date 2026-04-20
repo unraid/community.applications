@@ -86,6 +86,10 @@ function caInitializeClickHandlers() {
     });
   }
 
+  $("body").on("click mousedown", "#ca_homeSectionSubtitle, #ca_homeSearchSubtitle", function(e) {
+    e.stopPropagation();
+  });
+
   $(".showMenuButton").on("click", function() { showMenu(); });
   $(".closeMenuButton,.menuOverlay").on("click", function() { closeMenu(); });
   $(".mobileOverlay").on("click", function() { closeMenu(); });
@@ -104,7 +108,19 @@ function caInitializeClickHandlers() {
   $(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
     data.actions = true;
   });
-  $(".searchSubmit").on("click", function() { doSearch(true); });
+  /* Keep focus in #searchBox when clicking the icon again (mousedown would otherwise blur and trigger collapse). */
+  $(".searchSubmit").on("mousedown", function(e) {
+    e.preventDefault();
+  });
+  $(".searchSubmit").on("click", function() {
+    var $f = $("#searchFilter");
+    if ($f.hasClass("ca_searchInputCollapsed") && !$.trim($("#searchBox").val())) {
+      $f.removeClass("ca_searchInputCollapsed");
+      $("#searchBox").trigger("focus");
+      return;
+    }
+    doSearch(true);
+  });
   $(".caChangeLog").on("click", function() { disableSort(); scrollToTop(); caChangeLog(); });
   $(".mainArea").on("click", ".ca_multiselect", function() { enableMultiInstall(); });
   $("#sidenavContent").on("click", ".pinPopup", function() { pinApp(this, $(this).data("repository"), $(this).data("name")); });
@@ -126,6 +142,7 @@ function caInitializeClickHandlers() {
   });
   $("body").on("click", ".fav,.nonfav", function() { setFavourite(this); });
   $("body").on("click", ".ca_repoSearch,.ca_repoSearchPopUp", function() {
+    caClearHomeSectionSubtitle();
     closeSidebar();
     var repo = $(this).data("repository");
     var sortButton = false;
@@ -138,6 +155,7 @@ function caInitializeClickHandlers() {
   $(".favouriteRepo").on("click", function() {
     if ($(this).hasClass("caMenuDisabled")) return;
     var repo = $(this).attr("data-repository");
+    caClearHomeSectionSubtitle();
     var sortButton = false;
     $(".sortIcons").each(function() { if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true; });
     if (!sortButton) {
@@ -146,7 +164,20 @@ function caInitializeClickHandlers() {
     } else doSearch(false, repo);
   });
 
-  $("body").on("click", ".templateSearch", function() { doSearch(false); });
+  $("body").on("click", ".templateSearch", function() { caClearHomeSectionSubtitle(); doSearch(false); });
+  $("body").on("click", ".pageNavClick", function(e) {
+    e.preventDefault();
+    if ($(this).hasClass("pageNavNoClick")) return;
+    if (window.getSelection) window.getSelection().removeAllRanges();
+    var page = parseInt($(this).data("page"), 10);
+    if (!page || page < 1) return;
+    var pageFunction = $(this).data("pageFunction");
+    if (pageFunction === "dockerSearch") dockerSearch(String(page));
+    else changePage(String(page));
+  });
+  $("body").on("mousedown", ".pageNavClick", function(e) {
+    e.preventDefault();
+  });
   $("body").on("click", ".xmlInstall", function() {
     var type = $(this).data("type");
     var xml = $(this).data("xml");
@@ -198,7 +229,13 @@ function caInitializeClickHandlers() {
   $(".menuItems").on("click", ".categoryMenu", function() {
     var menu = this;
     if ($(menu).hasClass("caMenuDisabled") || $(menu).hasClass("selectedMenu")) return;
-    if (!data.searchFlag) $("#searchBox").val("");
+    caClearHomeSectionSubtitle();
+    if (!data.searchFlag) {
+      $("#searchBox").val("");
+      data.committedSearchFilter = "";
+      caSyncSearchFilterCollapsed();
+      caSyncHomeSearchSubtitle();
+    }
     showSortIcons();
     scrollToTop();
     var sortButton = false;
@@ -218,6 +255,9 @@ function caInitializeClickHandlers() {
   $(".sidebar").on("click", ".popUpBack", function() { showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName")); });
   $("body").on("click", ".caMenuItem", function() {
     if ($(this).hasClass("caMenuDisabled") || $(this).hasClass("noSelect") || $(this).attr("onclick")) return;
+    if (!$(this).hasClass("startupButton")) {
+      caClearHomeSectionSubtitle();
+    }
     $(".caRepositoryMenu").addClass("caMenuEnabled").removeClass("caMenuDisabled");
     var slideFlag = true;
     var currentCat = $(".selectedMenu").data("category");
@@ -236,6 +276,7 @@ function caInitializeClickHandlers() {
   });
   $("body").on("click", ".sectionMenu", function() {
     if ($(this).hasClass("caMenuDisabled")) return;
+    caClearHomeSectionSubtitle();
     var section = $(this).attr("data-category");
     showSortIcons();
     switch (section) {
@@ -262,7 +303,11 @@ function caInitializeClickHandlers() {
       $(".sortIcons").removeClass("enabledIcon").addClass("startupMore");
     }
     $(".CategoryLine").html($(this).data("des"));
+    caSetHomeSectionSubtitle(description);
     $("#searchBox").val("");
+    data.committedSearchFilter = "";
+    caSyncSearchFilterCollapsed();
+    caSyncHomeSearchSubtitle();
     scrollToTop();
     post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
   });
@@ -276,7 +321,7 @@ function caInitializeClickHandlers() {
       }
     });
   });
-  $(".dockerSearch").click(function() { initDockerSearch(); });
+  $(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
   $(".multi_installClear").click(function() { clearMultiInstall(); });
   $(".multi_deleteButton").click(function() { deleteMulti(); });
   $(".multi_installAll").click(function() { selectAllPrevious(); enableMultiInstall(); });
@@ -353,6 +398,27 @@ function caInitializeEventHandlers() {
     } else {
       $("#searchButton").addClass("fa-remove").removeClass("fa-search");
     }
+    caSyncSearchFilterCollapsed();
+  });
+
+  $("#searchBox").on("focus", function() {
+    $("#searchFilter").removeClass("ca_searchInputCollapsed");
+  });
+
+  $("#searchFilter").on("focusout", function(e) {
+    var rt = e.relatedTarget;
+    if (rt && $(rt).closest(".awesomplete").length) return;
+    setTimeout(function() {
+      var el = document.getElementById("searchFilter");
+      if (!el) return;
+      var active = document.activeElement;
+      if (active && (el.contains(active) || $(active).closest(".awesomplete").length)) return;
+      caSyncSearchFilterCollapsed();
+    }, 150);
+  });
+
+  $("#mobileMenu").on("mousedown", function() {
+    caRestoreCommittedSearchIfDrafted();
   });
 
   $("#searchBox").keydown(function(e) {
@@ -400,7 +466,12 @@ function caInitializeEventHandlers() {
           e.preventDefault();
           e.stopPropagation();
           if ($("#searchButton").hasClass("fa-remove")) $(".searchSubmit").trigger("click");
-          else $("#searchBox").val("");
+          else {
+            $("#searchBox").val("");
+            data.committedSearchFilter = "";
+            caSyncSearchFilterCollapsed();
+            caSyncHomeSearchSubtitle();
+          }
           return;
         }
         break;

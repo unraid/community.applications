@@ -87,17 +87,14 @@ function reloadPage() {
 }
 
 function isOverflown(el,type=false){
-  return false;
   // Optimized to minimize forced reflows by using the most efficient DOM properties
   // offsetWidth/offsetHeight are generally faster than clientWidth/clientHeight
-  
   if (type) {
     // For horizontal overflow: compare scrollable content width with element's offset width
     return el.scrollWidth > el.offsetWidth;
-  } else {
-    // For vertical overflow: compare scrollable content height with element's offset height  
-    return el.scrollHeight > el.offsetHeight;
   }
+  // For vertical overflow: compare scrollable content height with element's offset height
+  return el.scrollHeight > el.offsetHeight;
 }
 
 
@@ -108,6 +105,21 @@ function disableSearch() {
 
 function enableSearch() {
   $("#searchBox").prop("disabled",false);
+}
+
+/** Collapse search input to icon-only when empty; keep open if there is text or an active search (X icon). */
+function caSyncSearchFilterCollapsed() {
+  var $f = $("#searchFilter");
+  var $box = $("#searchBox");
+  if (!$f.length || !$box.length) return;
+  if ($.trim($box.val()) !== "" || $("#searchButton").hasClass("fa-remove")) {
+    $f.removeClass("ca_searchInputCollapsed");
+    return;
+  }
+  if ($box.is(":focus")) {
+    return;
+  }
+  $f.addClass("ca_searchInputCollapsed");
 }
 
 
@@ -122,6 +134,48 @@ function cookiesEnabled() {
 
 function scrollToTop() {
   $('html,body').animate({scrollTop:0},0);
+}
+
+function caClearHomeSectionSubtitle() {
+  var $el = $("#ca_homeSectionSubtitle");
+  if (!$el.length) return;
+  $el.empty().addClass("ca_hide");
+}
+
+function caSetHomeSectionSubtitle(text) {
+  var $el = $("#ca_homeSectionSubtitle");
+  if (!$el.length) return;
+  var t = $.trim(String(text || ""));
+  if (!t) {
+    caClearHomeSectionSubtitle();
+    return;
+  }
+  $el.text(t).removeClass("ca_hide");
+}
+
+/** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */
+function caSyncHomeSearchSubtitle() {
+  var $el = $("#ca_homeSearchSubtitle");
+  if (!$el.length) return;
+  if (typeof data === "undefined" || !data) return;
+  var v = $.trim(String(data.committedSearchFilter || ""));
+  if (!v) {
+    $el.empty().addClass("ca_hide");
+    return;
+  }
+  $el.text(v).removeClass("ca_hide");
+}
+
+/** If the box was edited (e.g. backspaced) but not submitted, put the last committed search back. Called from the nav menu (#mobileMenu) or page change (changePage / dockerSearch). */
+function caRestoreCommittedSearchIfDrafted() {
+  if (typeof data === "undefined" || !data) return;
+  var c = $.trim(String(data.committedSearchFilter || ""));
+  if (!c) return;
+  var cur = $.trim(String($("#searchBox").val() || ""));
+  if (cur === c) return;
+  $("#searchBox").val(c);
+  $("#searchButton").removeClass("fa-search").addClass("fa-remove");
+  caSyncSearchFilterCollapsed();
 }
 
 function tr(string) {
@@ -351,4 +405,163 @@ $.fn.onVisibilityHidden = function(callback) {
 // Save the state of CA if GUI Search takes us away from the page
 function guiSearchOnUnload() {
   saveState();
+}
+
+function caBuildPageNavigationHtml(nav) {
+  var pageNumber = parseInt(nav.pageNumber, 10) || 1;
+  var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
+  var maxPerPage = Math.max(1, parseInt(nav.maxPerPage, 10) || 1);
+  var totalPages = Math.max(1, Math.ceil(totalApps / maxPerPage));
+  pageNumber = Math.min(Math.max(1, pageNumber), totalPages);
+  var pageFunction = nav.pageFunction === "dockerSearch" ? "dockerSearch" : "changePage";
+  var maxMiddlePages = Math.max(1, parseInt(nav.maxMiddlePages, 10) || 3);
+  var halfMiddlePages = Math.floor(maxMiddlePages / 2);
+  var startingPage = Math.max(1, Math.min(pageNumber - halfMiddlePages, totalPages - maxMiddlePages + 1));
+  var endingPage = Math.min(totalPages, startingPage + maxMiddlePages - 1);
+  var $template = $("#caPageNavigationTemplate");
+  if (!$template.length) return "";
+  var $nav = $template.children(".pageNavigation").first().clone();
+  var $templates = $template.find(".caPageNavTemplates").first();
+  var $left = $nav.find(".pageLeft");
+  var $right = $nav.find(".pageRight");
+  var fixedMiddleSlots = maxMiddlePages + 4; // first + left dots + middle pages + right dots + last
+  var middleItems = [];
+  var i;
+
+  if (pageNumber === 1) {
+    $left.addClass("pageNavNoClick");
+  } else {
+    $left.addClass("pageNavClick").attr("data-page", pageNumber - 1).attr("data-page-function", pageFunction);
+  }
+
+  var appendLink = function(page) {
+    var $link = $templates.find(".caPageNavLink").first().clone();
+    $link.text(page).attr("data-page", page).attr("data-page-function", pageFunction);
+    middleItems.push($link);
+  };
+  var appendSelected = function(page) {
+    var $selected = $templates.find(".caPageNavSelected").first().clone();
+    $selected.text(page);
+    middleItems.push($selected);
+  };
+  var appendDots = function() {
+    middleItems.push($templates.find(".caPageNavDots").first().clone());
+  };
+  var createSpacer = function() {
+    var $spacer = $templates.find(".caPageNavSelected").first().clone();
+    $spacer
+      .addClass("pageNavSpacer")
+      .removeClass("pageSelected")
+      .attr("aria-hidden", "true")
+      .html("&nbsp;");
+    return $spacer;
+  };
+
+  if (startingPage > 1) {
+    appendLink(1);
+    if (startingPage > 2) {
+      appendDots();
+    }
+  }
+
+  for (i = startingPage; i <= endingPage; i++) {
+    if (i === pageNumber) {
+      appendSelected(i);
+    } else {
+      appendLink(i);
+    }
+  }
+
+  if (endingPage < totalPages) {
+    if (endingPage < (totalPages - 1)) {
+      appendDots();
+    }
+    appendLink(totalPages);
+  }
+
+  var missingMiddleItems = Math.max(0, fixedMiddleSlots - middleItems.length);
+  var leadingSpacers = Math.floor(missingMiddleItems / 2);
+  var trailingSpacers = missingMiddleItems - leadingSpacers;
+
+  for (i = 0; i < leadingSpacers; i++) {
+    $right.before(createSpacer());
+  }
+
+  for (i = 0; i < middleItems.length; i++) {
+    $right.before(middleItems[i]);
+  }
+
+  for (i = 0; i < trailingSpacers; i++) {
+    $right.before(createSpacer());
+  }
+
+  if (pageNumber < totalPages) {
+    $right.addClass("pageNavClick").attr("data-page", pageNumber + 1).attr("data-page-function", pageFunction);
+  } else {
+    $right.addClass("pageNavNoClick");
+  }
+
+  return $("<div>").append($nav).html();
+}
+
+function caRenderPageNavigation(targetId, navigationData) {
+  var $target = $("#" + targetId);
+  if (!$target.length) return;
+  var nav = navigationData || {};
+  var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
+  var maxPerPage = Math.max(1, parseInt(nav.maxPerPage, 10) || 1);
+  var totalPages = Math.max(1, Math.ceil(totalApps / maxPerPage));
+  var pageNumber = Math.min(Math.max(1, parseInt(nav.pageNumber, 10) || 1), totalPages);
+  var isDockerSearch = !!nav.dockerSearch;
+
+  if (isDockerSearch) {
+    $(".maxPerPage").hide();
+  } else {
+    $(".maxPerPage").toggle(totalApps >= 25);
+  }
+
+  data.currentpage = pageNumber;
+  data.prevpage = pageNumber - 1;
+  data.nextpage = (pageNumber < totalPages) ? (pageNumber + 1) : 0;
+
+  if ((isDockerSearch && totalApps <= 25) || totalApps < 2 || totalPages <= 1) {
+    $target.empty();
+    $target.removeClass("ca_navVisible");
+    return;
+  }
+
+  nav.pageNumber = pageNumber;
+  nav.totalPages = totalPages;
+  $target.html(caBuildPageNavigationHtml(nav));
+  $target.addClass("ca_navVisible");
+  $target.find(".caPageNavLink,.caPageNavSelected").fitText(true);
+}
+
+function getMaxPerPage() {
+  const sample = document.querySelector('.ca_holder');
+  const templatesContent = document.querySelector('#templates_content');
+  const caDisplayArea = document.querySelector('.ca_display_area');
+  const footer = document.querySelector('#footer');
+
+  if (!sample || !templatesContent || !caDisplayArea) return 0;
+
+  const style = getComputedStyle(sample);
+  const rect = sample.getBoundingClientRect();
+
+  const fullWidth  = rect.width  + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight)  || 0);
+  const fullHeight = rect.height + (parseFloat(style.marginTop)  || 0) + (parseFloat(style.marginBottom) || 0);
+
+  const tRect = templatesContent.getBoundingClientRect();
+  const displayRect = caDisplayArea.getBoundingClientRect();
+  const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const availableWidth = displayRect.right - tRect.left - (4 * remPx);
+  const bottomEdge = footer ? footer.getBoundingClientRect().top : window.innerHeight;
+  const availableHeight = bottomEdge - tRect.top;
+
+  if (availableWidth <= 0 || availableHeight <= 0) return 0;
+
+  const perRow = Math.floor(availableWidth  / fullWidth);
+  const perCol = Math.floor(availableHeight / fullHeight);
+
+  return perRow * perCol;
 }

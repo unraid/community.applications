@@ -825,13 +825,9 @@ function caProcessLanguageTemplate(array $template, array $actionsContext): arra
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
 
   $pageFunction = $dockerSearch ? "dockerSearch" : "changePage";
-  $swipeCommands = [];
 
   if ( $dockerSearch ) {
     $GLOBALS['caSettings']['maxPerPage'] = 25;
-    $swipeCommands[] = "$('.maxPerPage').hide();";
-  } else {
-    $swipeCommands[] = "$('.maxPerPage').show();";
   }
 
   if ( $GLOBALS['caSettings']['maxPerPage'] < 0 ) {
@@ -839,73 +835,20 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
   }
 
   $maxPerPage = max(1, (int)$GLOBALS['caSettings']['maxPerPage']);
-  $totalPages = (int)ceil($totalApps / $maxPerPage);
+  $maxMiddlePages = 3; // Change this value to control how many middle page numbers are shown.
 
-  if ( ($dockerSearch && $totalApps <= 25) || ($totalApps < 2) ) {
-    return "<script>data.currentpage = 1;$('.maxPerPage').hide();</script>";
-  }
+  $navigationData = [
+    'pageNumber' => (int)$pageNumber,
+    'totalApps' => (int)$totalApps,
+    'maxPerPage' => (int)$maxPerPage,
+    'displayCount' => (bool)$displayCount,
+    'pageFunction' => $pageFunction,
+    'dockerSearch' => (bool)$dockerSearch,
+    'maxMiddlePages' => (int)$maxMiddlePages,
+  ];
+  $jsonNavigationData = json_encode($navigationData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
-  if ( $totalPages <= 1 ) {
-    $toggle = ( $totalApps >= 25 ) ? "$('.maxPerPage').show();" : "$('.maxPerPage').hide();";
-    return "<script>data.currentpage = 1;$toggle</script>";
-  }
-
-  $startApp = ($pageNumber - 1) * $maxPerPage + 1;
-  $endApp = min($pageNumber * $maxPerPage, $totalApps);
-
-  $navigation = [];
-  $navigation[] = "<div class='navigationSection'>";
-
-
-
-  $navigation[] = "<div class='pageNavigation'>";
-  if ( $displayCount ) {
-   // $navigation[] = "<span>".sprintf(tr("%s - %s"),$startApp,$endApp)."</span>";
-   // $navigation[] = "<span>".sprintf("(".tr("%s").")",$totalApps)."</span>";
-  }
-  $previousPage = $pageNumber - 1;
-  $navigation[] = ( $pageNumber == 1 )
-    ? "<span class='pageLeft pageNumber pageNavNoClick'></span>"
-    : "<span class='pageLeft pageNumber' onclick='$pageFunction(&quot;$previousPage&quot;)'></span>";
-
-  $swipeCommands[] = "data.prevpage = $previousPage;";
-
-  // Change this value to control how many middle page numbers are shown.
-  $maxMiddlePages = 3;
-  $halfMiddlePages = (int)floor($maxMiddlePages / 2);
-  $startingPage = max(1, min($pageNumber - $halfMiddlePages, $totalPages - $maxMiddlePages + 1));
-  $endingPage = min($totalPages, $startingPage + $maxMiddlePages - 1);
-
-  if ( $startingPage > 1 ) {
-    $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a>";
-    if ( $startingPage > 2 ) {
-      $navigation[] = "<span class='pageDots'></span>";
-    }
-  }
-
-  for ( $i = $startingPage; $i <= $endingPage; $i++ ) {
-    $navigation[] = ( $i == $pageNumber )
-      ? "<span class='pageNumber pageSelected'>$i</span>"
-      : "<a class='pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
-  }
-
-  if ( $endingPage < $totalPages ) {
-    if ( $endingPage < ($totalPages - 1) ) {
-      $navigation[] = "<span class='pageDots'></span>";
-    }
-    $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
-  }
-
-  $nextPage = $pageNumber + 1;
-  $navigation[] = ( $pageNumber < $totalPages )
-    ? "<span class='pageNumber pageRight' onclick='$pageFunction(&quot;$nextPage&quot;);'></span>"
-    : "<span class='pageRight pageNumber pageNavNoClick'></span>";
-
-  $swipeCommands[] = ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
-
-  $navigation[] = "</div></div><script>data.currentpage = $pageNumber;</script>";
-
-  return implode("", $navigation)."<script>".implode("", $swipeCommands)."</script>";
+  return "<script>caRenderPageNavigation('ca_pageNavigation',$jsonNavigationData);</script>";
 }
 
 
