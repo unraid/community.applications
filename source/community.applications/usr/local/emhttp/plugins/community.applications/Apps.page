@@ -355,7 +355,7 @@ $(function(){
     $(".ca_templatesDisplay").hide();
     swal({
       title: "<?tr("Disclaimer");?>",
-      text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here');?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present');?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application / Privacy Policy');?></a>',
+      text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here');?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present');?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application / Privacy Policy');?></a>',
       html: true,
       type: 'warning',
       showCancelButton: true,
@@ -371,23 +371,6 @@ $(function(){
       $(".ca_templatesDisplay").show();
         addBannerWarning("<?tr("Installations of apps disabled.  You must accept the warning to be able to install applications.");?>   <a onclick='window.location.reload();' style='cursor:pointer;'><?tr("Click here");?></a>",true,true);
         updateContent();
-      }
-    });
-  } else if ( "<?=$pluginWarning?>" == "false" ) {
-    $(".ca_templatesDisplay").hide();
-    swal({
-      title: "<?tr('Plugins');?>",
-      text: '<?tr('Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.');?><br><br><ceter><a href="https://forums.unraid.net/topic/87144-ca-application-policies-notes/?tab=comments#comment-817555" target="_blank"><?tr('Plugin Note');?></a></center>',
-      type: 'warning',
-      html: true,
-      showCancelButton: false,
-      showConfirmButton: true,
-      confirmButtonText: "<?tr("I Understand");?>"
-    }, function (isConfirm) {
-      if (isConfirm) {
-        post({action:'dismiss_plugin_warning'},function(result) {
-          location.reload();
-        });
       }
     });
   }	else {

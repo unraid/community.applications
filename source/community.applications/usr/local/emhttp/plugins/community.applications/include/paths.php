@@ -82,7 +82,6 @@ define("CA_PATHS",[
   'fixedTemplates_txt'                  => "$tempFiles/caFixed.txt",
   'invalidXML_txt'                      => "$tempFiles/invalidxml.txt",
   'warningAccepted'                     => "$flashDrive/accepted",
-  'pluginWarning'                       => "$flashDrive/plugins_accepted",
   'pluginDupes'                         => "$tempFiles/pluginDupes.json",
   'pluginTempDownload'                  => "$tempFiles/pluginTempFile.plg",
   'dockerManTemplates'                  => $dockerManPaths['templates-user'],

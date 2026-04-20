@@ -96,9 +96,6 @@ switch ($_POST['action']) {
   case 'dismiss_warning':
     dismiss_warning();
     break;
-  case 'dismiss_plugin_warning':
-    dismiss_plugin_warning();
-    break;
   case 'previous_apps':
     previous_apps();
     break;
@@ -1157,13 +1154,6 @@ function dismiss_warning() {
   ca_file_put_contents(CA_PATHS['warningAccepted'],"warning dismissed");
   postReturn(['status'=>"warning dismissed"]);
 }
-function dismiss_plugin_warning() {
-
-  ca_file_put_contents(CA_PATHS['pluginWarning'],"disclaimer ok");
-  postReturn(['status'=>"disclaimed"]);
-}
-
-
 
 ###############################################################
 # Displays the list of installed or previously installed apps #
