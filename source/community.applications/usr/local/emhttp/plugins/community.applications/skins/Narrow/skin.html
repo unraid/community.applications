@@ -119,7 +119,9 @@ $(function() {
     </div>
     <div id='templates_content' class='menuAdjust'></div>
     <div class='multi_installDiv'>
-      <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
+      <? if ( ! $firstRun ): ?>
+        <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
+      <? endif; ?>
       <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
       <input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
       <input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
