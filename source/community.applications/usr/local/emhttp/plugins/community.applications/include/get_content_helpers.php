@@ -60,7 +60,6 @@ class GetContentHelpers {
   }
 
   public static function handleHomeStartupDisplay(array &$file, $maxHomeApps) {
-    global $caSettings;
 
    // getConvertedTemplates();  // Only scan for private XMLs when going HOME
 
@@ -121,7 +120,7 @@ class GetContentHelpers {
       ]
     ];
 
-    if ($caSettings['featuredDisable'] !== "yes") {
+    if ($GLOBALS['caSettings']['featuredDisable'] !== "yes") {
       array_unshift($startupTypes,
         [
           "type"=>"featured",
@@ -142,15 +141,15 @@ class GetContentHelpers {
       $display = [];
       $homeCount = 0;
 
-      $caSettings['startup'] = $type['type'];
+      $GLOBALS['caSettings']['startup'] = $type['type'];
       $appsOfDay = appOfDay($file);
 
       if ( ! $appsOfDay || empty($appsOfDay) )
         continue;
 
-      for ($i=0;$i<$caSettings['maxPerPage'];$i++) {
+      for ($i=0;$i<$GLOBALS['caSettings']['maxPerPage'];$i++) {
         if ( ! isset($appsOfDay[$i])) continue;
-        $file[$appsOfDay[$i]]['NewApp'] = ($caSettings['startup'] != "random");
+        $file[$appsOfDay[$i]]['NewApp'] = ($GLOBALS['caSettings']['startup'] != "random");
         $spot = $file[$appsOfDay[$i]];
         $spot['homeScreen'] = true;
         $displayApplications['community'][] = $spot;
@@ -170,7 +169,7 @@ class GetContentHelpers {
         $o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();";
 
       } else {
-        switch ($caSettings['startup']) {
+        switch ($GLOBALS['caSettings']['startup']) {
           case "onlynew":
             $startupType = "New"; break;
           case "new":
@@ -236,11 +235,11 @@ class GetContentHelpers {
     return false;
   }
 
-  public static function shouldSkipTemplate($template, $flags, $caSettings) {
-    if ( ($caSettings['hideDeprecated'] == "true") && ($template['Deprecated'] && ! $flags['displayDeprecated']) ) return true;
+  public static function shouldSkipTemplate($template, $flags) {
+    if ( ($GLOBALS['caSettings']['hideDeprecated'] == "true") && ($template['Deprecated'] && ! $flags['displayDeprecated']) ) return true;
     if ( $flags['displayDeprecated'] && ! $template['Deprecated'] ) return true;
     if ( ! $template['Displayable'] ) return true;
-    if ( $caSettings['hideIncompatible'] == "true" && ! $template['Compatible'] && ! $flags['displayIncompatible']  && ! ($template['Featured']??false) ) return true;
+    if ( $GLOBALS['caSettings']['hideIncompatible'] == "true" && ! $template['Compatible'] && ! $flags['displayIncompatible']  && ! ($template['Featured']??false) ) return true;
     if ( $template['Blacklist'] ) return true;
     if ( $flags['displayPrivates'] && ! $template['Private'] ) return true;
 
@@ -248,7 +247,6 @@ class GetContentHelpers {
   }
 
   public static function handleFilteredTemplate($template, $filter, &$searchResults) {
-    global $caSettings;
 
     $template['translatedCategories'] = "";
     foreach (explode(" ",$template['Category']) as $trCat) {
@@ -259,7 +257,7 @@ class GetContentHelpers {
       return;
     }
 
-    if ( filterMatch($filter,[$template['SortName']]) && $caSettings['favourite'] == $template['RepoName']) {
+    if ( filterMatch($filter,[$template['SortName']]) && $GLOBALS['caSettings']['favourite'] == $template['RepoName']) {
       $searchResults['favNameHit'][] = $template;
       return;
     }
@@ -289,7 +287,7 @@ class GetContentHelpers {
     }
 
     if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
-      if ( $template['RepoName'] == ($caSettings['favourite']??null) ) {
+      if ( $template['RepoName'] == ($GLOBALS['caSettings']['favourite']??null) ) {
         $searchResults['nameHit'][] = $template;
       } else {
         $searchResults['anyHit'][] = $template;   
@@ -304,7 +302,6 @@ class GetContentHelpers {
   }
 
   public static function sortSearchResultsBuckets(&$searchResults, $filter) {
-    global $caSettings;
 
     $buckets = ['fullNameHit','officialHit','nameHit','favNameHit','anyHit','extraHit'];
     foreach ($buckets as $bucket) {
@@ -316,7 +313,7 @@ class GetContentHelpers {
     }
 
     if ( isset($searchResults['nameHit']) && ! strpos($filter," Repository") ) {
-      if ( $caSettings['favourite'] && $caSettings['favourite'] !== "none" ) {
+      if ( $GLOBALS['caSettings']['favourite'] && $GLOBALS['caSettings']['favourite'] !== "none" ) {
         usort($searchResults['nameHit'],"favouriteSort");
       }
     }

@@ -16,7 +16,6 @@ if (false) {
   require_once __DIR__ . "/_ide_stubs.php";
 }
 
-$unRaidSettings = parse_ini_file("/etc/unraid-version");
 
 ### Translations section has to be first so that nothing else winds up caching the file(s)
 
@@ -37,26 +36,10 @@ require_once "$docroot/webGui/include/Markdown.php";
 # Set up any default settings (when not explicitely set by the settings module #
 ################################################################################
 
-$caSettings = parse_plugin_cfg("community.applications");
-$dynamixSettings = parse_plugin_cfg("dynamix");
-
-$caSettings['dockerSearch']  = "yes";
-$caSettings['unRaidVersion'] = $unRaidSettings['version'];
-$caSettings['favourite']     = isset($caSettings['favourite']) ? str_replace("*","'",$caSettings['favourite']) : "";
-$caSettings['dynamixTheme']  = $dynamixSettings['theme'];
-
-$caSettings['maxPerPage']    = (integer)$caSettings['maxPerPage'] ?: 12; // Handle possible corruption on file
-if ( $caSettings['maxPerPage'] < 6 ) $caSettings['maxPerPage'] = 12;
-
-if ( ! is_file(CA_PATHS['warningAccepted']) )
-  $caSettings['NoInstalls'] = true;
+getGlobals();
 
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
-
-if ( ! caIsDockerRunning() ) {
-  $caSettings['dockerSearch'] = "no";
-}
 
 @mkdir(CA_PATHS['tempFiles'],0777,true);
 
@@ -699,12 +682,12 @@ function downloadDebugging() {
 # Selects an app of the day #
 #############################
 function appOfDay($file) {
-  global $caSettings,$sortOrder,$dynamixSettings;
+  global $sortOrder,$dynamixSettings;
 
   $max = getPost("maxHomeApps",10);
   $appOfDay = [];
 
-  switch ($caSettings['startup']) {
+  switch ($GLOBALS['caSettings']['startup']) {
     case "random":
       $oldAppDay = @filemtime(CA_PATHS['appOfTheDay']);
       $oldAppDay = $oldAppDay ?: 1;
@@ -738,7 +721,7 @@ function appOfDay($file) {
       $sortOrder['sortDir'] = "Down";
       usort($file,"mySort");
       foreach ($file as $template) {
-        if ( ! $template['Compatible'] == "true" && $caSettings['hideIncompatible'] == "true" ) continue;
+        if ( ! $template['Compatible'] == "true" && $GLOBALS['caSettings']['hideIncompatible'] == "true" ) continue;
         if ( $template['FirstSeen'] > 1538357652 ) {
           if ( checkRandomApp($template) ) {
             $appOfDay[] = $template['ID'];
@@ -778,7 +761,7 @@ function appOfDay($file) {
 
         // don't show patch within top installs on home page if it's already installed and featured is displayed
 
-        if ( $template['Name'] == "Unraid Patch" && ($caSettings['featuredDisable'] == "no" || is_file("/var/log/plugins/unraid.patch.plg")) ) continue;
+        if ( $template['Name'] == "Unraid Patch" && ($GLOBALS['caSettings']['featuredDisable'] == "no" || is_file("/var/log/plugins/unraid.patch.plg")) ) continue;
 
         if ( checkRandomApp($template) ) {
           $repos[] = $template['Repository'];
@@ -868,14 +851,13 @@ function appOfDay($file) {
 # Checks selected app for eligibility as app of day #
 #####################################################
 function checkRandomApp($test) {
-  global $caSettings;
 
   if ( $test['Name'] == "Community Applications" )  return false;
   if ( $test['BranchName'] ?? false)                        return false;
   if ( ! $test['Displayable'] )                     return false;
-  if ( ! $test['Compatible'] && $caSettings['hideIncompatible'] == "true" ) return false;
+  if ( ! $test['Compatible'] && $GLOBALS['caSettings']['hideIncompatible'] == "true" ) return false;
   if ( $test['Blacklist'] )                         return false;
-  if ( $test['Deprecated'] && ( $caSettings['hideDeprecated'] == "true" ) ) return false;
+  if ( $test['Deprecated'] && ( $GLOBALS['caSettings']['hideDeprecated'] == "true" ) ) return false;
 
   return true;
 }
@@ -883,9 +865,6 @@ function checkRandomApp($test) {
 # Gets the repositories that are listed on any given display #
 ##############################################################
 function displayRepositories() {
-  global $caSettings;
-
-  getGlobals();
 
   $repositories = readJsonFile(CA_PATHS['repositoryList']);
   if ( is_file(CA_PATHS['community-templates-allSearchResults']) ) {
@@ -918,15 +897,15 @@ function displayRepositories() {
 
   foreach ($templates as $template) {
     if ( $template['Blacklist'] ) continue;
-    if ( $template['Deprecated'] && $caSettings['hideDeprecated'] == "true" ) continue;
-    if ( ! $template['Compatible'] && $caSettings['hideIncompatible'] == "true" ) continue;
+    if ( $template['Deprecated'] && $GLOBALS['caSettings']['hideDeprecated'] == "true" ) continue;
+    if ( ! $template['Compatible'] && $GLOBALS['caSettings']['hideIncompatible'] == "true" ) continue;
 
     $repoName = $template['RepoName'] ?? null;
     if ( ! $repoName || ! isset($repositories[$repoName]) ) continue;
 
     $repository = $repositories[$repoName];
 
-    if ( $repoName == $caSettings['favourite'] ) {
+    if ( $repoName == $GLOBALS['caSettings']['favourite'] ) {
       $fav = $repository;
       $fav['RepositoryTemplate'] = true;
       $fav['RepoName'] = $repoName;
@@ -961,23 +940,20 @@ function displayRepositories() {
 # get_content - get the results from templates according to categories, filters, etc #
 ######################################################################################
 function get_content() {
-  global $caSettings;
 
   require_once __DIR__ . '/get_content_helpers.php';
   
-  getGlobals();
-
   $filter       = getPost("filter",false);
   $categoryRaw  = getPost("category",false);
   $newApp       = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
   $mobileDevice = filter_var(getPost("mobileDevice",false),FILTER_VALIDATE_BOOLEAN);
 
   if ( $mobileDevice ) {
-    $caSettings['maxPerPage'] = 6;
+    $GLOBALS['caSettings']['maxPerPage'] = 6;
   }
   $maxHomeApps = getPost("maxHomeApps",12);
 
-  $caSettings['startup'] = getPost("startupDisplay",false);
+  $GLOBALS['caSettings']['startup'] = getPost("startupDisplay",false);
   @unlink(CA_PATHS['repositoriesDisplayed']);
   @unlink(CA_PATHS['dockerSearchActive']);
 
@@ -1027,7 +1003,7 @@ function get_content() {
       continue;
     }
 
-    if ( GetContentHelpers::shouldSkipTemplate($template, $displayFlags, $caSettings) ) {
+    if ( GetContentHelpers::shouldSkipTemplate($template, $displayFlags) ) {
       continue;
     }
 
@@ -1085,7 +1061,6 @@ function force_update_skip() {
 # force_update -> forces an update of the applications #
 ########################################################
 function force_update() {
-  global $caSettings;
 
   require_once __DIR__ . '/force_update_helpers.php';
   while ( is_file(CA_PATHS['gettingTemplates']) ) {
@@ -1122,7 +1097,7 @@ function force_update() {
   moderateTemplates();
   touch(CA_PATHS['haveTemplates']);
   @unlink(CA_PATHS['gettingTemplates']);
-  $script = ForceUpdateHelpers::buildUpdateScript($caSettings);
+  $script = ForceUpdateHelpers::buildUpdateScript();
   
   writeGlobals($GLOBALS['templates']);
   postReturn(['status' => "ok", 'script' => $script]);
@@ -1159,12 +1134,9 @@ function dismiss_warning() {
 # Displays the list of installed or previously installed apps #
 ###############################################################
 function previous_apps($enableActionCentre=false) {
-  global $caSettings;
 
   require_once __DIR__ . '/previous_apps_helpers.php';
   
-  getGlobals();
-
   $context = PreviousAppsHelpers::resolvePreviousAppsContext($enableActionCentre);
   $installed = $context['installed'];
   $filter = $context['filter'];
@@ -1187,7 +1159,7 @@ function previous_apps($enableActionCentre=false) {
 
   $displayed = array_merge(
     $displayed,
-    PreviousAppsHelpers::collectPluginApplications($installed, $filter, $file, $caSettings, $updateCount)
+    PreviousAppsHelpers::collectPluginApplications($installed, $filter, $file, $updateCount)
   );
 
   if ( $enableActionCentre ) {
@@ -1293,11 +1265,8 @@ function areAppsPinned() {
 # Displays the pinned applications #
 ####################################
 function pinnedApps() {
-  global $caSettings;
 
   require_once __DIR__ . '/pinned_apps_helpers.php';
-
-  getGlobals();
 
   $pinnedApps = array_filter((array)readJsonFile(CA_PATHS['pinnedV2']));
   debug("pinned apps memory usage before: ".round(memory_get_usage()/1048576,2)." MB");
@@ -1313,7 +1282,7 @@ function pinnedApps() {
   ]);
 
   $displayed = [];
-  $hideIncompatible = ($caSettings['hideIncompatible'] ?? "false") === "true";
+  $hideIncompatible = ($GLOBALS['caSettings']['hideIncompatible'] ?? "false") === "true";
 
   foreach ($pinnedApps as $pinned) {
     if (!is_string($pinned) || strpos($pinned, '&') === false) {
@@ -1353,9 +1322,6 @@ function displayTags() {
 # Displays The Statistics For The Appfeed #
 ###########################################
 function statistics() {
-  global $caSettings;
-
-  getGlobals();
 
   if ( ! is_file(CA_PATHS['statistics']) )
     $statistics = download_json(CA_PATHS['statisticsURL'],CA_PATHS['statistics']);
@@ -1378,7 +1344,7 @@ function statistics() {
     if ( $template['Blacklist']??false ) $statistics['blacklist']++;
 
     if ( ($template['Private']??false) && ! ($template['Blacklist']??false)) {
-      if ( ! ($caSettings['hideDeprecated'] == 'true' && ($template['Deprecated']??false)) ) {
+      if ( ! ($GLOBALS['caSettings']['hideDeprecated'] == 'true' && ($template['Deprecated']??false)) ) {
         $statistics['private']++;
         continue;
       }
@@ -1435,15 +1401,12 @@ function statistics() {
 # Creates the entries for autocomplete on searches #
 ####################################################
 function populateAutoComplete() {
-  global $caSettings;
 
   require_once __DIR__ . '/populate_autocomplete_helpers.php';
 
-  getGlobals();
-
   $templates = PopulateAutoCompleteHelpers::waitForTemplates();
   $autoComplete = PopulateAutoCompleteHelpers::buildBaseSuggestions();
-  $autoComplete = PopulateAutoCompleteHelpers::addTemplateSuggestions($templates, $autoComplete, $caSettings);
+  $autoComplete = PopulateAutoCompleteHelpers::addTemplateSuggestions($templates, $autoComplete);
   $autoComplete[tr("language")] = tr("Language");
 
   postReturn(['autocomplete'=>PopulateAutoCompleteHelpers::finalizeSuggestions($autoComplete)]);
@@ -1461,8 +1424,6 @@ function caChangeLog() {
 ###############################
 function get_categories() {
   global $sortOrder;
-
-  getGlobals();
 
   $categories = readJsonFile(CA_PATHS['categoryList']);
   if ( ! is_array($categories) || empty($categories) ) {
@@ -1530,7 +1491,6 @@ function getRepoDescription() {
 # Creates the XML for a container install #
 ###########################################
 function createXML() {
-  global $caSettings;
 
   getFullGlobals();
 
@@ -1561,7 +1521,7 @@ function createXML() {
     if ( $template['OriginalDescription'] ?? false )
       $template['Description'] = $template['OriginalDescription'];
 
-    $template['Icon'] = $template["Icon-{$caSettings['dynamixTheme']}"] ?? ($template['Icon'] ?? "");
+    $template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? ($template['Icon'] ?? "");
 
 // switch from br0 to eth0 if necessary
     if ( isset($template['Networking']['Mode']) || isset($template['Network']) ) {
@@ -1719,7 +1679,7 @@ function createXML() {
 
     // Add in TSStateDir
 
-    if ( version_compare($caSettings['unRaidVersion'],"7.0.0",">") && isTailScaleInstalled() ) {
+    if ( version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.0.0",">") && isTailScaleInstalled() ) {
       if ( isset($template['Config']) && (! $foundTSDir) && ($TSFallBackDir ?? false) ) {
         $template['Config'][] = ["@attributes"=>["Display"=>"advanced","Description"=>"Fallback container directory for tailscale state information - Added By Community Applications","Default"=>$TSFallBackDir,"Name"=>"TailScale Fallback State Directory","Target"=>"CA_TS_FALLBACK_DIR","Type"=>"Variable"],"value"=>$TSFallBackDir];
       }
@@ -1806,14 +1766,13 @@ function getCategoriesPresent() {
 # Set's the favourite repository #
 ##################################
 function toggleFavourite() {
-  global $caSettings;
 
   $repository = html_entity_decode(getPost("repository",""),ENT_QUOTES);
-  if ( $caSettings['favourite'] == $repository )
+  if ( $GLOBALS['caSettings']['favourite'] == $repository )
     $repository = "";
 
-  $caSettings['favourite'] = $repository;
-  write_ini_file(CA_PATHS['pluginSettings'],$caSettings);
+  $GLOBALS['caSettings']['favourite'] = $repository;
+  write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
   postReturn(['status'=>"ok",'fav'=>$repository]);
 }
 
@@ -1821,9 +1780,8 @@ function toggleFavourite() {
 # Returns the favourite repository #
 ####################################
 function getFavourite() {
-  global $caSettings;
 
-  postReturn(["favourite"=>$caSettings['favourite']]);
+  postReturn(["favourite"=>$GLOBALS['caSettings']['favourite']]);
 }
 ##########################
 # Changes the sort order #
@@ -1994,7 +1952,6 @@ function search_dockerhub() {
 # Gets the last update issued to a container #
 ##############################################
 function getLastUpdate($ID) {
-  getGlobals();
 
   $count = 0;
   $registry_json = null;
@@ -2048,13 +2005,12 @@ function getLastUpdate($ID) {
 # Changes the max per page displayed #
 ######################################
 function changeMaxPerPage() {
-  global $caSettings;
 
   $max = getPost("max",24);
-  if ($caSettings['maxPerPage'] == $max) {
+  if ($GLOBALS['caSettings']['maxPerPage'] == $max) {
     postReturn(["status"=>"same"]);
   } else {
-    $caSettings['maxPerPage'] = $max;
+    $GLOBALS['caSettings']['maxPerPage'] = $max;
     write_ini_file(CA_PATHS['pluginSettings'],$caSettings);
     postReturn(["status"=>"updated"]);
   }
@@ -2299,7 +2255,6 @@ function clearStartUpDisplayed() {
 #######################################
 function javascriptError() {
   return;
-  global $caSettings;
 
   debug("******* ERROR **********\n".print_r($_POST,true));
 }

@@ -75,7 +75,7 @@ class ForceUpdateHelpers {
     return $response;
   }
 
-  public static function buildUpdateScript(array $caSettings): string {
+  public static function buildUpdateScript(): string {
     $appFeedTime = readJsonFile(CA_PATHS['lastUpdated-old']);
     $timestamp = $appFeedTime['last_updated_timestamp'] ?? 0;
     $updateTime = tr(date("F", $timestamp), 0) . date(" d, Y @ g:i a", $timestamp);
@@ -90,7 +90,7 @@ class ForceUpdateHelpers {
     );
 
     if ($appfeedCA !== false) {
-      if (version_compare($caSettings['unRaidVersion'], $GLOBALS['templates'][$appfeedCA]['MinVer'], "<")) {
+      if (version_compare($GLOBALS['caSettings']['unRaidVersion'], $GLOBALS['templates'][$appfeedCA]['MinVer'], "<")) {
         $script .= "addBannerWarning('"
           . tr("Deprecated OS version.  No further updates to Community Applications will be issued for this OS version")
           . "');";

@@ -20,11 +20,11 @@ class PopulateAutoCompleteHelpers {
     }, $categories);
   }
 
-  public static function addTemplateSuggestions($templates, $autoComplete, $caSettings) {
+  public static function addTemplateSuggestions($templates, $autoComplete) {
     foreach ($templates as $template) {
       $template = addMissingVars($template);
 
-      if (!self::shouldIncludeTemplate($template, $caSettings)) {
+      if (!self::shouldIncludeTemplate($template)) {
         continue;
       }
 
@@ -42,14 +42,14 @@ class PopulateAutoCompleteHelpers {
     return array_values(array_filter(array_unique($autoComplete)));
   }
 
-  private static function shouldIncludeTemplate($template, $caSettings) {
+  private static function shouldIncludeTemplate($template) {
     if (!empty($template['RepoTemplate'])) {
       return false;
     }
 
     $isHidden = !empty($template['Blacklist']);
-    $isDeprecatedHidden = !empty($template['Deprecated']) && ($caSettings['hideDeprecated'] ?? "false") === "true";
-    $isIncompatibleHidden = empty($template['Compatible']) && ($caSettings['hideIncompatible'] ?? "false") === "true";
+    $isDeprecatedHidden = !empty($template['Deprecated']) && ($GLOBALS['caSettings']['hideDeprecated'] ?? "false") === "true";
+    $isIncompatibleHidden = empty($template['Compatible']) && ($GLOBALS['caSettings']['hideIncompatible'] ?? "false") === "true";
     $isFeatured = !empty($template['Featured']);
 
     return (!$isHidden && !$isDeprecatedHidden && !$isIncompatibleHidden) || $isFeatured;

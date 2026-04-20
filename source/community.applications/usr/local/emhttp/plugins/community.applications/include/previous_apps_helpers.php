@@ -58,7 +58,7 @@ class PreviousAppsHelpers {
     return self::collectLegacyDockerApplications($allFiles, $info, $templates);
   }
 
-  public static function collectPluginApplications($installed, $filter, $templates, $caSettings, &$updateCount) {
+  public static function collectPluginApplications($installed, $filter, $templates, &$updateCount) {
     if ( $filter && $filter !== "plugins" ) {
       return [];
     }
@@ -69,7 +69,7 @@ class PreviousAppsHelpers {
       return self::collectInstalledPluginApplications($templates, $isActionCentre, $updateCount);
     }
 
-    return self::collectLegacyPluginApplications($templates, $caSettings);
+    return self::collectLegacyPluginApplications($templates);
   }
 
   private static function collectInstalledDockerApplications($allFiles, $info, $templates, $dockerUpdateStatus, $extraBlacklist, $extraDeprecated, $isActionCentre, &$updateCount) {
@@ -345,7 +345,7 @@ class PreviousAppsHelpers {
     return $displayed;
   }
 
-  private static function collectLegacyPluginApplications($templates, $caSettings) {
+  private static function collectLegacyPluginApplications($templates) {
     $displayed = [];
     $alreadySeen = [];
 
@@ -370,7 +370,7 @@ class PreviousAppsHelpers {
           continue;
         }
 
-        if ( $template['Blacklist'] || ( ($caSettings['hideIncompatible'] == "true") && ( ! $template['Compatible'] ) ) ) {
+        if ( $template['Blacklist'] || ( ($GLOBALS['caSettings']['hideIncompatible'] == "true") && ( ! $template['Compatible'] ) ) ) {
           continue;
         }
 

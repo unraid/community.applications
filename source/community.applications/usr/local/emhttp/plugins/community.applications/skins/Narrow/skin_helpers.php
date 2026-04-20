@@ -80,7 +80,7 @@ function caFormatTemplateChanges(array &$template) {
 ################################################################################
 # Collect docker state used by popups (running containers and update metadata) #
 ################################################################################
-function caInitializeDockerState($DockerClient, array &$caSettings) {
+function caInitializeDockerState($DockerClient) {
   $info = [];
 
   if (caIsDockerRunning()) {
@@ -175,7 +175,7 @@ function caNormalizeRequiresField($requires) {
 ##################################################################
 # Build the Support button context for a template card or popup  #
 ##################################################################
-function caBuildSupportContext(array $template, array $allRepositories, array $caSettings) {
+function caBuildSupportContext(array $template, array $allRepositories) {
   $supportContext = [];
   if ($template['Project']) {
     $supportContext[] = ["icon"=>"ca_fa-project","link"=>$template['Project'],"text"=>tr("Project")];
@@ -197,7 +197,7 @@ function caBuildSupportContext(array $template, array $allRepositories, array $c
   if ($template['Registry']) {
     $supportContext[] = ["icon"=>"ca_fa-docker","link"=>$template['Registry'],"text"=>tr("Registry")];
   }
-  if ($caSettings['dev'] == "yes") {
+  if ($GLOBALS['caSettings']['dev'] == "yes") {
     $supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Application Template")];
   }
 
@@ -320,14 +320,14 @@ function caPrepareLanguagePack(array &$template, array &$language) {
 #######################################################################
 # Build the context menu for template actions (install/update/manage) #
 #######################################################################
-function caBuildActionsContext(array &$template, array &$caSettings, array $info, array $dockerRunning, array $dockerUpdateStatus, $selected, $name, $pluginName) {
+function caBuildActionsContext(array &$template, array $info, array $dockerRunning, array $dockerUpdateStatus, $selected, $name, $pluginName) {
     $actionsContext = [];
 
     if ($template['Language']) {
       return $actionsContext;
     }
 
-    if ($template['NoInstall'] || ($caSettings['NoInstalls'] ?? false)) {
+    if ($template['NoInstall'] || ($GLOBALS['caSettings']['NoInstalls'] ?? false)) {
       return $actionsContext;
     }
 
@@ -348,7 +348,7 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
           } else {
             $template['UpdateAvailable'] = false;
           }
-          if ($caSettings['defaultReinstall'] == "true" && !$template['Blacklist'] && $template['ID'] !== false) {
+          if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && !$template['Blacklist'] && $template['ID'] !== false) {
             if ($template['BranchID'] ?? false) {
               $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'','".$template['PortsUsed']."');"];
             } else {
@@ -373,8 +373,8 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
             $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
           } else {
             if (!$template['Blacklist']) {
-              if ($template['Compatible'] || $caSettings['hideIncompatible'] !== "true") {
-                if (!$template['Deprecated'] || $caSettings['hideDeprecated'] !== "true") {
+              if ($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") {
+                if (!$template['Deprecated'] || $GLOBALS['caSettings']['hideDeprecated'] !== "true") {
                   if (!isset($template['BranchID'])) {
                     $actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','default','','".$template['PortsUsed']."');"];
                   } else {
@@ -411,8 +411,8 @@ function caBuildActionsContext(array &$template, array &$caSettings, array $info
           $actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Uninstall")."</span>","action"=>"uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ","&nbsp;",$template['Name'])."');"];
         }
       } elseif (!$template['Blacklist']) {
-        if (($template['Compatible'] || $caSettings['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false)) {
-          if (!$template['Deprecated'] || $caSettings['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
+        if (($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false)) {
+          if (!$template['Deprecated'] || $GLOBALS['caSettings']['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
             if (($template['RequiresFile'] && is_file($template['RequiresFile'])) || !$template['RequiresFile']) {
               $buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
               $isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
@@ -492,7 +492,7 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 ########################################################################
 # Assemble docker-related context (warnings, info caches) for listings #
 ########################################################################
-function caDockerContext(array &$caSettings): array {
+function caDockerContext(): array {
   $dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
 
   if ( caIsDockerRunning() ) {
@@ -503,7 +503,7 @@ function caDockerContext(array &$caSettings): array {
     $dockerUpdateStatus = [];
   }
 
-  $dockerWarningFlag = (! caIsDockerRunning() && ! ($caSettings['NoInstalls'] ?? false)) ? "true" : "false";
+  $dockerWarningFlag = (! caIsDockerRunning() && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false";
   $dockerNotEnabled = $dockerWarningFlag;
 
   if ($dockerNotEnabled === "true") {
@@ -551,8 +551,8 @@ function caNormalizeSelectedApps($selectedApps): array {
 ###################################################################
 # Slice the current page worth of templates from the full listing #
 ###################################################################
-function caSliceDisplayedTemplates(array $file, int $pageNumber, array $caSettings): array {
-  $startingApp = ($pageNumber - 1) * $caSettings['maxPerPage'] + 1;
+function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
+  $startingApp = ($pageNumber - 1) * $GLOBALS['caSettings']['maxPerPage'] + 1;
   $startingAppCounter = 0;
   $displayedTemplates = [];
 
@@ -609,7 +609,7 @@ function caPrepareTemplateComments(array $template): array {
 #############################################################################
 # Build action contexts and flags for docker templates when rendering cards #
 #############################################################################
-function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus, array $caSettings, string $installComment): array {
+function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus, string $installComment): array {
   $actionsContext = [];
   $selected = false;
   $name = "";
@@ -645,7 +645,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
         $template['UpdateAvailable'] = false;
       }
 
-      if ($caSettings['defaultReinstall'] == "true" && ! $template['Blacklist']) {
+      if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && ! $template['Blacklist']) {
         if ($template['ID'] !== false) {
           if ($template['BranchID'] ?? false) {
             $actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "displayTags('{$template['ID']}',true,'".str_replace(" ", "&#32;", htmlspecialchars($installComment, ENT_QUOTES))."','".$template['PortsUsed']."');"];
@@ -696,7 +696,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 #############################################################################
 # Build action contexts and state for plugin templates when rendering cards #
 #############################################################################
-function caProcessPluginTemplate(array $template, array $caSettings, string $installComment): array {
+function caProcessPluginTemplate(array $template, string $installComment): array {
   $actionsContext = [];
   $pluginName = basename($template['PluginURL']);
   $template['Installed'] = checkInstalledPlugin($template);
@@ -779,7 +779,7 @@ function caProcessPluginTemplate(array $template, array $caSettings, string $ins
 
 ##############################################################################
 ##############################################################################
-function caProcessLanguageTemplate(array $template, array $caSettings, array $actionsContext): array {
+function caProcessLanguageTemplate(array $template, array $actionsContext): array {
   $countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
   $dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'], true);
   $currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
@@ -823,23 +823,22 @@ function caProcessLanguageTemplate(array $template, array $caSettings, array $ac
 }
 
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
-  global $caSettings;
 
   $pageFunction = $dockerSearch ? "dockerSearch" : "changePage";
   $swipeCommands = [];
 
   if ( $dockerSearch ) {
-    $caSettings['maxPerPage'] = 25;
+    $GLOBALS['caSettings']['maxPerPage'] = 25;
     $swipeCommands[] = "$('.maxPerPage').hide();";
   } else {
     $swipeCommands[] = "$('.maxPerPage').show();";
   }
 
-  if ( $caSettings['maxPerPage'] < 0 ) {
+  if ( $GLOBALS['caSettings']['maxPerPage'] < 0 ) {
     return;
   }
 
-  $maxPerPage = max(1, (int)$caSettings['maxPerPage']);
+  $maxPerPage = max(1, (int)$GLOBALS['caSettings']['maxPerPage']);
   $totalPages = (int)ceil($totalApps / $maxPerPage);
 
   if ( ($dockerSearch && $totalApps <= 25) || ($totalApps < 2) ) {
@@ -855,14 +854,15 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
   $endApp = min($pageNumber * $maxPerPage, $totalApps);
 
   $navigation = [];
-  $navigation[] = "</div><div class='navigationSection'><div class='navigationArea ca_center'>";
+  $navigation[] = "<div class='navigationSection'>";
 
-  if ( $displayCount ) {
-    $navigation[] = "<span class='pageNavigation'>".sprintf(tr("Displaying %s - %s (of %s)"),$startApp,$endApp,$totalApps)."</span><br>";
-  }
+
 
   $navigation[] = "<div class='pageNavigation'>";
-
+  if ( $displayCount ) {
+   // $navigation[] = "<span>".sprintf(tr("%s - %s"),$startApp,$endApp)."</span>";
+   // $navigation[] = "<span>".sprintf("(".tr("%s").")",$totalApps)."</span>";
+  }
   $previousPage = $pageNumber - 1;
   $navigation[] = ( $pageNumber == 1 )
     ? "<span class='pageLeft pageNumber pageNavNoClick'></span>"
@@ -870,14 +870,18 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
   $swipeCommands[] = "data.prevpage = $previousPage;";
 
-  $startingPage = max(1, $pageNumber - 5);
-  if ( $startingPage >= 3 ) {
-    $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a><span class='pageDots'></span>";
-  } else {
-    $startingPage = 1;
-  }
+  // Change this value to control how many middle page numbers are shown.
+  $maxMiddlePages = 3;
+  $halfMiddlePages = (int)floor($maxMiddlePages / 2);
+  $startingPage = max(1, min($pageNumber - $halfMiddlePages, $totalPages - $maxMiddlePages + 1));
+  $endingPage = min($totalPages, $startingPage + $maxMiddlePages - 1);
 
-  $endingPage = min($totalPages, $pageNumber + 5);
+  if ( $startingPage > 1 ) {
+    $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;1&quot;);'>1</a>";
+    if ( $startingPage > 2 ) {
+      $navigation[] = "<span class='pageDots'></span>";
+    }
+  }
 
   for ( $i = $startingPage; $i <= $endingPage; $i++ ) {
     $navigation[] = ( $i == $pageNumber )
@@ -885,14 +889,11 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
       : "<a class='pageNumber' onclick='$pageFunction(&quot;$i&quot;);'>$i</a>";
   }
 
-  if ( $endingPage != $totalPages ) {
-    if ( ($totalPages - $pageNumber) > 6 ) {
+  if ( $endingPage < $totalPages ) {
+    if ( $endingPage < ($totalPages - 1) ) {
       $navigation[] = "<span class='pageDots'></span>";
     }
-
-    if ( ($totalPages - $pageNumber) > 5 ) {
-      $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
-    }
+    $navigation[] = "<a class='pageNumber' onclick='$pageFunction(&quot;$totalPages&quot;);'>$totalPages</a>";
   }
 
   $nextPage = $pageNumber + 1;
@@ -902,7 +903,7 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
   $swipeCommands[] = ( $pageNumber < $totalPages ) ? "data.nextpage = $nextPage;" : "data.nextpage = 0;";
 
-  $navigation[] = "</div></div></div><script>data.currentpage = $pageNumber;</script>";
+  $navigation[] = "</div></div><script>data.currentpage = $pageNumber;</script>";
 
   return implode("", $navigation)."<script>".implode("", $swipeCommands)."</script>";
 }
@@ -911,7 +912,7 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 ######################################################################
 # Summarize repository statistics (counts/downloads) for repo popups #
 ######################################################################
-function caSummarizeRepositoryTemplates(array $templates, string $repository, array $settings): array {
+function caSummarizeRepositoryTemplates(array $templates, string $repository): array {
   $totals = [
     'apps' => 0,
     'languages' => 0,
@@ -932,10 +933,10 @@ function caSummarizeRepositoryTemplates(array $templates, string $repository, ar
     if (!empty($template['Blacklist'])) {
       continue;
     }
-    if (!empty($template['Deprecated']) && (($settings['hideDeprecated'] ?? "false") !== "false")) {
+    if (!empty($template['Deprecated']) && (($GLOBALS['caSettings']['hideDeprecated'] ?? "false") !== "false")) {
       continue;
     }
-    if (empty($template['Compatible']) && (($settings['hideIncompatible'] ?? "false") !== "false")) {
+    if (empty($template['Compatible']) && (($GLOBALS['caSettings']['hideIncompatible'] ?? "false") !== "false")) {
       continue;
     }
 
@@ -1054,7 +1055,7 @@ function caBuildRepoLinkSection(array $repo): string {
 ##################################################################
 # Build the statistics table shown within repository popups      #
 ##################################################################
-function caBuildRepoStatsSection(array $repo, array $totals, array $settings): string {
+function caBuildRepoStatsSection(array $repo, array $totals): string {
   $rows = [];
 
   if (($repo['FirstSeen'] ?? 0) > 1) {
@@ -1068,7 +1069,7 @@ function caBuildRepoStatsSection(array $repo, array $totals, array $settings): s
     $rows[] = "<tr><td class='repoLeft'>".tr("Total Languages")."</td><td class='repoRight'>{$totals['languages']}</td></tr>";
   }
 
-  if (($settings['dev'] ?? null) === "yes" && !empty($repo['url'])) {
+  if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url'])) {
     $rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$repo['url']}' target='_blank'>".tr("Repository URL")."</a></td></tr>";
   }
 

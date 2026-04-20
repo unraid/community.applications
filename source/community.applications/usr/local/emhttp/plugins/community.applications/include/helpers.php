@@ -1,4 +1,4 @@
-<?
+<?php
 ########################################
 #                                      #
 # Community Applications               #
@@ -23,6 +23,7 @@ function getGlobals() {
   } else {
     $GLOBALS['templates'] = [];
   }
+  getSettings();
 }
 
 ##########################################################
@@ -30,14 +31,40 @@ function getGlobals() {
 ########################################################## 
 function getFullGlobals() {
   $GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info-full']);
+  getSettings();
 }
 
+##########################################
+# Gets CA's settings and auxiliary stuff #
+##########################################
+function getSettings() {
+
+  $dynamixSettings = parse_plugin_cfg("dynamix");
+  $unRaidSettings = parse_ini_file("/etc/unraid-version");
+
+  $GLOBALS['caSettings'] = parse_plugin_cfg("community.applications");
+  $GLOBALS['caSettings']['dockerSearch']  = "yes";
+  $GLOBALS['caSettings']['unRaidVersion'] = $unRaidSettings['version'];
+  $GLOBALS['caSettings']['favourite']     = isset($GLOBALS['caSettings']['favourite']) ? str_replace("*","'",$GLOBALS['caSettings']['favourite']) : "";
+  $GLOBALS['caSettings']['dynamixTheme']  = $dynamixSettings['theme'];
+
+  $GLOBALS['caSettings']['maxPerPage']    = (integer)$GLOBALS['caSettings']['maxPerPage'] ?: 12; // Handle possible corruption on file
+  if ( $GLOBALS['caSettings']['maxPerPage'] < 6 ) $GLOBALS['caSettings']['maxPerPage'] = 12;
+
+  if ( ! is_file(CA_PATHS['warningAccepted']) ) {
+    $GLOBALS['caSettings']['NoInstalls'] = true;
+  }
+  if ( ! caIsDockerRunning() ) {
+    $GLOBALS['caSettings']['dockerSearch'] = "no";
+  }
+}
 #####################################################
 # Write the global templates array to the JSON file #
 #####################################################
 function writeGlobals($templates) {
   if ( ! is_array($templates) || empty($templates) ) {
     @unlink(CA_PATHS['community-templates-info']);
+    @unlink(CA_PATHS['community-templates-info-full']);
     unset($GLOBALS['templates']);
     return;
   }
@@ -143,7 +170,6 @@ function arrayEntriesToObject($sourceArray,$defaultFlag=true) {
 # Helper function to determine if a plugin has an update available or not #
 ###########################################################################
 function checkPluginUpdate($filename) {
-  global $caSettings;
 
   $filename = basename($filename);
   if ( ! is_file("/var/log/plugins/$filename") ) return false;
@@ -152,7 +178,7 @@ function checkPluginUpdate($filename) {
 
   if ( $installedVersion < $upgradeVersion ) {
     $unRaid = ca_plugin("unRAID","/tmp/plugins/$filename");
-    return ( $unRaid === false || version_compare($caSettings['unRaidVersion'],$unRaid,">=") ) ? true : false;
+    return ( $unRaid === false || version_compare($GLOBALS['caSettings']['unRaidVersion'],$unRaid,">=") ) ? true : false;
   }
   return false;
 }
@@ -501,18 +527,16 @@ function mySort($a, $b) {
 }
 
 function repositorySort($a,$b) {
-  global $caSettings;
 
-  if ( $a['RepoName'] == $caSettings['favourite'] ) return -1;
-  if ( $b['RepoName'] == $caSettings['favourite'] ) return 1;
+  if ( $a['RepoName'] == $GLOBALS['caSettings']['favourite'] ) return -1;
+  if ( $b['RepoName'] == $GLOBALS['caSettings']['favourite'] ) return 1;
   return 0;
 }
 
 function favouriteSort($a,$b) {
-  global $caSettings;
 
-  if ( $a['Repo'] == $caSettings['favourite'] ) return -1;
-  if ( $b['Repo'] == $caSettings['favourite'] ) return 1;
+  if ( $a['Repo'] == $GLOBALS['caSettings']['favourite'] ) return -1;
+  if ( $b['Repo'] == $GLOBALS['caSettings']['favourite'] ) return 1;
   return 0;
 }
 ###############################################
@@ -537,7 +561,6 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 # Fix common problems (maintainer errors) in templates #
 ########################################################
 function fixTemplates($template) {
-  global $caSettings;
 
   if ( ! $template['MinVer'] ) $template['MinVer'] = ($template['Plugin']??false) ? "6.1" : "6.0";
   if ( ! ($template['Date']??null) ) $template['Date'] = (is_numeric($template['DateInstalled']??null)) ? $template['DateInstalled'] : 0;
@@ -552,7 +575,7 @@ function fixTemplates($template) {
   $template['Deprecated'] = filter_var($template['Deprecated']??null,FILTER_VALIDATE_BOOLEAN);
   $template['Blacklist'] = filter_var($template['Blacklist']??null,FILTER_VALIDATE_BOOLEAN);
 
-  if ( ($template['DeprecatedMaxVer']??null) && version_compare($caSettings['unRaidVersion'],$template['DeprecatedMaxVer'],">") )
+  if ( ($template['DeprecatedMaxVer']??null) && version_compare($GLOBALS['caSettings']['unRaidVersion'],$template['DeprecatedMaxVer'],">") )
     $template['Deprecated'] = true;
 
   if ( $template['Config']??null ) {
@@ -625,7 +648,6 @@ function fixAttributes(&$template,$attribute) {
 # Returns: TRUE if it's valid to run, FALSE if not              #
 #################################################################
 function versionCheck($template) {
-  global $caSettings;
 
   if ( $template['IncompatibleVersion']??null ) {
     if ( ! is_array($template['IncompatibleVersion']) ) {
@@ -638,8 +660,8 @@ function versionCheck($template) {
     }
   }
 
-  if ( ($template['MinVer']??null) && ( version_compare($template['MinVer'],$caSettings['unRaidVersion']) > 0 ) ) return false;
-  if ( ($template['MaxVer']??null) && ( version_compare($template['MaxVer'],$caSettings['unRaidVersion']) < 0 ) ) return false;
+  if ( ($template['MinVer']??null) && ( version_compare($template['MinVer'],$GLOBALS['caSettings']['unRaidVersion']) > 0 ) ) return false;
+  if ( ($template['MaxVer']??null) && ( version_compare($template['MaxVer'],$GLOBALS['caSettings']['unRaidVersion']) < 0 ) ) return false;
   return true;
 }
 function removeXMLtags(&$template) {
@@ -706,20 +728,19 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 # If appfeed is updated, this is done when creating the templates #
 ###################################################################
 function moderateTemplates() {
-  global $caSettings;
 
   $templates = &$GLOBALS['templates'];
 
   if ( ! $templates ) return;
   foreach ($templates as $template) {
     $template['Compatible'] = versionCheck($template);
-    if ( ($template['MaxVer']??null) && version_compare($template['MaxVer'],$caSettings['unRaidVersion']) < 0 )
+    if ( ($template['MaxVer']??null) && version_compare($template['MaxVer'],$GLOBALS['caSettings']['unRaidVersion']) < 0 )
       $template['Featured'] = false;
     if ( $template['CAMinVer'] ?? false ) {
-      $template['UninstallOnly'] = version_compare($template['CAMinVer'],$caSettings['unRaidVersion'],">=");
+      $template['UninstallOnly'] = version_compare($template['CAMinVer'],$GLOBALS['caSettings']['unRaidVersion'],">=");
     }
 
-    if ( ($template["DeprecatedMaxVer"]??null) && version_compare($caSettings['unRaidVersion'],$template["DeprecatedMaxVer"],">") )
+    if ( ($template["DeprecatedMaxVer"]??null) && version_compare($GLOBALS['caSettings']['unRaidVersion'],$template["DeprecatedMaxVer"],">") )
       $template['Deprecated'] = true;
 
     $template['ModeratorComment'] = $template['CaComment'] ?? ($template['ModeratorComment']??null);
@@ -757,8 +778,6 @@ function filterMatch($filter,$searchArray,$exact=true) {
 # Used to figure out which plugins have duplicated names #
 ##########################################################
 function pluginDupe() {
-
-  getGlobals();
   
   $pluginList = [];
   $dupeList = [];
@@ -901,7 +920,6 @@ function fixDescription($Description) {
 # displays the branch tags #
 ############################
 function formatTags($leadTemplate,$rename="false") {
-  getGlobals();
 
   $templates = &$GLOBALS['templates'];
   if ( ! isset($templates[$leadTemplate]) ) {
@@ -1061,18 +1079,20 @@ function getAllInfo($force=false) {
 # Logs the debug info #
 #######################
 function debug($str) {
-  global $caSettings;
 
   if ( ! is_file(CA_PATHS['logging']) ) {
+    if ( ! isset($GLOBALS['caSettings']) )
+      getSettings();
+
     touch(CA_PATHS['logging']);
     $caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
 
     debug("Community Applications Version: $caVersion");
-    debug("Unraid version: {$caSettings['unRaidVersion']}");
+    debug("Unraid version: {$GLOBALS['caSettings']['unRaidVersion']}");
     debug("MD5's: \n".shell_exec("cd /usr/local/emhttp/plugins/community.applications && md5sum -c ca.md5"));
     $lingo = $_SESSION['locale'] ?? "en_US";
     debug("Language: $lingo");
-    debug("Settings:\n".print_r($caSettings,true));
+    debug("Settings:\n".print_r($GLOBALS['caSettings'],true));
 
     $phpErrors = @parse_ini_file(CA_PATHS['phpErrorSettings']);
 

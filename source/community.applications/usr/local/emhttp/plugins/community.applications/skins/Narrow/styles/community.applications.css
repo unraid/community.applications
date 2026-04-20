@@ -138,15 +138,14 @@ a {
   overflow: hidden;
   min-height: 100rem;
 }
-
 .mainArea {
-  right: 0px;
+  right: 4rem;
   top: 2rem;
   display: block;
   overflow-x: hidden;
-  padding-left: 4.5rem;
   align-items: stretch;
-  width: 100%;
+  position: absolute;
+  left: 18.5rem;
 }
 
 /* ==========================================================================
@@ -1566,8 +1565,15 @@ input[type="button"][disabled] {
 }
 
 .pageNavigation {
-  margin-bottom: 3rem;
-}
+    /* margin-bottom: 3rem; */
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-content: stretch;
+    justify-content: center;
+    align-items: center;
+  }
+
 
 .pageNavNoClick {
   cursor: default !important;
@@ -1748,7 +1754,9 @@ a.popUpLink {
   margin-top: 0px;
   margin-left: auto;
 }
-
+.content {
+  overflow-y: hidden;
+}
 .popupTable.contents {
   display: contents;
 }
@@ -2011,14 +2019,16 @@ ul.subCategory {
 }
 .navigationSection {
   position: fixed;
+  width: 6rem;
+  font-size: 2rem;
+  background-color: var(--ca-legacy-background-color);
+  top: 19rem;
+  right: 0;
   bottom: 0;
   display: block;
-  width: 100%;
   margin-left: auto;
-  left: 0;
   text-align: center;
-  font-size: 1.5rem;
-  background-color: var(--ca-legacy-background-color);
+  display: flex;
 }
 .Theme--fontSize50 .navigationSectionShift {
   bottom: 6rem;

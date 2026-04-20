@@ -27,7 +27,7 @@ $paths['dismiss']        = "/boot/config/plugins/community.applications/notifica
 
 $caSettings = $cfg = parse_plugin_cfg("community.applications");
 $unraid = parse_ini_file("/etc/unraid-version");
-$caSettings['unRaidVersion']= $unraid['version'];
+$GLOBALS['caSettings']['unRaidVersion']= $unraid['version'];
 
 @mkdir(CA_PATHS['CA_logs'],0777,true);
 if ( $cfg['notifications'] == "no" ) {

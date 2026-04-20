@@ -86,7 +86,6 @@ function caNormalizePopupActions(array $actionsContext): array {
 # Generate the display for the popup #
 ######################################
 function displayPopup($template) {
-  global $caSettings;
 
   $template = is_array($template) ? $template : [];
   extract($template);
@@ -180,7 +179,7 @@ function displayPopup($template) {
   $FirstSeen = $FirstSeen ?? 0;
   $FirstSeen = ($FirstSeen < 1433649600) ? 1433000000 : $FirstSeen;
   $DateAdded = tr(date("M j, Y", $FirstSeen), 0);
-  $favRepoClass = (($caSettings['favourite'] ?? null) == $Repo) ? "fav" : "nonfav";
+  $favRepoClass = (($GLOBALS['caSettings']['favourite'] ?? null) == $Repo) ? "fav" : "nonfav";
 
   if ($Requires && ! is_file($RequiresFile ?? "")) {
     $RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")."</div><div class='additionalRequirements'>{$template['Requires']}</div>";
@@ -513,7 +512,6 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
 }
 
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
-  global $caSettings;
 
   $repositories = readJsonFile(CA_PATHS['repositoryList']);
   $extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
@@ -523,11 +521,11 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
   $ct = "";
   $count = 0;
 
-  $dockerContext = caDockerContext($caSettings);
+  $dockerContext = caDockerContext();
   $displayHeader = $dockerContext['displayHeader'];
 
   [$selectedApps, $checkedOffApps] = caNormalizeSelectedApps($selectedApps);
-  $displayedTemplates = caSliceDisplayedTemplates($file, $pageNumber, $caSettings);
+  $displayedTemplates = caSliceDisplayedTemplates($file, $pageNumber);
 
   foreach ($displayedTemplates as $template) {
     $template = addMissingVars($template);
@@ -543,11 +541,11 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
         $template['Description'] = $template['bio'];
       }
       $template['display_dockerName'] = $template['RepoName'];
-      $template['ca_fav'] = $caSettings['favourite'] && ($caSettings['favourite'] == $template['RepoName']);
+      $template['ca_fav'] = $GLOBALS['caSettings']['favourite'] && ($GLOBALS['caSettings']['favourite'] == $template['RepoName']);
 
       $ct .= displayCard($template);
       $count++;
-      if ($count == $caSettings['maxPerPage']) {
+      if ($count == $GLOBALS['caSettings']['maxPerPage']) {
         break;
       }
       continue;
@@ -556,16 +554,16 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     [$template, $installComment] = caPrepareTemplateComments($template);
 
     $actionsContext = [];
-    $canInstall = ! $template['NoInstall'] && ! ($caSettings['NoInstalls'] ?? false);
+    $canInstall = ! $template['NoInstall'] && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false);
 
     if (! $template['Language']) {
       if (! $template['Plugin']) {
         if ($canInstall) {
-          [$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus'], $caSettings, $installComment);
+          [$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus'], $installComment);
         }
       } else {
         if ($canInstall) {
-          [$template, $actionsContext] = caProcessPluginTemplate($template, $caSettings, $installComment);
+          [$template, $actionsContext] = caProcessPluginTemplate($template, $installComment);
         } else {
           $template['Installed'] = checkInstalledPlugin($template);
         }
@@ -573,12 +571,12 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     }
 
     if ($template['Language']) {
-      [$template, $actionsContext] = caProcessLanguageTemplate($template, $caSettings, $actionsContext);
+      [$template, $actionsContext] = caProcessLanguageTemplate($template, $actionsContext);
     }
 
     $template['actionsContext'] = $actionsContext;
 
-    $template['ca_fav'] = $caSettings['favourite'] && ($caSettings['favourite'] == $template['RepoName']);
+    $template['ca_fav'] = $GLOBALS['caSettings']['favourite'] && ($GLOBALS['caSettings']['favourite'] == $template['RepoName']);
     if (strpos($template['Repository'], "/") === false) {
       $template['Pinned'] = $pinnedApps["library/{$template['Repository']}&{$template['SortName']}"] ?? false;
     } else {
@@ -628,7 +626,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 
     $ct .= displayCard($template);
     $count++;
-    if ($count == $caSettings['maxPerPage']) {
+    if ($count == $GLOBALS['caSettings']['maxPerPage']) {
       break;
     }
   }
@@ -650,7 +648,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
     }
   }
 
-  $displayHeader .= "<script>changeMax({$caSettings['maxPerPage']});</script>";
+  $displayHeader .= "<script>changeMax({$GLOBALS['caSettings']['maxPerPage']});</script>";
 
   return "$displayHeader$ct";
 }
@@ -659,9 +657,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 # Generate the display for the popup #
 ######################################
 function getPopupDescriptionSkin($appNumber) {
-  global $caSettings, $language, $DockerClient;
-
-  getGlobals();
+  global $language, $DockerClient;
 
   $allRepositories = readJsonFile(CA_PATHS['repositoryList'], []);
   $allRepositories = is_array($allRepositories) ? $allRepositories : [];
@@ -674,10 +670,10 @@ function getPopupDescriptionSkin($appNumber) {
 
   $templateDescription = "";
 
-  [$info, $dockerRunning, $dockerUpdateStatus] = caInitializeDockerState($DockerClient, $caSettings);
+  [$info, $dockerRunning, $dockerUpdateStatus] = caInitializeDockerState($DockerClient);
 
   if (!is_file(CA_PATHS['warningAccepted'])) {
-    $caSettings['NoInstalls'] = true;
+    $GLOBALS['caSettings']['NoInstalls'] = true;
   }
 
   $displayedPath = is_file(CA_PATHS['community-templates-allSearchResults'])
@@ -727,7 +723,7 @@ function getPopupDescriptionSkin($appNumber) {
     $templateIcon = startsWith($template['IconFA'],"icon-") ? "{$template['IconFA']} unraidIcon" : "fa fa-{$template['IconFA']}";
     $template['display_icon'] = "<i class='$templateIcon popupIcon'></i>";
   } else {
-    $template['Icon'] = $template["Icon-{$caSettings['dynamixTheme']}"] ?? $template['Icon'];
+    $template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? $template['Icon'];
     $template['display_icon'] = "<img class='popupIcon screenshot' href='{$template['Icon']}' src='{$template['Icon']}' alt='Application Icon'>";
   }
 
@@ -735,7 +731,7 @@ function getPopupDescriptionSkin($appNumber) {
   $template['CAComment'] = caApplySidebarSearchLinks($template['CAComment']);
   $template['Requires'] = caNormalizeRequiresField($template['Requires']);
 
-  $actionsContext = caBuildActionsContext($template, $caSettings, $info, $dockerRunning, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
+  $actionsContext = caBuildActionsContext($template, $info, $dockerRunning, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
 
   if ($template['Language']) {
     $actionsContext = caBuildLanguageActions($template, $countryCode, $actionsContext);
@@ -744,7 +740,7 @@ function getPopupDescriptionSkin($appNumber) {
   $template['popupShortcut'] = $popupShortcut;
   $template['popupUninstallAction'] = $popupUninstallAction;
 
-  $supportContext = caBuildSupportContext($template, $allRepositories, $caSettings);
+  $supportContext = caBuildSupportContext($template, $allRepositories);
 
   $trendContext = caPrepareTrendVisuals($template, $templateDescription);
   $chartLabel = $trendContext['chartLabel'] ?? "";
@@ -777,9 +773,6 @@ function getPopupDescriptionSkin($appNumber) {
 # Generate the display for the repo #
 #####################################
 function getRepoDescriptionSkin($repository) {
-  global $caSettings;
-
-  getGlobals();
 
   $repositories = readJsonFile(CA_PATHS['repositoryList']);
   $templates = &$GLOBALS['templates'];
@@ -790,15 +783,15 @@ function getRepoDescriptionSkin($repository) {
   $iconPostfix = $iconUrl ? "</a>" : "";
   $repoIcon = $iconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";
   $repoBio = isset($repo['bio']) ? markdown($repo['bio']) : "<br><center>".tr("No description present");
-  $favRepoClass = ($caSettings['favourite'] == $repository) ? "fav" : "nonfav";
+  $favRepoClass = ($GLOBALS['caSettings']['favourite'] == $repository) ? "fav" : "nonfav";
   $encodedRepository = htmlentities($repository, ENT_QUOTES);
 
-  $totals = caSummarizeRepositoryTemplates($templates, $repository, $caSettings);
+  $totals = caSummarizeRepositoryTemplates($templates, $repository);
 
   $donationSection = caBuildRepoDonationSection($repo);
   $mediaSection = caBuildRepoMediaSection($repo);
   $linksSection = caBuildRepoLinkSection($repo);
-  $statsSection = caBuildRepoStatsSection($repo, $totals, $caSettings);
+  $statsSection = caBuildRepoStatsSection($repo, $totals);
 
   $seeAllAppsLabel = tr("See All Apps");
   $favouriteLabel = tr("Favourite");
@@ -835,19 +828,16 @@ function getRepoDescriptionSkin($repository) {
 # function that actually displays the results from dockerHub #
 ##############################################################
 function displaySearchResults($pageNumber) {
-  global $caSettings;
-
-  getGlobals();
 
   $searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
   $numPages = $searchData['num_pages'] ?? 0;
   $results = $searchData['results'] ?? [];
   $templates = &$GLOBALS['templates'];
-  $caSettings['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
+  $GLOBALS['caSettings']['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
 
   $cards = array_map(
-    function ($result) use ($templates, $caSettings) {
-      $preparedResult = buildDockerHubResult($result, $templates, $caSettings['NoInstalls']);
+    function ($result) use ($templates) {
+      $preparedResult = buildDockerHubResult($result, $templates, $GLOBALS['caSettings']['NoInstalls']);
       return displayCard($preparedResult);
     },
     $results

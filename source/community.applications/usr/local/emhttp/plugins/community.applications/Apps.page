@@ -25,12 +25,13 @@ $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
 
-$caSettings = parse_plugin_cfg($plugin);
 
 require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
 require_once("$docroot/plugins/$plugin/include/paths.php");
 require_once("$docroot/plugins/$plugin/include/helpers.php");
 require_once("$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php");
+
+getSettings();
 
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
@@ -44,7 +45,7 @@ exec("rm $docroot/CA-Logging*.zip");
 
 $diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
 
-switch ($caSettings['maxPerPage']) {
+switch ($GLOBALS['caSettings']['maxPerPage']) {
   case 6:
   case 12:
   case 24:
@@ -52,19 +53,17 @@ switch ($caSettings['maxPerPage']) {
   case 96:
     break;
   default:
-    $caSettings['maxPerPage'] = 24;
+    $GLOBALS['caSettings']['maxPerPage'] = 24;
     break;
 }
 
 $firstRun = is_file(CA_PATHS['warningAccepted']) ? "false" : "true";
-$pluginWarning = is_file(CA_PATHS['pluginWarning']) ? "true": "false";
 
 if ( ! is_file(CA_PATHS['docker_cfg']) ) {
   exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
-$unRaidSettings = parse_ini_file(CA_PATHS['unRaidVersion']);
-$responsiveOS = version_compare($unRaidSettings['version'],"7.1.9999",">");
+$responsiveOS = version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.1.9999",">");
 
 // Check md5's of files
 exec("cd /usr/local/emhttp/plugins/$plugin/ && md5sum -c ca.md5",$output,$md5Error);
@@ -95,7 +94,7 @@ $dockerSearchActive = is_file(CA_PATHS['dockerSearchActive']);
 
 // Only check for updates to containers / plugins max once per hour
 exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
-if ( ($caSettings['updateCheck'] == "yes") && ( (time() - @filemtime(CA_PATHS['updateTime']) ) > 3600 ) ) {
+if ( ($GLOBALS['caSettings']['updateCheck'] == "yes") && ( (time() - @filemtime(CA_PATHS['updateTime']) ) > 3600 ) ) {
   touch(CA_PATHS['updateTime']);
   exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
 }
@@ -185,12 +184,10 @@ function tr($string,$ret=false) {
 <?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
 
 <script>
-var execURL = "/plugins/<?=$plugin?>/include/exec.php";
+const execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
 var searchBoxInput;
 var searchBoxAwesomplete;
-var pluginInstallIntervalTimer;
-var showRepoIntervalTimer;
 
 var data = new Object();
 data.docker = "";
@@ -217,18 +214,16 @@ var cookieWarning = false;
 var dockerWarningAdded = false;
 var restoreStateMenu = false;
 var actionCentreRestoreState = false;
-var initialStartup = true;
 var repoBanner = false;
 var repoBannerTimer = false;
 var resizeTimer;
 var portsInUse = [];
 var startupSearch = "<?=$startupSearch?>";
-var iconHoverTimer;
 var ca_done_override = false;
 
 // handle 3rd party links on older versions of OS
 <?php
-if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
+if ( version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.0.0-rc1","<") ) {
   echo "var gui_pages_available = [];";
   $gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
   array_walk($gui_pages,function($value,$key){
@@ -237,7 +232,7 @@ if ( version_compare($unRaidSettings['version'],"7.0.0-rc1","<") ) {
 }
 ?>
 
-var caEnableLegacyExternalLinkGuard = <?=version_compare($unRaidSettings['version'],"6.12.15","<=") ? "true" : "false"?>;
+var caEnableLegacyExternalLinkGuard = <?=version_compare($GLOBALS['caSettings']['unRaidVersion'],"6.12.15","<=") ? "true" : "false"?>;
 var caResponsiveOS = <?=$responsiveOS ? "true" : "false"?>;
 var caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
 
@@ -344,8 +339,8 @@ $(function(){
   });
   downloadProgress.start();
 
-  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$caSettings['maxPerPage']?>"));
-  context.attach("#maxPerPage",getPerPageOpts(<?=$caSettings['maxPerPage']?>));
+  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$GLOBALS['caSettings']['maxPerPage']?>"));
+  context.attach("#maxPerPage",getPerPageOpts(<?=$GLOBALS['caSettings']['maxPerPage']?>));
   caInitializeClickHandlers();
   caInitializeEventHandlers();
 
@@ -375,7 +370,6 @@ $(function(){
     });
   }	else {
     if ( "<?=$startupDisplayed?>" != "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
-      initialStartup = false;
       getCategories();
       restoreState();
       <? if ( $dockerSearchActive ):?>
@@ -384,7 +378,6 @@ $(function(){
         actionCentreRestoreState = true;
         refreshDisplay();
         searchBoxAwesomplete.close();
-        initialStartup = true;
         var apppath = $.cookie("sidebarAppPath");
         var appname = $.cookie("sidebarAppName");
         if ( $.trim(apppath) ) {
@@ -408,7 +401,7 @@ $(function(){
     }
     if ( <?=$ca_apps_referrer?> )
       actionCentreRestoreState = true;
-      
+
     setupActionCentre();
     $.cookie("ca_apps_referrer");
   }
@@ -1283,7 +1276,6 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
     });
   }
 }
-
 
 function selectAllPrevious() {
   $(".ca_multiselect").prop("checked",true);
@@ -2206,12 +2198,10 @@ function showAlternateView(content="") {
 function showSidebarApp(apppath,appname) {
   mySpinner();
   disableSearch();
-  clearTimeout(iconHoverTimer);
   $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
   $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
   data.sidebarapppath = apppath;
   data.sidebarappname = appname;
-
 
   $(".popUpBack").addClass("ca_hide");
   $(".sidenav").removeClass("sidenavHide");

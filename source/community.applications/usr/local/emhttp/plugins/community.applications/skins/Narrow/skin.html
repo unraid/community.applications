@@ -119,7 +119,7 @@ $(function() {
     </div>
     <div id='templates_content' class='menuAdjust'></div>
     <div class='multi_installDiv'>
-      <? if ( ! $firstRun ): ?>
+      <? if ( $firstRun !== "true" ): ?>
         <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
       <? endif; ?>
       <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
@@ -391,7 +391,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Hide Deprecated Applications");?></span>
               <input type='hidden' name='hideDeprecated' value='false'>
-              <input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($caSettings['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($GLOBALS['caSettings']['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
           </div>
@@ -400,7 +400,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Hide Incompatible Applications");?></span>
               <input type='hidden' name='hideIncompatible' value='false'>
-              <input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($caSettings['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($GLOBALS['caSettings']['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
           </div>
@@ -409,7 +409,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Allow install of second instance");?></span>
               <input type='hidden' name='defaultReinstall' value='false'>
-              <input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($caSettings['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($GLOBALS['caSettings']['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Show reinstall options to install additional instances of an already installed app using default template values.");?></div>
           </div>
@@ -418,7 +418,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Allow CA to check for updates to applications");?></span>
               <input type='hidden' name='updateCheck' value='no'>
-              <input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($caSettings['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($GLOBALS['caSettings']['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
           </div>
@@ -427,7 +427,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Allow CA to send emergency notifications");?></span>
               <input type='hidden' name='notifications' value='no'>
-              <input type='checkbox' class='switch caSettingSwitch' name='notifications' value='yes' <?=($caSettings['notifications'] ?? "no") == "yes" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='notifications' value='yes' <?=($GLOBALS['caSettings']['notifications'] ?? "no") == "yes" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'>
               <?tr("Allow periodic safety scans and emergency alerts for malware, security vulnerabilities, and critical app/server risks.");?>
@@ -438,7 +438,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Disable Featured Applications");?></span>
               <input type='hidden' name='featuredDisable' value='no'>
-              <input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($caSettings['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
           </div>
@@ -447,7 +447,7 @@ $(function() {
             <div class='ca_settingHeader'>
               <span><?tr("Enable developer mode");?></span>
               <input type='hidden' name='dev' value='no'>
-              <input type='checkbox' class='switch caSettingSwitch' name='dev' value='yes' <?=($caSettings['dev'] ?? "no") == "yes" ? "checked" : ""; ?>>
+              <input type='checkbox' class='switch caSettingSwitch' name='dev' value='yes' <?=($GLOBALS['caSettings']['dev'] ?? "no") == "yes" ? "checked" : ""; ?>>
             </div>
             <div class='ca_settingDescription'><?tr("Unlock additional developer-focused features. Not generally recommended.");?></div>
           </div>
