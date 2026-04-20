@@ -2011,7 +2011,7 @@ function changeMaxPerPage() {
     postReturn(["status"=>"same"]);
   } else {
     $GLOBALS['caSettings']['maxPerPage'] = $max;
-    write_ini_file(CA_PATHS['pluginSettings'],$caSettings);
+    write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
     postReturn(["status"=>"updated"]);
   }
 }
