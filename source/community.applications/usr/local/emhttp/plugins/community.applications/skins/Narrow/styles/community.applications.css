@@ -186,6 +186,7 @@ a {
   height: 29.5rem;
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: hidden; /* Hide vertical scrollbar */
+  margin-right: 20rem;
 }
 .ca_homeTemplates::-webkit-scrollbar {
   height: 0px;  /* horizontal scrollbar height */
@@ -479,13 +480,16 @@ input[type="button"][disabled] {
 .menuItems:hover::-webkit-scrollbar {
   width: 2px;  /* vertical scrollbar width */
 }
-::-webkit-scrollbar-thumb {
+.menuItems::-webkit-scrollbar-thumb,
+.ca_homeTemplates::-webkit-scrollbar-thumb {
   background: var(--unraid-66-color);
 }
-::-webkit-scrollbar-corner {
+.menuItems::-webkit-scrollbar-corner,
+.ca_homeTemplates::-webkit-scrollbar-corner {
   background: var(--unraid-66-color);
 }
-::-webkit-scrollbar-thumb:hover {
+.menuItems::-webkit-scrollbar-thumb:hover,
+.ca_homeTemplates::-webkit-scrollbar-thumb:hover {
   background: var(--unraid-66-color);
 }
 .menuItems.menuHidden {

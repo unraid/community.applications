@@ -537,11 +537,21 @@ function caRenderPageNavigation(targetId, navigationData) {
   $target.find(".caPageNavLink,.caPageNavSelected").fitText(true);
 }
 
+/** Sum of offsetTop along offsetParent from el up to ancestor (layout; stable when inner scroll moves getBoundingClientRect). */
+function caOffsetTopWithinAncestor(el, ancestor) {
+  var y = 0;
+  var n = el;
+  while (n && n !== ancestor) {
+    y += n.offsetTop;
+    n = n.offsetParent;
+  }
+  return n === ancestor ? y : null;
+}
+
 function getMaxPerPage() {
   const sample = document.querySelector('.ca_holder');
   const templatesContent = document.querySelector('#templates_content');
   const caDisplayArea = document.querySelector('.ca_display_area');
-  const footer = document.querySelector('#footer');
 
   if (!sample || !templatesContent || !caDisplayArea) return 0;
 
@@ -554,9 +564,12 @@ function getMaxPerPage() {
   const tRect = templatesContent.getBoundingClientRect();
   const displayRect = caDisplayArea.getBoundingClientRect();
   const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-  const availableWidth = displayRect.right - tRect.left - (4 * remPx);
-  const bottomEdge = footer ? footer.getBoundingClientRect().top : window.innerHeight;
-  const availableHeight = bottomEdge - tRect.top;
+  const availableWidth = displayRect.right - tRect.left - (3.25 * remPx);
+  var templatesTopInDisplay = caOffsetTopWithinAncestor(templatesContent, caDisplayArea);
+  if (templatesTopInDisplay == null) {
+    templatesTopInDisplay = tRect.top - displayRect.top;
+  }
+  const availableHeight = displayRect.height - templatesTopInDisplay - remPx;
 
   if (availableWidth <= 0 || availableHeight <= 0) return 0;
 
