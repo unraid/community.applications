@@ -1607,11 +1607,11 @@ function postMultiDockerInstall() {
 }
 function updateDisplay(content) {
   $("#templates_content").html(content);
-  if ( $(".multi_installDiv").is(":visible") ) {
+/*   if ( $(".multi_installDiv").is(":visible") ) {
     $(".navigationSection").addClass("navigationSectionShift");
   } else {
     $(".navigationSection").removeClass("navigationSectionShift");
-  }
+  } */
   enableSearch();
 
   $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
