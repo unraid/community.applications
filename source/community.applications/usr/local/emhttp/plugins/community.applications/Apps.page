@@ -138,12 +138,12 @@ if ( ! $responsiveOS ) {
     $classList[] = "Theme--nav-top";
   }
 
-  // Set the width to boxed or unlimited based on the display width and the unlimited.width.plg plugin.
+/*   // Set the width to boxed or unlimited based on the display width and the unlimited.width.plg plugin.
   if ( !($display['width'] ?? false) && ! is_file("/var/log/plugins/unlimited.width.plg") ) {
     $classList[] = "Theme--width-boxed";
   } else {
     $classList[] = "Theme--width-unlimited";
-  } 
+  }  */
   
   // Set the theme to the theme selected.
   $classList[] = "Theme--$ca_theme";
@@ -240,6 +240,8 @@ var caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
 
 $(function(){
 
+  // always set unlimited width
+  $("html").addClass("Theme--width-unlimited").removeClass("Theme--width-boxed");
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
     swal({
@@ -545,7 +547,6 @@ function doSearch(button,newSearch) {
 
   data.searchInProgress = true;
 
-
   if ( ! newSearch === false ) {
     $('#searchBox').val(newSearch);
   }
@@ -613,7 +614,8 @@ function doSearch(button,newSearch) {
   data.committedSearchFilter = filter;
   caSyncHomeSearchSubtitle();
 
-  post({action:'get_content',filter:filter},function(result) {
+  data.maxPerPage = getMaxPerPage();
+  post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage},function(result) {
     enableButtons();
     $(".selectedMenu").removeClass("selectedMenu");
     $(".subCategory").hide();
@@ -654,7 +656,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
   var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
-  data.maxPerPage = Math.max(getMaxPerPage(), 4);
+  data.maxPerPage = getMaxPerPage();
 
   enableSearch();
 
@@ -1607,11 +1609,6 @@ function postMultiDockerInstall() {
 }
 function updateDisplay(content) {
   $("#templates_content").html(content);
-/*   if ( $(".multi_installDiv").is(":visible") ) {
-    $(".navigationSection").addClass("navigationSectionShift");
-  } else {
-    $(".navigationSection").removeClass("navigationSectionShift");
-  } */
   enableSearch();
 
   $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
