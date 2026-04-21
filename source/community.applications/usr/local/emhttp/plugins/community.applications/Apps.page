@@ -242,6 +242,7 @@ $(function(){
 
   // always set unlimited width
   $("html").addClass("Theme--width-unlimited").removeClass("Theme--width-boxed");
+
   <? if ( $CArequirementsNOTmet ) :?>
     $(".ca_templatesDisplay").hide();
     swal({
@@ -998,7 +999,8 @@ function actionCentre() {
 }
 
 function getPrevApps(installed,filter,dontClear) {
-  post({action:'previous_apps',installed:installed,filter:filter},function(result) {
+  data.maxPerPage = getMaxPerPage();
+  post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
     if ( installed == true ) {
       $(".multi_installDiv").hide();
     } else {

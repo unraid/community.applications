@@ -182,7 +182,7 @@ a {
   height: 29.5rem;
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: hidden; /* Hide vertical scrollbar */
-  margin-right: 20rem;
+ /* margin-right: 20rem; */
 }
 .ca_homeTemplates::-webkit-scrollbar {
   height: 0px;  /* horizontal scrollbar height */
@@ -470,19 +470,23 @@ input[type="button"][disabled] {
 .menuItems::-webkit-scrollbar {
   width: 0px;  /* vertical scrollbar width */
 }
-.menuItems:hover::-webkit-scrollbar {
+.menuItems:hover::-webkit-scrollbar,
+.mainArea::-webkit-scrollbar {
   width: 2px;  /* vertical scrollbar width */
 }
 .menuItems::-webkit-scrollbar-thumb,
-.ca_homeTemplates::-webkit-scrollbar-thumb {
+.ca_homeTemplates::-webkit-scrollbar-thumb,
+.mainArea::-webkit-scrollbar-thumb {
   background: var(--unraid-66-color);
 }
 .menuItems::-webkit-scrollbar-corner,
-.ca_homeTemplates::-webkit-scrollbar-corner {
+.ca_homeTemplates::-webkit-scrollbar-corner,
+.mainArea::-webkit-scrollbar-corner {
   background: var(--unraid-66-color);
 }
 .menuItems::-webkit-scrollbar-thumb:hover,
-.ca_homeTemplates::-webkit-scrollbar-thumb:hover {
+.ca_homeTemplates::-webkit-scrollbar-thumb:hover,
+.mainArea::-webkit-scrollbar-thumb:hover {
   background: var(--unraid-66-color);
 }
 .menuItems.menuHidden {
@@ -639,7 +643,7 @@ body:has(.ca_homeTemplates) .mainArea {
   display: block;
   /* overflow-x: hidden; */
   align-items: stretch;
-  position: relative;
+ /* position: relative; */
   left: 18.5rem;
 }
 
@@ -1012,7 +1016,7 @@ img.ca_displayIcon {
   display: block;
   display: flex;
   position: fixed;
-  overflow: hidden;
+  /*overflow: hidden;
   /* min-height: 100rem; */
   bottom: 0;
   /* height: auto; */
@@ -2171,7 +2175,7 @@ ul.subCategory {
   white-space: nowrap;
   overflow: hidden;
 }
-
+:has
 .actionCentre {
   display: none;
 }
