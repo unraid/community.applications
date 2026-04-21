@@ -514,12 +514,6 @@ function caRenderPageNavigation(targetId, navigationData) {
   var pageNumber = Math.min(Math.max(1, parseInt(nav.pageNumber, 10) || 1), totalPages);
   var isDockerSearch = !!nav.dockerSearch;
 
-  if (isDockerSearch) {
-    $(".maxPerPage").hide();
-  } else {
-    $(".maxPerPage").toggle(totalApps >= 25);
-  }
-
   data.currentpage = pageNumber;
   data.prevpage = pageNumber - 1;
   data.nextpage = (pageNumber < totalPages) ? (pageNumber + 1) : 0;

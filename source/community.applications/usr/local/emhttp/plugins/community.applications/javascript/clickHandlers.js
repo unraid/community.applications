@@ -302,7 +302,6 @@ function caInitializeClickHandlers() {
       sortOrder.sortDir = $(this).data("sortdir");
       $(".sortIcons").removeClass("enabledIcon").addClass("startupMore");
     }
-    $(".CategoryLine").html($(this).data("des"));
     caSetHomeSectionSubtitle(description);
     $("#searchBox").val("");
     data.committedSearchFilter = "";

@@ -172,9 +172,6 @@ switch ($_POST['action']) {
   case 'getLastUpdate':
     postReturn(['lastUpdate'=>getLastUpdate(getPost("ID","Unknown"))]);
     break;
-  case 'changeMaxPerPage':
-    changeMaxPerPage();
-    break;
   case 'enableActionCentre':
     enableActionCentre();
     break;
@@ -2011,17 +2008,6 @@ function getLastUpdate($ID) {
 ######################################
 # Changes the max per page displayed #
 ######################################
-function changeMaxPerPage() {
-
-  $max = getPost("max",24);
-  if ($GLOBALS['caSettings']['maxPerPage'] == $max) {
-    postReturn(["status"=>"same"]);
-  } else {
-    $GLOBALS['caSettings']['maxPerPage'] = $max;
-    write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
-    postReturn(["status"=>"updated"]);
-  }
-}
 function changeMax($max) {
   if ( $max !== $GLOBALS['caSettings']['maxPerPage'] ) {
     $GLOBALS['caSettings']['maxPerPage'] = $max;

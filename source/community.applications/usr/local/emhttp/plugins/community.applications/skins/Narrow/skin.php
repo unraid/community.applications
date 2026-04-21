@@ -182,7 +182,7 @@ function displayPopup($template) {
   $favRepoClass = (($GLOBALS['caSettings']['favourite'] ?? null) == $Repo) ? "fav" : "nonfav";
 
   if ($Requires && ! is_file($RequiresFile ?? "")) {
-    $RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")."</div><div class='additionalRequirements'>{$template['Requires']}</div>";
+    $RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")." - <span class='ca_strong'>".tr("Not Met")."</span></div><div class='additionalRequirements'>{$template['Requires']}</div>";
   } else {
     $RequiresMessage = "";
   }
@@ -647,8 +647,6 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
       $displayHeader .= "<script>showSidebarApp('{$template['Path']}','{$template['Name']}');</script>";
     }
   }
-
-  $displayHeader .= "<script>changeMax({$GLOBALS['caSettings']['maxPerPage']});</script>";
 
   return "$displayHeader$ct";
 }

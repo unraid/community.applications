@@ -341,8 +341,6 @@ $(function(){
   });
   downloadProgress.start();
 
-  $(".maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>","<?=$GLOBALS['caSettings']['maxPerPage']?>"));
-  context.attach("#maxPerPage",getPerPageOpts(<?=$GLOBALS['caSettings']['maxPerPage']?>));
   caInitializeSortMenu();
   caInitializeClickHandlers();
   caInitializeEventHandlers();
@@ -614,7 +612,7 @@ function doSearch(button,newSearch) {
   data.searchInProgress = true;
   data.committedSearchFilter = filter;
   caSyncHomeSearchSubtitle();
-  alert();
+
   post({action:'get_content',filter:filter},function(result) {
     enableButtons();
     $(".selectedMenu").removeClass("selectedMenu");
@@ -2381,7 +2379,6 @@ function initDockerSearch() {
   $(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
   hideSortIcons();
   $(".subCategory").hide();
-  $(".maxPerPage").hide();
   caSyncSearchFilterCollapsed();
   caSyncHomeSearchSubtitle();
 }
@@ -2430,35 +2427,6 @@ function dockerConvert(dockerID) {
     }
   });
 
-}
-
-function changeMax(max) {
-  return;
-  $("#maxPerPage").html(sprintf("<?tr("Results Per Page: %s");?>",max));
-  context.destroy("#maxPerPage");
-  context.attach("#maxPerPage",getPerPageOpts(max));
-  post({action:"changeMaxPerPage",max:max},function(done) {
-    if (done.status == "updated") {
-      if ( ! $(".startupButton").hasClass("selectedMenu") ) {
-        data.currentpage = 1;
-        changeSortOrder(null,null,null);
-      }
-    }
-  });
-}
-
-function getPerPageOpts(value) {
-  var perPage = [6,12,24,48,96];
-  var maxPerPageOpts = [];
-  perPage.forEach(function(entry) {
-    if ( entry != value ) {
-      maxPerPageOpts.push({icon:" ",text:sprintf("<?tr("%s Results Per Page");?>",entry),action:function(){ changeMax(entry);}});
-    } else {
-      maxPerPageOpts.push({icon:"ca_fa-checkmark",text:"<span class='ca_green'>"+sprintf("<?tr("%s Results Per Page");?>",entry)+"</span>",action:function(){ changeMax(entry);}});
-    }
-  });
-
-  return maxPerPageOpts;
 }
 
 var caSortMenuObserver = null;

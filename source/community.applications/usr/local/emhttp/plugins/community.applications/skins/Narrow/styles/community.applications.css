@@ -64,16 +64,6 @@ li.subCategory {
 .category {
   font-style: italic;
 }
-.categoryLine {
-  display: inline-block;
-}
-.altCategoryLine {
-  display: none;
-}
-.categoryLineNoMenu {
-  display: none;
-  margin-right: 1rem;
-}
 
 p {
   margin: auto;
@@ -357,12 +347,6 @@ a {
 a.caButton:hover {
   color: var(--ca-white-color);
   text-decoration: none;
-}
-
-.maxPerPage {
-  display: block;
-  top: 0.5rem;
-  font-size: 1rem;
 }
 
 /* 2.5) Form Elements */
