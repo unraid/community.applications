@@ -124,13 +124,19 @@ a {
 }
 
 .mainArea {
-  right: 6rem;
-  /* top: 2rem; */
-  display: block;
-  overflow-x: hidden;
-  align-items: stretch;
-  position: absolute;
-  left: 15.5rem;
+    right: 6rem;
+    /* top: 2rem; */
+    display: block;
+    overflow-x: hidden;
+    align-items: stretch;
+    /* right: 4rem; */
+    /* top: 2rem; */
+    display: block;
+    /* overflow-x: hidden; */
+    align-items: stretch;
+    position: absolute;
+    left: 18.5rem;
+    height:100%;
 }
 
 /* ==========================================================================
@@ -414,9 +420,6 @@ input[type="button"][disabled] {
 }
 .mainArea.menuHidden {
   height: unset !important
-}
-#templates_content {
-  margin-bottom:12rem;
 }
 
 .showMenuButton.menuShowing {
@@ -1072,11 +1075,6 @@ a.ca_fa-delete {
 
 .ca_fa-install::before {
   content: "\f019";
-  font-family: fontAwesome;
-}
-
-.ca_fa-money::before {
-  content: "\f0d6";
   font-family: fontAwesome;
 }
 

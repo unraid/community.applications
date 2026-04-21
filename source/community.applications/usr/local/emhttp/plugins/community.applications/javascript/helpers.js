@@ -543,32 +543,52 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 }
 
 function getMaxPerPage() {
-  const sample = document.querySelector('.ca_holder');
   const templatesContent = document.querySelector('#templates_content');
   const caDisplayArea = document.querySelector('.ca_display_area');
 
-  if (!sample || !templatesContent || !caDisplayArea) return 0;
+  if (!templatesContent || !caDisplayArea) return 0;
 
-  const style = getComputedStyle(sample);
-  const rect = sample.getBoundingClientRect();
+  const sampleApp = document.querySelector('#sampleApp');
+  const hasTemplatesDisplayChild = Array.from(templatesContent.children).some(function(el) {
+    return el.classList && el.classList.contains('ca_templatesDisplay');
+  });
+  const shouldUseSample = !!(sampleApp && !hasTemplatesDisplayChild);
 
-  const fullWidth  = rect.width  + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight)  || 0);
-  const fullHeight = rect.height + (parseFloat(style.marginTop)  || 0) + (parseFloat(style.marginBottom) || 0);
-
-  const tRect = templatesContent.getBoundingClientRect();
-  const displayRect = caDisplayArea.getBoundingClientRect();
-  const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-  const availableWidth = displayRect.right - tRect.left - (3.25 * remPx);
-  var templatesTopInDisplay = caOffsetTopWithinAncestor(templatesContent, caDisplayArea);
-  if (templatesTopInDisplay == null) {
-    templatesTopInDisplay = tRect.top - displayRect.top;
+  if (shouldUseSample) {
+    templatesContent.innerHTML = sampleApp.innerHTML;
   }
-  const availableHeight = displayRect.height - templatesTopInDisplay - remPx;
 
-  if (availableWidth <= 0 || availableHeight <= 0) return 0;
+  try {
+    const sample = templatesContent.querySelector('.ca_holder');
+    if (!sample) return 0;
 
-  const perRow = Math.floor(availableWidth  / fullWidth);
-  const perCol = Math.floor(availableHeight / fullHeight);
+    const rect = sample.getBoundingClientRect();
+    const style = getComputedStyle(sample);
+    const fullWidth = rect.width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
+    const fullHeight = rect.height + (parseFloat(style.marginTop)  || 0) + (parseFloat(style.marginBottom) || 0);
 
-  return perRow * perCol;
+    const templatesDisplay = templatesContent.querySelector('.ca_templatesDisplay');
+    if (!templatesDisplay) return 0;
+    const tRect = templatesContent.getBoundingClientRect();
+    const displayRect = caDisplayArea.getBoundingClientRect();
+    const remPx = parseFloat(getComputedStyle(caDisplayArea).fontSize) || 16;
+
+    const availableWidth = templatesDisplay.getBoundingClientRect().width;
+    var templatesTopInDisplay = caOffsetTopWithinAncestor(templatesContent, caDisplayArea);
+    if (templatesTopInDisplay == null) {
+      templatesTopInDisplay = tRect.top - displayRect.top;
+    }
+    const availableHeight = displayRect.height - templatesTopInDisplay - remPx;
+
+    if (availableWidth <= 0 || availableHeight <= 0 || !fullWidth || fullWidth <= 0) return 0;
+
+    const perRow = Math.floor(availableWidth  / fullWidth);
+    const perCol = Math.floor(availableHeight / fullHeight);
+    if (perRow < 3) return 4;
+    return perRow * perCol;
+  } finally {
+    if (shouldUseSample) {
+      // Keep copied sample markup in place for inspection/debugging.
+    }
+  }
 }
