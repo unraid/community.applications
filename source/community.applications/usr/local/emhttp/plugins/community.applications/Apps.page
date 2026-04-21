@@ -515,6 +515,12 @@ function changeCategory(button,subSwitch) {
 function changePage(pageNumber) {
   var max = getMaxPerPage();
   if ( max !== data.maxPerPage ) {
+    if ( pageNumber !== data.currentpage ) {
+      $(".ca_bottomBanner").removeClass("ca_hide");
+      setTimeout(function() {
+        $(".ca_bottomBanner").addClass("ca_hide");
+      }, 5000);
+    }
     pageNumber = 1;
     data.maxPerPage = max;
   }
@@ -656,7 +662,7 @@ function changeSortOrder(button,buttonClass,previousApps) {
 function getContent(init,category,description,newApp,startupDisplay) {
   data.currentpage = 1;
   var initialize;
-  var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
+  var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
   data.maxPerPage = getMaxPerPage();
 
   enableSearch();
@@ -667,6 +673,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
       category = "NONE";
       initialize = true;
       enableButtons();
+      data.maxPerPage = maxHomeApps;
     } 
 
     if ( (category == "New") || (category == "All") ) { 

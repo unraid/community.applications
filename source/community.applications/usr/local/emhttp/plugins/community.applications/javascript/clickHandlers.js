@@ -11,6 +11,324 @@
 */
 
 function caInitializeClickHandlers() {
+  function caInitFirefoxFixedHorizontalOverlay() {
+    var selector = ".menuItems, .ca_homeTemplates, .mainArea";
+    var overlays = new Map();
+    var hideTimers = new WeakMap();
+    var remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    var thumbLengthPx = 20 * remPx;
+    var trackThicknessPx = 15;
+
+    var root = document.getElementById("ca_ff_fixed_hscroll_root");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "ca_ff_fixed_hscroll_root";
+      root.style.position = "fixed";
+      root.style.left = "0";
+      root.style.top = "0";
+      root.style.width = "0";
+      root.style.height = "0";
+      root.style.pointerEvents = "auto";
+      root.style.zIndex = "1000";
+      document.body.appendChild(root);
+    }
+
+    var clearHideTimer = function(el) {
+      var t = hideTimers.get(el);
+      if (t) {
+        clearTimeout(t);
+        hideTimers.delete(el);
+      }
+    };
+
+    var showIndicator = function(el) {
+      var entry = overlays.get(el);
+      if (!entry) return;
+      clearHideTimer(el);
+      if (entry.hIndicator && entry.hIndicator.style.display !== "none") entry.hIndicator.classList.add("visible");
+      if (entry.vIndicator && entry.vIndicator.style.display !== "none") entry.vIndicator.classList.add("visible");
+    };
+
+    var hideIndicatorSoon = function(el) {
+      var entry = overlays.get(el);
+      if (!entry) return;
+      if (entry.dragging || entry.overlayHover) return;
+      clearHideTimer(el);
+      hideTimers.set(el, setTimeout(function() {
+        if (entry.dragging || entry.overlayHover) return;
+        if (entry.hIndicator) entry.hIndicator.classList.remove("visible");
+        if (entry.vIndicator && !entry.alwaysShowVertical) entry.vIndicator.classList.remove("visible");
+      }, 250));
+    };
+
+    var updateIndicator = function(el) {
+      var entry = overlays.get(el);
+      if (!entry) return;
+
+      var rect = el.getBoundingClientRect();
+      var hasHorizontal = (el.scrollWidth - el.clientWidth) > 1;
+      var hasVertical = (el.scrollHeight - el.clientHeight) > 1;
+      if (rect.width <= 0 || rect.height <= 0) {
+        if (entry.hIndicator) entry.hIndicator.style.display = "none";
+        if (entry.vIndicator) entry.vIndicator.style.display = "none";
+        return;
+      }
+
+      if (entry.hIndicator) {
+        if (!hasHorizontal) {
+          entry.hIndicator.style.display = "none";
+        } else {
+          entry.hIndicator.style.display = "block";
+          entry.hIndicator.style.left = rect.left + "px";
+          entry.hIndicator.style.top = (rect.bottom - trackThicknessPx) + "px";
+          entry.hIndicator.style.width = rect.width + "px";
+
+          var trackWidth = rect.width;
+          var thumbWidth = Math.min(trackWidth, thumbLengthPx);
+          var hScrollable = el.scrollWidth - el.clientWidth;
+          var hRatio = hScrollable > 0 ? (el.scrollLeft / hScrollable) : 0;
+          var hMaxLeft = Math.max(0, trackWidth - thumbWidth);
+          var hLeft = Math.max(0, Math.min(hMaxLeft, hMaxLeft * hRatio));
+
+          entry.hThumb.style.width = thumbWidth + "px";
+          entry.hThumb.style.transform = "translateX(" + hLeft + "px)";
+        }
+      }
+
+      if (entry.vIndicator) {
+        if (!hasVertical) {
+          entry.vIndicator.style.display = "none";
+        } else {
+          entry.vIndicator.style.display = "block";
+          if (entry.alwaysShowVertical) {
+            entry.vIndicator.style.left = (window.innerWidth - trackThicknessPx) + "px";
+          } else {
+            entry.vIndicator.style.left = (rect.right - trackThicknessPx) + "px";
+          }
+          entry.vIndicator.style.top = rect.top + "px";
+          entry.vIndicator.style.height = rect.height + "px";
+
+          var trackHeight = rect.height;
+          var thumbHeight = Math.min(trackHeight, thumbLengthPx);
+          var vScrollable = el.scrollHeight - el.clientHeight;
+          var vRatio = vScrollable > 0 ? (el.scrollTop / vScrollable) : 0;
+          var vMaxTop = Math.max(0, trackHeight - thumbHeight);
+          var vTop = Math.max(0, Math.min(vMaxTop, vMaxTop * vRatio));
+
+          entry.vThumb.style.height = thumbHeight + "px";
+          entry.vThumb.style.transform = "translateY(" + vTop + "px)";
+        }
+      }
+    };
+
+    var attachOverlay = function(el) {
+      if (overlays.has(el)) return;
+
+      var hasHorizontal = (el.scrollWidth - el.clientWidth) > 1;
+      var hasVertical = (el.scrollHeight - el.clientHeight) > 1;
+      if (!hasHorizontal && !hasVertical) return;
+
+      var hIndicator = document.createElement("div");
+      hIndicator.className = "ca_ff_fixed_hscroll_indicator";
+      var hThumb = document.createElement("div");
+      hThumb.className = "ca_ff_fixed_hscroll_thumb";
+      hIndicator.appendChild(hThumb);
+      root.appendChild(hIndicator);
+
+      var vIndicator = document.createElement("div");
+      vIndicator.className = "ca_ff_fixed_vscroll_indicator";
+      var vThumb = document.createElement("div");
+      vThumb.className = "ca_ff_fixed_vscroll_thumb";
+      vIndicator.appendChild(vThumb);
+      root.appendChild(vIndicator);
+
+      overlays.set(el, {
+        hIndicator: hIndicator,
+        hThumb: hThumb,
+        vIndicator: vIndicator,
+        vThumb: vThumb,
+        overlayHover: false,
+        dragging: false,
+        alwaysShowVertical: el.classList.contains("mainArea")
+      });
+      var entry = overlays.get(el);
+      if (entry && entry.alwaysShowVertical) {
+        vIndicator.classList.add("ca_mainarea_v_always", "visible");
+      }
+      el.classList.add("ca_ff_custom_scroll_target");
+
+      var startDrag = function(axis, downEvent) {
+        downEvent.preventDefault();
+        downEvent.stopPropagation();
+        showIndicator(el);
+        var entry = overlays.get(el);
+        if (!entry) return;
+        entry.dragging = true;
+
+        var rect = el.getBoundingClientRect();
+        var startX = downEvent.clientX;
+        var startY = downEvent.clientY;
+        var startScrollLeft = el.scrollLeft;
+        var startScrollTop = el.scrollTop;
+        var prevUserSelect = document.body.style.userSelect;
+        document.body.style.userSelect = "none";
+
+        if (axis === "x") hThumb.classList.add("dragging");
+        if (axis === "y") vThumb.classList.add("dragging");
+
+        var onMove = function(moveEvent) {
+          if (axis === "x") {
+            var trackWidth = rect.width;
+            var thumbWidth = Math.min(trackWidth, thumbLengthPx);
+            var hMaxLeft = Math.max(0, trackWidth - thumbWidth);
+            var hScrollable = Math.max(0, el.scrollWidth - el.clientWidth);
+            if (hMaxLeft > 0 && hScrollable > 0) {
+              var deltaX = moveEvent.clientX - startX;
+              var scrollDeltaX = deltaX * (hScrollable / hMaxLeft);
+              el.scrollLeft = startScrollLeft + scrollDeltaX;
+            }
+          } else {
+            var trackHeight = rect.height;
+            var thumbHeight = Math.min(trackHeight, thumbLengthPx);
+            var vMaxTop = Math.max(0, trackHeight - thumbHeight);
+            var vScrollable = Math.max(0, el.scrollHeight - el.clientHeight);
+            if (vMaxTop > 0 && vScrollable > 0) {
+              var deltaY = moveEvent.clientY - startY;
+              var scrollDeltaY = deltaY * (vScrollable / vMaxTop);
+              el.scrollTop = startScrollTop + scrollDeltaY;
+            }
+          }
+          updateIndicator(el);
+        };
+
+        var onUp = function() {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          document.body.style.userSelect = prevUserSelect;
+          var currentEntry = overlays.get(el);
+          if (currentEntry) currentEntry.dragging = false;
+          hThumb.classList.remove("dragging");
+          vThumb.classList.remove("dragging");
+          hideIndicatorSoon(el);
+        };
+
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      };
+
+      hThumb.addEventListener("mousedown", function(e) { startDrag("x", e); });
+      vThumb.addEventListener("mousedown", function(e) { startDrag("y", e); });
+      hIndicator.addEventListener("mousedown", function(e) {
+        if (e.target === hThumb) return;
+        e.preventDefault();
+        e.stopPropagation();
+        showIndicator(el);
+
+        var rect = el.getBoundingClientRect();
+        var trackWidth = rect.width;
+        var thumbWidth = Math.min(trackWidth, thumbLengthPx);
+        var hMaxLeft = Math.max(0, trackWidth - thumbWidth);
+        var hScrollable = Math.max(0, el.scrollWidth - el.clientWidth);
+        if (hMaxLeft > 0 && hScrollable > 0) {
+          var clickX = Math.max(0, Math.min(trackWidth, e.clientX - rect.left));
+          var left = Math.max(0, Math.min(hMaxLeft, clickX - (thumbWidth / 2)));
+          el.scrollLeft = (left / hMaxLeft) * hScrollable;
+          updateIndicator(el);
+        }
+      });
+      vIndicator.addEventListener("mousedown", function(e) {
+        if (e.target === vThumb) return;
+        e.preventDefault();
+        e.stopPropagation();
+        showIndicator(el);
+
+        var rect = el.getBoundingClientRect();
+        var trackHeight = rect.height;
+        var thumbHeight = Math.min(trackHeight, thumbLengthPx);
+        var vMaxTop = Math.max(0, trackHeight - thumbHeight);
+        var vScrollable = Math.max(0, el.scrollHeight - el.clientHeight);
+        if (vMaxTop > 0 && vScrollable > 0) {
+          var clickY = Math.max(0, Math.min(trackHeight, e.clientY - rect.top));
+          var top = Math.max(0, Math.min(vMaxTop, clickY - (thumbHeight / 2)));
+          el.scrollTop = (top / vMaxTop) * vScrollable;
+          updateIndicator(el);
+        }
+      });
+      [hIndicator, vIndicator].forEach(function(indicator) {
+        indicator.addEventListener("mouseenter", function() {
+          var entry = overlays.get(el);
+          if (!entry) return;
+          entry.overlayHover = true;
+          showIndicator(el);
+        });
+        indicator.addEventListener("mouseleave", function() {
+          var entry = overlays.get(el);
+          if (!entry) return;
+          entry.overlayHover = false;
+          hideIndicatorSoon(el);
+        });
+      });
+
+      el.addEventListener("scroll", function() {
+        var current = overlays.get(el);
+        if (!current) return;
+        updateIndicator(el);
+        if (current.dragging || current.overlayHover || el.matches(":hover")) showIndicator(el);
+        hideIndicatorSoon(el);
+      });
+      el.addEventListener("mouseenter", function() {
+        updateIndicator(el);
+        showIndicator(el);
+      });
+      el.addEventListener("mouseleave", function() {
+        hideIndicatorSoon(el);
+      });
+      updateIndicator(el);
+    };
+
+    var refreshTargets = function() {
+      document.querySelectorAll(selector).forEach(attachOverlay);
+      overlays.forEach(function(_, el) {
+        if (!document.body.contains(el) || !el.matches(selector)) {
+          var entry = overlays.get(el);
+          if (entry) {
+            if (entry.hIndicator) entry.hIndicator.remove();
+            if (entry.vIndicator) entry.vIndicator.remove();
+          }
+          overlays.delete(el);
+        }
+      });
+      overlays.forEach(function(_, el) { updateIndicator(el); });
+    };
+
+    window.addEventListener("resize", refreshTargets);
+    window.addEventListener("scroll", function() {
+      overlays.forEach(function(_, el) { updateIndicator(el); });
+    }, true);
+    var refreshQueued = false;
+    var queueRefresh = function() {
+      if (refreshQueued) return;
+      refreshQueued = true;
+      requestAnimationFrame(function() {
+        refreshQueued = false;
+        refreshTargets();
+      });
+    };
+    var domObserver = new MutationObserver(queueRefresh);
+    domObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+
+    refreshTargets();
+    setTimeout(refreshTargets, 250);
+    setTimeout(refreshTargets, 1200);
+  }
+
+  caInitFirefoxFixedHorizontalOverlay();
+
   if (window.caEnableLegacyExternalLinkGuard) {
     $("body").on("click", "a,.ca_href,.dockerPopup", function(e) {
       var dockerHub = false;
@@ -104,7 +422,6 @@ function caInitializeClickHandlers() {
     e.preventDefault();
     $(".sidenav").stop(true).animate({ scrollTop: 0 }, 250);
   });
-
   $(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
     data.actions = true;
   });

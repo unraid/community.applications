@@ -68,7 +68,7 @@ class GetContentHelpers {
     if (count($file) <= 200) {
       return false;
     }
-
+    $GLOBALS['caSettings']['maxPerPage'] = 10;
     $startupTypes = [
       [
         "type"=>"onlynew",
@@ -134,7 +134,6 @@ class GetContentHelpers {
 
     $o = ['display' => ""];
     $maxHomeApps = self::normalizeMaxHomeApps($maxHomeApps);
-
     foreach ($startupTypes as $type) {
       $displayApplications = ['community' => []];
 
