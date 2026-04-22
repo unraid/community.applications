@@ -568,7 +568,8 @@ input[type="button"][disabled] {
 }
 .ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
 .ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_ff_fixed_vscroll_thumb:hover),
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_ff_fixed_vscroll_thumb.dragging) {
+.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_ff_fixed_vscroll_thumb.dragging),
+.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always.ca_mainarea_v_scrolling {
   background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
 }

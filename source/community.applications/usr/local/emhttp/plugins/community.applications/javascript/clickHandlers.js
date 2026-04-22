@@ -149,7 +149,8 @@ function caInitializeClickHandlers() {
         vThumb: vThumb,
         overlayHover: false,
         dragging: false,
-        alwaysShowVertical: el.classList.contains("mainArea")
+        alwaysShowVertical: el.classList.contains("mainArea"),
+        mainAreaScrollFxTimer: null
       });
       var entry = overlays.get(el);
       if (entry && entry.alwaysShowVertical) {
@@ -273,6 +274,15 @@ function caInitializeClickHandlers() {
         var current = overlays.get(el);
         if (!current) return;
         updateIndicator(el);
+        if (current.alwaysShowVertical && current.vIndicator) {
+          current.vIndicator.classList.add("ca_mainarea_v_scrolling");
+          if (current.mainAreaScrollFxTimer) clearTimeout(current.mainAreaScrollFxTimer);
+          current.mainAreaScrollFxTimer = setTimeout(function() {
+            var latest = overlays.get(el);
+            if (!latest || !latest.vIndicator) return;
+            latest.vIndicator.classList.remove("ca_mainarea_v_scrolling");
+          }, 450);
+        }
         if (current.dragging || current.overlayHover || el.matches(":hover")) showIndicator(el);
         hideIndicatorSoon(el);
       });

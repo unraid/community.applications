@@ -11,7 +11,7 @@ a6caedc0fd9754f35809e5e754f743b9  ./include/force_update_helpers.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 308d69b053c1f1fa37f54ca44190d944  ./include/populate_autocomplete_helpers.php
 a56c0447ae432c62f3edbdeb543561da  ./include/previous_apps_helpers.php
-4e9243e53d1de1928d57a5b850583394  ./javascript/clickHandlers.js
+7505b39c0bfab0b10d6cfb0aaf23444d  ./javascript/clickHandlers.js
 4912ecdbb36179dc6915ade667ae7141  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js
@@ -35,7 +35,7 @@ adef896516d6ff9224e91ce4d6b8562c  ./skins/Narrow/skin.html
 b355c79052ae25ed41e63f9276218ab1  ./skins/Narrow/skin.php
 b319e656bfbac836cf583bbb6bf93df1  ./skins/Narrow/skin_helpers.php
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-9fde9f6c346bab0cd3702220ab8862e2  ./skins/Narrow/styles/community.applications.css
+0a42ceeda28ce9b1377a0781327d936f  ./skins/Narrow/styles/community.applications.css
 9e0671752dbb6ac67e2fd044a3ecfe1a  ./skins/Narrow/styles/community.applications.responsive.css
 7a3ed4647c00a7fa2d20babd0e190a68  ./skins/Narrow/themes/azure.css
 62e36b8dab953b97b63a1a2c768a60ea  ./skins/Narrow/themes/black.css
