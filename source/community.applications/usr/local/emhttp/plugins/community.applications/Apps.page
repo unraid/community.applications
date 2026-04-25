@@ -513,15 +513,24 @@ function changeCategory(button,subSwitch) {
 }
 
 function changePage(pageNumber) {
+  pageNumber = parseInt(pageNumber, 10) || 1;
   var max = getMaxPerPage();
   if ( max !== data.maxPerPage ) {
     if ( pageNumber !== data.currentpage ) {
       $(".ca_bottomBanner").removeClass("ca_hide");
       setTimeout(function() {
         $(".ca_bottomBanner").addClass("ca_hide");
-      }, 5000);
+      }, 3000);
     }
-    pageNumber = 1;
+    // If per-page changes mid-pagination, keep the same first visible result.
+    var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
+    var oldPage = Math.max(1, parseInt(data.currentpage, 10) || pageNumber || 1);
+    if ( oldPage > 1 ) {
+      var startingIndex = (oldPage - 1) * oldMax; // 0-based index of first visible item
+      pageNumber = Math.floor(startingIndex / Math.max(1, max)) + 1;
+    } else {
+      pageNumber = 1;
+    }
     data.maxPerPage = max;
   }
   caRestoreCommittedSearchIfDrafted();
