@@ -36,9 +36,12 @@ body.menuShowing {
 body:has(.sidenavShow) {
   overflow: hidden !important;
 }
-/* Hide the back to top and move to end buttons (on main area) when the sidebar is visible */
-body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
-  z-index: 0;
+/* Never show built-in mainArea scroll controls */
+:is(.back_to_top, .move_to_end) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 /* Dim all page content except the visible sidebar and its children */
 body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu, #ca_fixed_scroll_root) {
@@ -795,19 +798,6 @@ body:has(.sidenavShow) .ca_scroll_nonsidenav {
   width: 90%;
   max-width: 70rem;
 }
-#sidenavBackToTop {
-  position: sticky;
-  bottom: 1.2rem;
-  float: right;
-  margin: 0 1.2rem 1rem 0;
-  display: none;
-  z-index: 3;
-}
-.sidenav.sidenavBackToTopVisible #sidenavBackToTop {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-}
 .sidebar .sidenav,
 .popupCloseArea {
   transform: translateX(100%);          /* default: off-screen right */
@@ -1211,7 +1201,7 @@ img.ca_displayIcon {
   position: fixed;
   /*overflow: hidden;
   /* min-height: 100rem; */
-  bottom: 0;
+  bottom: 4rem;
   /* height: auto; */
   right: 5rem;
   /* width: 100%; */

@@ -783,15 +783,8 @@ function closeSidebar(cookie=false,visible=false) {
   context.destroy("#actionsPopup");
 
   $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".sidenav").removeClass("sidenavBackToTopVisible");
   $(".nav-user.show").show();
   enableSearch();
-}
-
-function updateSidenavBackToTopVisibility() {
-  var $sidenav = $(".sidenav");
-  var showButton = $sidenav.hasClass("sidenavShow") && ($sidenav.scrollTop() > 300);
-  $sidenav.toggleClass("sidenavBackToTopVisible", showButton);
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
@@ -2337,7 +2330,6 @@ function showSidebarApp(apppath,appname) {
 
 function slideInSidebar() {
   $(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
-  updateSidenavBackToTopVisibility();
 }
 function showRepoPopup(repository) {
   if ( !repository ) return;

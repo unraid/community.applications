@@ -452,10 +452,6 @@ function caInitializeClickHandlers() {
       $(".popUpBack").click();
     else closeSidebar();
   });
-  $(".sidebar").on("click", "#sidenavBackToTop", function(e) {
-    e.preventDefault();
-    $(".sidenav").stop(true).animate({ scrollTop: 0 }, 250);
-  });
   $(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
     data.actions = true;
   });
@@ -737,10 +733,6 @@ function caInitializeEventHandlers() {
       setTimeout(debouncedOrientationHandler, 100);
     });
   }
-
-  $(".sidenav").on("scroll", function() {
-    updateSidenavBackToTopVisibility();
-  });
 
   $("#searchBox").on("input", function() {
     if (!$("#searchBox").val()) {

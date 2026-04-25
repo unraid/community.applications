@@ -1,4 +1,4 @@
-9dcddd4ddcad2c58c7f1ed7c2031ff30  ./Apps.page
+245d6a6d0c1e28e3bdb6a0a0daf3977b  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -11,7 +11,7 @@ a6caedc0fd9754f35809e5e754f743b9  ./include/force_update_helpers.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 308d69b053c1f1fa37f54ca44190d944  ./include/populate_autocomplete_helpers.php
 a56c0447ae432c62f3edbdeb543561da  ./include/previous_apps_helpers.php
-ae85f8596516afcf69dafd86df7a8f8c  ./javascript/clickHandlers.js
+a89bb30df159943b3a071bd6661b3e92  ./javascript/clickHandlers.js
 4912ecdbb36179dc6915ade667ae7141  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js
@@ -31,11 +31,11 @@ f315e45f10c2f213969840ad631049e0  ./scripts/notices.php
 6135e54e18f15b7996e7f4bd85097c73  ./scripts/pluginInstall.php
 4425f8fd4ef662a7dc65cee01de3e419  ./scripts/updatePLG.sh
 1340ad737d40cf74c72cd3d76f67ee83  ./scripts/updatePluginSupport.php
-4e7b406b0dfc48d34dc5e424cb1c8dc0  ./skins/Narrow/skin.html
+6c4241e9274bb519ff9bfff5649cb363  ./skins/Narrow/skin.html
 b355c79052ae25ed41e63f9276218ab1  ./skins/Narrow/skin.php
 b319e656bfbac836cf583bbb6bf93df1  ./skins/Narrow/skin_helpers.php
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-3a4934d1215b590fd25679bbfffe9a20  ./skins/Narrow/styles/community.applications.css
+9ce125d71c5250a937e50d74f6a60ced  ./skins/Narrow/styles/community.applications.css
 9e0671752dbb6ac67e2fd044a3ecfe1a  ./skins/Narrow/styles/community.applications.responsive.css
 7a3ed4647c00a7fa2d20babd0e190a68  ./skins/Narrow/themes/azure.css
 62e36b8dab953b97b63a1a2c768a60ea  ./skins/Narrow/themes/black.css
