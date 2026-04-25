@@ -12,17 +12,17 @@
 
 function caInitializeClickHandlers() {
   function caInitFirefoxFixedHorizontalOverlay() {
-    var selector = ".menuItems, .ca_homeTemplates, .mainArea";
+    var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav";
     var overlays = new Map();
     var hideTimers = new WeakMap();
     var remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     var thumbLengthPx = 20 * remPx;
     var trackThicknessPx = 15;
 
-    var root = document.getElementById("ca_ff_fixed_hscroll_root");
+    var root = document.getElementById("ca_fixed_scroll_root");
     if (!root) {
       root = document.createElement("div");
-      root.id = "ca_ff_fixed_hscroll_root";
+      root.id = "ca_fixed_scroll_root";
       root.style.position = "fixed";
       root.style.left = "0";
       root.style.top = "0";
@@ -52,10 +52,11 @@ function caInitializeClickHandlers() {
     var hideIndicatorSoon = function(el) {
       var entry = overlays.get(el);
       if (!entry) return;
-      if (entry.dragging || entry.overlayHover) return;
+      if (entry.dragging || entry.overlayHover || el.matches(":hover")) return;
       clearHideTimer(el);
       hideTimers.set(el, setTimeout(function() {
-        if (entry.dragging || entry.overlayHover) return;
+        // Don't hide if user is still interacting/hovering the scroll target.
+        if (entry.dragging || entry.overlayHover || el.matches(":hover")) return;
         if (entry.hIndicator) entry.hIndicator.classList.remove("visible");
         if (entry.vIndicator && !entry.alwaysShowVertical) entry.vIndicator.classList.remove("visible");
       }, 250));
@@ -126,21 +127,32 @@ function caInitializeClickHandlers() {
 
       var hasHorizontal = (el.scrollWidth - el.clientWidth) > 1;
       var hasVertical = (el.scrollHeight - el.clientHeight) > 1;
-      if (!hasHorizontal && !hasVertical) return;
+      // Sidebar should never show the horizontal overlay scrollbar.
+      var allowHorizontal = !el.classList.contains("sidenav");
+      var allowVertical = true;
+      if ((!allowHorizontal || !hasHorizontal) && (!allowVertical || !hasVertical)) return;
 
-      var hIndicator = document.createElement("div");
-      hIndicator.className = "ca_ff_fixed_hscroll_indicator";
-      var hThumb = document.createElement("div");
-      hThumb.className = "ca_ff_fixed_hscroll_thumb";
-      hIndicator.appendChild(hThumb);
-      root.appendChild(hIndicator);
+      var hIndicator = null;
+      var hThumb = null;
+      if (allowHorizontal && hasHorizontal) {
+        hIndicator = document.createElement("div");
+        hIndicator.className = "ca_fixed_hscroll_indicator";
+        hThumb = document.createElement("div");
+        hThumb.className = "ca_fixed_hscroll_thumb";
+        hIndicator.appendChild(hThumb);
+        root.appendChild(hIndicator);
+      }
 
-      var vIndicator = document.createElement("div");
-      vIndicator.className = "ca_ff_fixed_vscroll_indicator";
-      var vThumb = document.createElement("div");
-      vThumb.className = "ca_ff_fixed_vscroll_thumb";
-      vIndicator.appendChild(vThumb);
-      root.appendChild(vIndicator);
+      var vIndicator = null;
+      var vThumb = null;
+      if (allowVertical && hasVertical) {
+        vIndicator = document.createElement("div");
+        vIndicator.className = "ca_fixed_vscroll_indicator";
+        vThumb = document.createElement("div");
+        vThumb.className = "ca_fixed_vscroll_thumb";
+        vIndicator.appendChild(vThumb);
+        root.appendChild(vIndicator);
+      }
 
       overlays.set(el, {
         hIndicator: hIndicator,
@@ -149,14 +161,26 @@ function caInitializeClickHandlers() {
         vThumb: vThumb,
         overlayHover: false,
         dragging: false,
-        alwaysShowVertical: el.classList.contains("mainArea"),
+        alwaysShowVertical: el.classList.contains("mainArea") || el.classList.contains("sidenav"),
         mainAreaScrollFxTimer: null
       });
       var entry = overlays.get(el);
-      if (entry && entry.alwaysShowVertical) {
-        vIndicator.classList.add("ca_mainarea_v_always", "visible");
+      if (el.classList.contains("mainArea")) {
+        if (hIndicator) hIndicator.classList.add("ca_scroll_mainarea");
+        if (vIndicator) vIndicator.classList.add("ca_scroll_mainarea");
+      } else if (el.classList.contains("sidenav")) {
+        if (hIndicator) hIndicator.classList.add("ca_scroll_sidenav");
+        if (vIndicator) vIndicator.classList.add("ca_scroll_sidenav");
       }
-      el.classList.add("ca_ff_custom_scroll_target");
+      // Used to disable non-sidenav overlays when the sidebar is open.
+      if (!el.classList.contains("sidenav")) {
+        if (hIndicator) hIndicator.classList.add("ca_scroll_nonsidenav");
+        if (vIndicator) vIndicator.classList.add("ca_scroll_nonsidenav");
+      }
+      if (entry && entry.alwaysShowVertical) {
+        if (vIndicator) vIndicator.classList.add("ca_mainarea_v_always", "visible");
+      }
+      el.classList.add("ca_custom_scroll_target");
 
       var startDrag = function(axis, downEvent) {
         downEvent.preventDefault();
@@ -174,8 +198,8 @@ function caInitializeClickHandlers() {
         var prevUserSelect = document.body.style.userSelect;
         document.body.style.userSelect = "none";
 
-        if (axis === "x") hThumb.classList.add("dragging");
-        if (axis === "y") vThumb.classList.add("dragging");
+        if (axis === "x" && hThumb) hThumb.classList.add("dragging");
+        if (axis === "y" && vThumb) vThumb.classList.add("dragging");
 
         var onMove = function(moveEvent) {
           if (axis === "x") {
@@ -208,8 +232,8 @@ function caInitializeClickHandlers() {
           document.body.style.userSelect = prevUserSelect;
           var currentEntry = overlays.get(el);
           if (currentEntry) currentEntry.dragging = false;
-          hThumb.classList.remove("dragging");
-          vThumb.classList.remove("dragging");
+          if (hThumb) hThumb.classList.remove("dragging");
+          if (vThumb) vThumb.classList.remove("dragging");
           hideIndicatorSoon(el);
         };
 
@@ -217,9 +241,9 @@ function caInitializeClickHandlers() {
         document.addEventListener("mouseup", onUp);
       };
 
-      hThumb.addEventListener("mousedown", function(e) { startDrag("x", e); });
-      vThumb.addEventListener("mousedown", function(e) { startDrag("y", e); });
-      hIndicator.addEventListener("mousedown", function(e) {
+      if (hThumb) hThumb.addEventListener("mousedown", function(e) { startDrag("x", e); });
+      if (vThumb) vThumb.addEventListener("mousedown", function(e) { startDrag("y", e); });
+      if (hIndicator) hIndicator.addEventListener("mousedown", function(e) {
         if (e.target === hThumb) return;
         e.preventDefault();
         e.stopPropagation();
@@ -237,7 +261,7 @@ function caInitializeClickHandlers() {
           updateIndicator(el);
         }
       });
-      vIndicator.addEventListener("mousedown", function(e) {
+      if (vIndicator) vIndicator.addEventListener("mousedown", function(e) {
         if (e.target === vThumb) return;
         e.preventDefault();
         e.stopPropagation();
@@ -255,7 +279,7 @@ function caInitializeClickHandlers() {
           updateIndicator(el);
         }
       });
-      [hIndicator, vIndicator].forEach(function(indicator) {
+      [hIndicator, vIndicator].filter(Boolean).forEach(function(indicator) {
         indicator.addEventListener("mouseenter", function() {
           var entry = overlays.get(el);
           if (!entry) return;

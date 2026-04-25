@@ -2289,7 +2289,35 @@ function showSidebarApp(apppath,appname) {
       });
       slideInSidebar();
 
-      $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"})
+      if (!data.caReadmoreTopLessBound) {
+        data.caReadmoreTopLessBound = true;
+        $("#sidenavContent").on("click", ".ca_readless_top", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // This control sits right before the readmore section it controls.
+          var $section = $(this).nextAll(".popup_readmore").first();
+          if (!$section.length) return;
+          // Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
+          var $toggle = $section.nextAll(".readmore-js-toggle").first();
+          if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
+          if ($toggle.length) $toggle.trigger("click");
+          else $section.readmore("toggle");
+        });
+      }
+
+      $('.popup_readmore').readmore({
+        maxHeight:250,
+        moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
+        lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
+        afterToggle:function(trigger, element, expanded) {
+          var $el = $(element);
+          if (!$el.hasClass("ReadmeSection")) return;
+          $el.prev(".ca_readless_top").remove();
+          if (!expanded) return;
+          var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
+          $el.before(topLess);
+        }
+      })
       popUpChart(result);
       setupContext(result.supportContext,"#supportPopup");
       setupContext(result.actionsContext,"#actionsPopup");
@@ -2333,7 +2361,35 @@ function showRepoPopup(repository) {
   post({action:'getRepoDescription',repository:repository},function(result) {
     $("#sidenavContent").html(result.description); 
     $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-    $('.popup_readmore').readmore({maxHeight:250,moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>"});
+    if (!data.caReadmoreTopLessBound) {
+      data.caReadmoreTopLessBound = true;
+      $("#sidenavContent").on("click", ".ca_readless_top", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // This control sits right before the readmore section it controls.
+        var $section = $(this).nextAll(".popup_readmore").first();
+        if (!$section.length) return;
+        // Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
+        var $toggle = $section.nextAll(".readmore-js-toggle").first();
+        if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
+        if ($toggle.length) $toggle.trigger("click");
+        else $section.readmore("toggle");
+      });
+    }
+
+    $('.popup_readmore').readmore({
+      maxHeight:250,
+      moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
+      lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
+      afterToggle:function(trigger, element, expanded) {
+        var $el = $(element);
+        if (!$el.hasClass("ReadmeSection")) return;
+        $el.prev(".ca_readless_top").remove();
+        if (!expanded) return;
+        var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
+        $el.before(topLess);
+      }
+    });
     if (fromCard) {
       $(".popUpBack").addClass("ca_hide");
     } else {

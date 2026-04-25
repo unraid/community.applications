@@ -41,7 +41,7 @@ body:has(.sidenavShow) :is(.back_to_top, .move_to_end) {
   z-index: 0;
 }
 /* Dim all page content except the visible sidebar and its children */
-body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu) {
+body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu, #ca_fixed_scroll_root) {
   opacity: 0.5;
   transition: opacity 250ms ease-in-out;
 }
@@ -471,16 +471,19 @@ input[type="button"][disabled] {
   width: 0px;  /* vertical scrollbar width */
 }
 .menuItems:hover::-webkit-scrollbar:vertical,
+.sidenav:hover::-webkit-scrollbar:vertical,
 .ca_homeTemplates:hover::-webkit-scrollbar:vertical,
 .mainArea::-webkit-scrollbar:vertical {
   width: 2px;  /* vertical scrollbar width */
 }
 .menuItems:hover::-webkit-scrollbar:horizontal,
+.sidenav:hover::-webkit-scrollbar:horizontal,
 .ca_homeTemplates:hover::-webkit-scrollbar:horizontal,
 .mainArea::-webkit-scrollbar:horizontal {
   height: 2px; /* horizontal scrollbar height */
 }
 .menuItems::-webkit-scrollbar-thumb,
+.sidenav::-webkit-scrollbar-thumb,
 .ca_homeTemplates::-webkit-scrollbar-thumb,
 .mainArea::-webkit-scrollbar-thumb {
   background-color: transparent;
@@ -491,11 +494,13 @@ input[type="button"][disabled] {
   border-radius: 999px;
 }
 .menuItems::-webkit-scrollbar-thumb:horizontal,
+.sidenav::-webkit-scrollbar-thumb:horizontal,
 .ca_homeTemplates::-webkit-scrollbar-thumb:horizontal,
 .mainArea::-webkit-scrollbar-thumb:horizontal {
   background-size: 20rem 100%;
 }
 .menuItems::-webkit-scrollbar-track,
+.sidenav::-webkit-scrollbar-track,
 .ca_homeTemplates::-webkit-scrollbar-track,
 .mainArea::-webkit-scrollbar-track {
   background: transparent;
@@ -503,11 +508,13 @@ input[type="button"][disabled] {
   border-radius: 999px;
 }
 .menuItems::-webkit-scrollbar-corner,
+.sidenav::-webkit-scrollbar-corner,
 .ca_homeTemplates::-webkit-scrollbar-corner,
 .mainArea::-webkit-scrollbar-corner {
   background: var(--unraid-66-color);
 }
 .menuItems::-webkit-scrollbar-thumb:hover,
+.sidenav::-webkit-scrollbar-thumb:hover,
 .ca_homeTemplates::-webkit-scrollbar-thumb:hover,
 .mainArea::-webkit-scrollbar-thumb:hover {
   background-color: transparent;
@@ -517,11 +524,12 @@ input[type="button"][disabled] {
   background-size: 100% 20rem;
 }
 .menuItems::-webkit-scrollbar-thumb:hover:horizontal,
+.sidenav::-webkit-scrollbar-thumb:hover:horizontal,
 .ca_homeTemplates::-webkit-scrollbar-thumb:hover:horizontal,
 .mainArea::-webkit-scrollbar-thumb:hover:horizontal {
   background-size: 20rem 100%;
 }
-.ca_ff_fixed_hscroll_indicator {
+.ca_fixed_hscroll_indicator {
   position: fixed;
   height: 15px;
   opacity: 0;
@@ -533,10 +541,10 @@ input[type="button"][disabled] {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
   border-radius: 999px;
 }
-.ca_ff_fixed_hscroll_indicator.visible {
+.ca_fixed_hscroll_indicator.visible {
   opacity: 1;
 }
-.ca_ff_fixed_hscroll_thumb {
+.ca_fixed_hscroll_thumb {
   position: absolute;
   top: 0;
   left: 0;
@@ -546,7 +554,7 @@ input[type="button"][disabled] {
   pointer-events: auto;
   cursor: grab;
 }
-.ca_ff_fixed_vscroll_indicator {
+.ca_fixed_vscroll_indicator {
   position: fixed;
   width: 15px;
   opacity: 0;
@@ -558,22 +566,22 @@ input[type="button"][disabled] {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
   border-radius: 999px;
 }
-.ca_ff_fixed_vscroll_indicator.visible {
+.ca_fixed_vscroll_indicator.visible {
   opacity: 1;
 }
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always {
+.ca_fixed_vscroll_indicator.ca_mainarea_v_always {
   opacity: 1;
   background: transparent;
   box-shadow: none;
 }
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_ff_fixed_vscroll_thumb:hover),
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_ff_fixed_vscroll_thumb.dragging),
-.ca_ff_fixed_vscroll_indicator.ca_mainarea_v_always.ca_mainarea_v_scrolling {
+.ca_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
+.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb:hover),
+.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb.dragging),
+.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_mainarea_v_scrolling {
   background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
 }
-.ca_ff_fixed_vscroll_thumb {
+.ca_fixed_vscroll_thumb {
   position: absolute;
   top: 0;
   left: 0;
@@ -583,24 +591,37 @@ input[type="button"][disabled] {
   pointer-events: auto;
   cursor: grab;
 }
-.ca_ff_fixed_hscroll_thumb.dragging,
-.ca_ff_fixed_vscroll_thumb.dragging {
+.ca_fixed_hscroll_thumb.dragging,
+.ca_fixed_vscroll_thumb.dragging {
   cursor: grabbing;
 }
-body:has(.sidenavShow) .ca_ff_fixed_hscroll_indicator,
-body:has(.sidenavShow) .ca_ff_fixed_vscroll_indicator {
+/* Keep JS-based scroll indicators available in sidenav too. */
+.sidenavShow .ca_scroll_mainarea,
+body:has(.sidenavShow) .ca_scroll_mainarea {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
-.ca_ff_custom_scroll_target::-webkit-scrollbar,
+/* When the sidebar is open, disable all other overlay scrollbars (e.g. home templates). */
+body:has(.sidenavShow) .ca_scroll_nonsidenav {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.ca_custom_scroll_target::-webkit-scrollbar,
 .menuItems::-webkit-scrollbar,
+.sidenav::-webkit-scrollbar,
 .ca_homeTemplates::-webkit-scrollbar,
 .mainArea::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
+.sidenav::-webkit-scrollbar:vertical,
+.sidenav::-webkit-scrollbar:horizontal,
+.sidenav::-webkit-scrollbar-thumb,
+.sidenav::-webkit-scrollbar-track,
+.sidenav::-webkit-scrollbar-corner,
 .mainArea::-webkit-scrollbar:vertical,
 .mainArea::-webkit-scrollbar:horizontal,
 .mainArea::-webkit-scrollbar-thumb,
@@ -615,17 +636,19 @@ body:has(.sidenavShow) .ca_ff_fixed_vscroll_indicator {
 /* Firefox fallback for scrollbar styling (WebKit rules stay primary). */
 @supports not selector(::-webkit-scrollbar) {
   .menuItems,
+  .sidenav,
   .ca_homeTemplates,
   .mainArea {
     scrollbar-width: none;
   }
   .menuItems:hover,
+  .sidenav:hover,
   .ca_homeTemplates:hover,
   .mainArea:hover {
     scrollbar-width: thin;
     scrollbar-color: var(--unraid-66-color) color-mix(in srgb, var(--unraid-66-color) 22%, transparent);
   }
-  .ca_ff_custom_scroll_target:hover {
+  .ca_custom_scroll_target:hover {
     scrollbar-width: none;
   }
 }
@@ -753,11 +776,10 @@ body:has(.sidenavShow) .ca_ff_fixed_vscroll_indicator {
 .sidenav {
   /* Layout */
   position: fixed;
-  top: 0;
+  top: 4rem;
   right: 0;
   bottom: 1.6rem;
   margin-bottom: 1rem;
-  padding-top: 4rem;
   width: 90%;
   max-width: 70rem;
   /* Visual */
@@ -2030,6 +2052,8 @@ a.popUpLink {
 
 .readmore-js-collapsed {
   -webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(var(--ca-white-overlay)), to(var(--ca-white-overlay-light)));
+  /* Standard property for Firefox and others */
+  mask-image: linear-gradient(to bottom, var(--ca-white-overlay), var(--ca-white-overlay-light));
 }
 
 .repoDonateText {
@@ -2982,8 +3006,22 @@ img.mfp-img {
   display: block !important;
 }
 
+.ReadmeSection {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .ReadmeSection table {
   background-color: revert !important;
+}
+
+.ReadmeSection table {
+  max-width: 100%;
+}
+
+.ReadmeSection pre {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .ReadmeSection table td {
@@ -2991,7 +3029,8 @@ img.mfp-img {
 }
 
 .ReadmeSection img {
-  max-width: stretch;
+  max-width: 100%;
+  height: auto;
 }
 
 .ReadmeSectionLabel {
