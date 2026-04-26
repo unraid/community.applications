@@ -25,6 +25,7 @@ $_SERVER['REQUEST_URI'] = "docker/apps";
 
 require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 require_once "$docroot/plugins/dynamix/include/Translations.php";
+require_once "$docroot/plugins/dynamix/include/publish.php";
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php"; # must be first include due to paths defined
 require_once "$docroot/plugins/community.applications/include/paths.php";
 require_once "$docroot/plugins/community.applications/include/helpers.php";
@@ -124,6 +125,12 @@ switch ($_POST['action']) {
   case 'getRepoDescription':
     getRepoDescription();
     break;
+  case 'getReadmeSection':
+    getReadmeSection();
+    break;
+  case 'getTemplateChanges':
+    getTemplateChanges();
+    break;
   case 'createXML':
     createXML();
     break;
@@ -217,10 +224,12 @@ function DownloadApplicationFeed() {
     $ApplicationFeed = json_decode(file_get_contents(CA_PATHS['application-feed-local']),true);
   } else {
     $downloadURL = randomFile();
-    $ApplicationFeed = download_json(CA_PATHS['application-feed'],$downloadURL);
+    ca_publish("ca_gettingTemplates","1");
+    // With CURLOPT_MAX_RECV_SPEED_LARGE capped, allow ample time for a full feed download.
+    $ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 300);
     if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
       $currentFeed = "Backup Server";
-      $ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'],$downloadURL);
+      $ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 300);
     }
     @unlink($downloadURL);
     if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
@@ -945,6 +954,15 @@ function get_content() {
   $newApp       = filter_var(getPost("newApp",false),FILTER_VALIDATE_BOOLEAN);
   $mobileDevice = filter_var(getPost("mobileDevice",false),FILTER_VALIDATE_BOOLEAN);
 
+  // If the templates cache is missing/empty, show the existing bottom banner and reload.
+  clearstatcache();
+  if ( !is_file(CA_PATHS['community-templates-info']) || empty($GLOBALS['templates']) ) {
+    postReturn([
+      'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+    ]);
+    return;
+  }
+
   if ( $mobileDevice ) {
     $GLOBALS['caSettings']['maxPerPage'] = 6;
   }
@@ -979,7 +997,12 @@ function get_content() {
     $file = &$GLOBALS['templates'];
   }
 
-  if ( empty($file)) return;
+  if ( empty($file)) {
+    postReturn([
+      'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+    ]);
+    return;
+  }
 
   if ( ! $filter && $categoryRegex === "/NONE/i" ) {
     if ( GetContentHelpers::handleHomeStartupDisplay($file, $maxHomeApps) ) {
@@ -1062,9 +1085,15 @@ function force_update_skip() {
 function force_update() {
 
   require_once __DIR__ . '/force_update_helpers.php';
-  while ( is_file(CA_PATHS['gettingTemplates']) ) {
-    sleep(1);
-    clearstatcache();
+  // If another update is already running, don't fetch metadata; just wait for it to finish.
+  if (is_file(CA_PATHS['gettingTemplates'])) {
+    while ( is_file(CA_PATHS['gettingTemplates']) ) {
+      sleep(1);
+      clearstatcache();
+    }
+    // Another process should have refreshed templates; return.
+    postReturn(['status' => "ok"]);
+    return;
   }
   touch(CA_PATHS['gettingTemplates']);
 
@@ -1116,9 +1145,15 @@ function display_content() {
   $startup = getPost("startup",false);
   $selectedApps = json_decode(getPost("selected",false),true);
   $o['display'] = "";
-  if ( file_exists(CA_PATHS['community-templates-displayed']) || file_exists(CA_PATHS['repositoriesDisplayed']) ) {
-    $o['display'] = "<div class='ca_templatesDisplay'>".display_apps($pageNumber,$selectedApps,$startup)."</div>";
+  clearstatcache();
+  if ( !file_exists(CA_PATHS['community-templates-displayed']) && !file_exists(CA_PATHS['repositoriesDisplayed']) ) {
+    postReturn([
+      'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+    ]);
+    return;
   }
+
+  $o['display'] = "<div class='ca_templatesDisplay'>".display_apps($pageNumber,$selectedApps,$startup)."</div>";
 
   postReturn($o);
 }
@@ -1489,6 +1524,162 @@ function getPopupDescription() {
 function getRepoDescription() {
   $repository = html_entity_decode(getPost("repository",""),ENT_QUOTES);
   postReturn(getRepoDescriptionSkin($repository));
+}
+
+########################################################
+# Fetch + sanitize rendered README for sidebar injection #
+########################################################
+function getReadmeSection() {
+  $readmeId = trim((string)getPost("readmeId", ""));
+  $cacheKey = trim((string)getPost("cacheKey", ""));
+  $url = trim((string)getPost("url", ""));
+  $fallback = trim((string)getPost("fallback", ""));
+
+  $html = caDownloadAndRenderReadme($url, $cacheKey);
+  if ($html === "" && $fallback !== "") {
+    $html = caDownloadAndRenderReadme($fallback, $cacheKey);
+  }
+
+  postReturn([
+    "readmeId" => $readmeId,
+    "ok" => ($html !== ""),
+    "html" => $html,
+    "message" => ($html !== "" ? "" : tr("README can't be loaded"))
+  ]);
+}
+
+###############################################################
+# Fetch + sanitize rendered template/plugin changes on demand  #
+###############################################################
+function getTemplateChanges() {
+  $changesId = trim((string)getPost("changesId", ""));
+  $cacheKey = trim((string)getPost("cacheKey", ""));
+  $url = trim((string)getPost("url", ""));
+  $type = trim((string)getPost("type", "")); // "plugin" or "xml"
+
+  $html = caDownloadAndRenderTemplateChanges($url, $cacheKey, $type);
+
+  postReturn([
+    "changesId" => $changesId,
+    "ok" => ($html !== ""),
+    "html" => $html,
+    "message" => ($html !== "" ? "" : tr("Change log can't be loaded"))
+  ]);
+}
+
+function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", string $type = ""): string {
+  if ($url === "") return "";
+  if ($cacheKey === "") $cacheKey = hash("sha256", $url);
+  @mkdir(CA_PATHS['changesCacheDir'], 0777, true);
+
+  $cachePath = CA_PATHS['changesCacheDir'] . "/changes_{$cacheKey}." . ($type === "plugin" ? "plg" : "xml");
+  // If we already have a cached copy, reuse it without re-downloading.
+  if (is_file($cachePath) && @filesize($cachePath) > 0) {
+    $raw = @file_get_contents($cachePath);
+  } else {
+    $raw = @download_url($url, $cachePath);
+    if ($raw === false || trim((string)$raw) === "") {
+      @unlink($cachePath);
+      return "";
+    }
+  }
+
+  $changes = "";
+  if ($type === "plugin") {
+    $changes = @ca_plugin("changes", $cachePath) ?: "";
+  } else {
+    $xml = readXmlFile($cachePath);
+    if ($xml && isset($xml['Changes'])) {
+      $changes = $xml['Changes'];
+    }
+  }
+
+  $changes = $changes ?: "";
+  $changes = str_replace("    ", "&nbsp;&nbsp;&nbsp;&nbsp;", $changes);
+  $changes = str_replace(["[", "]"], ["<", ">"], $changes);
+  $changes = Markdown(strip_tags($changes, "<br>"));
+
+  return trim((string)$changes);
+}
+
+function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
+  if ($url === "") return "";
+  $parts = @parse_url($url);
+  if (!is_array($parts)) return "";
+  $host = strtolower($parts['host'] ?? "");
+  $path = (string)($parts['path'] ?? "");
+  if (!in_array($host, ["raw.githubusercontent.com", "www.raw.githubusercontent.com"], true)) return "";
+  if (!preg_match("/\\/README\\.md$/i", $path)) return "";
+
+  // Cache key is provided by the caller (derived from the template's README URL), so a successful
+  // master fallback can be reused without ever re-trying main on subsequent views.
+  if ($cacheKey === "") {
+    $cacheKey = hash("sha256", $url);
+  }
+  @mkdir(CA_PATHS['readmeCacheDir'], 0777, true);
+  $tempReadmePath = CA_PATHS['readmeCacheDir']."/readme_{$cacheKey}.md";
+  // Cache README markdown on disk to avoid repeated downloads.
+  if (is_file($tempReadmePath)) {
+    $readmeContents = @file_get_contents($tempReadmePath);
+  } else {
+    $readmeContents = @download_url($url, $tempReadmePath);
+    // Intentionally keep the downloaded file as a cache entry.
+  }
+  if ($readmeContents === false || trim((string)$readmeContents) === "") {
+    @unlink($tempReadmePath);
+    return "";
+  }
+
+  $readmeContents = strip_tags((string)$readmeContents);
+  $readmeContents = preg_replace_callback(
+    "/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
+    static function ($matches) {
+      $u = $matches[1];
+      return "[{$u}]({$u})";
+    },
+    $readmeContents
+  );
+
+  $readmeContents = Markdown($readmeContents);
+  $readmeContents = strip_tags($readmeContents, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
+  $readmeContents = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
+  $readmeContents = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
+
+  $readmeContents = preg_replace_callback(
+    "/<(a)\\b([^>]*)>/i",
+    static function ($matches) {
+      $attrs = $matches[2];
+      if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
+        $href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
+        if (!preg_match("/^https?:\\/\\//i", $href)) {
+          return "<a>";
+        }
+        $safeHref = htmlspecialchars($href, ENT_QUOTES);
+        return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
+      }
+      return "<a>";
+    },
+    $readmeContents
+  );
+
+  $readmeContents = preg_replace_callback(
+    "/<(img)\\b([^>]*)>/i",
+    static function ($matches) {
+      $attrs = $matches[2];
+      if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
+        $src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
+        if (!preg_match("/^https?:\\/\\//i", $src)) {
+          return "";
+        }
+        $safeSrc = htmlspecialchars($src, ENT_QUOTES);
+        return "<img src='{$safeSrc}' alt='README image'>";
+      }
+      return "";
+    },
+    $readmeContents
+  );
+
+  return (string)$readmeContents;
 }
 
 ###########################################
@@ -2038,6 +2229,7 @@ function enableActionCentre() {
   for ( $i=0;$i<100;$i++ ) {
     if ( ! is_file(CA_PATHS['haveTemplates']) ) {
       debug("Action Centre sleeping - no templates yet");
+      clearstatcache();
       sleep(5);
     } else {
       debug("action centre: have templates");

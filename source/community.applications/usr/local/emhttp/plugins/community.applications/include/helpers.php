@@ -279,112 +279,123 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 function download_url($url, $path = "", $timeout = 0) {
   static $proxycfg = null;
 
-  if ( ! function_exists("publish") ) {
-    $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
-    require_once "/usr/local/emhttp/plugins/dynamix/include/publish.php";
-  }
-
-  $downloading_already = false;
-
-  while ( true && $path ) {
-    clearstatcache();
-    $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
-    if ( $downloadLocks[$url]??false) {
-      $downloading_already = true;
-      sleep(1);
-    } else {
-      break;  
+  // Serialize concurrent downloads of the same URL to the same $path.
+  // The previous JSON-based lock had race conditions (read/modify/write) and could leak locks
+  // if $url was rewritten (e.g. proxy fallback). Use an OS-level flock instead.
+  $lockHandle = null;
+  $lockPath = "";
+  $originalUrl = $url;
+  if ($path) {
+    @mkdir(CA_PATHS['downloadLocksDir'], 0777, true);
+    $lockPath = CA_PATHS['downloadLocksDir'] . "/download_lock_" . hash("sha256", $originalUrl) . ".lock";
+    $lockHandle = @fopen($lockPath, "c");
+    if ($lockHandle) {
+      // If we can grab the lock immediately, we're the downloader and may overwrite $path.
+      // If another process is already downloading, wait for it to finish and then return its cached result.
+      if (!@flock($lockHandle, LOCK_EX | LOCK_NB)) {
+        debug("DOWNLOAD waiting for lock $originalUrl");
+        @flock($lockHandle, LOCK_EX);
+        clearstatcache();
+        if (is_file($path) && @filesize($path) > 0) {
+          debug("DOWNLOAD returning cached $originalUrl");
+          $cached = @file_get_contents($path);
+          @flock($lockHandle, LOCK_UN);
+          @fclose($lockHandle);
+          return $cached;
+        }
+        // Cache still missing/empty even after waiting: fall through and attempt download under the lock.
+      }
     }
   }
-  if ( $downloading_already ) {
-    if (is_file($path) && filesize($path) > 0) {
-      return file_get_contents($path);
-    } else {
-      @unlink($path);
-      $downloading_already = false;
-    }
-  }
-  $downloadLocks[$url] = true;
-  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
 
   if ($proxycfg === null) {
     $proxycfg = ((! getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg")) ? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg") : false;
   }
 
-  debug("DOWNLOAD starting $url\n");
-  $startTime = time();
-  $curl_options = [
-    CURLOPT_ENCODING=>"",
-    CURLOPT_FRESH_CONNECT=>true,
-    CURLOPT_RETURNTRANSFER=>true,
-    CURLOPT_FOLLOWLOCATION=>true,
-    CURLOPT_FAILONERROR=>true,
-    CURLOPT_NOPROGRESS=>false,
-    CURLOPT_URL=>$url,
-    CURLOPT_PROGRESSFUNCTION=>"testProgress"
-  ];
+  try {
+    debug("DOWNLOAD starting $url\n");
+    $startTime = time();
+    $curl_options = [
+    //  CURLOPT_ENCODING=>"",
+      CURLOPT_FRESH_CONNECT=>true,
+      CURLOPT_RETURNTRANSFER=>true,
+      CURLOPT_FOLLOWLOCATION=>true,
+      CURLOPT_FAILONERROR=>true,
+      CURLOPT_NOPROGRESS=>false,
+      CURLOPT_URL=>$url,
+      CURLOPT_PROGRESSFUNCTION=>"testProgress"
 
-  if ( $timeout > 0 ) {
-    $curl_options[CURLOPT_TIMEOUT] = $timeout;
-    $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
-  }
+    ];
 
-  if ( $proxycfg ) {
-    $curl_options[CURLOPT_PROXYPORT] = intval($proxycfg['port']);
-    $curl_options[CURLOPT_HTTPPROXYTUNNEL] = intval($proxycfg['tunnel']);
-    $curl_options[CURLOPT_PROXY] = $proxycfg['proxy'];
-  }
+    // Cap download speed to 250 KB/s.
+    if (defined("CURLOPT_MAX_RECV_SPEED_LARGE")) {
+      $curl_options[CURLOPT_MAX_RECV_SPEED_LARGE] = 250 * 1024;
+    }
 
-  $ch = curl_init();
-  curl_setopt_array($ch,$curl_options);
+    if ( $timeout > 0 ) {
+      $curl_options[CURLOPT_TIMEOUT] = $timeout;
+      $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
+    }
 
-  $out = curl_exec($ch);
+    if ( $proxycfg ) {
+      $curl_options[CURLOPT_PROXYPORT] = intval($proxycfg['port']);
+      $curl_options[CURLOPT_HTTPPROXYTUNNEL] = intval($proxycfg['tunnel']);
+      $curl_options[CURLOPT_PROXY] = $proxycfg['proxy'];
+    }
 
-  if ( curl_errno($ch) == 23 ) {
-    debug("cURL error 23.  Switching encoding to deflate");
+    $ch = curl_init();
+    curl_setopt_array($ch,$curl_options);
+
+    $out = curl_exec($ch);
+
+    if ( curl_errno($ch) == 23 ) {
+      debug("cURL error 23.  Switching encoding to deflate");
+      
+      // curl_close is NOP in php 8+ and issues a warning in 8.5+
+      if ( PHP_MAJOR_VERSION < 8 ) {
+        call_user_func('curl_close', $ch);
+      }
+
+      $curl_options[CURLOPT_ENCODING] = "deflate";
+      $ch = curl_init();
+      curl_setopt_array($ch,$curl_options);
+      $out = curl_exec($ch);
+    }
+
+    if ( curl_error($ch) && startsWith($url,CA_PATHS['pluginProxy']) ) {
+      debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
+      $url = str_replace(CA_PATHS['pluginProxy'],"",$url);
+      $curl_options[CURLOPT_URL] = $url;
+      if ( PHP_MAJOR_VERSION < 8 ) {
+        call_user_func('curl_close', $ch);
+      }
+      sleep(3);
+      $ch = curl_init();
+      curl_setopt_array($ch,$curl_options);
+      $out = curl_exec($ch);
+    }
+    if ( $path ) {
+      ca_file_put_contents($path,$out);
+    }
+    if ( $out === false ) {
+      debug("cURL error: ".curl_error($ch));
+      @unlink($path);
+    }
+    if ( PHP_MAJOR_VERSION < 8 ) {
+      call_user_func('curl_close', $ch);
+    }
     
-    // curl_close is NOP in php 8+ and issues a warning in 8.5+
-    if ( PHP_MAJOR_VERSION < 8 ) {
-      call_user_func('curl_close', $ch);
+    ca_publish("ca_downloadProgress","");
+    $totalTime = time() - $startTime;
+    debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
+
+    return $out ?: false;
+  } finally {
+    if ($lockHandle) {
+      @flock($lockHandle, LOCK_UN);
+      @fclose($lockHandle);
     }
-
-    $curl_options[CURLOPT_ENCODING] = "deflate";
-    $ch = curl_init();
-    curl_setopt_array($ch,$curl_options);
-    $out = curl_exec($ch);
   }
-
-  if ( curl_error($ch) && startsWith($url,CA_PATHS['pluginProxy']) ) {
-    debug("Proxy error.  (cURL error: ".curl_error($ch).") Switching to direct download - $url");
-    $url = str_replace(CA_PATHS['pluginProxy'],"",$url);
-    $curl_options[CURLOPT_URL] = $url;
-    if ( PHP_MAJOR_VERSION < 8 ) {
-      call_user_func('curl_close', $ch);
-    }
-    sleep(3);
-    $ch = curl_init();
-    curl_setopt_array($ch,$curl_options);
-    $out = curl_exec($ch);
-  }
-  if ( $path ) {
-    ca_file_put_contents($path,$out);
-  }
-  if ( $out === false ) {
-    debug("cURL error: ".curl_error($ch));
-    @unlink($path);
-  }
-  if ( PHP_MAJOR_VERSION < 8 ) {
-    call_user_func('curl_close', $ch);
-  }
-  
-  ca_publish("ca_downloadProgress","");
-  $totalTime = time() - $startTime;
-  debug("DOWNLOAD $url Time: $totalTime  RESULT: ".($out ? "true" : "false"));
-
-  $downloadLocks = readJsonFile(CA_PATHS['downloadLocks']);
-  unset($downloadLocks[$url]);
-  writeJsonFile(CA_PATHS['downloadLocks'],$downloadLocks);
-  return $out ?: false;
 }
 
 function MakeReadable($bytes) {

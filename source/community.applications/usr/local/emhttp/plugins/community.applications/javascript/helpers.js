@@ -182,6 +182,33 @@ function tr(string) {
  return _(string);
 }
 
+function caShowFatalReloadBanner(message, reloadDelayMs) {
+  try {
+    if (window.ca_reloadPending) return;
+    window.ca_reloadPending = true;
+    try {
+      if (typeof closeSidebar === "function") closeSidebar(true, true);
+    } catch(e) {}
+    var ms = parseInt(reloadDelayMs, 10);
+    if (!ms || ms < 0) ms = 10000;
+    var msg = (typeof message === "string" && message) ? message : tr("An error occurred. Reloading the page...");
+
+    var $banner = $(".ca_bottomBanner");
+    var $msg = $(".ca_fatalReloadBanner");
+    if ($banner.length && $msg.length) {
+      $(".ca_pageGeometryChange").addClass("ca_hide");
+      $msg.text(msg).removeClass("ca_hide");
+      $banner.removeClass("ca_hide");
+    } else {
+      alert(msg);
+    }
+
+    setTimeout(function() { window.location.reload(); }, ms);
+  } catch(e) {
+    setTimeout(function() { window.location.reload(); }, 10000);
+  }
+}
+
 function postNoSpin(options,callback) {
   var msg = "No Spin Post: ";
   console.log(msg+JSON.stringify(options));

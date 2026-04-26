@@ -14,10 +14,11 @@ class ForceUpdateHelpers {
   public static function fetchLatestUpdateMetadata(): array {
     @unlink(CA_PATHS['lastUpdated']);
 
-    $latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated']);
+    // Ensure force_update cannot hang forever if the remote is stalled.
+    $latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated'], 60);
 
     if (!self::isValidUpdateMetadata($latestUpdate)) {
-      $latestUpdate = download_json(CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'], CA_PATHS['lastUpdated']);
+      $latestUpdate = download_json(CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'], CA_PATHS['lastUpdated'], 60);
     }
 
     if (!self::isValidUpdateMetadata($latestUpdate)) {

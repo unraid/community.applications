@@ -657,6 +657,13 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 function getPopupDescriptionSkin($appNumber) {
   global $language, $DockerClient;
 
+  clearstatcache();
+  if (empty($GLOBALS['templates']) || !is_file(CA_PATHS['community-templates-info'])) {
+    return [
+      "description" => ""
+    ];
+  }
+
   $allRepositories = readJsonFile(CA_PATHS['repositoryList'], []);
   $allRepositories = is_array($allRepositories) ? $allRepositories : [];
   $extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist'], []);
@@ -686,8 +693,9 @@ function getPopupDescriptionSkin($appNumber) {
     $file = &$GLOBALS['templates'];
     $index = searchArray($file,"Path",$appNumber);
     if ($index === false) {
-      echo json_encode(["description"=>tr("Something really wrong happened.  Reloading the Apps tab will probably fix the problem")]);
-      return;
+      return [
+        "description" => ""
+      ];
     }
     $template = $file[$index];
   }

@@ -48,33 +48,36 @@ function caFormatOverview(array $template) {
 }
 
 function caFormatTemplateChanges(array &$template) {
-  if ($template['Plugin']) {
-    $templateURL = $template['PluginURL'];
-    download_url($templateURL,CA_PATHS['pluginTempDownload']);
-    $template['Changes'] = @ca_plugin("changes",CA_PATHS['pluginTempDownload']) ?: $template['Changes'];
-    $template['pluginVersion'] = @ca_plugin("version",CA_PATHS['pluginTempDownload']) ?: $template['pluginVersion'];
-  } else {
-    if (!$template['Changes'] && $template['ChangeLogPresent']) {
-      $templateURL = $template['caTemplateURL'] ?: ($template['TemplateURL']??"");
-      if ( $templateURL ) {
-        download_url($templateURL,CA_PATHS['pluginTempDownload']);
-        $xml = readXmlFile(CA_PATHS['pluginTempDownload']);
-        if ($xml) {
-          $template['Changes'] = $xml['Changes'];
-        }
-      }
+  // If changes are already present in the template, format them immediately (no downloads).
+  if (trim((string)($template['Changes'] ?? ""))) {
+    $changes = (string)$template['Changes'];
+    $changes = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$changes);
+    $changes = str_replace(["[","]"],["<",">"],$changes);
+    $changes = Markdown(strip_tags($changes,"<br>"));
+    $template['Changes'] = $changes;
+    if (trim($changes)) {
+      $template['display_changes'] = trim($changes);
     }
+    return;
   }
 
-  $changes = $template['Changes'] ?: "";
-  $changes = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$changes);
-  $changes = str_replace(["[","]"],["<",">"],$changes);
-  $changes = Markdown(strip_tags($changes,"<br>"));
-
-  $template['Changes'] = $changes;
-  if (trim($changes)) {
-    $template['display_changes'] = trim($changes);
+  // Otherwise, lazily fetch changes (plugin .plg or template XML) from the sidebar after render.
+  $type = "";
+  $templateURL = "";
+  if ($template['Plugin']) {
+    $type = "plugin";
+    $templateURL = (string)($template['PluginURL'] ?? "");
+  } else if ($template['ChangeLogPresent']) {
+    $type = "xml";
+    $templateURL = (string)($template['caTemplateURL'] ?: ($template['TemplateURL']??""));
   }
+
+  if (!$templateURL) return;
+
+  $cacheKey = hash("sha256", $templateURL);
+  $changesId = "ca_changes_" . $cacheKey;
+  $safeUrl = htmlspecialchars($templateURL, ENT_QUOTES);
+  $template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-cachekey='{$cacheKey}' data-changes-url='{$safeUrl}' data-changes-type='{$type}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
 }
 
 ################################################################################
@@ -1226,64 +1229,13 @@ function caBuildReadmeSectionDiv(array $template): string {
 
   $rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/README.md";
   $rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/README.md";
-  $tempReadmePath = CA_PATHS['tempFiles']."/readme_".md5("{$org}/{$repo}").".md";
-
-  $readmeContents = @download_url($rawMainUrl, $tempReadmePath);
-  if ($readmeContents === false) {
-    $readmeContents = @download_url($rawMasterUrl, $tempReadmePath);
-  }
-  @unlink($tempReadmePath);
-  if ($readmeContents === false) {
-    return "";
-  }
-
-  $readmeContents = strip_tags((string)$readmeContents);
-  $readmeContents = preg_replace_callback(
-    "/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
-    static function ($matches) {
-      $url = $matches[1];
-      return "[{$url}]({$url})";
-    },
-    $readmeContents
-  );
-  $readmeContents = Markdown($readmeContents);
-  $readmeContents = strip_tags($readmeContents, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
-  $readmeContents = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
-  $readmeContents = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
-  $readmeContents = preg_replace_callback(
-    "/<(a)\\b([^>]*)>/i",
-    static function ($matches) {
-      $attrs = $matches[2];
-      if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
-        $href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
-        if (!preg_match("/^https?:\\/\\//i", $href)) {
-          return "<a>";
-        }
-        $safeHref = htmlspecialchars($href, ENT_QUOTES);
-        return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
-      }
-      return "<a>";
-    },
-    $readmeContents
-  );
-  $readmeContents = preg_replace_callback(
-    "/<(img)\\b([^>]*)>/i",
-    static function ($matches) {
-      $attrs = $matches[2];
-      if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
-        $src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
-        if (!preg_match("/^https?:\\/\\//i", $src)) {
-          return "";
-        }
-        $safeSrc = htmlspecialchars($src, ENT_QUOTES);
-        return "<img src='{$safeSrc}' alt='README image'>";
-      }
-      return "";
-    },
-    $readmeContents
-  );
+  // Stable cache key derived from the template-provided README URL (avoids re-trying main/master on repeat views).
+  $cacheKey = hash("sha256", $readmeUrl);
+  $readmeId = "ca_readme_" . $cacheKey;
   $safeReadmeUrl = htmlspecialchars($readmeUrl, ENT_QUOTES);
-  return "<div class='ReadmeSection popupDescription popup_readmore'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div>{$readmeContents}</div>";
+  $safeRawMainUrl = htmlspecialchars($rawMainUrl, ENT_QUOTES);
+  $safeRawMasterUrl = htmlspecialchars($rawMasterUrl, ENT_QUOTES);
+  return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-cachekey='{$cacheKey}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>".tr("Loading README...")."</div></div>";
 }
 
 #######################################################################

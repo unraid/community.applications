@@ -13,6 +13,7 @@
 $docroot ??= ($_SERVER['DOCUMENT_ROOT'] ?: '/usr/local/emhttp');
 
 require_once "$docroot/plugins/community.applications/include/paths.php";
+require_once "$docroot/plugins/dynamix/include/publish.php";
 require_once("$docroot/plugins/community.applications/include/helpers.php");
 require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
 

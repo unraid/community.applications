@@ -344,6 +344,21 @@ $(function(){
   });
   downloadProgress.start();
 
+  // Start this subscriber only after the initial force_update has completed
+  // (we start it lazily from downloadStatistics()) so the tab doing the update
+  // never reloads itself, but other open CA tabs will.
+  window.caGettingTemplatesSubStarted = false;
+  window.caGettingTemplatesSubIgnoreFirst = true;
+  window.caGettingTemplatesSub = new NchanSubscriber('/sub/ca_gettingTemplates',{subscriber:'websocket'});
+  window.caGettingTemplatesSub.on('message', function(message) {
+    if (window.caGettingTemplatesSubIgnoreFirst) {
+      window.caGettingTemplatesSubIgnoreFirst = false;
+      return;
+    }
+    if ( ! message ) return;
+    caShowFatalReloadBanner(tr("Another browser instance is updating the application feed. Reloading the page..."), 10000);
+  });
+
   caInitializeSortMenu();
   caInitializeClickHandlers();
   caInitializeEventHandlers();
@@ -718,6 +733,13 @@ function getContent(init,category,description,newApp,startupDisplay) {
 }
 
 function downloadStatistics() {
+  try {
+    if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
+      window.caGettingTemplatesSubIgnoreFirst = true;
+      window.caGettingTemplatesSub.start();
+      window.caGettingTemplatesSubStarted = true;
+    }
+  } catch(e) {}
   postNoSpin({action:'downloadStatistics'});
 }
 
@@ -2258,6 +2280,8 @@ function showSidebarApp(apppath,appname) {
     post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
       myCloseSpinner();
       $("#sidenavContent").html(result.description);
+      caInitSidebarReadmore();
+      caLoadSidebarReadmeSections();
       $('.screenshot').magnificPopup({
         closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
@@ -2298,19 +2322,6 @@ function showSidebarApp(apppath,appname) {
         });
       }
 
-      $('.popup_readmore').readmore({
-        maxHeight:250,
-        moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
-        lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
-        afterToggle:function(trigger, element, expanded) {
-          var $el = $(element);
-          if (!$el.hasClass("ReadmeSection")) return;
-          $el.prev(".ca_readless_top").remove();
-          if (!expanded) return;
-          var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
-          $el.before(topLess);
-        }
-      })
       popUpChart(result);
       setupContext(result.supportContext,"#supportPopup");
       setupContext(result.actionsContext,"#actionsPopup");
@@ -2326,6 +2337,60 @@ function showSidebarApp(apppath,appname) {
         }
       });
     })
+}
+
+function caLoadSidebarReadmeSections() {
+  var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
+  if (!$sections.length) return;
+  $sections.each(function() {
+    var $section = $(this);
+    if ($section.data("readmeLoaded") || $section.data("readmeLoading")) {
+      return;
+    }
+    $section.data("readmeLoading", true);
+    var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
+    var url = $section.attr("data-readme-url") || "";
+    var fallback = $section.attr("data-readme-url-fallback") || "";
+    postNoSpin({action:"getReadmeSection", readmeId: readmeId, url:url, fallback:fallback}, function(resp) {
+      // Late responses must only update the currently displayed placeholder for this readmeId.
+      var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
+      // If the user navigated away, the placeholder won't exist anymore: do nothing.
+      if (!$current.length) return;
+      var currentUrl = $current.attr("data-readme-url") || "";
+      // Guard against re-use / DOM replacement while request was in flight.
+      if (url && currentUrl !== url) return;
+
+      if (resp && resp.html) $current.find(".ca_readme_body").html(resp.html);
+      else $current.find(".ca_readme_body").text((resp && resp.message) ? resp.message : "README can't be loaded");
+      $current.data("readmeLoaded", true);
+      $current.data("readmeLoading", false);
+
+      // Initialize readmore for this section now (don't wait for other readmes).
+      caInitSidebarReadmore($current);
+    });
+  });
+}
+
+function caInitSidebarReadmore($scope) {
+  var $targets = $scope ? $scope : $('.popup_readmore');
+  $targets.each(function() {
+    var $el = $(this);
+    // Avoid double-initializing readmore on the same element.
+    if ($el.hasClass("readmore-js")) return;
+    $el.readmore({
+    maxHeight:250,
+    moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
+    lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
+    afterToggle:function(trigger, element, expanded) {
+      var $el = $(element);
+      if (!$el.hasClass("ReadmeSection")) return;
+      $el.prev(".ca_readless_top").remove();
+      if (!expanded) return;
+      var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
+      $el.before(topLess);
+    }
+    });
+  });
 }
 
 function slideInSidebar() {
@@ -2353,6 +2418,8 @@ function showRepoPopup(repository) {
   post({action:'getRepoDescription',repository:repository},function(result) {
     $("#sidenavContent").html(result.description); 
     $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+    caInitSidebarReadmore();
+    caLoadSidebarReadmeSections();
     if (!data.caReadmoreTopLessBound) {
       data.caReadmoreTopLessBound = true;
       $("#sidenavContent").on("click", ".ca_readless_top", function(e) {
@@ -2369,19 +2436,6 @@ function showRepoPopup(repository) {
       });
     }
 
-    $('.popup_readmore').readmore({
-      maxHeight:250,
-      moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
-      lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
-      afterToggle:function(trigger, element, expanded) {
-        var $el = $(element);
-        if (!$el.hasClass("ReadmeSection")) return;
-        $el.prev(".ca_readless_top").remove();
-        if (!expanded) return;
-        var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
-        $el.before(topLess);
-      }
-    });
     if (fromCard) {
       $(".popUpBack").addClass("ca_hide");
     } else {

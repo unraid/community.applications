@@ -110,6 +110,9 @@ define("CA_PATHS",[
   'PHPErrorLog'                         => "/var/log/phplog",
   'pluginAttributesCache'               => "$tempFiles/pluginAttributesCache",
   'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
+  'downloadLocksDir'                    => "$tempFiles/locks",
+  'readmeCacheDir'                      => "$tempFiles/readmes",
+  'changesCacheDir'                     => "$tempFiles/changes",
   'SpotlightIcon-backup'								=> "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png",
   'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png"
 ]);
