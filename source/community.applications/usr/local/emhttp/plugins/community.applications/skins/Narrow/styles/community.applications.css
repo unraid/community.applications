@@ -532,9 +532,23 @@ input[type="button"][disabled] {
 .mainArea::-webkit-scrollbar-thumb:hover:horizontal {
   background-size: 20rem 100%;
 }
+
+#ca_fixed_scroll_root {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: auto;
+  z-index: 1000;
+}
+
+:root {
+  --ca-fixed-scrollbar-thickness: 10px;
+}
 .ca_fixed_hscroll_indicator {
   position: fixed;
-  height: 15px;
+  height: var(--ca-fixed-scrollbar-thickness);
   opacity: 0;
   pointer-events: auto;
   cursor: pointer;
@@ -551,7 +565,7 @@ input[type="button"][disabled] {
   position: absolute;
   top: 0;
   left: 0;
-  height: 15px;
+  height: var(--ca-fixed-scrollbar-thickness);
   border-radius: 999px;
   background: var(--unraid-66-color);
   pointer-events: auto;
@@ -559,7 +573,7 @@ input[type="button"][disabled] {
 }
 .ca_fixed_vscroll_indicator {
   position: fixed;
-  width: 15px;
+  width: var(--ca-fixed-scrollbar-thickness);
   opacity: 0;
   pointer-events: auto;
   cursor: pointer;
@@ -588,7 +602,7 @@ input[type="button"][disabled] {
   position: absolute;
   top: 0;
   left: 0;
-  width: 15px;
+  width: var(--ca-fixed-scrollbar-thickness);
   border-radius: 999px;
   background: var(--unraid-66-color);
   pointer-events: auto;

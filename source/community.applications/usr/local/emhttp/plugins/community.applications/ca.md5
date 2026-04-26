@@ -1,4 +1,4 @@
-1a2e972d0704b75dc3f45e42bf08dcc5  ./Apps.page
+a431afb60998fe7a9a4cc22bade5f3c8  ./Apps.page
 e8cb4fb233ec265178adfa679386e947  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -11,10 +11,10 @@ b029cd5bb22b2d9196815d2f33c92ebc  ./include/paths.php
 762ad5e1331373e4cc4bfc64335d7aaf  ./include/pinned_apps_helpers.php
 308d69b053c1f1fa37f54ca44190d944  ./include/populate_autocomplete_helpers.php
 a56c0447ae432c62f3edbdeb543561da  ./include/previous_apps_helpers.php
-9070bbd9be63ebe5c0531b2408e47869  ./javascript/clickHandlers.js
-cec75ffba01cec86c4d946773892adaf  ./javascript/helpers.js
+9ba61054f2568dff5451f35b83fc97b1  ./javascript/clickHandlers.js
+30f007436fe79550107a2e9bf4c730a2  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
-f369d47a17c3f28f530694e063e5bcf5  ./javascript/statistics.js
+b426d18bb94281e32c70624cdc06a6dd  ./javascript/statistics.js
 cdaa56b094f5dea3d730c82b91261a3b  ./phpstan.neon
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_postHook
 11f9bd7162bb17c2d3e078319e9e97e8  ./pluginPreAndPostScripts/CA_preHook
@@ -35,7 +35,7 @@ f00cabb95f937f6fcdc8edf859f2af4a  ./skins/Narrow/skin.html
 9bb15341fe389f8bdb92e8e954c3ab13  ./skins/Narrow/skin.php
 05ef289c87d32209f1e9f5545501fd01  ./skins/Narrow/skin_helpers.php
 933b5d4d39fefdb082551511106f2943  ./skins/Narrow/styles/community.applications.colors.css
-3e62facae320ec195525ef571e4cd131  ./skins/Narrow/styles/community.applications.css
+921725322c3abca970b3333fa4cb6469  ./skins/Narrow/styles/community.applications.css
 9e0671752dbb6ac67e2fd044a3ecfe1a  ./skins/Narrow/styles/community.applications.responsive.css
 7a3ed4647c00a7fa2d20babd0e190a68  ./skins/Narrow/themes/azure.css
 62e36b8dab953b97b63a1a2c768a60ea  ./skins/Narrow/themes/black.css

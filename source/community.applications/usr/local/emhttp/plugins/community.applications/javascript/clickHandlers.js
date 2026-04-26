@@ -17,20 +17,12 @@ function caInitializeClickHandlers() {
     var hideTimers = new WeakMap();
     var remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     var thumbLengthPx = 20 * remPx;
-    var trackThicknessPx = 15;
+    var cssThickness = getComputedStyle(document.documentElement).getPropertyValue("--ca-fixed-scrollbar-thickness");
+    var trackThicknessPx = parseFloat(cssThickness) || 10;
 
-    var root = document.getElementById("ca_fixed_scroll_root");
-    if (!root) {
-      root = document.createElement("div");
-      root.id = "ca_fixed_scroll_root";
-      root.style.position = "fixed";
-      root.style.left = "0";
-      root.style.top = "0";
-      root.style.width = "0";
-      root.style.height = "0";
-      root.style.pointerEvents = "auto";
-      root.style.zIndex = "1000";
-      document.body.appendChild(root);
+    var $root = $("#ca_fixed_scroll_root");
+    if ($root.length === 0) {
+      $root = $("<div>", { id: "ca_fixed_scroll_root" }).appendTo("body");
     }
 
     var clearHideTimer = function(el) {
@@ -45,20 +37,20 @@ function caInitializeClickHandlers() {
       var entry = overlays.get(el);
       if (!entry) return;
       clearHideTimer(el);
-      if (entry.hIndicator && entry.hIndicator.style.display !== "none") entry.hIndicator.classList.add("visible");
-      if (entry.vIndicator && entry.vIndicator.style.display !== "none") entry.vIndicator.classList.add("visible");
+      if (entry.$hIndicator && entry.$hIndicator.is(":visible")) entry.$hIndicator.addClass("visible");
+      if (entry.$vIndicator && entry.$vIndicator.is(":visible")) entry.$vIndicator.addClass("visible");
     };
 
     var hideIndicatorSoon = function(el) {
       var entry = overlays.get(el);
       if (!entry) return;
-      if (entry.dragging || entry.overlayHover || el.matches(":hover")) return;
+      if (entry.dragging || entry.overlayHover || $(el).is(":hover")) return;
       clearHideTimer(el);
       hideTimers.set(el, setTimeout(function() {
         // Don't hide if user is still interacting/hovering the scroll target.
-        if (entry.dragging || entry.overlayHover || el.matches(":hover")) return;
-        if (entry.hIndicator) entry.hIndicator.classList.remove("visible");
-        if (entry.vIndicator && !entry.alwaysShowVertical) entry.vIndicator.classList.remove("visible");
+        if (entry.dragging || entry.overlayHover || $(el).is(":hover")) return;
+        if (entry.$hIndicator) entry.$hIndicator.removeClass("visible");
+        if (entry.$vIndicator && !entry.alwaysShowVertical) entry.$vIndicator.removeClass("visible");
       }, 250));
     };
 
@@ -70,19 +62,22 @@ function caInitializeClickHandlers() {
       var hasHorizontal = (el.scrollWidth - el.clientWidth) > 1;
       var hasVertical = (el.scrollHeight - el.clientHeight) > 1;
       if (rect.width <= 0 || rect.height <= 0) {
-        if (entry.hIndicator) entry.hIndicator.style.display = "none";
-        if (entry.vIndicator) entry.vIndicator.style.display = "none";
+        if (entry.$hIndicator) entry.$hIndicator.hide();
+        if (entry.$vIndicator) entry.$vIndicator.hide();
         return;
       }
 
-      if (entry.hIndicator) {
+      if (entry.$hIndicator) {
         if (!hasHorizontal) {
-          entry.hIndicator.style.display = "none";
+          entry.$hIndicator.hide();
         } else {
-          entry.hIndicator.style.display = "block";
-          entry.hIndicator.style.left = rect.left + "px";
-          entry.hIndicator.style.top = (rect.bottom - trackThicknessPx) + "px";
-          entry.hIndicator.style.width = rect.width + "px";
+          entry.$hIndicator
+            .show()
+            .css({
+              left: rect.left + "px",
+              top: (rect.bottom - trackThicknessPx) + "px",
+              width: rect.width + "px"
+            });
 
           var trackWidth = rect.width;
           var thumbWidth = Math.min(trackWidth, thumbLengthPx);
@@ -91,23 +86,27 @@ function caInitializeClickHandlers() {
           var hMaxLeft = Math.max(0, trackWidth - thumbWidth);
           var hLeft = Math.max(0, Math.min(hMaxLeft, hMaxLeft * hRatio));
 
-          entry.hThumb.style.width = thumbWidth + "px";
-          entry.hThumb.style.transform = "translateX(" + hLeft + "px)";
+          entry.$hThumb.css({
+            width: thumbWidth + "px",
+            transform: "translateX(" + hLeft + "px)"
+          });
         }
       }
 
-      if (entry.vIndicator) {
+      if (entry.$vIndicator) {
         if (!hasVertical) {
-          entry.vIndicator.style.display = "none";
+          entry.$vIndicator.hide();
         } else {
-          entry.vIndicator.style.display = "block";
+          entry.$vIndicator.show();
           if (entry.alwaysShowVertical) {
-            entry.vIndicator.style.left = (window.innerWidth - trackThicknessPx) + "px";
+            entry.$vIndicator.css("left", (window.innerWidth - trackThicknessPx) + "px");
           } else {
-            entry.vIndicator.style.left = (rect.right - trackThicknessPx) + "px";
+            entry.$vIndicator.css("left", (rect.right - trackThicknessPx) + "px");
           }
-          entry.vIndicator.style.top = rect.top + "px";
-          entry.vIndicator.style.height = rect.height + "px";
+          entry.$vIndicator.css({
+            top: rect.top + "px",
+            height: rect.height + "px"
+          });
 
           var trackHeight = rect.height;
           var thumbHeight = Math.min(trackHeight, thumbLengthPx);
@@ -116,8 +115,10 @@ function caInitializeClickHandlers() {
           var vMaxTop = Math.max(0, trackHeight - thumbHeight);
           var vTop = Math.max(0, Math.min(vMaxTop, vMaxTop * vRatio));
 
-          entry.vThumb.style.height = thumbHeight + "px";
-          entry.vThumb.style.transform = "translateY(" + vTop + "px)";
+          entry.$vThumb.css({
+            height: thumbHeight + "px",
+            transform: "translateY(" + vTop + "px)"
+          });
         }
       }
     };
@@ -132,33 +133,27 @@ function caInitializeClickHandlers() {
       var allowVertical = true;
       if ((!allowHorizontal || !hasHorizontal) && (!allowVertical || !hasVertical)) return;
 
-      var hIndicator = null;
-      var hThumb = null;
+      var $hIndicator = null;
+      var $hThumb = null;
       if (allowHorizontal && hasHorizontal) {
-        hIndicator = document.createElement("div");
-        hIndicator.className = "ca_fixed_hscroll_indicator";
-        hThumb = document.createElement("div");
-        hThumb.className = "ca_fixed_hscroll_thumb";
-        hIndicator.appendChild(hThumb);
-        root.appendChild(hIndicator);
+        $hIndicator = $("<div>", { "class": "ca_fixed_hscroll_indicator" });
+        $hThumb = $("<div>", { "class": "ca_fixed_hscroll_thumb" }).appendTo($hIndicator);
+        $hIndicator.appendTo($root);
       }
 
-      var vIndicator = null;
-      var vThumb = null;
+      var $vIndicator = null;
+      var $vThumb = null;
       if (allowVertical && hasVertical) {
-        vIndicator = document.createElement("div");
-        vIndicator.className = "ca_fixed_vscroll_indicator";
-        vThumb = document.createElement("div");
-        vThumb.className = "ca_fixed_vscroll_thumb";
-        vIndicator.appendChild(vThumb);
-        root.appendChild(vIndicator);
+        $vIndicator = $("<div>", { "class": "ca_fixed_vscroll_indicator" });
+        $vThumb = $("<div>", { "class": "ca_fixed_vscroll_thumb" }).appendTo($vIndicator);
+        $vIndicator.appendTo($root);
       }
 
       overlays.set(el, {
-        hIndicator: hIndicator,
-        hThumb: hThumb,
-        vIndicator: vIndicator,
-        vThumb: vThumb,
+        $hIndicator: $hIndicator,
+        $hThumb: $hThumb,
+        $vIndicator: $vIndicator,
+        $vThumb: $vThumb,
         overlayHover: false,
         dragging: false,
         alwaysShowVertical: el.classList.contains("mainArea") || el.classList.contains("sidenav"),
@@ -166,26 +161,26 @@ function caInitializeClickHandlers() {
       });
       var entry = overlays.get(el);
       if (el.classList.contains("mainArea")) {
-        if (hIndicator) hIndicator.classList.add("ca_scroll_mainarea");
-        if (vIndicator) vIndicator.classList.add("ca_scroll_mainarea");
+        if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_mainarea");
+        if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_mainarea");
       } else if (el.classList.contains("sidenav")) {
-        if (hIndicator) hIndicator.classList.add("ca_scroll_sidenav");
-        if (vIndicator) vIndicator.classList.add("ca_scroll_sidenav");
+        if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_sidenav");
+        if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_sidenav");
       }
       // Used to disable non-sidenav overlays when the sidebar is open.
       if (!el.classList.contains("sidenav")) {
-        if (hIndicator) hIndicator.classList.add("ca_scroll_nonsidenav");
-        if (vIndicator) vIndicator.classList.add("ca_scroll_nonsidenav");
+        if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_nonsidenav");
+        if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_nonsidenav");
       }
       // Allow targeted control of the menu scroll indicators (eg. hide during Awesomplete dropdown).
       if (el.classList.contains("menuItems")) {
-        if (hIndicator) hIndicator.classList.add("ca_scroll_menuitems");
-        if (vIndicator) vIndicator.classList.add("ca_scroll_menuitems");
+        if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_menuitems");
+        if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_menuitems");
       }
       if (entry && entry.alwaysShowVertical) {
-        if (vIndicator) vIndicator.classList.add("ca_mainarea_v_always", "visible");
+        if (entry.$vIndicator) entry.$vIndicator.addClass("ca_mainarea_v_always visible");
       }
-      el.classList.add("ca_custom_scroll_target");
+      $(el).addClass("ca_custom_scroll_target");
 
       var startDrag = function(axis, downEvent) {
         downEvent.preventDefault();
@@ -203,8 +198,8 @@ function caInitializeClickHandlers() {
         var prevUserSelect = document.body.style.userSelect;
         document.body.style.userSelect = "none";
 
-        if (axis === "x" && hThumb) hThumb.classList.add("dragging");
-        if (axis === "y" && vThumb) vThumb.classList.add("dragging");
+        if (axis === "x" && entry.$hThumb) entry.$hThumb.addClass("dragging");
+        if (axis === "y" && entry.$vThumb) entry.$vThumb.addClass("dragging");
 
         var onMove = function(moveEvent) {
           if (axis === "x") {
@@ -232,24 +227,24 @@ function caInitializeClickHandlers() {
         };
 
         var onUp = function() {
-          document.removeEventListener("mousemove", onMove);
-          document.removeEventListener("mouseup", onUp);
+          $(document).off("mousemove.caScrollOverlay", onMove);
+          $(document).off("mouseup.caScrollOverlay", onUp);
           document.body.style.userSelect = prevUserSelect;
           var currentEntry = overlays.get(el);
           if (currentEntry) currentEntry.dragging = false;
-          if (hThumb) hThumb.classList.remove("dragging");
-          if (vThumb) vThumb.classList.remove("dragging");
+          if (currentEntry && currentEntry.$hThumb) currentEntry.$hThumb.removeClass("dragging");
+          if (currentEntry && currentEntry.$vThumb) currentEntry.$vThumb.removeClass("dragging");
           hideIndicatorSoon(el);
         };
 
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+        $(document).on("mousemove.caScrollOverlay", onMove);
+        $(document).on("mouseup.caScrollOverlay", onUp);
       };
 
-      if (hThumb) hThumb.addEventListener("mousedown", function(e) { startDrag("x", e); });
-      if (vThumb) vThumb.addEventListener("mousedown", function(e) { startDrag("y", e); });
-      if (hIndicator) hIndicator.addEventListener("mousedown", function(e) {
-        if (e.target === hThumb) return;
+      if (entry.$hThumb) entry.$hThumb.on("mousedown", function(e) { startDrag("x", e); });
+      if (entry.$vThumb) entry.$vThumb.on("mousedown", function(e) { startDrag("y", e); });
+      if (entry.$hIndicator) entry.$hIndicator.on("mousedown", function(e) {
+        if (entry.$hThumb && e.target === entry.$hThumb[0]) return;
         e.preventDefault();
         e.stopPropagation();
         showIndicator(el);
@@ -266,8 +261,8 @@ function caInitializeClickHandlers() {
           updateIndicator(el);
         }
       });
-      if (vIndicator) vIndicator.addEventListener("mousedown", function(e) {
-        if (e.target === vThumb) return;
+      if (entry.$vIndicator) entry.$vIndicator.on("mousedown", function(e) {
+        if (entry.$vThumb && e.target === entry.$vThumb[0]) return;
         e.preventDefault();
         e.stopPropagation();
         showIndicator(el);
@@ -284,14 +279,14 @@ function caInitializeClickHandlers() {
           updateIndicator(el);
         }
       });
-      [hIndicator, vIndicator].filter(Boolean).forEach(function(indicator) {
-        indicator.addEventListener("mouseenter", function() {
+      [entry.$hIndicator, entry.$vIndicator].filter(Boolean).forEach(function($indicator) {
+        $indicator.on("mouseenter", function() {
           var entry = overlays.get(el);
           if (!entry) return;
           entry.overlayHover = true;
           showIndicator(el);
         });
-        indicator.addEventListener("mouseleave", function() {
+        $indicator.on("mouseleave", function() {
           var entry = overlays.get(el);
           if (!entry) return;
           entry.overlayHover = false;
@@ -299,40 +294,40 @@ function caInitializeClickHandlers() {
         });
       });
 
-      el.addEventListener("scroll", function() {
+      $(el).on("scroll", function() {
         var current = overlays.get(el);
         if (!current) return;
         updateIndicator(el);
-        if (current.alwaysShowVertical && current.vIndicator) {
-          current.vIndicator.classList.add("ca_mainarea_v_scrolling");
+        if (current.alwaysShowVertical && current.$vIndicator) {
+          current.$vIndicator.addClass("ca_mainarea_v_scrolling");
           if (current.mainAreaScrollFxTimer) clearTimeout(current.mainAreaScrollFxTimer);
           current.mainAreaScrollFxTimer = setTimeout(function() {
             var latest = overlays.get(el);
-            if (!latest || !latest.vIndicator) return;
-            latest.vIndicator.classList.remove("ca_mainarea_v_scrolling");
+            if (!latest || !latest.$vIndicator) return;
+            latest.$vIndicator.removeClass("ca_mainarea_v_scrolling");
           }, 450);
         }
-        if (current.dragging || current.overlayHover || el.matches(":hover")) showIndicator(el);
+        if (current.dragging || current.overlayHover || $(el).is(":hover")) showIndicator(el);
         hideIndicatorSoon(el);
       });
-      el.addEventListener("mouseenter", function() {
+      $(el).on("mouseenter", function() {
         updateIndicator(el);
         showIndicator(el);
       });
-      el.addEventListener("mouseleave", function() {
+      $(el).on("mouseleave", function() {
         hideIndicatorSoon(el);
       });
       updateIndicator(el);
     };
 
     var refreshTargets = function() {
-      document.querySelectorAll(selector).forEach(attachOverlay);
+      $(selector).each(function() { attachOverlay(this); });
       overlays.forEach(function(_, el) {
-        if (!document.body.contains(el) || !el.matches(selector)) {
+        if (!$.contains(document.body, el) || !$(el).is(selector)) {
           var entry = overlays.get(el);
           if (entry) {
-            if (entry.hIndicator) entry.hIndicator.remove();
-            if (entry.vIndicator) entry.vIndicator.remove();
+            if (entry.$hIndicator) entry.$hIndicator.remove();
+            if (entry.$vIndicator) entry.$vIndicator.remove();
           }
           overlays.delete(el);
         }

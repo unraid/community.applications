@@ -201,33 +201,23 @@ function renderModerationFixed(payload) {
 }
 
 function caToggleFixedDetails(id, button) {
-  var section = document.getElementById(id);
-  if (!section) return;
-  var isHidden = window.getComputedStyle(section).display === "none";
-  section.style.display = isHidden ? "block" : "none";
-  if (button) {
-    button.innerHTML = isHidden ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>";
-  }
+  var $section = $("#" + id);
+  if (!$section.length) return;
+  var isHidden = $section.css("display") === "none";
+  $section.css("display", isHidden ? "block" : "none");
+  if (button) $(button).html(isHidden ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>");
   caSyncFixedToggleAllState();
 }
 
 function caSetAllFixedDetails(showAll) {
-  var root = document.querySelector("#sidenavContent .moderationContainer");
-  if (!root) {
-    return;
-  }
-  var sections = root.querySelectorAll(".ca_fixedDetails");
-  var buttons = root.querySelectorAll(".ca_fixedToggle");
-  for (var i = 0; i < sections.length; i++) {
-    sections[i].style.display = showAll ? "block" : "none";
-  }
-  for (var j = 0; j < buttons.length; j++) {
-    buttons[j].innerHTML = showAll ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>";
-  }
-  var allButton = root.querySelector("#caFixedToggleAll");
-  if (allButton) {
-    allButton.dataset.showAll = showAll ? "1" : "0";
-    allButton.textContent = showAll ? tr("Hide All") : tr("Show All");
+  var $root = $("#sidenavContent .moderationContainer").first();
+  if (!$root.length) return;
+  $root.find(".ca_fixedDetails").css("display", showAll ? "block" : "none");
+  $root.find(".ca_fixedToggle").html(showAll ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>");
+  var $allButton = $root.find("#caFixedToggleAll").first();
+  if ($allButton.length) {
+    $allButton.attr("data-show-all", showAll ? "1" : "0");
+    $allButton.text(showAll ? tr("Hide All") : tr("Show All"));
   }
 }
 
@@ -237,38 +227,30 @@ function caToggleAllFixedDetails(button) {
 }
 
 function caSyncFixedToggleAllState() {
-  var root = document.querySelector("#sidenavContent .moderationContainer");
-  if (!root) {
-    return;
-  }
-  var sections = root.querySelectorAll(".ca_fixedDetails");
-  var allButton = root.querySelector("#caFixedToggleAll");
-  if (!allButton || !sections.length) {
-    return;
-  }
-  var anyExpanded = false;
-  for (var i = 0; i < sections.length; i++) {
-    if (window.getComputedStyle(sections[i]).display !== "none") {
-      anyExpanded = true;
-      break;
-    }
-  }
-  allButton.dataset.showAll = anyExpanded ? "1" : "0";
-  allButton.textContent = anyExpanded ? tr("Hide All") : tr("Show All");
+  var $root = $("#sidenavContent .moderationContainer").first();
+  if (!$root.length) return;
+  var $sections = $root.find(".ca_fixedDetails");
+  var $allButton = $root.find("#caFixedToggleAll").first();
+  if (!$allButton.length || !$sections.length) return;
+  var anyExpanded = $sections.toArray().some(function(el) {
+    return $(el).css("display") !== "none";
+  });
+  $allButton.attr("data-show-all", anyExpanded ? "1" : "0");
+  $allButton.text(anyExpanded ? tr("Hide All") : tr("Show All"));
 }
 
 function caJumpToFixedRepository(select) {
   if (!select || !select.value) return;
-  var row = document.getElementById(select.value);
-  if (!row) return;
-  var details = row.querySelector(".ca_fixedDetails");
-  var toggle = row.querySelector(".ca_fixedToggle");
-  if (details && window.getComputedStyle(details).display === "none") {
-    details.style.display = "block";
-    if (toggle) toggle.innerHTML = "<i class='fa fa-minus' aria-hidden='true'></i>";
+  var $row = $("#" + select.value);
+  if (!$row.length) return;
+  var $details = $row.find(".ca_fixedDetails").first();
+  var $toggle = $row.find(".ca_fixedToggle").first();
+  if ($details.length && $details.css("display") === "none") {
+    $details.css("display", "block");
+    if ($toggle.length) $toggle.html("<i class='fa fa-minus' aria-hidden='true'></i>");
   }
   caSyncFixedToggleAllState();
-  row.scrollIntoView({ behavior: "smooth", block: "start" });
+  $row[0].scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function caScrollModerationSection(selector) {

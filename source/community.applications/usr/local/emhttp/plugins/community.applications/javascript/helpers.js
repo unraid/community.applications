@@ -576,23 +576,24 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 }
 
 function getMaxPerPage() {
-  const templatesContent = document.querySelector('#templates_content');
-  const caDisplayArea = document.querySelector('.ca_display_area');
+  const $templatesContent = $("#templates_content");
+  const $caDisplayArea = $(".ca_display_area").first();
 
-  if (!templatesContent || !caDisplayArea) return 0;
+  if (!$templatesContent.length || !$caDisplayArea.length) return 0;
 
-  const sampleApp = document.querySelector('#sampleApp');
-  const hasTemplatesDisplayChild = Array.from(templatesContent.children).some(function(el) {
-    return el.classList && el.classList.contains('ca_templatesDisplay');
+  const $sampleApp = $("#sampleApp");
+  const hasTemplatesDisplayChild = $templatesContent.children().toArray().some(function(el) {
+    return $(el).hasClass("ca_templatesDisplay");
   });
-  const shouldUseSample = !!(sampleApp && !hasTemplatesDisplayChild);
+  const shouldUseSample = !!($sampleApp.length && !hasTemplatesDisplayChild);
 
   if (shouldUseSample) {
-    templatesContent.innerHTML = sampleApp.innerHTML;
+    $templatesContent.html($sampleApp.html());
   }
 
   try {
-    const sample = templatesContent.querySelector('.ca_holder');
+    const $sample = $templatesContent.find(".ca_holder").first();
+    const sample = $sample.length ? $sample[0] : null;
     if (!sample) return 0;
 
     const rect = sample.getBoundingClientRect();
@@ -600,8 +601,11 @@ function getMaxPerPage() {
     const fullWidth = rect.width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
     const fullHeight = rect.height + (parseFloat(style.marginTop)  || 0) + (parseFloat(style.marginBottom) || 0);
 
-    const templatesDisplay = templatesContent.querySelector('.ca_templatesDisplay');
+    const $templatesDisplay = $templatesContent.find(".ca_templatesDisplay").first();
+    const templatesDisplay = $templatesDisplay.length ? $templatesDisplay[0] : null;
     if (!templatesDisplay) return 0;
+    const templatesContent = $templatesContent[0];
+    const caDisplayArea = $caDisplayArea[0];
     const tRect = templatesContent.getBoundingClientRect();
     const displayRect = caDisplayArea.getBoundingClientRect();
     const remPx = parseFloat(getComputedStyle(caDisplayArea).fontSize) || 16;
