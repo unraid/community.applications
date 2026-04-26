@@ -151,7 +151,6 @@ a {
 .ca_holder,
 .dockerHubHolder {
   /* Layout */
-  display: inline-block;
   float: left;
   height: 20rem;
   width:24rem;
@@ -339,6 +338,7 @@ a {
   width: 90%;
   min-height: 3rem;
   padding: 2rem!important;
+  mask-image: unset !important;
   -webkit-mask-image: unset !important;
 }
 .caButton a {
@@ -1908,7 +1908,6 @@ input[type="button"][disabled] {
 }
 
 .popupAuthorIcon {
-  display: inline-block;
   float: right;
 }
 
@@ -2281,7 +2280,6 @@ div.spinner {
 }
 
 .spotlightIconArea {
-  display: inline-block;
   float: left;
   width: 10rem;
 }
@@ -2551,6 +2549,7 @@ body.ca_awesomplete_open #searchButton {
   z-index: 1043;
   position: fixed;
   outline: none !important;
+  backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
@@ -2664,6 +2663,7 @@ button.mfp-arrow {
   cursor: pointer;
   background: transparent;
   border: 0;
+  appearance: none;
   -webkit-appearance: none;
   display: block;
   outline: none;
