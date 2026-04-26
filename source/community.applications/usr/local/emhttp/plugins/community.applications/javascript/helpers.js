@@ -182,6 +182,12 @@ function tr(string) {
  return _(string);
 }
 
+function caBlockViewportForReload() {
+  try {
+    $("#caViewportBlocker").removeClass("ca_hide");
+  } catch(e) {}
+}
+
 function caShowFatalReloadBanner(message, reloadDelayMs) {
   try {
     if (window.ca_reloadPending) return;

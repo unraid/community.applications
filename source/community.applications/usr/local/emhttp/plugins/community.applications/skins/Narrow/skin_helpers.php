@@ -48,6 +48,19 @@ function caFormatOverview(array $template) {
 }
 
 function caFormatTemplateChanges(array &$template) {
+  // For plugins, always lazy-fetch from the .plg (ignore any embedded Changes field).
+  if (!empty($template['Plugin'])) {
+    $type = "plugin";
+    $templateURL = (string)($template['PluginURL'] ?? "");
+    if (!$templateURL) return;
+
+    $cacheKey = hash("sha256", $templateURL);
+    $changesId = "ca_changes_" . $cacheKey;
+    $safeUrl = htmlspecialchars($templateURL, ENT_QUOTES);
+    $template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-cachekey='{$cacheKey}' data-changes-url='{$safeUrl}' data-changes-type='{$type}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
+    return;
+  }
+
   // If changes are already present in the template, format them immediately (no downloads).
   if (trim((string)($template['Changes'] ?? ""))) {
     $changes = (string)$template['Changes'];
@@ -64,10 +77,7 @@ function caFormatTemplateChanges(array &$template) {
   // Otherwise, lazily fetch changes (plugin .plg or template XML) from the sidebar after render.
   $type = "";
   $templateURL = "";
-  if ($template['Plugin']) {
-    $type = "plugin";
-    $templateURL = (string)($template['PluginURL'] ?? "");
-  } else if ($template['ChangeLogPresent']) {
+  if ($template['ChangeLogPresent']) {
     $type = "xml";
     $templateURL = (string)($template['caTemplateURL'] ?: ($template['TemplateURL']??""));
   }

@@ -732,6 +732,15 @@ body:has(.sidenavShow) .ca_scroll_nonsidenav {
   gap: 0.75rem;
 }
 
+.ca_viewportBlocker {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: transparent;
+  cursor: wait;
+  pointer-events: auto;
+}
+
 /* 2.7) Sidebar Navigation */
 .sidebar {
   /* Layout */
@@ -2243,6 +2252,10 @@ a.popUpLink {
   z-index: 9999;
 }
 
+div.spinner {
+  cursor: auto;
+}
+
 .spotlightDate {
   font-size: 1.5rem;
   margin-left: -4rem;
@@ -2421,6 +2434,32 @@ ul.subCategory {
 
 .awesomplete [hidden] {
   display: none;
+}
+
+/* While the Awesomplete dropdown is open, prevent the menu from scrolling (wheel events can
+   otherwise scroll the menu under the dropdown, causing scrollbars/indicators to appear). */
+body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems {
+  overflow: hidden !important;
+}
+
+body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:vertical,
+body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:horizontal {
+  width: 0px !important;
+  height: 0px !important;
+}
+
+body:has(.awesomplete > ul:not([hidden]):not(:empty)) .ca_scroll_menuitems {
+  display: none !important;
+}
+
+/* When Awesomplete is open, block clicks everywhere except the dropdown and the search X button. */
+body.ca_awesomplete_open * {
+  pointer-events: none;
+}
+body.ca_awesomplete_open .awesomplete,
+body.ca_awesomplete_open .awesomplete *,
+body.ca_awesomplete_open #searchButton {
+  pointer-events: auto;
 }
 
 .awesomplete .visually-hidden {

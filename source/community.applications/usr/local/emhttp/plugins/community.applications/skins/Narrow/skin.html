@@ -92,6 +92,7 @@ $(function() {
   </div>
   <div class='ca_fatalReloadBanner ca_hide'></div>
 </div>
+<div id="caViewportBlocker" class="ca_viewportBlocker ca_hide" aria-hidden="true"></div>
 <div class='mobileMenu' id='mobileMenu'>
     <div class='menuItems menuAdjust'>
       <ul class='caMenu '>
@@ -483,7 +484,7 @@ $(function() {
 </div>
 
 <div id='sampleApp' style='display:none;'>
-  <div class='ca_templatesDisplay'>
+  <div class='ca_templatesDisplay' style='visibility:hidden;'>
     <div>
       <div class="installedCardBackground">
         <div class="installedCardText ca_center" style="font-size: 70%;">&nbsp;&nbsp;INSTALLED&nbsp;&nbsp;</div>

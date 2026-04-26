@@ -181,8 +181,14 @@ function displayPopup($template) {
   $DateAdded = tr(date("M j, Y", $FirstSeen), 0);
   $favRepoClass = (($GLOBALS['caSettings']['favourite'] ?? null) == $Repo) ? "fav" : "nonfav";
 
+  $requiresFileNotMet = false;
+  if (is_string($RequiresFile ?? null) && trim($RequiresFile) !== "" && !is_file($RequiresFile)) {
+    $requiresFileNotMet = true;
+  }
+
   if ($Requires && ! is_file($RequiresFile ?? "")) {
-    $RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")." - <span class='ca_strong'>".tr("Not Met")."</span></div><div class='additionalRequirements'>{$template['Requires']}</div>";
+    $notMet = $requiresFileNotMet ? " <span class='ca_bold'>- ".tr("Not met")."</span>" : "";
+    $RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")."$notMet</div><div class='additionalRequirements'>{$template['Requires']}</div>";
   } else {
     $RequiresMessage = "";
   }

@@ -177,6 +177,11 @@ function caInitializeClickHandlers() {
         if (hIndicator) hIndicator.classList.add("ca_scroll_nonsidenav");
         if (vIndicator) vIndicator.classList.add("ca_scroll_nonsidenav");
       }
+      // Allow targeted control of the menu scroll indicators (eg. hide during Awesomplete dropdown).
+      if (el.classList.contains("menuItems")) {
+        if (hIndicator) hIndicator.classList.add("ca_scroll_menuitems");
+        if (vIndicator) vIndicator.classList.add("ca_scroll_menuitems");
+      }
       if (entry && entry.alwaysShowVertical) {
         if (vIndicator) vIndicator.classList.add("ca_mainarea_v_always", "visible");
       }

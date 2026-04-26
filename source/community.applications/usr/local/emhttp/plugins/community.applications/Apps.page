@@ -312,6 +312,13 @@ $(function(){
 
   searchBoxInput = document.getElementById("searchBox");
   searchBoxAwesomplete = new Awesomplete(searchBoxInput);
+  // While the Awesomplete dropdown is open, disable other click handlers by toggling a body class.
+  searchBoxInput.addEventListener("awesomplete-open", function() {
+    document.body.classList.add("ca_awesomplete_open");
+  });
+  searchBoxInput.addEventListener("awesomplete-close", function() {
+    document.body.classList.remove("ca_awesomplete_open");
+  });
 
   if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
   if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
@@ -356,6 +363,7 @@ $(function(){
       return;
     }
     if ( ! message ) return;
+    caBlockViewportForReload();
     caShowFatalReloadBanner(tr("Another browser instance is updating the application feed. Reloading the page..."), 10000);
   });
 
@@ -2282,6 +2290,7 @@ function showSidebarApp(apppath,appname) {
       $("#sidenavContent").html(result.description);
       caInitSidebarReadmore();
       caLoadSidebarReadmeSections();
+      caLoadSidebarTemplateChanges();
       $('.screenshot').magnificPopup({
         closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
         closeOnContentClick: true,
@@ -2367,6 +2376,36 @@ function caLoadSidebarReadmeSections() {
 
       // Initialize readmore for this section now (don't wait for other readmes).
       caInitSidebarReadmore($current);
+    });
+  });
+}
+
+function caLoadSidebarTemplateChanges() {
+  var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
+  if (!$sections.length) return;
+  $sections.each(function() {
+    var $section = $(this);
+    if ($section.data("changesLoaded") || $section.data("changesLoading") || $section.attr("data-changes-loaded") == "1") {
+      return;
+    }
+    $section.data("changesLoading", true);
+    var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
+    var url = $section.attr("data-changes-url") || "";
+    var cacheKey = $section.attr("data-changes-cachekey") || "";
+    var type = $section.attr("data-changes-type") || "";
+
+    postNoSpin({action:"getTemplateChanges", changesId: changesId, url:url, cacheKey: cacheKey, type: type}, function(resp) {
+      var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
+      if (!$current.length) return;
+      var currentUrl = $current.attr("data-changes-url") || "";
+      if (url && currentUrl !== url) return;
+
+      if (resp && resp.html) $current.html(resp.html);
+      else $current.text((resp && resp.message) ? resp.message : "Change log can't be loaded");
+
+      $current.data("changesLoaded", true);
+      $current.data("changesLoading", false);
+      $current.attr("data-changes-loaded", "1");
     });
   });
 }
