@@ -128,20 +128,18 @@ a {
 
 .mainArea {
     right: 6rem;
-    /* top: 2rem; */
     display: block;
     overflow-x: hidden;
     align-items: stretch;
-    /* right: 4rem; */
-    /* top: 2rem; */
     display: block;
-    /* overflow-x: hidden; */
     align-items: stretch;
     position: absolute;
     left: 18.5rem;
     height:100%;
 }
-
+.Theme--sidebar .mainArea {
+  top: 2rem;
+}
 /* ==========================================================================
   2) Core CA Components
   ========================================================================== */
@@ -184,7 +182,6 @@ a {
   height: 29.5rem;
   overflow-x: auto; /* Enable horizontal scrolling */
   overflow-y: hidden; /* Hide vertical scrollbar */
- /* margin-right: 20rem; */
 }
 .ca_homeTemplates::-webkit-scrollbar {
   height: 0px;  /* horizontal scrollbar height */
@@ -845,11 +842,8 @@ body:has(.sidenavHide) .sidebar {
 }
 body:has(.ca_homeTemplates) .mainArea {
   right: 1rem;
-  /* top: 2rem; */
   display: block;
-  /* overflow-x: hidden; */
   align-items: stretch;
- /* position: relative; */
   left: 18.5rem;
 }
 
@@ -1222,12 +1216,8 @@ img.ca_displayIcon {
   display: block;
   display: flex;
   position: fixed;
-  /*overflow: hidden;
-  /* min-height: 100rem; */
   bottom: 4rem;
-  /* height: auto; */
   right: 5rem;
-  /* width: 100%; */
 }
 .Theme--nav-top .ca_display_area {
   left: 0;
@@ -1844,7 +1834,6 @@ input[type="button"][disabled] {
 }
 
 .pageNavigation {
-    /* margin-bottom: 3rem; */
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
