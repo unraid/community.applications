@@ -17,14 +17,14 @@ require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.p
 $pluginURL = $argv[2];
 
 if ( ! $pluginURL ) {
-  echo "No URL passed";
-  exit(1);
+	echo "No URL passed";
+	exit(1);
 }
 $apps = readJsonFile(CA_PATHS['community-templates-info']);
 if ( searchArray($apps,"PluginURL",$pluginURL) !== false || $argv[1] == "update" || $argv[1] == "remove") {
-  passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
-  passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
+	passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
+	passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
 }
 else
-  echo "URL passed for installation does not exist in application feed\n";
+	echo "URL passed for installation does not exist in application feed\n";
 ?>

@@ -17,8 +17,8 @@ Code="f0db"
 ########################################
 */
 if (false) {
-  // IDE-only hint for static analyzers; never executed at runtime.
-  require_once __DIR__ . "/include/_ide_stubs.php";
+	// IDE-only hint for static analyzers; never executed at runtime.
+	require_once __DIR__ . "/include/_ide_stubs.php";
 }
 
 $_SESSION['locale'] = $_SESSION['locale'] ?? null;
@@ -46,21 +46,21 @@ exec("rm $docroot/CA-Logging*.zip");
 $diagnosticsFile = htmlspecialchars(str_replace(' ', '_', strtolower($var['NAME'])));
 
 switch ($GLOBALS['caSettings']['maxPerPage']) {
-  case 6:
-  case 12:
-  case 24:
-  case 48:
-  case 96:
-    break;
-  default:
-    $GLOBALS['caSettings']['maxPerPage'] = 24;
-    break;
+	case 6:
+	case 12:
+	case 24:
+	case 48:
+	case 96:
+		break;
+	default:
+		$GLOBALS['caSettings']['maxPerPage'] = 24;
+		break;
 }
 
 $firstRun = is_file(CA_PATHS['warningAccepted']) ? "false" : "true";
 
 if ( ! is_file(CA_PATHS['docker_cfg']) ) {
-  exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
+	exec("logger -t 'Community Applications' 'Fatal Boot Drive Error: /boot/config/docker.cfg does not exist'");
 }
 
 $responsiveOS = version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.1.9999",">");
@@ -77,34 +77,34 @@ $allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
 $fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
 
 if ( is_file(CA_PATHS['addConverted']) )
-  $dockerConvertFlag = "true";
+	$dockerConvertFlag = "true";
 else
-  $dockerConvertFlag = "false";
+	$dockerConvertFlag = "false";
 
 $date = (date("n/d"));
 
 $ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
 $startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
-  $killCookie = "true";
+	$killCookie = "true";
 else
-  $killCookie = "false";
+	$killCookie = "false";
 
 $dockerSearchActive = is_file(CA_PATHS['dockerSearchActive']);
 
 // Only check for updates to containers / plugins max once per hour
 exec("mkdir -p ".escapeshellarg(CA_PATHS['tempFiles']));
 if ( ($GLOBALS['caSettings']['updateCheck'] == "yes") && ( (time() - @filemtime(CA_PATHS['updateTime']) ) > 3600 ) ) {
-  touch(CA_PATHS['updateTime']);
-  exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
+	touch(CA_PATHS['updateTime']);
+	exec("echo '/usr/local/emhttp/plugins/community.applications/scripts/checkForUpdates.php >/dev/null 2>&1' | at now -M >/dev/null 2>&1");
 }
 
 // Create a symlink for plugin pre and post hooks to drop the attribute cache
 
 if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook") )
-  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_preHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook");
+	@symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_preHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/pre-hooks/CA_preHook");
 if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook") )
-  @symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_postHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook");
+	@symlink("/usr/local/emhttp/plugins/community.applications/pluginPreAndPostScripts/CA_postHook", "/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_postHook");
 
 // Drop the attribute cache
 dropAttributeCache();
@@ -119,8 +119,8 @@ $memoryInstalled = explode(" ",$memRaw);
 $RequirementsBanner = false;
 $CArequirementsNOTmet = $memoryInstalled[0] < 2500000;
 if ( $CArequirementsNOTmet && isset($_COOKIE['ca_memoryOverride']) && $_COOKIE['ca_memoryOverride']) {
-  $CArequirementsNOTmet = false;
-  $RequirementsBanner = "true";
+	$CArequirementsNOTmet = false;
+	$RequirementsBanner = "true";
 }
 
 $ServerDateCorrect = checkServerDate() ? "true": "false";
@@ -129,27 +129,27 @@ $startupSearch = htmlspecialchars($_GET['search']??"");
 
 $classList = [];
 if ( ! $responsiveOS ) {
-  $classList[] = "Theme--legacyOS";
+	$classList[] = "Theme--legacyOS";
 
-  // Set the theme to sidebar or nav-top based on the theme.
-  if ( $ca_theme == "azure" || $ca_theme == "gray" ) {
-    $classList[] = "Theme--sidebar";
-  } else {
-    $classList[] = "Theme--nav-top";
-  }
+	// Set the theme to sidebar or nav-top based on the theme.
+	if ( $ca_theme == "azure" || $ca_theme == "gray" ) {
+		$classList[] = "Theme--sidebar";
+	} else {
+		$classList[] = "Theme--nav-top";
+	}
 
 /*   // Set the width to boxed or unlimited based on the display width and the unlimited.width.plg plugin.
-  if ( !($display['width'] ?? false) && ! is_file("/var/log/plugins/unlimited.width.plg") ) {
-    $classList[] = "Theme--width-boxed";
-  } else {
-    $classList[] = "Theme--width-unlimited";
-  }  */
-  
-  // Set the theme to the theme selected.
-  $classList[] = "Theme--$ca_theme";
+	if ( !($display['width'] ?? false) && ! is_file("/var/log/plugins/unlimited.width.plg") ) {
+		$classList[] = "Theme--width-boxed";
+	} else {
+		$classList[] = "Theme--width-unlimited";
+	}  */
+
+	// Set the theme to the theme selected.
+	$classList[] = "Theme--$ca_theme";
 } else {
-  // Add a class to indicate its a responsive OS.
-  $classList[] = "Theme--responsive";
+	// Add a class to indicate its a responsive OS.
+	$classList[] = "Theme--responsive";
 }
 
 // Set a class for the font size on all OS versions
@@ -158,11 +158,11 @@ $classList[] = "Theme--fontSize".intval($fontSize);
 $htmlClasses = implode(" ",$classList);
 
 function tr($string,$ret=false) {
-  $string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
-  if ( $ret )
-    return $string;
-  else
-    echo $string;
+	$string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
+	if ( $ret )
+		return $string;
+	else
+		echo $string;
 }
 
 ?>
@@ -226,11 +226,11 @@ var ca_done_override = false;
 // handle 3rd party links on older versions of OS
 <?php
 if ( version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.0.0-rc1","<") ) {
-  echo "var gui_pages_available = [];";
-  $gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
-  array_walk($gui_pages,function($value,$key){
-    echo "gui_pages_available.push('".basename($value,".page")."');";
-  });
+	echo "var gui_pages_available = [];";
+	$gui_pages = glob("/usr/local/emhttp/plugins/*/*.page");
+	array_walk($gui_pages,function($value,$key){
+		echo "gui_pages_available.push('".basename($value,".page")."');";
+	});
 }
 ?>
 
@@ -240,2425 +240,2425 @@ var caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
 
 $(function(){
 
-  // always set unlimited width
-  $("html").addClass("Theme--width-unlimited").removeClass("Theme--width-boxed");
+	// always set unlimited width
+	$("html").addClass("Theme--width-unlimited").removeClass("Theme--width-boxed");
 
-  <? if ( $CArequirementsNOTmet ) :?>
-    $(".ca_templatesDisplay").hide();
-    swal({
-      title: "<?tr("Not Enough Memory");?>",
-      text: '<?tr('Community Applications (and Unraid OS) have a minimum required memory of 4G.  CA cannot run without those mimimums being met');?>',
-      html: true,
-      type: 'error',
-      showCancelButton: true,
-      showConfirmButton: true,
-      cancelButtonText: "<?tr('Run Anyways');?>",
-      confirmButtonText: "<?tr('I Understand');?>"
-    }, function (isConfirm) {
-      if ( isConfirm ) {
-        $.cookie("ca_memoryOverride","");
-        history.back();
-      } else {
-        $.cookie("ca_memoryOverride","override");
-        location.reload();
-      }
-    });
-    return;
-  <? endif;?>
-  <? if ( ! is_file(CA_PATHS['docker_cfg']) ):?>
-    // This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
-    $(".mainArea,.menuItems").html("");
-    swal({
-      title: "<?tr("Fatal Boot Device Error");?>",
-      text: '<?tr('This usually means your Boot Device is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
-      html: true,
-      type: 'error',
-      showCancelButton: false,
-      showConfirmButton: true,
-      confirmButtonText: "<?tr('OK');?>"
-    }, function (isConfirm) {
-      if ( isConfirm ) {
-        location.replace("/Main");
-      }
-    });
-    return;
+	<? if ( $CArequirementsNOTmet ) :?>
+		$(".ca_templatesDisplay").hide();
+		swal({
+			title: "<?tr("Not Enough Memory");?>",
+			text: '<?tr('Community Applications (and Unraid OS) have a minimum required memory of 4G.  CA cannot run without those mimimums being met');?>',
+			html: true,
+			type: 'error',
+			showCancelButton: true,
+			showConfirmButton: true,
+			cancelButtonText: "<?tr('Run Anyways');?>",
+			confirmButtonText: "<?tr('I Understand');?>"
+		}, function (isConfirm) {
+			if ( isConfirm ) {
+				$.cookie("ca_memoryOverride","");
+				history.back();
+			} else {
+				$.cookie("ca_memoryOverride","override");
+				location.reload();
+			}
+		});
+		return;
+	<? endif;?>
+	<? if ( ! is_file(CA_PATHS['docker_cfg']) ):?>
+		// This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
+		$(".mainArea,.menuItems").html("");
+		swal({
+			title: "<?tr("Fatal Boot Device Error");?>",
+			text: '<?tr('This usually means your Boot Device is corrupted or has dropped offline.  The rest of the Unraid GUI will also be affected.  Post a new thread in the Unraid forums if this error continues');?>',
+			html: true,
+			type: 'error',
+			showCancelButton: false,
+			showConfirmButton: true,
+			confirmButtonText: "<?tr('OK');?>"
+		}, function (isConfirm) {
+			if ( isConfirm ) {
+				location.replace("/Main");
+			}
+		});
+		return;
 
-    <?else:?>
-  // don't run this through the wrapper so that if it hangs up it won't delay anything else
-  $.post(execURL,{action:'getPortsInUse'},function(ret) {
-    portsInUse = ret.portsInUse;
-    console.log("Ports In Use:" + portsInUse);
-  });
+		<?else:?>
+	// don't run this through the wrapper so that if it hangs up it won't delay anything else
+	$.post(execURL,{action:'getPortsInUse'},function(ret) {
+		portsInUse = ret.portsInUse;
+		console.log("Ports In Use:" + portsInUse);
+	});
 
-  if ( "<?=$killCookie?>" == "true" ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
-    $.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
-  }
+	if ( "<?=$killCookie?>" == "true" ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
+		$.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
+	}
 
-  caPluginUpdateCheck("community.applications.plg",{
-      noDismiss:true,
-      name:"Community Applications",
-      debug:false,
-      priority:true
-    },function(result) {
-      try {
-        var result = JSON.parse(result);
-        $("#caInstalledVersion").html(result.installedVersion);
-      } catch(e) {
-        $("#caInstalledVersion").html("Unknown");
-      }
-    }
-  );
+	caPluginUpdateCheck("community.applications.plg",{
+			noDismiss:true,
+			name:"Community Applications",
+			debug:false,
+			priority:true
+		},function(result) {
+			try {
+				var result = JSON.parse(result);
+				$("#caInstalledVersion").html(result.installedVersion);
+			} catch(e) {
+				$("#caInstalledVersion").html("Unknown");
+			}
+		}
+	);
 
 
-  searchBoxInput = $("#searchBox").get(0);
-  searchBoxAwesomplete = new Awesomplete(searchBoxInput);
-  // While the Awesomplete dropdown is open, disable other click handlers by toggling a body class.
-  $("#searchBox").on("awesomplete-open", function() {
-    $("body").addClass("ca_awesomplete_open");
-  });
-  $("#searchBox").on("awesomplete-close", function() {
-    $("body").removeClass("ca_awesomplete_open");
-  });
+	searchBoxInput = $("#searchBox").get(0);
+	searchBoxAwesomplete = new Awesomplete(searchBoxInput);
+	// While the Awesomplete dropdown is open, disable other click handlers by toggling a body class.
+	$("#searchBox").on("awesomplete-open", function() {
+		$("body").addClass("ca_awesomplete_open");
+	});
+	$("#searchBox").on("awesomplete-close", function() {
+		$("body").removeClass("ca_awesomplete_open");
+	});
 
-  if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
-  if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
-  if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
-  if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
-  if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
-  if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
-  <?if ( CA_PATHS['localONLY'] == true ):?>
-    addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
-  <?endif;?>
-  <?if ( CA_PATHS['humanReadable'] ):?>
-    addBannerWarning("<?tr("Human readable files are enabled.  DO NOT RELEASE PUBLIC WITH THIS ENABLED");?>",true,true);
-  <?endif;?>
-  context.init({preventDoubleContext:false,left:true,above:'auto'});
+	if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
+	if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
+	if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
+	if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
+	if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
+	if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
+	<?if ( CA_PATHS['localONLY'] == true ):?>
+		addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
+	<?endif;?>
+	<?if ( CA_PATHS['humanReadable'] ):?>
+		addBannerWarning("<?tr("Human readable files are enabled.  DO NOT RELEASE PUBLIC WITH THIS ENABLED");?>",true,true);
+	<?endif;?>
+	context.init({preventDoubleContext:false,left:true,above:'auto'});
 
-  var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
-  var downloadProgressTimer;
-  downloadProgress.on('message', function(message) {
-    if ( !downloadProgressTimer ) {
-      downloadProgressTimer = setTimeout(function() {
-        $(".caDownloadProgress").removeClass("ca_hide");
-      }, 5000);
-    }
-    $(".caDownloadProgress").html(message);
-    if ( message == "" ) {
-      clearTimeout(downloadProgressTimer);
-      downloadProgressTimer = null;
-      $(".caDownloadProgress").addClass("ca_hide");
-    }
-  });
-  downloadProgress.start();
+	var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
+	var downloadProgressTimer;
+	downloadProgress.on('message', function(message) {
+		if ( !downloadProgressTimer ) {
+			downloadProgressTimer = setTimeout(function() {
+				$(".caDownloadProgress").removeClass("ca_hide");
+			}, 5000);
+		}
+		$(".caDownloadProgress").html(message);
+		if ( message == "" ) {
+			clearTimeout(downloadProgressTimer);
+			downloadProgressTimer = null;
+			$(".caDownloadProgress").addClass("ca_hide");
+		}
+	});
+	downloadProgress.start();
 
-  // Start this subscriber only after the initial force_update has completed
-  // (we start it lazily from downloadStatistics()) so the tab doing the update
-  // never reloads itself, but other open CA tabs will.
-  window.caGettingTemplatesSubStarted = false;
-  window.caGettingTemplatesSubIgnoreFirst = true;
-  window.caGettingTemplatesSub = new NchanSubscriber('/sub/ca_gettingTemplates',{subscriber:'websocket'});
-  window.caGettingTemplatesSub.on('message', function(message) {
-    if (window.caGettingTemplatesSubIgnoreFirst) {
-      window.caGettingTemplatesSubIgnoreFirst = false;
-      return;
-    }
-    if ( ! message ) return;
-    caBlockViewportForReload();
-    caShowFatalReloadBanner(tr("Another browser instance is updating the application feed. Reloading the page..."), 10000);
-  });
+	// Start this subscriber only after the initial force_update has completed
+	// (we start it lazily from downloadStatistics()) so the tab doing the update
+	// never reloads itself, but other open CA tabs will.
+	window.caGettingTemplatesSubStarted = false;
+	window.caGettingTemplatesSubIgnoreFirst = true;
+	window.caGettingTemplatesSub = new NchanSubscriber('/sub/ca_gettingTemplates',{subscriber:'websocket'});
+	window.caGettingTemplatesSub.on('message', function(message) {
+		if (window.caGettingTemplatesSubIgnoreFirst) {
+			window.caGettingTemplatesSubIgnoreFirst = false;
+			return;
+		}
+		if ( ! message ) return;
+		caBlockViewportForReload();
+		caShowFatalReloadBanner(tr("Another browser instance is updating the application feed. Reloading the page..."), 10000);
+	});
 
-  caInitializeSortMenu();
-  caInitializeClickHandlers();
-  caInitializeEventHandlers();
-  caSyncSearchFilterCollapsed();
-  caSyncHomeSearchSubtitle();
+	caInitializeSortMenu();
+	caInitializeClickHandlers();
+	caInitializeEventHandlers();
+	caSyncSearchFilterCollapsed();
+	caSyncHomeSearchSubtitle();
 
-  /* Everything is now initialized.  This is the start of the actual "real" code */
+	/* Everything is now initialized.  This is the start of the actual "real" code */
 
-  if ( "<?=$firstRun?>" == "true" ) {
-    $(".ca_templatesDisplay").hide();
-    swal({
-      title: "<?tr("Disclaimer");?>",
-      text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here');?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present');?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application / Privacy Policy');?></a>',
-      html: true,
-      type: 'warning',
-      showCancelButton: true,
-      showConfirmButton: true,
-      cancelButtonText: "<?tr('Cancel');?>",
-      confirmButtonText: "<?tr('I Understand');?>"
-    }, function (isConfirm) {
-      if ( isConfirm ) {
-        post({action:'dismiss_warning'},function(result) {
-          location.reload();
-        });
-      } else {
-      $(".ca_templatesDisplay").show();
-        addBannerWarning("<?tr("Installations of apps disabled.  You must accept the warning to be able to install applications.");?>   <a onclick='window.location.reload();' style='cursor:pointer;'><?tr("Click here");?></a>",true,true);
-        updateContent();
-      }
-    });
-  }	else {
-    if ( "<?=$startupDisplayed?>" != "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
-      getCategories();
-      restoreState();
-      <? if ( $dockerSearchActive ):?>
-        dockerSearch(data.currentpage);
-      <? else:?>
-        actionCentreRestoreState = true;
-        refreshDisplay();
-        searchBoxAwesomplete.close();
-        var apppath = $.cookie("sidebarAppPath");
-        var appname = $.cookie("sidebarAppName");
-        if ( $.trim(apppath) ) {
-          showSidebarApp(apppath,appname);
-        }
-      <? endif;?>
-    } else {
-      post({action:"defaultSortOrder"},function() {
-        myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
+	if ( "<?=$firstRun?>" == "true" ) {
+		$(".ca_templatesDisplay").hide();
+		swal({
+			title: "<?tr("Disclaimer");?>",
+			text: '<?tr('All applications listed here are 3rd party additions to Unraid.  Community Applications contains both docker containers and plugin applications.  Plugins are designed for OS enhancements, and run with full privileges on your system and are clearly identified within CA.  Neither the authors of Community Applications nor Limetech make any warranty as to the suitability of any application listed here');?> <br><span class="ca_italic"><font color="green"><?tr('Every attempt is made to ensure that only safe and compatible applications are present');?></font></span><br><br><center><a href="https://forums.unraid.net/topic/87144-ca-application-policies/" target="_blank"><?tr('Application / Privacy Policy');?></a>',
+			html: true,
+			type: 'warning',
+			showCancelButton: true,
+			showConfirmButton: true,
+			cancelButtonText: "<?tr('Cancel');?>",
+			confirmButtonText: "<?tr('I Understand');?>"
+		}, function (isConfirm) {
+			if ( isConfirm ) {
+				post({action:'dismiss_warning'},function(result) {
+					location.reload();
+				});
+			} else {
+			$(".ca_templatesDisplay").show();
+				addBannerWarning("<?tr("Installations of apps disabled.  You must accept the warning to be able to install applications.");?>   <a onclick='window.location.reload();' style='cursor:pointer;'><?tr("Click here");?></a>",true,true);
+				updateContent();
+			}
+		});
+	}	else {
+		if ( "<?=$startupDisplayed?>" != "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+			getCategories();
+			restoreState();
+			<? if ( $dockerSearchActive ):?>
+				dockerSearch(data.currentpage);
+			<? else:?>
+				actionCentreRestoreState = true;
+				refreshDisplay();
+				searchBoxAwesomplete.close();
+				var apppath = $.cookie("sidebarAppPath");
+				var appname = $.cookie("sidebarAppName");
+				if ( $.trim(apppath) ) {
+					showSidebarApp(apppath,appname);
+				}
+			<? endif;?>
+		} else {
+			post({action:"defaultSortOrder"},function() {
+				myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
 
-        updateContent(false,false);
-       // clearTimeout(downloadStatusTimer);
-        if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
-          var apppath = $.cookie("sidebarAppPath");
-          var appname = $.cookie("sidebarAppName");
-          if ( $.trim(apppath) ) {
-            showSidebarApp(apppath,appname);
-          }
-        }
-      });
-    }
-    if ( <?=$ca_apps_referrer?> )
-      actionCentreRestoreState = true;
+				updateContent(false,false);
+			 // clearTimeout(downloadStatusTimer);
+				if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+					var apppath = $.cookie("sidebarAppPath");
+					var appname = $.cookie("sidebarAppName");
+					if ( $.trim(apppath) ) {
+						showSidebarApp(apppath,appname);
+					}
+				}
+			});
+		}
+		if ( <?=$ca_apps_referrer?> )
+			actionCentreRestoreState = true;
 
-    setupActionCentre();
-    $.cookie("ca_apps_referrer");
-  }
-  <?endif;?>
+		setupActionCentre();
+		$.cookie("ca_apps_referrer");
+	}
+	<?endif;?>
 });
 
 function disableSort() {
-  hideSortIcons();
+	hideSortIcons();
 }
 function hideSortIcons() {
-  $("#sortIconArea").hide();
+	$("#sortIconArea").hide();
 }
 function showSortIcons() {
-  $("#sortIconArea").show();
+	$("#sortIconArea").show();
 }
 function ca_openPlugin(cmd,title,plg,func) {
-  if ( cmd.startsWith("plugin install") ) {
-    cmd = "downloadPlugin "+cmd;
-  }
-  setTimeout(function(){
-    openPlugin(cmd,title,plg,func,"");
-    myCloseAlert();
-  },250);
+	if ( cmd.startsWith("plugin install") ) {
+		cmd = "downloadPlugin "+cmd;
+	}
+	setTimeout(function(){
+		openPlugin(cmd,title,plg,func,"");
+		myCloseAlert();
+	},250);
 }
 
 function updateContent(button,skipAppfeed=true) {
-  clearSearchBox();
-  clearCategory();
-  $(".caMenuItem").removeClass("selectedMenu");
-  $(".subCategory").hide();
+	clearSearchBox();
+	clearCategory();
+	$(".caMenuItem").removeClass("selectedMenu");
+	$(".subCategory").hide();
 
-  startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
-  $(".caMenuItem[data-category='"+startupScreen+"']").addClass("selectedMenu");
+	startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
+	$(".caMenuItem[data-category='"+startupScreen+"']").addClass("selectedMenu");
 
-  startupScreen = button ? $(button).data("category") : startupScreen;
-  $.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
-  $.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
-  disableSearch();
-  var postAction = skipAppfeed ? "force_update_skip" : "force_update";
-  post({action:postAction}, function(result) {
-    if ( result.data ) {
-      updateDisplay(result.data);
-    } else {
-      data.searchActive = false;
-      if ( startupSearch ) {
-        doSearch(false,startupSearch);
-        populateAutoComplete();
-        startupSearch = "";
-        $(".dockerSearch,.templateSearch").hide();
-      } else {
-        getContent(true,'INITIALIZE',"","",startupScreen);
-      }
-    }
-    getCategories();
-    if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
-      var plugins = $.cookie("ca_plugininstallpending");
-      $.removeCookie("ca_plugininstallpending");
-      myCloseAlert();
-      post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
-        ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
-      });
-    }
-  });
+	startupScreen = button ? $(button).data("category") : startupScreen;
+	$.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
+	$.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
+	disableSearch();
+	var postAction = skipAppfeed ? "force_update_skip" : "force_update";
+	post({action:postAction}, function(result) {
+		if ( result.data ) {
+			updateDisplay(result.data);
+		} else {
+			data.searchActive = false;
+			if ( startupSearch ) {
+				doSearch(false,startupSearch);
+				populateAutoComplete();
+				startupSearch = "";
+				$(".dockerSearch,.templateSearch").hide();
+			} else {
+				getContent(true,'INITIALIZE',"","",startupScreen);
+			}
+		}
+		getCategories();
+		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
+			var plugins = $.cookie("ca_plugininstallpending");
+			$.removeCookie("ca_plugininstallpending");
+			myCloseAlert();
+			post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
+				ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
+			});
+		}
+	});
 }
 
 function showSpecialCategory(button) {
-  closeSidebar();
-  clearSearchBox();
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-      showSpecials(button)
-    });
-  } else {
-    showSpecials(button);
-  }
+	closeSidebar();
+	clearSearchBox();
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+			showSpecials(button)
+		});
+	} else {
+		showSpecials(button);
+	}
 }
 
 function showSpecials(button) {
-  showSortIcons();
-  $(".caMenuItem").removeClass("selectedMenu");
-  $(".multi_installDiv").hide();
-  data.selected_category = "DOESNTMATTERWHATSHERE";
-  data.section = "AppStore";
-  changeCategory(button,false);
-  $(".caRepositoryMenu").addClass("caMenuDisabled").removeClass("caMenuEnabled");
-  //$(".category").append(" - <?tr("Installs not allowed from this page");?>");
+	showSortIcons();
+	$(".caMenuItem").removeClass("selectedMenu");
+	$(".multi_installDiv").hide();
+	data.selected_category = "DOESNTMATTERWHATSHERE";
+	data.section = "AppStore";
+	changeCategory(button,false);
+	$(".caRepositoryMenu").addClass("caMenuDisabled").removeClass("caMenuEnabled");
+	//$(".category").append(" - <?tr("Installs not allowed from this page");?>");
 }
 
 function changeCategory(button,subSwitch) {
-  var description = $(button).text();
-  var category = $(button).attr("data-category");
+	var description = $(button).text();
+	var category = $(button).attr("data-category");
 
-  $(".multi_installDiv").hide();
-  getContent(false,category,description,false);
+	$(".multi_installDiv").hide();
+	getContent(false,category,description,false);
 }
 
 function changePage(pageNumber) {
-  pageNumber = parseInt(pageNumber, 10) || 1;
-  var max = getMaxPerPage();
-  if ( max !== data.maxPerPage ) {
-    if ( pageNumber !== data.currentpage ) {
-      $(".ca_bottomBanner").removeClass("ca_hide");
-      setTimeout(function() {
-        $(".ca_bottomBanner").addClass("ca_hide");
-      }, 3000);
-    }
-    // If per-page changes mid-pagination, keep the same first visible result.
-    var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
-    var oldPage = Math.max(1, parseInt(data.currentpage, 10) || pageNumber || 1);
-    if ( oldPage > 1 ) {
-      var startingIndex = (oldPage - 1) * oldMax; // 0-based index of first visible item
-      pageNumber = Math.floor(startingIndex / Math.max(1, max)) + 1;
-    } else {
-      pageNumber = 1;
-    }
-    data.maxPerPage = max;
-  }
-  caRestoreCommittedSearchIfDrafted();
-  if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-  var selected = data.selected;
-  data.currentpage = pageNumber;
+	pageNumber = parseInt(pageNumber, 10) || 1;
+	var max = getMaxPerPage();
+	if ( max !== data.maxPerPage ) {
+		if ( pageNumber !== data.currentpage ) {
+			$(".ca_bottomBanner").removeClass("ca_hide");
+			setTimeout(function() {
+				$(".ca_bottomBanner").addClass("ca_hide");
+			}, 3000);
+		}
+		// If per-page changes mid-pagination, keep the same first visible result.
+		var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
+		var oldPage = Math.max(1, parseInt(data.currentpage, 10) || pageNumber || 1);
+		if ( oldPage > 1 ) {
+			var startingIndex = (oldPage - 1) * oldMax; // 0-based index of first visible item
+			pageNumber = Math.floor(startingIndex / Math.max(1, max)) + 1;
+		} else {
+			pageNumber = 1;
+		}
+		data.maxPerPage = max;
+	}
+	caRestoreCommittedSearchIfDrafted();
+	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
+	var selected = data.selected;
+	data.currentpage = pageNumber;
 
-  post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
-    updateDisplay(result.display);
-    scrollToTop();
-  });
+	post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
+		updateDisplay(result.display);
+		scrollToTop();
+	});
 }
 
 function myCloseAlert(force=false) {
 
-  swal.close();
-  $("div.spinner, .sweet-alert").hide();
-  enableSearch();
+	swal.close();
+	$("div.spinner, .sweet-alert").hide();
+	enableSearch();
 }
 
 function doSidebarSearch(newSearch) {
-  swal.close();
-  closeSidebar();
-  doSearch(false,newSearch);
+	swal.close();
+	closeSidebar();
+	doSearch(false,newSearch);
 }
 
 function doSearch(button,newSearch) {
-  if ( data.searchInProgress )
-    return;
+	if ( data.searchInProgress )
+		return;
 
-  data.searchInProgress = true;
+	data.searchInProgress = true;
 
-  if ( ! newSearch === false ) {
-    $('#searchBox').val(newSearch);
-  }
-  var filter = $('#searchBox').val();
-  filter = $.trim(filter);
-  filter = stripTags(filter);
-  if ( ! filter ) {
-    $("#searchBox").val(filter);
-    data.searchInProgress = false;
-    if ( data.searchActive || data.searchFlag || data.docker ) {
-      appStore();
-      return;
-    }
-    data.committedSearchFilter = "";
-    caSyncSearchFilterCollapsed();
-    caSyncHomeSearchSubtitle();
-    return;
-  }
+	if ( ! newSearch === false ) {
+		$('#searchBox').val(newSearch);
+	}
+	var filter = $('#searchBox').val();
+	filter = $.trim(filter);
+	filter = stripTags(filter);
+	if ( ! filter ) {
+		$("#searchBox").val(filter);
+		data.searchInProgress = false;
+		if ( data.searchActive || data.searchFlag || data.docker ) {
+			appStore();
+			return;
+		}
+		data.committedSearchFilter = "";
+		caSyncSearchFilterCollapsed();
+		caSyncHomeSearchSubtitle();
+		return;
+	}
 
-  data.docker = "";
-  data.section = "AppStore";
+	data.docker = "";
+	data.section = "AppStore";
 
-  $('#searchBox').val(filter);
-  $(".multi_installDiv").hide();
+	$('#searchBox').val(filter);
+	$(".multi_installDiv").hide();
 
-  if ($('#searchButton').hasClass('fa-search')) {
-    if (filter) {
-      $('#searchButton').toggleClass('fa-search fa-remove');
-    }
-  } else if (button) {
-    clearSearchBox();
-    filter = '';
-  }
+	if ($('#searchButton').hasClass('fa-search')) {
+		if (filter) {
+			$('#searchButton').toggleClass('fa-search fa-remove');
+		}
+	} else if (button) {
+		clearSearchBox();
+		filter = '';
+	}
 
-  scrollToTop();
-  if (filter) {
-    caClearHomeSectionSubtitle();
-    $("#sortIconArea").show();
-   // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
-    data.searchFlag = true;
-  } else {
-    if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-    /* X clear: only leave search / go home via updateContent when a search was actually active. Draft text alone must not trigger home. */
-    if (data.searchActive || data.searchFlag || data.docker) {
-      updateContent();
-    }
-    data.searchFlag = false;
-    data.searchInProgress = false;
-    data.committedSearchFilter = "";
-    caSyncSearchFilterCollapsed();
-    caSyncHomeSearchSubtitle();
-    return;
-  }
-  data.searchActive = true;
+	scrollToTop();
+	if (filter) {
+		caClearHomeSectionSubtitle();
+		$("#sortIconArea").show();
+	 // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
+		data.searchFlag = true;
+	} else {
+		if (searchBoxAwesomplete) searchBoxAwesomplete.close();
+		/* X clear: only leave search / go home via updateContent when a search was actually active. Draft text alone must not trigger home. */
+		if (data.searchActive || data.searchFlag || data.docker) {
+			updateContent();
+		}
+		data.searchFlag = false;
+		data.searchInProgress = false;
+		data.committedSearchFilter = "";
+		caSyncSearchFilterCollapsed();
+		caSyncHomeSearchSubtitle();
+		return;
+	}
+	data.searchActive = true;
 
-  if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
-    $('.dockerSearch').show();
-    $('.templateSearch').hide();
-  } else {
-    $('.dockerSearch').hide();
-    $('.templateSearch').hide();
-  }
+	if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
+		$('.dockerSearch').show();
+		$('.templateSearch').hide();
+	} else {
+		$('.dockerSearch').hide();
+		$('.templateSearch').hide();
+	}
 
-  data.searchInProgress = true;
-  data.committedSearchFilter = filter;
-  caSyncHomeSearchSubtitle();
+	data.searchInProgress = true;
+	data.committedSearchFilter = filter;
+	caSyncHomeSearchSubtitle();
 
-  data.maxPerPage = getMaxPerPage();
-  post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage},function(result) {
-    enableButtons();
-    $(".selectedMenu").removeClass("selectedMenu");
-    $(".subCategory").hide();
-    $(".allApps").addClass("selectedMenu");
-    updateDisplay(result.display);
-    caSyncSearchFilterCollapsed();
-    data.section = "AppStore";
-    post({action:'getCategoriesPresent'},function(result) {
-      $(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-      result.forEach(function(category) {
-        var menuItem = $.find(".caMenuItem[data-category='"+category+"']");
-        $(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
-      });
-      data.searchInProgress = false;
-    });
-  });
+	data.maxPerPage = getMaxPerPage();
+	post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage},function(result) {
+		enableButtons();
+		$(".selectedMenu").removeClass("selectedMenu");
+		$(".subCategory").hide();
+		$(".allApps").addClass("selectedMenu");
+		updateDisplay(result.display);
+		caSyncSearchFilterCollapsed();
+		data.section = "AppStore";
+		post({action:'getCategoriesPresent'},function(result) {
+			$(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+			result.forEach(function(category) {
+				var menuItem = $.find(".caMenuItem[data-category='"+category+"']");
+				$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
+			});
+			data.searchInProgress = false;
+		});
+	});
 }
 
 function changeSortOrder(button,buttonClass,previousApps) {
-  var pageNumber = data.currentpage;
-  var selected = data.selected;
-  var startup = false;
-  if ( button || buttonClass || previousApps) {
-    data.searchFlag = false;
-  }
+	var pageNumber = data.currentpage;
+	var selected = data.selected;
+	var startup = false;
+	if ( button || buttonClass || previousApps) {
+		data.searchFlag = false;
+	}
 
-  $(".startupButton").each(function(){
-    if ($(this).hasClass("selectedMenu")) {
-      startup = "true";
-    }
-  });
-  post({action:'display_content',pageNumber:pageNumber,selected:selected,startup:startup},function(result) {
-    updateDisplay(result.display);
-  });
+	$(".startupButton").each(function(){
+		if ($(this).hasClass("selectedMenu")) {
+			startup = "true";
+		}
+	});
+	post({action:'display_content',pageNumber:pageNumber,selected:selected,startup:startup},function(result) {
+		updateDisplay(result.display);
+	});
 }
 
 function getContent(init,category,description,newApp,startupDisplay) {
-  data.currentpage = 1;
-  var initialize;
-  var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
-  data.maxPerPage = getMaxPerPage();
+	data.currentpage = 1;
+	var initialize;
+	var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
+	data.maxPerPage = getMaxPerPage();
 
-  enableSearch();
+	enableSearch();
 
-  if ( category != "NONE" ) {
-    if ( category == "INITIALIZE" ) {
-      initializeAppStore();
-      category = "NONE";
-      initialize = true;
-      enableButtons();
-      data.maxPerPage = maxHomeApps;
-    } 
+	if ( category != "NONE" ) {
+		if ( category == "INITIALIZE" ) {
+			initializeAppStore();
+			category = "NONE";
+			initialize = true;
+			enableButtons();
+			data.maxPerPage = maxHomeApps;
+		}
 
-    if ( (category == "New") || (category == "All") ) { 
-      category = ""; 
-    }
-    var el_dl = $.find(".sortIcons[data-sortby='downloads']");
-    var el_tr = $.find(".sortIcons[data-sortby='trending']");
+		if ( (category == "New") || (category == "All") ) {
+			category = "";
+		}
+		var el_dl = $.find(".sortIcons[data-sortby='downloads']");
+		var el_tr = $.find(".sortIcons[data-sortby='trending']");
 
-    if ( category == "repos" ) {
-      $(el_dl).html("<?=tr("Number Of Apps");?>");
-      $(el_tr).html("<?=tr("Average Trend");?>");
-    } else {
-      $(el_dl).html("<?=tr("Downloads");?>");
-      $(el_tr).html("<?=tr("Trend");?>");
-    }
-    caRefreshSortMenu();
+		if ( category == "repos" ) {
+			$(el_dl).html("<?=tr("Number Of Apps");?>");
+			$(el_tr).html("<?=tr("Average Trend");?>");
+		} else {
+			$(el_dl).html("<?=tr("Downloads");?>");
+			$(el_tr).html("<?=tr("Trend");?>");
+		}
+		caRefreshSortMenu();
 
-    var filter = $('#searchBox').val();
-    if ( ! filter ) {
-      $('.dockerSearch,.templateSearch').hide();
-    }
-    if ( description && ! filter ) {
-     // $(".category").html(description);
-    }
-    post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
-      updateDisplay(result.display);
-      if ( initialize ) {
-        populateAutoComplete();
-        downloadStatistics();
-      }
-    });
-  }
+		var filter = $('#searchBox').val();
+		if ( ! filter ) {
+			$('.dockerSearch,.templateSearch').hide();
+		}
+		if ( description && ! filter ) {
+		 // $(".category").html(description);
+		}
+		post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
+			updateDisplay(result.display);
+			if ( initialize ) {
+				populateAutoComplete();
+				downloadStatistics();
+			}
+		});
+	}
 }
 
 function downloadStatistics() {
-  try {
-    if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
-      window.caGettingTemplatesSubIgnoreFirst = true;
-      window.caGettingTemplatesSub.start();
-      window.caGettingTemplatesSubStarted = true;
-    }
-  } catch(e) {}
-  postNoSpin({action:'downloadStatistics'});
+	try {
+		if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
+			window.caGettingTemplatesSubIgnoreFirst = true;
+			window.caGettingTemplatesSub.start();
+			window.caGettingTemplatesSubStarted = true;
+		}
+	} catch(e) {}
+	postNoSpin({action:'downloadStatistics'});
 }
 
 function populateAutoComplete() {
-  postNoSpin({action:'populateAutoComplete'},function(result) {
-    searchBoxAwesomplete.list = result.autocomplete;
-    searchBoxAwesomplete.maxItems = 20;
-    searchBoxAwesomplete.minChars = 3;
-    $("#searchBox").off("awesomplete-selectcomplete", awesompleteSearch);
-    $("#searchBox").on("awesomplete-selectcomplete", awesompleteSearch);
-    searchBoxAwesomplete.close(); // otherwise it opens automatically during restore state
-  });
+	postNoSpin({action:'populateAutoComplete'},function(result) {
+		searchBoxAwesomplete.list = result.autocomplete;
+		searchBoxAwesomplete.maxItems = 20;
+		searchBoxAwesomplete.minChars = 3;
+		$("#searchBox").off("awesomplete-selectcomplete", awesompleteSearch);
+		$("#searchBox").on("awesomplete-selectcomplete", awesompleteSearch);
+		searchBoxAwesomplete.close(); // otherwise it opens automatically during restore state
+	});
 }
 
 function awesompleteSearch() {
-  // this is the check sort order function
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-      doSearch(false);
-    });
-  } else {
-    doSearch(false);
-  }
+	// this is the check sort order function
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+			doSearch(false);
+		});
+	} else {
+		doSearch(false);
+	}
 }
 
 function openNewWindow(newURL,target='_self') {
-  saveState();
-  var popUp = window.open(newURL,target);
-  if ( !popUp || popUp.closed || typeof popUp == "undefined" ) {
-    var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
-    setTimeout(function() {
-      removeBannerWarning(popupWarning);}
-      ,10000);
-  }
+	saveState();
+	var popUp = window.open(newURL,target);
+	if ( !popUp || popUp.closed || typeof popUp == "undefined" ) {
+		var popupWarning = addBannerWarning("<?=_('Popup Blocked.');?>");
+		setTimeout(function() {
+			removeBannerWarning(popupWarning);}
+			,10000);
+	}
 }
 
 function clearSearchBox() {
-  $(".categoryMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
-  $("#searchBox").val("");
-  hideSortIcons();
-  if ($('#searchButton').hasClass('fa-remove')) {
-    $('#searchButton').toggleClass('fa-remove fa-search');
-  }
-  data.committedSearchFilter = "";
-  caSyncSearchFilterCollapsed();
-  caSyncHomeSearchSubtitle();
+	$(".categoryMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
+	$("#searchBox").val("");
+	hideSortIcons();
+	if ($('#searchButton').hasClass('fa-remove')) {
+		$('#searchButton').toggleClass('fa-remove fa-search');
+	}
+	data.committedSearchFilter = "";
+	caSyncSearchFilterCollapsed();
+	caSyncHomeSearchSubtitle();
 }
 
 function closeSidebar(cookie=false,visible=false) {
-  if ( ! cookie ) {
-    $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
-    $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
-  }
-  context.destroy("#supportPopup");
-  context.destroy("#actionsPopup");
+	if ( ! cookie ) {
+		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
+		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
+	}
+	context.destroy("#supportPopup");
+	context.destroy("#actionsPopup");
 
-  $(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
-  $(".nav-user.show").show();
-  enableSearch();
+	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+	$(".nav-user.show").show();
+	enableSearch();
 }
 
 function installPlugin(pluginURL,update=false,comment="",requires="") {
-  post({action:"checkPluginInProgress"},function(data) {
-    if (data.inProgress) {
-      swal({
-        title: "<?tr("Installation already in progress");?>",
-        text: "<?tr("Another plugin installation or update is already in progress, and this one cannot start.  Wait until the current installation or update is completed and try again");?>",
-        allowOutsideClick: false,
-        showConfirmButton: true,
-        showCancelButton: true,
-        confirmButtonText: "<?tr("OK");?>",
-        cancelButtonText: "<?tr("Clear Flag");?>",
-        type: "warning"
-      },function(isConfirm) {
-        if ( isConfirm ) {
-          enableSearch();
-        } else {
-          post({action:"clearPluginInstallFlag"},function(){
-            setTimeout(function() {
-              installPlugin(pluginURL,update,comment,requires);
-            },1000);
-          });
-        }
-      });
-    } else {
-      if ( update && requires ) {
-        post({action:"checkRequirements",requires:requires},function(data) {
-          if (! data.met) {
-            swal({
-              title: "<?tr('Requirements not met');?>",
-              text: "<?tr('The requirements for this upgrade have not been met on your system');?><br><br>"+comment,
-              allowOutsideClick: false,
-              showConfirmButton: true,
-              showCancelButton: false,
-              confirmButtonText: "<?tr('OK');?>",
-              type: "error",
-              html: true
-            },function(isConfirm) {
-              enableSearch();
-            });
-          } else {
-            actuallyInstallPlugin(pluginURL,update,comment);
-          }
-        });
-      } else {
-        actuallyInstallPlugin(pluginURL,update,comment);
-      }
-    }
-  });
+	post({action:"checkPluginInProgress"},function(data) {
+		if (data.inProgress) {
+			swal({
+				title: "<?tr("Installation already in progress");?>",
+				text: "<?tr("Another plugin installation or update is already in progress, and this one cannot start.  Wait until the current installation or update is completed and try again");?>",
+				allowOutsideClick: false,
+				showConfirmButton: true,
+				showCancelButton: true,
+				confirmButtonText: "<?tr("OK");?>",
+				cancelButtonText: "<?tr("Clear Flag");?>",
+				type: "warning"
+			},function(isConfirm) {
+				if ( isConfirm ) {
+					enableSearch();
+				} else {
+					post({action:"clearPluginInstallFlag"},function(){
+						setTimeout(function() {
+							installPlugin(pluginURL,update,comment,requires);
+						},1000);
+					});
+				}
+			});
+		} else {
+			if ( update && requires ) {
+				post({action:"checkRequirements",requires:requires},function(data) {
+					if (! data.met) {
+						swal({
+							title: "<?tr('Requirements not met');?>",
+							text: "<?tr('The requirements for this upgrade have not been met on your system');?><br><br>"+comment,
+							allowOutsideClick: false,
+							showConfirmButton: true,
+							showCancelButton: false,
+							confirmButtonText: "<?tr('OK');?>",
+							type: "error",
+							html: true
+						},function(isConfirm) {
+							enableSearch();
+						});
+					} else {
+						actuallyInstallPlugin(pluginURL,update,comment);
+					}
+				});
+			} else {
+				actuallyInstallPlugin(pluginURL,update,comment);
+			}
+		}
+	});
 }
 
 function actuallyInstallPlugin(pluginURL,update=false,comment="") {
-  var type = update ? "update" : "install";
-  if ( ! update ) {
-    pluginURL = "<?=CA_PATHS['pluginProxy']?>" + pluginURL;
-  }
-  title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
-  closeSidebar(true);
+	var type = update ? "update" : "install";
+	if ( ! update ) {
+		pluginURL = "<?=CA_PATHS['pluginProxy']?>" + pluginURL;
+	}
+	title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
+	closeSidebar(true);
 //	disableSearch();
-  if ( $.trim(comment) ) {
-    swal({
-      title: "<?tr("Attention");?>",
-      text: comment,
-      allowOutsideClick: true,
-      showConfirmButton: true,
-      showCancelButton: true,
-      confirmButtonText: "<?tr('OK');?>",
-      cancelButtonText: "<?tr('CANCEL');?>",
-      animation: false,
-      type: "warning",
-      html: true
-    }, function (isConfirm) {
-      if (isConfirm) {
-        hidePluginPending(pluginURL);
+	if ( $.trim(comment) ) {
+		swal({
+			title: "<?tr("Attention");?>",
+			text: comment,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr('OK');?>",
+			cancelButtonText: "<?tr('CANCEL');?>",
+			animation: false,
+			type: "warning",
+			html: true
+		}, function (isConfirm) {
+			if (isConfirm) {
+				hidePluginPending(pluginURL);
 
-        if ( $(".selectedMenu").data("category") == "action_centre" ) {
-          var postFunction = "actionCentre";
-        } else {
-          var postFunction = "OpenSidebarAndRefreshDisplay";
-        }
-        data.deprecated = false; // global var here to trigger a rescan of action centre
-        if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")   ) {
-          data.deprecated = true;
-          pluginURL = pluginURL.replace("&deprecated","");
-          pluginURL = pluginURL.replace("&incompatible","");
+				if ( $(".selectedMenu").data("category") == "action_centre" ) {
+					var postFunction = "actionCentre";
+				} else {
+					var postFunction = "OpenSidebarAndRefreshDisplay";
+				}
+				data.deprecated = false; // global var here to trigger a rescan of action centre
+				if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")   ) {
+					data.deprecated = true;
+					pluginURL = pluginURL.replace("&deprecated","");
+					pluginURL = pluginURL.replace("&incompatible","");
 
-        }
-          ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
-      } else {
-        enableSearch();
-      }
-    });
-  } else {
-    hidePluginPending(pluginURL);
+				}
+					ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
+			} else {
+				enableSearch();
+			}
+		});
+	} else {
+		hidePluginPending(pluginURL);
 
-    if ( $(".selectedMenu").data("category") == "action_centre" ) {
-      var postFunction = "actionCentre";
-    } else {
-      var postFunction = "OpenSidebarAndRefreshDisplay";
-    }
-    data.deprecated = false; // global var here to trigger a rescan of action centre
-    if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")  ) {
-      data.deprecated = true;
-      pluginURL = pluginURL.replace("&deprecated","");
-      pluginURL = pluginURL.replace("&incompatible","");
-    }
-    ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
-  }
+		if ( $(".selectedMenu").data("category") == "action_centre" ) {
+			var postFunction = "actionCentre";
+		} else {
+			var postFunction = "OpenSidebarAndRefreshDisplay";
+		}
+		data.deprecated = false; // global var here to trigger a rescan of action centre
+		if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")  ) {
+			data.deprecated = true;
+			pluginURL = pluginURL.replace("&deprecated","");
+			pluginURL = pluginURL.replace("&incompatible","");
+		}
+		ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
+	}
 }
 
 function hidePluginPending(pluginURL) {
-  if ( pluginURL.includes("/") ) {
-    $(".actionsButton").each(function() {
-      if ( $(this).data("pluginurl") == pluginURL || $(this).data("pluginurl")+"&deprecated" == pluginURL ) {
-        $(this).hide();
-      }
-    });
-  } else {
-    $(".actionsButton").each(function() {
-      if ( $(this).data("pluginurl").basename() == pluginURL ) {
-        $(this).hide();
-      }
-    });
-  }
+	if ( pluginURL.includes("/") ) {
+		$(".actionsButton").each(function() {
+			if ( $(this).data("pluginurl") == pluginURL || $(this).data("pluginurl")+"&deprecated" == pluginURL ) {
+				$(this).hide();
+			}
+		});
+	} else {
+		$(".actionsButton").each(function() {
+			if ( $(this).data("pluginurl").basename() == pluginURL ) {
+				$(this).hide();
+			}
+		});
+	}
 }
 
 function hideLanguagePending(language) {
-  language = language.replace("lang-","");
-  language = language.replace(".xml","");
-  if ( ! language )
-    return;
+	language = language.replace("lang-","");
+	language = language.replace(".xml","");
+	if ( ! language )
+		return;
 
-  $(".actionsButton").each(function() {
-    if ( $(this).data("languagepack") == language ) {
-      $(this).hide();
-    }
-  });
+	$(".actionsButton").each(function() {
+		if ( $(this).data("languagepack") == language ) {
+			$(this).hide();
+		}
+	});
 }
 
 function OpenSidebarAndRefreshDisplay() {
-  post({action:"onStartupScreen"},function(result) {
-    if (result.status) {
-      window.location.reload();
-    } else {
-      var apppath = $.cookie("sidebarAppPath");
-      var appname = $.cookie("sidebarAppName");
+	post({action:"onStartupScreen"},function(result) {
+		if (result.status) {
+			window.location.reload();
+		} else {
+			var apppath = $.cookie("sidebarAppPath");
+			var appname = $.cookie("sidebarAppName");
 
-      appname = stripTags(appname);
+			appname = stripTags(appname);
 
-      refreshDisplay();
-      if ( $.trim(apppath) ) {
-        showSidebarApp(apppath,appname);
-      }
-      if ( data.deprecated ) {
-        data.deprecated = false;
-        setupActionCentre();
-      }
+			refreshDisplay();
+			if ( $.trim(apppath) ) {
+				showSidebarApp(apppath,appname);
+			}
+			if ( data.deprecated ) {
+				data.deprecated = false;
+				setupActionCentre();
+			}
 
-    }
-  });
+		}
+	});
 }
 
 function previousApps(installed,dontClear=false,filter="") {
-  clearCategory();
-  setPageOne();
-  data.docker = "";
+	clearCategory();
+	setPageOne();
+	data.docker = "";
 
-  clearSearchBox();
-  $(".dockerSearch,.templateSearch").hide();
-  showSortIcons();
+	clearSearchBox();
+	$(".dockerSearch,.templateSearch").hide();
+	showSortIcons();
 
-  // this is the checkSortOrder function running to prevent a race condition
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( installed == "action" )
-    $(".multi_installButton").addClass("actionCenter");
-  else
-    $(".multi_installButton").removeClass("actionCenter");
+	// this is the checkSortOrder function running to prevent a race condition
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( installed == "action" )
+		$(".multi_installButton").addClass("actionCenter");
+	else
+		$(".multi_installButton").removeClass("actionCenter");
 
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-      getPrevApps(installed,filter,dontClear);
-      enableMultiInstall();
-    });
-  } else {
-    getPrevApps(installed,filter,dontClear);
-  }
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+			getPrevApps(installed,filter,dontClear);
+			enableMultiInstall();
+		});
+	} else {
+		getPrevApps(installed,filter,dontClear);
+	}
 }
 
 function actionCentre() {
-  clearCategory();
-  setPageOne();
-  data.docker = "";
-  clearSearchBox();
-  $(".dockerSearch,.templateSearch").hide();
-  showSortIcons();
+	clearCategory();
+	setPageOne();
+	data.docker = "";
+	clearSearchBox();
+	$(".dockerSearch,.templateSearch").hide();
+	showSortIcons();
 
-  // this is the checkSortOrder function running to prevent a race condition
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-      getPrevApps("action");
-    });
-  } else {
-    getPrevApps("action");
-  }
+	// this is the checkSortOrder function running to prevent a race condition
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+			getPrevApps("action");
+		});
+	} else {
+		getPrevApps("action");
+	}
 }
 
 function getPrevApps(installed,filter,dontClear) {
-  data.maxPerPage = getMaxPerPage();
-  post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
-    if ( installed == true ) {
-      $(".multi_installDiv").hide();
-    } else {
-      $(".multi_installDiv").show();
-      if ( ! dontClear ) {
-        clearMultiInstall();
-      }
-      if ( installed == "action" )
-        $(".multi_deleteButton,.multi_installButton").addClass("actionCenter");
-      else
-        $(".multi_deleteButton,.multi_installButton").removeClass("actionCenter");
-    }
-    switch(installed) {
-      case true:
-        var msg = "<?tr("Installed Apps");?>";
-        break;
-      case false:
-        var msg = "<?tr("Previous Apps");?>";
-        break;
-      case "action":
-        var msg = "<?tr("Action Centre");?>";
-        break;
-    }
-   // $(".category").html(msg);
-    changeSortOrder(null,null,"true");
-    enableMultiInstall();
-  });
+	data.maxPerPage = getMaxPerPage();
+	post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
+		if ( installed == true ) {
+			$(".multi_installDiv").hide();
+		} else {
+			$(".multi_installDiv").show();
+			if ( ! dontClear ) {
+				clearMultiInstall();
+			}
+			if ( installed == "action" )
+				$(".multi_deleteButton,.multi_installButton").addClass("actionCenter");
+			else
+				$(".multi_deleteButton,.multi_installButton").removeClass("actionCenter");
+		}
+		switch(installed) {
+			case true:
+				var msg = "<?tr("Installed Apps");?>";
+				break;
+			case false:
+				var msg = "<?tr("Previous Apps");?>";
+				break;
+			case "action":
+				var msg = "<?tr("Action Centre");?>";
+				break;
+		}
+	 // $(".category").html(msg);
+		changeSortOrder(null,null,"true");
+		enableMultiInstall();
+	});
 }
 
 function removeApp(application, humanName) {
-  closeSidebar();
-  disableSearch();
-  swal({
-    title: "<?tr("Delete Template?");?>",
-    text: sprintf("<?tr("Are you sure you want to delete %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
-    type: "warning",
-    confirmButtonText: "<?tr("Yes, delete it!");?>",
-    cancelButtonText: "<?tr("Cancel");?>",
-    showCancelButton: true,
-    showConfirmButton: true,
-    allowOutsideClick: true,
-    html: true
-  }, function(isConfirm) {
-    if (isConfirm) {
-      $('input[type="checkbox"][data-humanName="'+humanName+'"]').prop("checked",false);			// remove the checkbox from the app
-      enableMultiInstall(); // update the count
-      post({action:'remove_application',application:application}, function(result) {
-        enableSearch();
-        $(".caMenuItem").removeClass("selectedMenu");
-        var menuItem = $.find(".caMenuItem[data-category='previous_apps']");
-        $(menuItem).addClass("selectedMenu");
-        previousApps(false,true,data.previousAppsSection);
-      });
-    } else {
-      enableSearch();
-    }
-  });
+	closeSidebar();
+	disableSearch();
+	swal({
+		title: "<?tr("Delete Template?");?>",
+		text: sprintf("<?tr("Are you sure you want to delete %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
+		type: "warning",
+		confirmButtonText: "<?tr("Yes, delete it!");?>",
+		cancelButtonText: "<?tr("Cancel");?>",
+		showCancelButton: true,
+		showConfirmButton: true,
+		allowOutsideClick: true,
+		html: true
+	}, function(isConfirm) {
+		if (isConfirm) {
+			$('input[type="checkbox"][data-humanName="'+humanName+'"]').prop("checked",false);			// remove the checkbox from the app
+			enableMultiInstall(); // update the count
+			post({action:'remove_application',application:application}, function(result) {
+				enableSearch();
+				$(".caMenuItem").removeClass("selectedMenu");
+				var menuItem = $.find(".caMenuItem[data-category='previous_apps']");
+				$(menuItem).addClass("selectedMenu");
+				previousApps(false,true,data.previousAppsSection);
+			});
+		} else {
+			enableSearch();
+		}
+	});
 }
 
 function uninstallApp(application,humanName) {
-  closeSidebar();
-  post({action:"checkPluginInProgress"},function(data) {
-    if (data.inProgress) {
-      swal({
-        title: "<?tr('Installation already in progress');?>",
-        text: "<?tr('Another plugin installation or update is already in progress and this one cannot start.  Wait until the current installation or update is completed and try again');?>",
-        allowOutsideClick: false,
-        showConfirmButton: true,
-        showCancelButton: false,
-        confirmButtonText: "<?tr('OK');?>",
-        type: "error"
-      },function(isConfirm) {
-        enableSearch();
-      });
-    } else {
-      swal({
-        title: "<?tr("Uninstall Application?");?>",
-        text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
-        type: "warning",
-        showCancelButton: true,
-        showConfirmButton: true,
-        cancelButtonText: "<?tr("Cancel");?>",
-        confirmButtonText: "<?tr("Yes uninstall it");?>",
-        closeOnConfirm: true,
-        showLoaderOnConfirm: false,
-        allowOutsideClick: true,
-        html: true
-      }, function(isConfirm) {
-        if (isConfirm) {
-          application = application.basename();
-          hidePluginPending(application);
-          ca_openPlugin('plugin remove '+application,"<?tr('Uninstall Plugin');?>",'','postUninstallPlugin');
-        } else {
-          enableSearch();
-        }
-      });
-    }
-  });
+	closeSidebar();
+	post({action:"checkPluginInProgress"},function(data) {
+		if (data.inProgress) {
+			swal({
+				title: "<?tr('Installation already in progress');?>",
+				text: "<?tr('Another plugin installation or update is already in progress and this one cannot start.  Wait until the current installation or update is completed and try again');?>",
+				allowOutsideClick: false,
+				showConfirmButton: true,
+				showCancelButton: false,
+				confirmButtonText: "<?tr('OK');?>",
+				type: "error"
+			},function(isConfirm) {
+				enableSearch();
+			});
+		} else {
+			swal({
+				title: "<?tr("Uninstall Application?");?>",
+				text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+				type: "warning",
+				showCancelButton: true,
+				showConfirmButton: true,
+				cancelButtonText: "<?tr("Cancel");?>",
+				confirmButtonText: "<?tr("Yes uninstall it");?>",
+				closeOnConfirm: true,
+				showLoaderOnConfirm: false,
+				allowOutsideClick: true,
+				html: true
+			}, function(isConfirm) {
+				if (isConfirm) {
+					application = application.basename();
+					hidePluginPending(application);
+					ca_openPlugin('plugin remove '+application,"<?tr('Uninstall Plugin');?>",'','postUninstallPlugin');
+				} else {
+					enableSearch();
+				}
+			});
+		}
+	});
 }
 
 function postUninstallPlugin() {
-  enableSearch();
-  $(".selectedMenu").trigger("click");
-  setupActionCentre();
-  refreshDisplay();
+	enableSearch();
+	$(".selectedMenu").trigger("click");
+	setupActionCentre();
+	refreshDisplay();
 }
 
 function uninstallDocker(application,humanName) {
-  closeSidebar();
-  disableSearch();
-  swal({
-    title: "<?tr("Uninstall Application?");?>",
-    text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
-    type: "warning",
-    showCancelButton: true,
-    showConfirmButton: true,
-    cancelButtonText: "<?tr("Cancel");?>",
-    confirmButtonText: "<?tr("Yes uninstall it");?>",
-    closeOnConfirm: false,
-    showLoaderOnConfirm: true,
-    allowOutsideClick: true,
-    html: true
-  }, function( isConfirm ) {
-    if ( isConfirm ) {
-      myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
-      post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
-        if ( $(".selectedMenu").length == 0 ) {
-          appStore();
-        } else {
-          myCloseAlert();
-        }
-        enableSearch();
-        if ( $(".selectedMenu").data("category") == "action_centre" ) {
-          post({action:'getPortsInUse'},function(data) {
-            portsInUse = data.portsInUse;
-            actionCentre();
-          });
-        } else {
-          post({action:'getPortsInUse'},function(data) {
-            portsInUse = data.portsInUse;
-            $(".selectedMenu").trigger("click");
-          });
-        }
-      });
-    } else {
-      enableSearch();
-    }
-  });
+	closeSidebar();
+	disableSearch();
+	swal({
+		title: "<?tr("Uninstall Application?");?>",
+		text: sprintf("<?tr("Are you sure you want to uninstall %s?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>"),
+		type: "warning",
+		showCancelButton: true,
+		showConfirmButton: true,
+		cancelButtonText: "<?tr("Cancel");?>",
+		confirmButtonText: "<?tr("Yes uninstall it");?>",
+		closeOnConfirm: false,
+		showLoaderOnConfirm: true,
+		allowOutsideClick: true,
+		html: true
+	}, function( isConfirm ) {
+		if ( isConfirm ) {
+			myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
+			post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
+				if ( $(".selectedMenu").length == 0 ) {
+					appStore();
+				} else {
+					myCloseAlert();
+				}
+				enableSearch();
+				if ( $(".selectedMenu").data("category") == "action_centre" ) {
+					post({action:'getPortsInUse'},function(data) {
+						portsInUse = data.portsInUse;
+						actionCentre();
+					});
+				} else {
+					post({action:'getPortsInUse'},function(data) {
+						portsInUse = data.portsInUse;
+						$(".selectedMenu").trigger("click");
+					});
+				}
+			});
+		} else {
+			enableSearch();
+		}
+	});
 }
 
 function appStore() {
-  data.nextpage = 0;
-  data.prevpage = 0;
-  initializeAppStore();
-  updateContent();
-  clearCategory();
-  data.docker = "";
+	data.nextpage = 0;
+	data.prevpage = 0;
+	initializeAppStore();
+	updateContent();
+	clearCategory();
+	data.docker = "";
 }
 
 function initializeAppStore() {
-  data.section = "AppStore";
-  data.selected_category = "";
-  $(".multi_installDiv").hide();
+	data.section = "AppStore";
+	data.selected_category = "";
+	$(".multi_installDiv").hide();
 }
 
 function checkPLGupdate() {
-  var filename = data.plgfilename;
-  post({action:'updatePLGstatus',filename:filename},function(result) {
-    var pageNumber = data.currentpage;
-    changePage(pageNumber);
-  });
+	var filename = data.plgfilename;
+	post({action:'updatePLGstatus',filename:filename},function(result) {
+		var pageNumber = data.currentpage;
+		changePage(pageNumber);
+	});
 }
 
 function pinApp(button,repository,name) {
-  $(button).toggleClass("pinned unpinned");
-  var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application");?>" : "<?tr("Click to unpin this application");?>";
+	$(button).toggleClass("pinned unpinned");
+	var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application");?>" : "<?tr("Click to unpin this application");?>";
 
-  var pin1 = $(button).text();
-  var pin2 = $(button).data('pinnedalt');
+	var pin1 = $(button).text();
+	var pin2 = $(button).data('pinnedalt');
 
-  $(button).text(pin2);
-  $(button).data('pinnedalt',pin1);
+	$(button).text(pin2);
+	$(button).data('pinnedalt',pin1);
 
-  var app = $.find(".pinnedCard[data-pindata='"+repository+name+"']");
-  $(app).toggle("slow");
+	var app = $.find(".pinnedCard[data-pindata='"+repository+name+"']");
+	$(app).toggle("slow");
 
-  post({action:'pinApp',repository:repository,name:name},function(data) {
-    if ( data.status ) {
-      $('.caPinnedMenu').removeClass('caMenuDisabled').addClass('caMenuEnabled');
-    } else {
-      $('.caPinnedMenu').removeClass('caMenuEnabled').addClass('caMenuDisabled');
-    }
-  });
+	post({action:'pinApp',repository:repository,name:name},function(data) {
+		if ( data.status ) {
+			$('.caPinnedMenu').removeClass('caMenuDisabled').addClass('caMenuEnabled');
+		} else {
+			$('.caPinnedMenu').removeClass('caMenuEnabled').addClass('caMenuDisabled');
+		}
+	});
 }
 
 function setPageOne() {
-  data.currentpage = 1;
+	data.currentpage = 1;
 }
 
 function clearCategory() {
  // $(".category").html("&nbsp;");
-  $.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
+	$.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
 }
 
 function pinnedApps() {
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-      pins();
-    });
-  } else {
-    pins();
-  }
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+			pins();
+		});
+	} else {
+		pins();
+	}
 }
 
 function pins() {
-  setPageOne();
-  data.docker = "";
-  clearSearchBox();
-  clearCategory();
-  showSortIcons();
+	setPageOne();
+	data.docker = "";
+	clearSearchBox();
+	clearCategory();
+	showSortIcons();
 //  $(".category").html("<?tr("Pinned Apps");?>");
-  $(".dockerSearch,.templateSearch,.multi_installDiv").hide();
-  post({action:'pinnedApps'},function(result) {
-    refreshDisplay();
-    myCloseAlert();
-  });
+	$(".dockerSearch,.templateSearch,.multi_installDiv").hide();
+	post({action:'pinnedApps'},function(result) {
+		refreshDisplay();
+		myCloseAlert();
+	});
 }
 
 function displayTags(leadTemplate,rename=false,comment="",ports="") {
-  event.stopPropagation();
-  closeSidebar();
-  var flag = false;
+	event.stopPropagation();
+	closeSidebar();
+	var flag = false;
 
-  if ( ports ) {
-    try {
-      ports = JSON.parse(ports);
-    } catch(e) {
-      ports = [];
-    }
-    if ( ports ) {
-      ports.forEach(function(port){
-        portsInUse.forEach(function(used) {
-          if (port == used)
-            flag = true;
-        });
-      });
-    }
-    if (flag) {
-      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
-    }
-  }
-  if (comment) {
-    swal({
-      title: "<?tr("Attention");?>",
-      text: comment,
-      allowOutsideClick: true,
-      showConfirmButton: true,
-      showCancelButton: true,
-      confirmButtonText: "<?tr("OK");?>",
-      cancelButtonText: "<?tr("Cancel");?>",
-      animation: false,
-      type: "warning",
-      html: true,
-      closeOnConfirm: false
-    },function(isConfirm) {
-      if (isConfirm) {
-        post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
-          disableSearch();
-          swal({
-            title: "<?tr("Choose A Branch To Install");?>",
-            text: result.tags,
-            html: true,
-            type: "warning",
-            showCancelButton: true,
-            showConfirmButton: false,
-            cancelButtonText: "<?tr("Cancel");?>",
-            allowOutsideClick: true
-          }, function(isConfirm) {
-            if ( ! isConfirm ) {
-              enableSearch();
-            }
-          });
-        });
-      }
-    });
-  } else {
-    post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
-      disableSearch();
-      swal({
-        title: "<?tr("Choose A Branch To Install");?>",
-        text: result.tags,
-        html: true,
-        type: "warning",
-        showCancelButton: true,
-        showConfirmButton: false,
-        cancelButtonText: "<?tr("Cancel");?>",
-        allowOutsideClick: true
-      }, function(isConfirm) {
-        if ( ! isConfirm ) {
-          enableSearch();
-        }
-      });
-    });
-  }
+	if ( ports ) {
+		try {
+			ports = JSON.parse(ports);
+		} catch(e) {
+			ports = [];
+		}
+		if ( ports ) {
+			ports.forEach(function(port){
+				portsInUse.forEach(function(used) {
+					if (port == used)
+						flag = true;
+				});
+			});
+		}
+		if (flag) {
+			comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
+		}
+	}
+	if (comment) {
+		swal({
+			title: "<?tr("Attention");?>",
+			text: comment,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr("OK");?>",
+			cancelButtonText: "<?tr("Cancel");?>",
+			animation: false,
+			type: "warning",
+			html: true,
+			closeOnConfirm: false
+		},function(isConfirm) {
+			if (isConfirm) {
+				post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
+					disableSearch();
+					swal({
+						title: "<?tr("Choose A Branch To Install");?>",
+						text: result.tags,
+						html: true,
+						type: "warning",
+						showCancelButton: true,
+						showConfirmButton: false,
+						cancelButtonText: "<?tr("Cancel");?>",
+						allowOutsideClick: true
+					}, function(isConfirm) {
+						if ( ! isConfirm ) {
+							enableSearch();
+						}
+					});
+				});
+			}
+		});
+	} else {
+		post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
+			disableSearch();
+			swal({
+				title: "<?tr("Choose A Branch To Install");?>",
+				text: result.tags,
+				html: true,
+				type: "warning",
+				showCancelButton: true,
+				showConfirmButton: false,
+				cancelButtonText: "<?tr("Cancel");?>",
+				allowOutsideClick: true
+			}, function(isConfirm) {
+				if ( ! isConfirm ) {
+					enableSearch();
+				}
+			});
+		});
+	}
 }
 
 function selectAllPrevious() {
-  $(".ca_multiselect").prop("checked",true);
-  getSelectedApps();
+	$(".ca_multiselect").prop("checked",true);
+	getSelectedApps();
 }
 
 function getSelectedApps() {
-  if ( data.selected ) {
-    try {
-      var selected = JSON.parse(data.selected);
-    } catch(e) {
-      var selected = new Object();
-      var deletePaths = new Array();
-      var docker = new Array();
-      var plugin = new Array();
-      var language = new Array();
-    }
-    var deletePaths = selected.deletePaths;
-    var docker = selected.docker;
-    var plugin = selected.plugin;
-    var language = selected.language;
-  } else {
-    var selected = new Object();
-    var deletePaths = new Array();
-    var docker = new Array();
-    var plugin = new Array();
-    var language = new Array();
-  }
-  $(".ca_multiselect").each(function() {
-    var name = $(this).attr("data-name");
-    var lingo = $(this).attr("data-language");
-    var deletechecked = $(this).attr("data-deletepath");
-    if ( $(this).is(':checked') ) {
-      deletePaths.push(deletechecked);
-      switch ( $(this).attr("data-type") ) {
-        case 'plugin':
-          plugin.push(name);
-          break;
-        case 'docker':
-          docker.push(name);
-          break;
-        case 'language':
-          language.push(lingo);
-          break;
-      }
-    } else {
-      var index= deletePaths.indexOf(deletechecked);
-      if ( index > -1 ) {
-        deletePaths.splice(index,1);
-      }
-      var index = plugin.indexOf(name);
-      if ( index > -1 ) {
-        plugin.splice(index,1);
-      }
-      var index = docker.indexOf(name);
-      if (index > -1 ) {
-        docker.splice(index,1);
-      }
-      var index = language.indexOf(lingo);
-      if (index > -1) {
-        language.splice(index,1);
-      }
-    }
-  });
-  selected.docker = docker.uniqueArrayElements();
-  selected.plugin = plugin.uniqueArrayElements();
-  selected.language = language.uniqueArrayElements();
-  selected.deletePaths = deletePaths.uniqueArrayElements();
-  data.selected = JSON.stringify(selected);
-  return selected;
+	if ( data.selected ) {
+		try {
+			var selected = JSON.parse(data.selected);
+		} catch(e) {
+			var selected = new Object();
+			var deletePaths = new Array();
+			var docker = new Array();
+			var plugin = new Array();
+			var language = new Array();
+		}
+		var deletePaths = selected.deletePaths;
+		var docker = selected.docker;
+		var plugin = selected.plugin;
+		var language = selected.language;
+	} else {
+		var selected = new Object();
+		var deletePaths = new Array();
+		var docker = new Array();
+		var plugin = new Array();
+		var language = new Array();
+	}
+	$(".ca_multiselect").each(function() {
+		var name = $(this).attr("data-name");
+		var lingo = $(this).attr("data-language");
+		var deletechecked = $(this).attr("data-deletepath");
+		if ( $(this).is(':checked') ) {
+			deletePaths.push(deletechecked);
+			switch ( $(this).attr("data-type") ) {
+				case 'plugin':
+					plugin.push(name);
+					break;
+				case 'docker':
+					docker.push(name);
+					break;
+				case 'language':
+					language.push(lingo);
+					break;
+			}
+		} else {
+			var index= deletePaths.indexOf(deletechecked);
+			if ( index > -1 ) {
+				deletePaths.splice(index,1);
+			}
+			var index = plugin.indexOf(name);
+			if ( index > -1 ) {
+				plugin.splice(index,1);
+			}
+			var index = docker.indexOf(name);
+			if (index > -1 ) {
+				docker.splice(index,1);
+			}
+			var index = language.indexOf(lingo);
+			if (index > -1) {
+				language.splice(index,1);
+			}
+		}
+	});
+	selected.docker = docker.uniqueArrayElements();
+	selected.plugin = plugin.uniqueArrayElements();
+	selected.language = language.uniqueArrayElements();
+	selected.deletePaths = deletePaths.uniqueArrayElements();
+	data.selected = JSON.stringify(selected);
+	return selected;
 }
 
 function enableMultiInstall() {
-  var selected = getSelectedApps();
-  var count = selected.plugin.length + selected.docker.length + selected.language.length;
-  var actionText = $(".multi_installButton").hasClass("actionCenter") ? "Update" : "Install";
-  if ( count == 0 ) {
-    $(".multi_install,.multi_installClear").attr("disabled",true);
-    $(".multi_deleteButton").hide();
-    $(".multi_installButton").val(tr(actionText + " Selected Applications"));
-  } else {
-    $(".multi_install,.multi_installClear").attr("disabled",false);
-    if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
-      $(".multi_deleteButton").show();
-    var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
-    $(".multi_installButton").val(buttonText);
-  }
-  getSelectedApps();
+	var selected = getSelectedApps();
+	var count = selected.plugin.length + selected.docker.length + selected.language.length;
+	var actionText = $(".multi_installButton").hasClass("actionCenter") ? "Update" : "Install";
+	if ( count == 0 ) {
+		$(".multi_install,.multi_installClear").attr("disabled",true);
+		$(".multi_deleteButton").hide();
+		$(".multi_installButton").val(tr(actionText + " Selected Applications"));
+	} else {
+		$(".multi_install,.multi_installClear").attr("disabled",false);
+		if ( ! $(".multi_deleteButton").hasClass("actionCenter") )
+			$(".multi_deleteButton").show();
+		var buttonText = (count == 1) ? sprintf(tr(actionText + " <?tr("%s Selected Application")?>"),count) : sprintf(tr(actionText + " <?tr("%s Selected Applications")?>"),count);
+		$(".multi_installButton").val(buttonText);
+	}
+	getSelectedApps();
 }
 
 function clearMultiInstall() {
-  data.selected = "";
-  $(".ca_multiselect").each(function() {
-    $(this).prop("checked",false);
-  });
-  $(".multi_install,.multi_installClear").attr("disabled",true);
-  enableMultiInstall();
+	data.selected = "";
+	$(".ca_multiselect").each(function() {
+		$(this).prop("checked",false);
+	});
+	$(".multi_install,.multi_installClear").attr("disabled",true);
+	enableMultiInstall();
 }
 
 
 function deleteMulti() {
-  var selected = getSelectedApps();
-  swal({
-    title: "<?tr("Delete Template?");?>",
-    text: sprintf("<?tr("Are you sure you want to delete %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
-    type: "warning",
-    confirmButtonText: "<?tr("Delete");?>",
-    cancelButtonText: "<?tr("Cancel");?>",
-    showCancelButton: true,
-    showConfirmButton: true,
-    allowOutsideClick: true,
-    html: true
-  }, function(isConfirm) {
-    if (isConfirm) {
-      post({action:'remove_multiApplications',apps:selected.deletePaths}, function(result) {
-        clearMultiInstall();
-        enableSearch();
-        mySpinner();
-        previousApps(false,true);
-      });
-    } else {
-      enableSearch();
-    }
-  });
+	var selected = getSelectedApps();
+	swal({
+		title: "<?tr("Delete Template?");?>",
+		text: sprintf("<?tr("Are you sure you want to delete %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
+		type: "warning",
+		confirmButtonText: "<?tr("Delete");?>",
+		cancelButtonText: "<?tr("Cancel");?>",
+		showCancelButton: true,
+		showConfirmButton: true,
+		allowOutsideClick: true,
+		html: true
+	}, function(isConfirm) {
+		if (isConfirm) {
+			post({action:'remove_multiApplications',apps:selected.deletePaths}, function(result) {
+				clearMultiInstall();
+				enableSearch();
+				mySpinner();
+				previousApps(false,true);
+			});
+		} else {
+			enableSearch();
+		}
+	});
 }
 function updateMulti() {
-  var docker = new Array();
-  var pluginArray = new Array();
-  var languageArray = new Array();
-  var plugin = "";
-  var language = "";
-  var pluginCount = 0;
-  var dockerCount = 0;
-  var languageCount = 0;
-  var selected = getSelectedApps();
-  var cookieWarning = "";
+	var docker = new Array();
+	var pluginArray = new Array();
+	var languageArray = new Array();
+	var plugin = "";
+	var language = "";
+	var pluginCount = 0;
+	var dockerCount = 0;
+	var languageCount = 0;
+	var selected = getSelectedApps();
+	var cookieWarning = "";
 
-  $.each(selected.plugin,function(i,el) {
-    pluginArray.push([el.basename().replace(".plg",""),el]);
-    pluginCount += 1;
-  });
+	$.each(selected.plugin,function(i,el) {
+		pluginArray.push([el.basename().replace(".plg",""),el]);
+		pluginCount += 1;
+	});
 
-  if (pluginCount) {
-    pluginArray.forEach( function(value) {
-      plugin += value[1] + "*";
-    });
-  }
+	if (pluginCount) {
+		pluginArray.forEach( function(value) {
+			plugin += value[1] + "*";
+		});
+	}
 
-  $.each(selected.docker,function(i,el) {
-    docker.push(el);
-    dockerCount += 1;
-  });
+	$.each(selected.docker,function(i,el) {
+		docker.push(el);
+		dockerCount += 1;
+	});
 
-  $.each(selected.language,function(i,el) {
-    languageArray.push(el);
-    languageCount += 1;
-  });
-  if ( languageCount ) {
-    languageArray.forEach( function(value) {
-      plugin += value + "*";
-    });
-  }
+	$.each(selected.language,function(i,el) {
+		languageArray.push(el);
+		languageCount += 1;
+	});
+	if ( languageCount ) {
+		languageArray.forEach( function(value) {
+			plugin += value + "*";
+		});
+	}
 
-  swal({
-    title: "<?tr("Update Applications");?>",
-    text: sprintf("<?tr("Are you sure you want to update %s applications?")?>",languageCount+dockerCount+pluginCount),
-    type: "info",
-    showCancelButton: true,
-    cancelButtonText: "<?tr("Cancel");?>",
-    showConfirmButton: true,
-    confirmButtonText: "<?tr("OK");?>",
-    closeOnConfirm: false,
-    showLoaderOnConfirm: true,
-    allowOutsideClick: true,
-    html: true
-  }, function( isConfirm ) {
-    if ( isConfirm ) {
-      myCloseAlert();
+	swal({
+		title: "<?tr("Update Applications");?>",
+		text: sprintf("<?tr("Are you sure you want to update %s applications?")?>",languageCount+dockerCount+pluginCount),
+		type: "info",
+		showCancelButton: true,
+		cancelButtonText: "<?tr("Cancel");?>",
+		showConfirmButton: true,
+		confirmButtonText: "<?tr("OK");?>",
+		closeOnConfirm: false,
+		showLoaderOnConfirm: true,
+		allowOutsideClick: true,
+		html: true
+	}, function( isConfirm ) {
+		if ( isConfirm ) {
+			myCloseAlert();
 
-      if ( docker.length ) {
-        var postUpdateFunction = "actionCentre";
-        if ( plugin.length ) {
-          postUpdateFunction = "installMultiPluginUpdatesAfterDocker";
-          $.cookie("pluginVar",plugin,{path:"/;SameSite=Lax"});
-          $.cookie("pluginCountVar",pluginCount,{path:"/;SameSite=Lax"});
-          ca_done_override = true;
-        }
+			if ( docker.length ) {
+				var postUpdateFunction = "actionCentre";
+				if ( plugin.length ) {
+					postUpdateFunction = "installMultiPluginUpdatesAfterDocker";
+					$.cookie("pluginVar",plugin,{path:"/;SameSite=Lax"});
+					$.cookie("pluginCountVar",pluginCount,{path:"/;SameSite=Lax"});
+					ca_done_override = true;
+				}
 
-        saveState();
-        setTimeout(function(){
-          openDocker('update_container '+docker.join('*'),tr('Update '+makePlural("Application",dockerCount)),'',postUpdateFunction);
-        },1000);
-      } else {
-        ca_openPlugin('multiplugin update '+plugin,tr('Update '+makePlural("Application",pluginCount)),'','actionCentre');
-        enableSearch();
-      }
-    } else {
-      enableSearch();
-    }
-  });
+				saveState();
+				setTimeout(function(){
+					openDocker('update_container '+docker.join('*'),tr('Update '+makePlural("Application",dockerCount)),'',postUpdateFunction);
+				},1000);
+			} else {
+				ca_openPlugin('multiplugin update '+plugin,tr('Update '+makePlural("Application",pluginCount)),'','actionCentre');
+				enableSearch();
+			}
+		} else {
+			enableSearch();
+		}
+	});
 }
 
 function installMultiPluginUpdatesAfterDocker() {
-  var plugin = $.cookie("pluginVar");
-  var pluginCount = $.cookie("pluginCountVar");
-  $.cookie("pluginVar","",{path:"/;SameSite=Lax"});
-  $.cookie("pluginCountVar","",{path:"/;SameSite=Lax"});
-  setTimeout(function(){
-    ca_openPlugin('multiplugin update '+plugin,tr('Update '+makePlural("Application",pluginCount)),'','actionCentre');
-    enableSearch();
-  },1000);
+	var plugin = $.cookie("pluginVar");
+	var pluginCount = $.cookie("pluginCountVar");
+	$.cookie("pluginVar","",{path:"/;SameSite=Lax"});
+	$.cookie("pluginCountVar","",{path:"/;SameSite=Lax"});
+	setTimeout(function(){
+		ca_openPlugin('multiplugin update '+plugin,tr('Update '+makePlural("Application",pluginCount)),'','actionCentre');
+		enableSearch();
+	},1000);
 }
 
 function installMulti() {
-  var docker = new Array();
-  var pluginArray = new Array();
-  var plugin = "";
-  var pluginCount = 0;
-  var dockerCount = 0;
-  var selected = getSelectedApps();
-  var cookieWarning = "";
+	var docker = new Array();
+	var pluginArray = new Array();
+	var plugin = "";
+	var pluginCount = 0;
+	var dockerCount = 0;
+	var selected = getSelectedApps();
+	var cookieWarning = "";
 
-  $.each(selected.plugin,function(i,el) {
-    pluginArray.push([el.basename().replace(".plg",""),el]);
-    pluginCount += 1;
-  });
+	$.each(selected.plugin,function(i,el) {
+		pluginArray.push([el.basename().replace(".plg",""),el]);
+		pluginCount += 1;
+	});
 // Sort them so that the install in the same order as if the system was booting.
 // NOTE: The sort drops the .plg from the order so that UD+ winds up installing after UD.  This differs from the boot sequence.
-  pluginArray.sort(installSort);
-  if (pluginCount) {
-    pluginArray.forEach( function(value) {
-      plugin += value[1] + "*";
-    });
-  }
+	pluginArray.sort(installSort);
+	if (pluginCount) {
+		pluginArray.forEach( function(value) {
+			plugin += value[1] + "*";
+		});
+	}
 
-  $.each(selected.docker,function(i,el) {
-    docker.push(el);
-    dockerCount += 1;
-  });
-  disableSearch();
-  if ( ! cookiesEnabled() && dockerCount && pluginCount ) {
-    pluginCount = 0;
-    cookieWarning = "<br><?tr("Cookies not enabled.  Plugins must be separately installed from docker applications");?>";
-  }
-  if ( (dockerCount + pluginCount) > 1 ) {
-    var buttonText = "<?tr("Yes, install them");?>";
-  } else {
-    var buttonText = "<?tr("Yes, install it");?>";
-  }
-  var text = sprintf("<?tr("Are you sure you want to install %s docker and %s plugin application(s)?")?>",dockerCount,pluginCount);
-  text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part");?></span>" : "");
-  text = text.concat(cookieWarning ? "<br><span class='caHighlight>"+cookieWarning+"</span>" : "");
-  swal({
-    title: dockerCount+pluginCount > 1 ? tr("Install Applications") : tr("Install Application"),
-    text: text,
-    type: "info",
-    showCancelButton: true,
-    cancelButtonText: "<?tr("Cancel");?>",
-    showConfirmButton: true,
-    confirmButtonText: buttonText,
-    closeOnConfirm: false,
-    showLoaderOnConfirm: true,
-    allowOutsideClick: true,
-    html: true
-  }, function( isConfirm ) {
-    if ( isConfirm ) {
-      myCloseAlert();
-      if ( docker.length && plugin.length ) {
-        $.cookie("ca_plugininstallpending",plugin,{path:"/;SameSite=Lax"});
-      }
-      if ( docker.length ) {
-        ca_done_override = true;
-        $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-        setTimeout(function(){
-          openDocker('update_container '+docker.join('*')+' ca_docker_run_override',tr('Install '+makePlural("Application",dockerCount)),'','postMultiDockerInstall');
-        },1000);
-      } else {
-        pluginArray.forEach(function(value) {
-          hidePluginPending(value[1]);
-        });
-        post({action:'saveMultiPluginPending',plugin:plugin},function(data) {
-          ca_openPlugin('multiplugin install '+plugin,tr('Install '+makePlural("Application",pluginCount)),'','refreshDisplay');
-        });
+	$.each(selected.docker,function(i,el) {
+		docker.push(el);
+		dockerCount += 1;
+	});
+	disableSearch();
+	if ( ! cookiesEnabled() && dockerCount && pluginCount ) {
+		pluginCount = 0;
+		cookieWarning = "<br><?tr("Cookies not enabled.  Plugins must be separately installed from docker applications");?>";
+	}
+	if ( (dockerCount + pluginCount) > 1 ) {
+		var buttonText = "<?tr("Yes, install them");?>";
+	} else {
+		var buttonText = "<?tr("Yes, install it");?>";
+	}
+	var text = sprintf("<?tr("Are you sure you want to install %s docker and %s plugin application(s)?")?>",dockerCount,pluginCount);
+	text = text.concat(dockerCount ? "<br><span class='ca_italic'><?tr("Docker applications will be installed utilizing the most recently saved template with no user input on your part");?></span>" : "");
+	text = text.concat(cookieWarning ? "<br><span class='caHighlight>"+cookieWarning+"</span>" : "");
+	swal({
+		title: dockerCount+pluginCount > 1 ? tr("Install Applications") : tr("Install Application"),
+		text: text,
+		type: "info",
+		showCancelButton: true,
+		cancelButtonText: "<?tr("Cancel");?>",
+		showConfirmButton: true,
+		confirmButtonText: buttonText,
+		closeOnConfirm: false,
+		showLoaderOnConfirm: true,
+		allowOutsideClick: true,
+		html: true
+	}, function( isConfirm ) {
+		if ( isConfirm ) {
+			myCloseAlert();
+			if ( docker.length && plugin.length ) {
+				$.cookie("ca_plugininstallpending",plugin,{path:"/;SameSite=Lax"});
+			}
+			if ( docker.length ) {
+				ca_done_override = true;
+				$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
+				setTimeout(function(){
+					openDocker('update_container '+docker.join('*')+' ca_docker_run_override',tr('Install '+makePlural("Application",dockerCount)),'','postMultiDockerInstall');
+				},1000);
+			} else {
+				pluginArray.forEach(function(value) {
+					hidePluginPending(value[1]);
+				});
+				post({action:'saveMultiPluginPending',plugin:plugin},function(data) {
+					ca_openPlugin('multiplugin install '+plugin,tr('Install '+makePlural("Application",pluginCount)),'','refreshDisplay');
+				});
 
-        enableSearch();
-      }
-    } else {
-      enableSearch();
-    }
-  });
+				enableSearch();
+			}
+		} else {
+			enableSearch();
+		}
+	});
 }
 
 function postMultiDockerInstall() {
-  window.location.reload();
+	window.location.reload();
 }
 function updateDisplay(content) {
-  $("#templates_content").html(content);
-  enableSearch();
+	$("#templates_content").html(content);
+	enableSearch();
 
-  $(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
+	$(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
 
-  if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
-    data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
-  }	else {
-    removeBannerWarning(data.translationBanner);
-  }
+	if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
+		data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");
+	}	else {
+		removeBannerWarning(data.translationBanner);
+	}
 //	saveState();
 
-  if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
-  }
-  if ( $(".ca_multiselect").length ) {
-      $(".multi_installAll").attr("disabled",false);
-  } else {
-    $(".multi_installAll").attr("disabled",true);
-  }
-  myCloseAlert(true);
+	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
+	}
+	if ( $(".ca_multiselect").length ) {
+			$(".multi_installAll").attr("disabled",false);
+	} else {
+		$(".multi_installAll").attr("disabled",true);
+	}
+	myCloseAlert(true);
 }
 window.onbeforeunload = function() {
-  if ( data.ignoreUnload ) {
-    return;
-  }
-  saveState(false);
+	if ( data.ignoreUnload ) {
+		return;
+	}
+	saveState(false);
 }
 function saveState(legacy=true) {
-  if (legacy) {
-    return;
-  }
-  console.log("Save State");
-  //$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
-  $.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
-  $.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
-  $.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
-  var selectedMenu = $(".selectedMenu").data("category");
-  if ( ! selectedMenu ) {
-    selectedMenu = "";
-  }
-  var categoriesEnabled = new Array();
-  $(".caMenuEnabled").each(function(){
-    categoriesEnabled.push($(this).data("category"));
-  });
-  $.cookie("ca_selectedMenu",selectedMenu,{path:"/;SameSite=Lax"});
-  $.cookie("ca_filter",$("#searchBox").val(),{path:"/;SameSite=Lax"});
-  $.cookie("ca_categoryName",$(".categoryMenuName").html(),{path:"/;SameSite=Lax"});
+	if (legacy) {
+		return;
+	}
+	console.log("Save State");
+	//$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
+	$.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
+	$.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
+	$.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
+	var selectedMenu = $(".selectedMenu").data("category");
+	if ( ! selectedMenu ) {
+		selectedMenu = "";
+	}
+	var categoriesEnabled = new Array();
+	$(".caMenuEnabled").each(function(){
+		categoriesEnabled.push($(this).data("category"));
+	});
+	$.cookie("ca_selectedMenu",selectedMenu,{path:"/;SameSite=Lax"});
+	$.cookie("ca_filter",$("#searchBox").val(),{path:"/;SameSite=Lax"});
+	$.cookie("ca_categoryName",$(".categoryMenuName").html(),{path:"/;SameSite=Lax"});
 }
 
 function restoreState() {
-  console.log("Restore State");
-  $.removeCookie("ca_languageSwitch",{path:'/'});
+	console.log("Restore State");
+	$.removeCookie("ca_languageSwitch",{path:'/'});
 
-  //$(".category").html($.cookie("ca_categoryText"));
-  if ( $.cookie("ca_installMulti") == "true" ) {
-    $(".multi_installDiv").show();
-  } else {
-    $(".multi_installDiv").hide();
-  }
-  $.removeCookie("ca_categoryText");
-  try {
-    data = JSON.parse($.cookie("ca_data"));
-    data.ignoreUnload = false;
-    $.removeCookie("ca_data");
-  } catch (e) {
-    console.log("Unable to restore state - reloading to clear errors");
-    $.removeCookie("ca_data");
-    post({action:"clearStartUpDisplayed"},function(result) {
-      window.location.reload();
-    });
-  }
-  data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
-  restoreStateMenu = $.cookie("ca_selectedMenu");
-  $(".categoryMenuName").html($.cookie("ca_categoryName"));
-  var filter = $.cookie("ca_filter");
-  $("#searchBox").val(filter);
-  if (filter)
-    $("#searchButton").removeClass("fa-search").addClass("fa-remove");
-  data.committedSearchFilter = $.trim(filter || "");
-  caSyncSearchFilterCollapsed();
-  caSyncHomeSearchSubtitle();
+	//$(".category").html($.cookie("ca_categoryText"));
+	if ( $.cookie("ca_installMulti") == "true" ) {
+		$(".multi_installDiv").show();
+	} else {
+		$(".multi_installDiv").hide();
+	}
+	$.removeCookie("ca_categoryText");
+	try {
+		data = JSON.parse($.cookie("ca_data"));
+		data.ignoreUnload = false;
+		$.removeCookie("ca_data");
+	} catch (e) {
+		console.log("Unable to restore state - reloading to clear errors");
+		$.removeCookie("ca_data");
+		post({action:"clearStartUpDisplayed"},function(result) {
+			window.location.reload();
+		});
+	}
+	data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
+	restoreStateMenu = $.cookie("ca_selectedMenu");
+	$(".categoryMenuName").html($.cookie("ca_categoryName"));
+	var filter = $.cookie("ca_filter");
+	$("#searchBox").val(filter);
+	if (filter)
+		$("#searchButton").removeClass("fa-search").addClass("fa-remove");
+	data.committedSearchFilter = $.trim(filter || "");
+	caSyncSearchFilterCollapsed();
+	caSyncHomeSearchSubtitle();
 
-  var ca_sortIcon = $.cookie("ca_sortIcon");
+	var ca_sortIcon = $.cookie("ca_sortIcon");
 //	enableIcon("#sortIcon",ca_sortIcon);
-  var restoreDone = false;
-  post({action:"getSortOrder"},function(sortOrder) {
-    $(".sortIcons").removeClass("enabledIcon");
-    $(".sortIcons").each(function() {
-      if ( ($(this).attr("data-sortBy") == sortOrder.sortBy) && ($(this).attr("data-sortDir") == sortOrder.sortDir) ) {
-        $(this).addClass("enabledIcon");
-      }
-    });
-    populateAutoComplete();
-    clearMultiInstall();
-    restoreDone = true;
-    caSyncSearchFilterCollapsed();
-    caSyncHomeSearchSubtitle();
-  });
+	var restoreDone = false;
+	post({action:"getSortOrder"},function(sortOrder) {
+		$(".sortIcons").removeClass("enabledIcon");
+		$(".sortIcons").each(function() {
+			if ( ($(this).attr("data-sortBy") == sortOrder.sortBy) && ($(this).attr("data-sortDir") == sortOrder.sortDir) ) {
+				$(this).addClass("enabledIcon");
+			}
+		});
+		populateAutoComplete();
+		clearMultiInstall();
+		restoreDone = true;
+		caSyncSearchFilterCollapsed();
+		caSyncHomeSearchSubtitle();
+	});
 
 }
 
 
 
 function showCredits() {
-  $("#caCredits").showAlternateView();
+	$("#caCredits").showAlternateView();
 }
 
 function showSettings() {
-  const $content = $(".settingsContainer");
-  $content.showAlternateView();
-  const $sidenav = $("#sidenavContent");
-  const $form = $sidenav.find(".ca_settingsForm");
-  const initialFormState = $form.serialize();
-  caBindSettingsFormHandlers(initialFormState);
+	const $content = $(".settingsContainer");
+	$content.showAlternateView();
+	const $sidenav = $("#sidenavContent");
+	const $form = $sidenav.find(".ca_settingsForm");
+	const initialFormState = $form.serialize();
+	caBindSettingsFormHandlers(initialFormState);
 }
 
 var menuScrollPosition = null;
 function showMenu() {
-  menuScrollPosition = $(window).scrollTop();
-  $(".menuAdjust,.hideWithMenu").addClass("menuShowing").removeClass("menuHidden");
-  $('.mobileMenu').toggle("slide", { direction: "left" }, 500); 
-  $(":root").css("--mainAreaHeight",$(".mobileMenu").height()+"px");
-  
-  $("#mobileMenu").get(0).scrollIntoView({behavior: "smooth", block: "start"});
+	menuScrollPosition = $(window).scrollTop();
+	$(".menuAdjust,.hideWithMenu").addClass("menuShowing").removeClass("menuHidden");
+	$('.mobileMenu').toggle("slide", { direction: "left" }, 500);
+	$(":root").css("--mainAreaHeight",$(".mobileMenu").height()+"px");
+
+	$("#mobileMenu").get(0).scrollIntoView({behavior: "smooth", block: "start"});
 }
 
 function closeMenu() {
-  if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
-    return;
-  }
-  $(".menuAdjust,.hideWithMenu").addClass("menuHidden").removeClass("menuShowing");
-  $('.mobileMenu').toggle("slide", { direction: "left" }, 500);
-  $(window).scrollTop(menuScrollPosition);
-  menuScrollPosition = null;
-  $(":root").css("--mainAreaHeight","unset");
+	if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
+		return;
+	}
+	$(".menuAdjust,.hideWithMenu").addClass("menuHidden").removeClass("menuShowing");
+	$('.mobileMenu').toggle("slide", { direction: "left" }, 500);
+	$(window).scrollTop(menuScrollPosition);
+	menuScrollPosition = null;
+	$(":root").css("--mainAreaHeight","unset");
 }
 
 function caChangeLog() {
-  post({action:'caChangeLog'},function(result) {
-    $(".caChanges").html(result.changelog);
-    $("#caChangeLog").showAlternateView();
-  });
+	post({action:'caChangeLog'},function(result) {
+		$(".caChanges").html(result.changelog);
+		$("#caChangeLog").showAlternateView();
+	});
 }
 
 function addDockerWarning(enableDisable) {
-  if (enableDisable) {
-    switch (enableDisable) {
-      case 1:
-        var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed');?>";
-        break;
-      case 2:
-        var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed');?>";
-        break;
-      case 3:
-        var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed');?>";
-        break;
-      default:
-        var msg = "Docker apps not available to install - Unknown reason why";
-        break;
-    }
-    if ( dockerWarningAdded === false) {
-      dockerWarningAdded = addBannerWarning(msg,true,false);
-      $(".dockerSpecific").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-    }
-  } else {
-    if ( dockerWarningAdded !== false ) {
-      removeBannerWarning(dockerWarningAdded);
-      $(".dockerSpecific").removeClass("caMenuDisabled").addClass("caMenuEnabled");
-      dockerWarningAdded = false;
-    }
-  }
+	if (enableDisable) {
+		switch (enableDisable) {
+			case 1:
+				var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed');?>";
+				break;
+			case 2:
+				var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed');?>";
+				break;
+			case 3:
+				var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed');?>";
+				break;
+			default:
+				var msg = "Docker apps not available to install - Unknown reason why";
+				break;
+		}
+		if ( dockerWarningAdded === false) {
+			dockerWarningAdded = addBannerWarning(msg,true,false);
+			$(".dockerSpecific").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+		}
+	} else {
+		if ( dockerWarningAdded !== false ) {
+			removeBannerWarning(dockerWarningAdded);
+			$(".dockerSpecific").removeClass("caMenuDisabled").addClass("caMenuEnabled");
+			dockerWarningAdded = false;
+		}
+	}
 }
 
 
 function setFavRepoSearch() {
-  post({action:'getFavourite'},function(result) {
-    if (result.favourite) {
-      $(".favouriteRepo").addClass("caMenuEnabled").removeClass("caMenuDisabled");
-    } else {
-      $(".favouriteRepo").addClass("caMenuDisabled").removeClass("caMenuEnabled");
-    }
-    $(".favouriteRepo").attr("data-repository",result.favourite);
-  });
+	post({action:'getFavourite'},function(result) {
+		if (result.favourite) {
+			$(".favouriteRepo").addClass("caMenuEnabled").removeClass("caMenuDisabled");
+		} else {
+			$(".favouriteRepo").addClass("caMenuDisabled").removeClass("caMenuEnabled");
+		}
+		$(".favouriteRepo").attr("data-repository",result.favourite);
+	});
 }
 
 function getCategories() {
-  post({action:'get_categories'},function(result) {
-    $("#category_list").html(result.categories);
-    $(".subCategory").hide();
-    $(".caMenuItem").each(function() {
-      if ( ! ( $(this).hasClass("favouriteRepo") || $(this).hasClass("caPinnedMenu") ) ) {
-        $(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
-      }
-    });
-    setFavRepoSearch();
+	post({action:'get_categories'},function(result) {
+		$("#category_list").html(result.categories);
+		$(".subCategory").hide();
+		$(".caMenuItem").each(function() {
+			if ( ! ( $(this).hasClass("favouriteRepo") || $(this).hasClass("caPinnedMenu") ) ) {
+				$(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
+			}
+		});
+		setFavRepoSearch();
 
-    post({action:'areAppsPinned'},function(result) {
-      if (!result.status) {
-        $(".caPinnedMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-      } else {
-        $(".caPinnedMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
-      }
-    });
+		post({action:'areAppsPinned'},function(result) {
+			if (!result.status) {
+				$(".caPinnedMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+			} else {
+				$(".caPinnedMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
+			}
+		});
 
-    if ( ! restoreStateMenu )
-      restoreStateMenu = $.cookie("ca_startupButton");
+		if ( ! restoreStateMenu )
+			restoreStateMenu = $.cookie("ca_startupButton");
 
-    console.log(restoreStateMenu);
-    var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
-    $(".caMenuItem").each(function(){
-      $(this).removeClass("selectedMenu");
-    });
-    $(menuItem).addClass("selectedMenu");
-    $(menuItem).parent().show();
-    $(menuItem).next().show();
-    restoreStateMenu = false;
+		console.log(restoreStateMenu);
+		var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
+		$(".caMenuItem").each(function(){
+			$(this).removeClass("selectedMenu");
+		});
+		$(menuItem).addClass("selectedMenu");
+		$(menuItem).parent().show();
+		$(menuItem).next().show();
+		restoreStateMenu = false;
 
-    if ( $("#searchBox").val() ) {
-      post({action:'getCategoriesPresent'},function(result) {
-        $(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-        result.forEach(function(category) {
-          var menuItem = $.find(".caMenuItem[data-category='"+category+"']");
-          $(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
-          document.referrer = "/Apps";
-        });
-        var selectedMenu = $.cookie("ca_selectedMenu");
-        if ( selectedMenu ) {
-          var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
-          $(menuItem).addClass("selectedMenu");
-        }	else
-          $(".allApps").addClass("selectedMenu");
+		if ( $("#searchBox").val() ) {
+			post({action:'getCategoriesPresent'},function(result) {
+				$(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+				result.forEach(function(category) {
+					var menuItem = $.find(".caMenuItem[data-category='"+category+"']");
+					$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
+					document.referrer = "/Apps";
+				});
+				var selectedMenu = $.cookie("ca_selectedMenu");
+				if ( selectedMenu ) {
+					var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
+					$(menuItem).addClass("selectedMenu");
+				}	else
+					$(".allApps").addClass("selectedMenu");
 
-      });
-    }
-  });
+			});
+		}
+	});
 }
 
 // Function should no longer be required
 function feedWarning(currentServer) {
-  if ( currentServer != "Primary Server" ) {
-    if ( currentServer == "" ) {
-      addBannerWarning("<?tr("Unknown error happened.  Please post a screenshot in the support thread of the Statistics screen");?>");
-    } else {
-        if ( !backupServerWarning ) {
-        backupServerWarning = addBannerWarning("<?tr("Backup Server Active.  Some icons may not appear, and plugin installations may be affected");?>",true,true);
-      } else {
-        removeBannerWarning(backupServerWarning);
-        backupServerWarning = false;
-      }
-    }
-  } else if ( backupServerWarning ) {
-    removeBannerWarning(backupServerWarning);
-    backupServerWarning = false;
-  }
+	if ( currentServer != "Primary Server" ) {
+		if ( currentServer == "" ) {
+			addBannerWarning("<?tr("Unknown error happened.  Please post a screenshot in the support thread of the Statistics screen");?>");
+		} else {
+				if ( !backupServerWarning ) {
+				backupServerWarning = addBannerWarning("<?tr("Backup Server Active.  Some icons may not appear, and plugin installations may be affected");?>",true,true);
+			} else {
+				removeBannerWarning(backupServerWarning);
+				backupServerWarning = false;
+			}
+		}
+	} else if ( backupServerWarning ) {
+		removeBannerWarning(backupServerWarning);
+		backupServerWarning = false;
+	}
 }
 
 
 function CAswitchLanguage(language) {
-  if ( language == "en_US" || ! language)
-    var oldlanguage = '<?=$locale?>';
-  else
-    var oldlanguage = "";
+	if ( language == "en_US" || ! language)
+		var oldlanguage = '<?=$locale?>';
+	else
+		var oldlanguage = "";
 
-  data.searchActive = true; // so the system doesn't resort
-  saveState();
-  $.cookie('locale',oldlanguage,{path:"/;SameSite=Lax"}); // save the previous locale
-  post({action:'switchLanguage',language:language},function(result) {
-    $.cookie("ca_languageSwitch","switched",{expires:365,path:"/;SameSite=Lax"});
-    myCloseSpinner();
-    window.location.reload();
-  });
+	data.searchActive = true; // so the system doesn't resort
+	saveState();
+	$.cookie('locale',oldlanguage,{path:"/;SameSite=Lax"}); // save the previous locale
+	post({action:'switchLanguage',language:language},function(result) {
+		$.cookie("ca_languageSwitch","switched",{expires:365,path:"/;SameSite=Lax"});
+		myCloseSpinner();
+		window.location.reload();
+	});
 }
 
 function installLanguage(languageURL,language) {
-  hideLanguagePending(language);
-  disableSearch();
-  ca_openPlugin('language install '+languageURL,"<?tr('Install Language Pack');?>",'','postLanguageRefresh');
+	hideLanguagePending(language);
+	disableSearch();
+	ca_openPlugin('language install '+languageURL,"<?tr('Install Language Pack');?>",'','postLanguageRefresh');
 }
 
 function updateLanguage(language) {
-  hideLanguagePending(language);
-  disableSearch();
-  $.cookie("updateLanguage",language,{SameSite:'Lax'});
-  ca_openPlugin('language update '+language,"<?tr('Update Language Pack');?>",'','postUpdateLanguage');
+	hideLanguagePending(language);
+	disableSearch();
+	$.cookie("updateLanguage",language,{SameSite:'Lax'});
+	ca_openPlugin('language update '+language,"<?tr('Update Language Pack');?>",'','postUpdateLanguage');
 }
 
 function postUpdateLanguage() {
-  var languageUpdate = $.cookie("updateLanguage");
-  var currentLanguage = "<?=$_SESSION['locale']?>";
+	var languageUpdate = $.cookie("updateLanguage");
+	var currentLanguage = "<?=$_SESSION['locale']?>";
 
-  if (languageUpdate == currentLanguage)
-    window.location.reload();
-  else {
-    if ( $(".selectedMenu").data("category") == "action_centre" ) {
-      actionCentre();
-    } else {
-      var apppath = $.cookie("sidebarAppPath");
-      var appname = $.cookie("sidebarAppName");
-      showSidebarApp(apppath,appname);
-      refreshDisplay();
-    }
-  }
+	if (languageUpdate == currentLanguage)
+		window.location.reload();
+	else {
+		if ( $(".selectedMenu").data("category") == "action_centre" ) {
+			actionCentre();
+		} else {
+			var apppath = $.cookie("sidebarAppPath");
+			var appname = $.cookie("sidebarAppName");
+			showSidebarApp(apppath,appname);
+			refreshDisplay();
+		}
+	}
 }
 function removeLanguage(language) {
-  hideLanguagePending(language);
-  closeSidebar();
-  ca_openPlugin('language remove '+language,"<?tr('Remove Language Pack');?>",'','postLanguageRemove');
+	hideLanguagePending(language);
+	closeSidebar();
+	ca_openPlugin('language remove '+language,"<?tr('Remove Language Pack');?>",'','postLanguageRemove');
 }
 
 function postLanguageRefresh() {
-  var apppath = $.cookie("sidebarAppPath");
-  var appname = $.cookie("sidebarAppName");
-  if ( $.trim(apppath) ) {
-    showSidebarApp(apppath,appname);
-  }
-  refreshDisplay();
+	var apppath = $.cookie("sidebarAppPath");
+	var appname = $.cookie("sidebarAppName");
+	if ( $.trim(apppath) ) {
+		showSidebarApp(apppath,appname);
+	}
+	refreshDisplay();
 }
 
 function postLanguageRemove() {
-  $(".selectedMenu").trigger("click");
+	$(".selectedMenu").trigger("click");
 }
 
 function updateDocker(container) {
-  closeSidebar();
-  $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-  if ( $(".selectedMenu").data("category") == "action_centre" ) {
-    var postFunction = "actionCentre";
-  } else {
-    var postFunction = "refreshDisplay";
-  }
-  openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
+	closeSidebar();
+	$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
+	if ( $(".selectedMenu").data("category") == "action_centre" ) {
+		var postFunction = "actionCentre";
+	} else {
+		var postFunction = "refreshDisplay";
+	}
+	openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
 }
 
 function setToolTipForFavourite() {
-  $(".ca_fav").each(function(){
-    if ( $(this).hasClass("ca_favouriteRepo") ) {
-      $(this).attr("title","<?tr("Click to remove favourite repository");?>");
-    } else {
-      var repository = $(this).data("repository");
-      repository = repository.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      $(this).attr("title",sprintf("<?tr("Click to set %s as favourite repository")?>",repository));
-    }
-  });
+	$(".ca_fav").each(function(){
+		if ( $(this).hasClass("ca_favouriteRepo") ) {
+			$(this).attr("title","<?tr("Click to remove favourite repository");?>");
+		} else {
+			var repository = $(this).data("repository");
+			repository = repository.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
+			$(this).attr("title",sprintf("<?tr("Click to set %s as favourite repository")?>",repository));
+		}
+	});
 }
 
 function setFavourite(button) {
-  $(button).toggleClass("fav nonfav");
-  var repo = $(button).data("repository");
-  clearTimeout(repoBannerTimer);
+	$(button).toggleClass("fav nonfav");
+	var repo = $(button).data("repository");
+	clearTimeout(repoBannerTimer);
 
-  post({action:'toggleFavourite',repository:repo},function(data) {
-    if ( repoBanner !== false )
-      removeBannerWarning(repoBanner);
-    if ( data.fav ) {
-      var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("<?tr("%s set as favourite repository")?>",bannerMessage),false,true);
-    } else {
-      var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-      repoBanner = addBannerWarning(sprintf("<?tr("%s removed as favourite repository")?>",bannerMessage),false,true);
-    }
-    repoBannerTimer = setTimeout(function() {
-      removeBannerWarning(repoBanner);
-      repoBanner = false;
-    },5000);
-    $(".favCardBackground").each(function() {
-      if ( $(this).data("repository") == data.fav.replace("'","") )
-        $(this).addClass("favCardBackgroundShow").removeClass("favCardBackgroundHide");
-      else
-        $(this).removeClass("favCardBackgroundShow").addClass("favCardBackgroundHide");
-    });
-    setFavRepoSearch();
-  });
+	post({action:'toggleFavourite',repository:repo},function(data) {
+		if ( repoBanner !== false )
+			removeBannerWarning(repoBanner);
+		if ( data.fav ) {
+			var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
+			repoBanner = addBannerWarning(sprintf("<?tr("%s set as favourite repository")?>",bannerMessage),false,true);
+		} else {
+			var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
+			repoBanner = addBannerWarning(sprintf("<?tr("%s removed as favourite repository")?>",bannerMessage),false,true);
+		}
+		repoBannerTimer = setTimeout(function() {
+			removeBannerWarning(repoBanner);
+			repoBanner = false;
+		},5000);
+		$(".favCardBackground").each(function() {
+			if ( $(this).data("repository") == data.fav.replace("'","") )
+				$(this).addClass("favCardBackgroundShow").removeClass("favCardBackgroundHide");
+			else
+				$(this).removeClass("favCardBackgroundShow").addClass("favCardBackgroundHide");
+		});
+		setFavRepoSearch();
+	});
 }
 
 function popupInstallXML(xml,type,comment="",ports="") {
-  event.stopPropagation();
-  saveState();
-  var flag = false;
-  if ( ports ) {
-    try {
-      ports = JSON.parse(ports);
-    } catch(e) {
-      ports = [];
-    }
-    if ( ports ) {
-      ports.forEach(function(port){
-        portsInUse.forEach(function(used) {
-          if (port == used)
-            flag = true;
-        });
-      });
-    }
-    if (flag) {
-      comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
-    }
-  }
-  if ( $.trim(comment) ) {
-    swal({
-      title: "<?tr("Attention");?>",
-      text: comment,
-      allowOutsideClick: true,
-      showConfirmButton: true,
-      showCancelButton: true,
-      confirmButtonText: "<?tr("OK");?>",
-      cancelButtonText: "<?tr("Cancel");?>",
-      animation: false,
-      type: "warning",
-      html: true
-    }, function (isConfirm) {
-      if (isConfirm) {
-        installXML(xml,type);
-      }
-    });
-  } else {
-    installXML(xml,type);
-  }
+	event.stopPropagation();
+	saveState();
+	var flag = false;
+	if ( ports ) {
+		try {
+			ports = JSON.parse(ports);
+		} catch(e) {
+			ports = [];
+		}
+		if ( ports ) {
+			ports.forEach(function(port){
+				portsInUse.forEach(function(used) {
+					if (port == used)
+						flag = true;
+				});
+			});
+		}
+		if (flag) {
+			comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
+		}
+	}
+	if ( $.trim(comment) ) {
+		swal({
+			title: "<?tr("Attention");?>",
+			text: comment,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr("OK");?>",
+			cancelButtonText: "<?tr("Cancel");?>",
+			animation: false,
+			type: "warning",
+			html: true
+		}, function (isConfirm) {
+			if (isConfirm) {
+				installXML(xml,type);
+			}
+		});
+	} else {
+		installXML(xml,type);
+	}
 }
 function installXML(xml,type) {
-  post({action:'createXML',xml:xml,type:type},function(result){
-    if ( result.status == "ok" ) {
-      if (type == "second") {
-        type = "default";
-      }
-      openNewWindow("/Apps/AddContainer?xmlTemplate="+type+":"+xml);
-    }
-  });
+	post({action:'createXML',xml:xml,type:type},function(result){
+		if ( result.status == "ok" ) {
+			if (type == "second") {
+				type = "default";
+			}
+			openNewWindow("/Apps/AddContainer?xmlTemplate="+type+":"+xml);
+		}
+	});
 }
 
 function popUpChart(descData) {
-  if ( $("#trendChart").length ) {
-    var fontSize = 14;
+	if ( $("#trendChart").length ) {
+		var fontSize = 14;
 
-    if (descData.trendLabel.length > 3) {
-      var fontSize = 12;
-    }
+		if (descData.trendLabel.length > 3) {
+			var fontSize = 12;
+		}
 
-    var ctx = document.getElementById("trendChart").getContext('2d');
-    let chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          data: descData.trendData,
-          borderColor: '#FF8C2F',
-          trendlineLinear: {
-            style: "rgb(255 ,66 ,255)",
-            lineStyle: "dotted",
-            width: 2
-          }
-        }],
-        labels: descData.trendLabel
-      },
-      options: {
-        tooltips: {
-          callbacks: {
-            label: function(tooltipItem,data) {
-              return tooltipItem.yLabel.toLocaleString()+"%";
-            }
-          }
-        },
-        title: {
-          display: true,
-          text: "<?tr("Trend Per Month");?>",
-          fontSize: 16,
-          fontColor: cssVar("--tooltipster-content"),
-        },
-        legend: {
-          display: false
-        },
-        events: ["mousemove","mouseout"],
-        scales: {
-          yAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              callback: function(label,index,labels) {
-                return label + " %";
-              },
-              precision: 0,
-              fontColor: cssVar("--tooltipster-content")
-            }
-          }],
-          xAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              fontSize: fontSize,
-              fontColor: cssVar("--tooltipster-content")
-            }
-          }]
-        }
-      }
-    });
-  }
-  if ( $("#downloadChart").length ) {
-    var ctx = document.getElementById("downloadChart").getContext('2d');
-    let chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          data: descData.downloadtrend,
-          borderColor: '#FF8C2F',
-          trendlineLinear: {
-            style: "rgb(255 ,66 ,255)",
-            lineStyle: "dotted",
-            width: 2
-          }
-        }],
-        labels: descData.downloadLabel
-      },
-      options: {
-        tooltips: {
-          callbacks: {
-            label: function(tooltipItem,data) {
-              return tooltipItem.yLabel.toLocaleString();
-            }
-          }
-        },
-        title: {
-          display: true,
-          text: "<?tr("Downloads Per Month");?>",
-          fontSize: 16,
-          fontColor: cssVar("--tooltipster-content")
-        },
-        legend: {
-          display: false
-        },
-        events: ["mousemove","mouseout"],
-        scales: {
-          yAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              callback: function(label,index,labels) {
-                return label.toLocaleString();
-              },
-              fontColor: cssVar("--tooltipster-content")
-            }
-          }],
-          xAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              fontSize: fontSize,
-              fontColor: cssVar("--tooltipster-content")
-            }
-          }]
-        }
-      }
-    });
-  }
-  if ( $("#totalDownloadChart").length ) {
-    var ctx = document.getElementById("totalDownloadChart").getContext('2d');
-    let chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          data: descData.totaldown,
-          borderColor: '#FF8C2F'
-        }],
-        labels: descData.totaldownLabel
-      },
-      options: {
-        tooltips: {
-          callbacks: {
-            label: function(tooltipItem,data) {
-              return tooltipItem.yLabel.toLocaleString();
-            }
-          }
-        },
-        title: {
-          display: true,
-          text: "<?tr("Total Downloads");?>",
-          fontSize: 16,
-          fontColor: cssVar("--tooltipster-content")
-        },
-        legend: {
-          display: false
-        },
-        events: ["mousemove","mouseout"],
-        scales: {
-          yAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              callback: function(label,index,labels) {
-                return label.toLocaleString();
-              },
-                fontColor: cssVar("--tooltipster-content")
-            }
-          }],
-          xAxes: [{
-            gridLines: {
-              color: cssVar("--chart-grid")
-            },
-            ticks: {
-              fontSize: fontSize,
-              fontColor: cssVar("--tooltipster-content")
-            }
-          }]
-        }
-      }
-    });
-  }
+		var ctx = document.getElementById("trendChart").getContext('2d');
+		let chart = new Chart(ctx, {
+			type: 'line',
+			data: {
+				datasets: [{
+					data: descData.trendData,
+					borderColor: '#FF8C2F',
+					trendlineLinear: {
+						style: "rgb(255 ,66 ,255)",
+						lineStyle: "dotted",
+						width: 2
+					}
+				}],
+				labels: descData.trendLabel
+			},
+			options: {
+				tooltips: {
+					callbacks: {
+						label: function(tooltipItem,data) {
+							return tooltipItem.yLabel.toLocaleString()+"%";
+						}
+					}
+				},
+				title: {
+					display: true,
+					text: "<?tr("Trend Per Month");?>",
+					fontSize: 16,
+					fontColor: cssVar("--tooltipster-content"),
+				},
+				legend: {
+					display: false
+				},
+				events: ["mousemove","mouseout"],
+				scales: {
+					yAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							callback: function(label,index,labels) {
+								return label + " %";
+							},
+							precision: 0,
+							fontColor: cssVar("--tooltipster-content")
+						}
+					}],
+					xAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							fontSize: fontSize,
+							fontColor: cssVar("--tooltipster-content")
+						}
+					}]
+				}
+			}
+		});
+	}
+	if ( $("#downloadChart").length ) {
+		var ctx = document.getElementById("downloadChart").getContext('2d');
+		let chart = new Chart(ctx, {
+			type: 'line',
+			data: {
+				datasets: [{
+					data: descData.downloadtrend,
+					borderColor: '#FF8C2F',
+					trendlineLinear: {
+						style: "rgb(255 ,66 ,255)",
+						lineStyle: "dotted",
+						width: 2
+					}
+				}],
+				labels: descData.downloadLabel
+			},
+			options: {
+				tooltips: {
+					callbacks: {
+						label: function(tooltipItem,data) {
+							return tooltipItem.yLabel.toLocaleString();
+						}
+					}
+				},
+				title: {
+					display: true,
+					text: "<?tr("Downloads Per Month");?>",
+					fontSize: 16,
+					fontColor: cssVar("--tooltipster-content")
+				},
+				legend: {
+					display: false
+				},
+				events: ["mousemove","mouseout"],
+				scales: {
+					yAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							callback: function(label,index,labels) {
+								return label.toLocaleString();
+							},
+							fontColor: cssVar("--tooltipster-content")
+						}
+					}],
+					xAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							fontSize: fontSize,
+							fontColor: cssVar("--tooltipster-content")
+						}
+					}]
+				}
+			}
+		});
+	}
+	if ( $("#totalDownloadChart").length ) {
+		var ctx = document.getElementById("totalDownloadChart").getContext('2d');
+		let chart = new Chart(ctx, {
+			type: 'line',
+			data: {
+				datasets: [{
+					data: descData.totaldown,
+					borderColor: '#FF8C2F'
+				}],
+				labels: descData.totaldownLabel
+			},
+			options: {
+				tooltips: {
+					callbacks: {
+						label: function(tooltipItem,data) {
+							return tooltipItem.yLabel.toLocaleString();
+						}
+					}
+				},
+				title: {
+					display: true,
+					text: "<?tr("Total Downloads");?>",
+					fontSize: 16,
+					fontColor: cssVar("--tooltipster-content")
+				},
+				legend: {
+					display: false
+				},
+				events: ["mousemove","mouseout"],
+				scales: {
+					yAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							callback: function(label,index,labels) {
+								return label.toLocaleString();
+							},
+								fontColor: cssVar("--tooltipster-content")
+						}
+					}],
+					xAxes: [{
+						gridLines: {
+							color: cssVar("--chart-grid")
+						},
+						ticks: {
+							fontSize: fontSize,
+							fontColor: cssVar("--tooltipster-content")
+						}
+					}]
+				}
+			}
+		});
+	}
 }
 function showAlternateView(content="") {
-  if ( content ) {
-    $("#sidenavContent").html(content);
-  }
-  $(".sidebar").show();
-  $(".sidenav").removeClass("sidenavHide");
+	if ( content ) {
+		$("#sidenavContent").html(content);
+	}
+	$(".sidebar").show();
+	$(".sidenav").removeClass("sidenavHide");
 
-  $(".popUpBack").addClass("ca_hide");
+	$(".popUpBack").addClass("ca_hide");
 
-  slideInSidebar();
-  $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+	slideInSidebar();
+	$(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
 }
 
 function showSidebarApp(apppath,appname) {
-  mySpinner();
-  disableSearch();
-  $.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
-  $.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
-  data.sidebarapppath = apppath;
-  data.sidebarappname = appname;
+	mySpinner();
+	disableSearch();
+	$.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
+	$.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
+	data.sidebarapppath = apppath;
+	data.sidebarappname = appname;
 
-  $(".popUpBack").addClass("ca_hide");
-  $(".sidenav").removeClass("sidenavHide");
-  $(".nav-user.show").hide();
-  $("#sidenavContent").html($("#sidebarLoading").html()); 
-  $(".sidebar").show();
-    post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
-      myCloseSpinner();
-      $("#sidenavContent").html(result.description);
-      caInitSidebarReadmore();
-      caLoadSidebarReadmeSections();
-      caLoadSidebarTemplateChanges();
-      $('.screenshot').magnificPopup({
-        closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
-        closeOnContentClick: true,
-        type:'image',
-        removalDelay: 100,
-        mainClass: 'mfp-fade',
-        gallery: true,
-        zoom: {
-          enabled: true,
-          duration: 500,
-          easing: 'ease-in-out'
-        },
-        callbacks: {
-          beforeOpen: function() {
-            event.stopPropagation();
-            closeSidebar();
-          },
-          afterClose: function() {
-            showSidebarApp(data.sidebarapppath,data.sidebarappname);
-          }
-        }
-      });
-      slideInSidebar();
+	$(".popUpBack").addClass("ca_hide");
+	$(".sidenav").removeClass("sidenavHide");
+	$(".nav-user.show").hide();
+	$("#sidenavContent").html($("#sidebarLoading").html());
+	$(".sidebar").show();
+		post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
+			myCloseSpinner();
+			$("#sidenavContent").html(result.description);
+			caInitSidebarReadmore();
+			caLoadSidebarReadmeSections();
+			caLoadSidebarTemplateChanges();
+			$('.screenshot').magnificPopup({
+				closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+				closeOnContentClick: true,
+				type:'image',
+				removalDelay: 100,
+				mainClass: 'mfp-fade',
+				gallery: true,
+				zoom: {
+					enabled: true,
+					duration: 500,
+					easing: 'ease-in-out'
+				},
+				callbacks: {
+					beforeOpen: function() {
+						event.stopPropagation();
+						closeSidebar();
+					},
+					afterClose: function() {
+						showSidebarApp(data.sidebarapppath,data.sidebarappname);
+					}
+				}
+			});
+			slideInSidebar();
 
-      if (!data.caReadmoreTopLessBound) {
-        data.caReadmoreTopLessBound = true;
-        $("#sidenavContent").on("click", ".ca_readless_top", function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          // This control sits right before the readmore section it controls.
-          var $section = $(this).nextAll(".popup_readmore").first();
-          if (!$section.length) return;
-          // Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
-          var $toggle = $section.nextAll(".readmore-js-toggle").first();
-          if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
-          if ($toggle.length) $toggle.trigger("click");
-          else $section.readmore("toggle");
-        });
-      }
+			if (!data.caReadmoreTopLessBound) {
+				data.caReadmoreTopLessBound = true;
+				$("#sidenavContent").on("click", ".ca_readless_top", function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					// This control sits right before the readmore section it controls.
+					var $section = $(this).nextAll(".popup_readmore").first();
+					if (!$section.length) return;
+					// Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
+					var $toggle = $section.nextAll(".readmore-js-toggle").first();
+					if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
+					if ($toggle.length) $toggle.trigger("click");
+					else $section.readmore("toggle");
+				});
+			}
 
-      popUpChart(result);
-      setupContext(result.supportContext,"#supportPopup");
-      setupContext(result.actionsContext,"#actionsPopup");
-        
-      $(".betaPopupText,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
+			popUpChart(result);
+			setupContext(result.supportContext,"#supportPopup");
+			setupContext(result.actionsContext,"#actionsPopup");
 
-      postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
-        if (lastUpdate.lastUpdate) {
-          $("#template"+result.ID).fadeOut("slow","linear",function() {
-            $("#template"+result.ID).html(lastUpdate.lastUpdate);
-            $("#template"+result.ID).fadeIn("slow");
-          });
-        }
-      });
-    })
+			$(".betaPopupText,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
+
+			postNoSpin({action:'getLastUpdate',ID:result.ID},function(lastUpdate) {
+				if (lastUpdate.lastUpdate) {
+					$("#template"+result.ID).fadeOut("slow","linear",function() {
+						$("#template"+result.ID).html(lastUpdate.lastUpdate);
+						$("#template"+result.ID).fadeIn("slow");
+					});
+				}
+			});
+		})
 }
 
 function caLoadSidebarReadmeSections() {
-  var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
-  if (!$sections.length) return;
-  $sections.each(function() {
-    var $section = $(this);
-    if ($section.data("readmeLoaded") || $section.data("readmeLoading")) {
-      return;
-    }
-    $section.data("readmeLoading", true);
-    var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
-    var url = $section.attr("data-readme-url") || "";
-    var fallback = $section.attr("data-readme-url-fallback") || "";
-    postNoSpin({action:"getReadmeSection", readmeId: readmeId, url:url, fallback:fallback}, function(resp) {
-      // Late responses must only update the currently displayed placeholder for this readmeId.
-      var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
-      // If the user navigated away, the placeholder won't exist anymore: do nothing.
-      if (!$current.length) return;
-      var currentUrl = $current.attr("data-readme-url") || "";
-      // Guard against re-use / DOM replacement while request was in flight.
-      if (url && currentUrl !== url) return;
+	var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
+	if (!$sections.length) return;
+	$sections.each(function() {
+		var $section = $(this);
+		if ($section.data("readmeLoaded") || $section.data("readmeLoading")) {
+			return;
+		}
+		$section.data("readmeLoading", true);
+		var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
+		var url = $section.attr("data-readme-url") || "";
+		var fallback = $section.attr("data-readme-url-fallback") || "";
+		postNoSpin({action:"getReadmeSection", readmeId: readmeId, url:url, fallback:fallback}, function(resp) {
+			// Late responses must only update the currently displayed placeholder for this readmeId.
+			var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
+			// If the user navigated away, the placeholder won't exist anymore: do nothing.
+			if (!$current.length) return;
+			var currentUrl = $current.attr("data-readme-url") || "";
+			// Guard against re-use / DOM replacement while request was in flight.
+			if (url && currentUrl !== url) return;
 
-      if (resp && resp.html) $current.find(".ca_readme_body").html(resp.html);
-      else $current.find(".ca_readme_body").text((resp && resp.message) ? resp.message : "README can't be loaded");
-      $current.data("readmeLoaded", true);
-      $current.data("readmeLoading", false);
+			if (resp && resp.html) $current.find(".ca_readme_body").html(resp.html);
+			else $current.find(".ca_readme_body").text((resp && resp.message) ? resp.message : "README can't be loaded");
+			$current.data("readmeLoaded", true);
+			$current.data("readmeLoading", false);
 
-      // Initialize readmore for this section now (don't wait for other readmes).
-      caInitSidebarReadmore($current);
-    });
-  });
+			// Initialize readmore for this section now (don't wait for other readmes).
+			caInitSidebarReadmore($current);
+		});
+	});
 }
 
 function caLoadSidebarTemplateChanges() {
-  var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
-  if (!$sections.length) return;
-  $sections.each(function() {
-    var $section = $(this);
-    if ($section.data("changesLoaded") || $section.data("changesLoading") || $section.attr("data-changes-loaded") == "1") {
-      return;
-    }
-    $section.data("changesLoading", true);
-    var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
-    var url = $section.attr("data-changes-url") || "";
-    var cacheKey = $section.attr("data-changes-cachekey") || "";
-    var type = $section.attr("data-changes-type") || "";
+	var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
+	if (!$sections.length) return;
+	$sections.each(function() {
+		var $section = $(this);
+		if ($section.data("changesLoaded") || $section.data("changesLoading") || $section.attr("data-changes-loaded") == "1") {
+			return;
+		}
+		$section.data("changesLoading", true);
+		var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
+		var url = $section.attr("data-changes-url") || "";
+		var cacheKey = $section.attr("data-changes-cachekey") || "";
+		var type = $section.attr("data-changes-type") || "";
 
-    postNoSpin({action:"getTemplateChanges", changesId: changesId, url:url, cacheKey: cacheKey, type: type}, function(resp) {
-      var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
-      if (!$current.length) return;
-      var currentUrl = $current.attr("data-changes-url") || "";
-      if (url && currentUrl !== url) return;
+		postNoSpin({action:"getTemplateChanges", changesId: changesId, url:url, cacheKey: cacheKey, type: type}, function(resp) {
+			var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
+			if (!$current.length) return;
+			var currentUrl = $current.attr("data-changes-url") || "";
+			if (url && currentUrl !== url) return;
 
-      if (resp && resp.html) $current.html(resp.html);
-      else $current.text((resp && resp.message) ? resp.message : "Change log can't be loaded");
+			if (resp && resp.html) $current.html(resp.html);
+			else $current.text((resp && resp.message) ? resp.message : "Change log can't be loaded");
 
-      $current.data("changesLoaded", true);
-      $current.data("changesLoading", false);
-      $current.attr("data-changes-loaded", "1");
-    });
-  });
+			$current.data("changesLoaded", true);
+			$current.data("changesLoading", false);
+			$current.attr("data-changes-loaded", "1");
+		});
+	});
 }
 
 function caInitSidebarReadmore($scope) {
-  var $targets = $scope ? $scope : $('.popup_readmore');
-  $targets.each(function() {
-    var $el = $(this);
-    // Avoid double-initializing readmore on the same element.
-    if ($el.hasClass("readmore-js")) return;
-    $el.readmore({
-    maxHeight:250,
-    moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
-    lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
-    afterToggle:function(trigger, element, expanded) {
-      var $el = $(element);
-      if (!$el.hasClass("ReadmeSection")) return;
-      $el.prev(".ca_readless_top").remove();
-      if (!expanded) return;
-      var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
-      $el.before(topLess);
-    }
-    });
-  });
+	var $targets = $scope ? $scope : $('.popup_readmore');
+	$targets.each(function() {
+		var $el = $(this);
+		// Avoid double-initializing readmore on the same element.
+		if ($el.hasClass("readmore-js")) return;
+		$el.readmore({
+		maxHeight:250,
+		moreLink:"<i class='ca_readmore fa fa-chevron-down'> <?=tr("SHOW MORE");?></i>",
+		lessLink:"<i class='ca_readmore fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>",
+		afterToggle:function(trigger, element, expanded) {
+			var $el = $(element);
+			if (!$el.hasClass("ReadmeSection")) return;
+			$el.prev(".ca_readless_top").remove();
+			if (!expanded) return;
+			var topLess = "<i class='ca_readmore ca_readless_top fa fa-chevron-up'> <?=tr("SHOW LESS");?></i>";
+			$el.before(topLess);
+		}
+		});
+	});
 }
 
 function slideInSidebar() {
-  $(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
+	$(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
 }
 function showRepoPopup(repository) {
-  if ( !repository ) return;
-  data.repository = repository;
-  context.destroy("#supportPopup");
-  context.destroy("#actionsPopup");
-  var fromCard = false;
+	if ( !repository ) return;
+	data.repository = repository;
+	context.destroy("#supportPopup");
+	context.destroy("#actionsPopup");
+	var fromCard = false;
 
-  if ( ! $(".sidenavShow").length ) {
-    $.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
-    $.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
-    var fromCard = true;
-  }
-  var sidebarAppName = $.cookie("sidebarAppName");
-  var sidebarAppPath = $.cookie("sidebarAppPath");
+	if ( ! $(".sidenavShow").length ) {
+		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
+		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
+		var fromCard = true;
+	}
+	var sidebarAppName = $.cookie("sidebarAppName");
+	var sidebarAppPath = $.cookie("sidebarAppPath");
 
-  $("#sidenavContent").html($("#sidebarLoading").html());
+	$("#sidenavContent").html($("#sidebarLoading").html());
 
-  $(".nav-user.show").hide();
+	$(".nav-user.show").hide();
 
-  post({action:'getRepoDescription',repository:repository},function(result) {
-    $("#sidenavContent").html(result.description); 
-    $(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
-    caInitSidebarReadmore();
-    caLoadSidebarReadmeSections();
-    if (!data.caReadmoreTopLessBound) {
-      data.caReadmoreTopLessBound = true;
-      $("#sidenavContent").on("click", ".ca_readless_top", function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        // This control sits right before the readmore section it controls.
-        var $section = $(this).nextAll(".popup_readmore").first();
-        if (!$section.length) return;
-        // Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
-        var $toggle = $section.nextAll(".readmore-js-toggle").first();
-        if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
-        if ($toggle.length) $toggle.trigger("click");
-        else $section.readmore("toggle");
-      });
-    }
+	post({action:'getRepoDescription',repository:repository},function(result) {
+		$("#sidenavContent").html(result.description);
+		$(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
+		caInitSidebarReadmore();
+		caLoadSidebarReadmeSections();
+		if (!data.caReadmoreTopLessBound) {
+			data.caReadmoreTopLessBound = true;
+			$("#sidenavContent").on("click", ".ca_readless_top", function(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				// This control sits right before the readmore section it controls.
+				var $section = $(this).nextAll(".popup_readmore").first();
+				if (!$section.length) return;
+				// Prefer proxy-clicking the library's own toggle control (more reliable than calling methods).
+				var $toggle = $section.nextAll(".readmore-js-toggle").first();
+				if (!$toggle.length) $toggle = $section.nextAll(".ca_readmore").first();
+				if ($toggle.length) $toggle.trigger("click");
+				else $section.readmore("toggle");
+			});
+		}
 
-    if (fromCard) {
-      $(".popUpBack").addClass("ca_hide");
-    } else {
-      $(".popUpBack").removeClass("ca_hide");
-    }
+		if (fromCard) {
+			$(".popUpBack").addClass("ca_hide");
+		} else {
+			$(".popUpBack").removeClass("ca_hide");
+		}
 
-    $('.screenshot').magnificPopup({
-      type:'image',
-      closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
-      closeOnContentClick: true,
-      removalDelay: 100,
-      mainClass: 'mfp-fade',
-      zoom: {
-        enabled: true,
-        duration: 500,
-        easing: 'ease-in-out'
-      },
-      callbacks: {
-        beforeOpen: function() {
-          event.stopPropagation();
-          closeSidebar();
-        },
-        afterClose: function() {
-          $('body').removeClass("mfp-zoom-out-cur");
-          $(".sidebar").show();
-          $.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
-          $.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
-          showRepoPopup(data.repository);
-        }
-      }
-    });
-  });
+		$('.screenshot').magnificPopup({
+			type:'image',
+			closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+			closeOnContentClick: true,
+			removalDelay: 100,
+			mainClass: 'mfp-fade',
+			zoom: {
+				enabled: true,
+				duration: 500,
+				easing: 'ease-in-out'
+			},
+			callbacks: {
+				beforeOpen: function() {
+					event.stopPropagation();
+					closeSidebar();
+				},
+				afterClose: function() {
+					$('body').removeClass("mfp-zoom-out-cur");
+					$(".sidebar").show();
+					$.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
+					$.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
+					showRepoPopup(data.repository);
+				}
+			}
+		});
+	});
 }
 
 function checkSortOrder() {
-  var sortButton = false;
-  $(".sortIcons").each(function() {
-    if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
-      sortButton = true;
-    }
-  });
-  if ( !sortButton) {
-    $(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
-    post({action:"defaultSortOrder"},function(data) {
-      $("#defaultSort").addClass("enabledIcon");
-    });
-  }
+	var sortButton = false;
+	$(".sortIcons").each(function() {
+		if ($(this).hasClass("enabledIcon") && ( ! $(this).hasClass("startupMore") ) ) {
+			sortButton = true;
+		}
+	});
+	if ( !sortButton) {
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+		post({action:"defaultSortOrder"},function(data) {
+			$("#defaultSort").addClass("enabledIcon");
+		});
+	}
 }
 
 function initDockerSearch() {
-  caClearHomeSectionSubtitle();
-  dockerSearch(1);
-  data.docker = "searching docker";
-  data.section = "";
-  data.selected_category = "";
-  data.committedSearchFilter = "";
-  $(".selectedMenu").removeClass("selectedMenu");
-  $(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-  hideSortIcons();
-  $(".subCategory").hide();
-  caSyncSearchFilterCollapsed();
-  caSyncHomeSearchSubtitle();
+	caClearHomeSectionSubtitle();
+	dockerSearch(1);
+	data.docker = "searching docker";
+	data.section = "";
+	data.selected_category = "";
+	data.committedSearchFilter = "";
+	$(".selectedMenu").removeClass("selectedMenu");
+	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+	hideSortIcons();
+	$(".subCategory").hide();
+	caSyncSearchFilterCollapsed();
+	caSyncHomeSearchSubtitle();
 }
 
 function dockerSearch(pageNumber) {
-  caRestoreCommittedSearchIfDrafted();
-  if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-  scrollToTop();
-  $(".selectedMenu").removeClass("selectedMenu");
-  $(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-  var filter = $('#searchBox').val();
-  var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
-  data.docker = "searching docker";
-  $(".dockerSearch,.multi_installDiv").hide();
-  $(".templateSearch").show();
+	caRestoreCommittedSearchIfDrafted();
+	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
+	scrollToTop();
+	$(".selectedMenu").removeClass("selectedMenu");
+	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+	var filter = $('#searchBox').val();
+	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
+	data.docker = "searching docker";
+	$(".dockerSearch,.multi_installDiv").hide();
+	$(".templateSearch").show();
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
-  post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
-    data.committedSearchFilter = $.trim(String(filter || ""));
-    caSyncHomeSearchSubtitle();
-    updateDisplay(result.display);
-    caSyncSearchFilterCollapsed();
-  });
+	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+		data.committedSearchFilter = $.trim(String(filter || ""));
+		caSyncHomeSearchSubtitle();
+		updateDisplay(result.display);
+		caSyncSearchFilterCollapsed();
+	});
 }
 
 function dockerConvert(dockerID) {
-  saveState();
-  swal({
-    title: "<?tr("Determine configuration?");?>",
-    text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.');?>',
-    html: true,
-    type: 'info',
-    showCancelButton: true,
-    showConfirmButton: true,
-    confirmButtonText: "<?tr('Yes');?>",
-    cancelButtonText: "<?tr('No');?>"
-  }, function (isConfirm) {
-    if ( isConfirm ) {
-      $("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-      openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,"<?tr('Docker Test Install')?>",600,1100,true);
-    } else {
-      post({action:'convert_docker',ID:dockerID},function(result) {
-        myCloseAlert();
-        templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
-        openNewWindow(templateURL);
-      });
-    }
-  });
+	saveState();
+	swal({
+		title: "<?tr("Determine configuration?");?>",
+		text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.');?>',
+		html: true,
+		type: 'info',
+		showCancelButton: true,
+		showConfirmButton: true,
+		confirmButtonText: "<?tr('Yes');?>",
+		cancelButtonText: "<?tr('No');?>"
+	}, function (isConfirm) {
+		if ( isConfirm ) {
+			$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
+			openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,"<?tr('Docker Test Install')?>",600,1100,true);
+		} else {
+			post({action:'convert_docker',ID:dockerID},function(result) {
+				myCloseAlert();
+				templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
+				openNewWindow(templateURL);
+			});
+		}
+	});
 
 }
 
 var caSortMenuObserver = null;
 function caInitializeSortMenu() {
-  caRefreshSortMenu();
-  if (caSortMenuObserver) {
-    return;
-  }
-  var sortContainer = $("#sortIconOptions").get(0);
-  if (!sortContainer) {
-    return;
-  }
-  caSortMenuObserver = new MutationObserver(function() {
-    caRefreshSortMenu();
-  });
-  caSortMenuObserver.observe(sortContainer, {
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["class"]
-  });
+	caRefreshSortMenu();
+	if (caSortMenuObserver) {
+		return;
+	}
+	var sortContainer = $("#sortIconOptions").get(0);
+	if (!sortContainer) {
+		return;
+	}
+	caSortMenuObserver = new MutationObserver(function() {
+		caRefreshSortMenu();
+	});
+	caSortMenuObserver.observe(sortContainer, {
+		subtree: true,
+		attributes: true,
+		attributeFilter: ["class"]
+	});
 }
 
 function caRefreshSortMenu() {
-  if (!$("#sortByButton").length) {
-    return;
-  }
-  var $selectedSort = $(".sortIcons.enabledIcon").not(".startupMore").first();
-  if (!$selectedSort.length) {
-    $selectedSort = $("#defaultSort");
-  }
-  var selectedText = $.trim($selectedSort.text());
-  $("#sortByButton").html(sprintf("<?tr("Sort By: %s");?>", selectedText));
-  context.destroy("#sortByButton");
-  context.attach("#sortByButton", getSortOpts());
+	if (!$("#sortByButton").length) {
+		return;
+	}
+	var $selectedSort = $(".sortIcons.enabledIcon").not(".startupMore").first();
+	if (!$selectedSort.length) {
+		$selectedSort = $("#defaultSort");
+	}
+	var selectedText = $.trim($selectedSort.text());
+	$("#sortByButton").html(sprintf("<?tr("Sort By: %s");?>", selectedText));
+	context.destroy("#sortByButton");
+	context.attach("#sortByButton", getSortOpts());
 }
 
 function getSortOpts() {
-  var sortOpts = [];
-  $(".sortIcons").each(function() {
-    var sortOption = this;
-    var $sortOption = $(sortOption);
-    var sortText = $.trim($sortOption.text());
-    var isSelected = $sortOption.hasClass("enabledIcon") && !$sortOption.hasClass("startupMore");
-    sortOpts.push({
-      icon: isSelected ? "ca_fa-checkmark" : " ",
-      text: isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText,
-      action: function() {
-        $(sortOption).trigger("click");
-      }
-    });
-  });
-  return sortOpts;
+	var sortOpts = [];
+	$(".sortIcons").each(function() {
+		var sortOption = this;
+		var $sortOption = $(sortOption);
+		var sortText = $.trim($sortOption.text());
+		var isSelected = $sortOption.hasClass("enabledIcon") && !$sortOption.hasClass("startupMore");
+		sortOpts.push({
+			icon: isSelected ? "ca_fa-checkmark" : " ",
+			text: isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText,
+			action: function() {
+				$(sortOption).trigger("click");
+			}
+		});
+	});
+	return sortOpts;
 }
 
 function setupActionCentre() {
-  // set up action centre - run in background without tying anything up
-  var acBanner = false;
-  $.post(execURL,{action:'enableActionCentre'},function(ret) {
-    if ( ret.status == "action" ) {
-      if ( !$(".actionCentre").is(":visible") ) {
-        // Don't show banner for action centre if menu isn't visibile (Covers hamburger on mobile if scrolled down)
-        if ( ! actionCentreRestoreState && $(".menuItems").is(":visible") ) {
-          acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
-          setTimeout(function() {
-            removeBannerWarning(acBanner);
-          },10000);
-        }
-        $(".actionCentre").show();
-      }
-    } else
-      $(".actionCentre").hide();
-  });
+	// set up action centre - run in background without tying anything up
+	var acBanner = false;
+	$.post(execURL,{action:'enableActionCentre'},function(ret) {
+		if ( ret.status == "action" ) {
+			if ( !$(".actionCentre").is(":visible") ) {
+				// Don't show banner for action centre if menu isn't visibile (Covers hamburger on mobile if scrolled down)
+				if ( ! actionCentreRestoreState && $(".menuItems").is(":visible") ) {
+					acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
+					setTimeout(function() {
+						removeBannerWarning(acBanner);
+					},10000);
+				}
+				$(".actionCentre").show();
+			}
+		} else
+			$(".actionCentre").hide();
+	});
 }
 
 function postCheckForUpdates() {
-  setupActionCentre();
-  $(".selectedMenu").click();
+	setupActionCentre();
+	$(".selectedMenu").click();
 }
 
 </script>

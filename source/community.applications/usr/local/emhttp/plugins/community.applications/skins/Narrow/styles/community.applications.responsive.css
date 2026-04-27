@@ -1,85 +1,85 @@
 @media (min-width: 769px) {
-  .mobileOverlay {
-    display: none !important;
-  }
+	.mobileOverlay {
+		display: none !important;
+	}
 }
 @media (max-width: 1024px) {
-  .searchAreaHolder {
-    height:4rem;
-    padding-left: 2rem;
-  }
-  .Theme--sidebar .searchAreaHolder {
-    margin-left: 6rem;
-  }
-  .searchArea {
-    padding-left: 0;
-    margin-left: 0;
-  }
+	.searchAreaHolder {
+		height:4rem;
+		padding-left: 2rem;
+	}
+	.Theme--sidebar .searchAreaHolder {
+		margin-left: 6rem;
+	}
+	.searchArea {
+		padding-left: 0;
+		margin-left: 0;
+	}
 }
 @media (max-width: 767px) {
-  :root {
-    --mobileDevice: true;
-  }
-  body {
-    overflow-x: unset !important;
-    width: initial;
-  }
-  .searchAreaHolder {
-    top: var(--search-area-mobile-top);
-  }
-  .upgrade_notice {
-    position: absolute;
-  }
-  .mobileMenu {
-    position: absolute;
-    display: none;
-    z-index: 5;
-    overflow: auto;
-    height: 100vh;
-  }
+	:root {
+		--mobileDevice: true;
+	}
+	body {
+		overflow-x: unset !important;
+		width: initial;
+	}
+	.searchAreaHolder {
+		top: var(--search-area-mobile-top);
+	}
+	.upgrade_notice {
+		position: absolute;
+	}
+	.mobileMenu {
+		position: absolute;
+		display: none;
+		z-index: 5;
+		overflow: auto;
+		height: 100vh;
+	}
 
-  .mobileMenu.menuHidden{
-    display: none;
-  }
-  .mobileMenu.menuShowing {
-    width: 20rem;
-    padding-left:2rem;
-  }
+	.mobileMenu.menuHidden{
+		display: none;
+	}
+	.mobileMenu.menuShowing {
+		width: 20rem;
+		padding-left:2rem;
+	}
 
-  .mobileMenuButton {
-    display: inline-block;
-    z-index: 5;
-  }
-  .menuItems {
-    padding-left: 2rem;
-    padding-right: 2rem;
-    top: 2rem;
-  }
-  .mainArea {
-    left: 0;
-    right: 0;
-    padding-left: 1rem;
-  }
+	.mobileMenuButton {
+		display: inline-block;
+		z-index: 5;
+	}
+	.menuItems {
+		padding-left: 2rem;
+		padding-right: 2rem;
+		top: 2rem;
+	}
+	.mainArea {
+		left: 0;
+		right: 0;
+		padding-left: 1rem;
+	}
 
-  #searchBox {
-    width: 150px;
-  }
+	#searchBox {
+		width: 150px;
+	}
 
-  #searchFilter.ca_searchInputCollapsed:focus-within #searchBox {
-    width: 150px;
-    max-width: 150px;
-  }
+	#searchFilter.ca_searchInputCollapsed:focus-within #searchBox {
+		width: 150px;
+		max-width: 150px;
+	}
 
-  .multi_installDiv {
-    position: relative;
-  }
-  .navigationSection {
-    bottom: 0 !important;
-    position: relative;
-  }
+	.multi_installDiv {
+		position: relative;
+	}
+	.navigationSection {
+		bottom: 0 !important;
+		position: relative;
+	}
 
 
-  #templates_content {
-    margin-bottom: 0;
-  }
+	#templates_content {
+		margin-bottom: 0;
+	}
 }
