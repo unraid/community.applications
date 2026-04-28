@@ -466,17 +466,22 @@ function caSyncHomeSearchSubtitle() {
  * a search is in progress. The two translated strings come from data attributes set by skin.html.
  */
 function caSyncHomeMenuLabel() {
-	var $lbl = $(".caHomeMenuLabel");
-	if (!$lbl.length) return;
 	var d = (typeof data !== "undefined" && data) ? data : null;
 	var c = d ? $.trim(String(d.committedSearchFilter || "")) : "";
 	var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
 	var inProgress = !!c || hasActive;
-	$lbl.each(function() {
+	$(".caHomeMenuLabel").each(function() {
 		var $el = $(this);
 		var home = $el.attr("data-home-label") || "Home";
 		var clear = $el.attr("data-clear-label") || "Clear Search";
 		var want = inProgress ? clear : home;
+		if ($el.text() !== want) $el.text(want);
+	});
+	$(".caAllAppsMenuLabel").each(function() {
+		var $el = $(this);
+		var allApps = $el.attr("data-all-apps-label") || "All Apps";
+		var allResults = $el.attr("data-all-results-label") || "All Results";
+		var want = inProgress ? allResults : allApps;
 		if ($el.text() !== want) $el.text(want);
 	});
 }
