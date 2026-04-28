@@ -618,13 +618,23 @@ function doSearch(button,newSearch) {
 	filter = stripTags(filter);
 
 	/* No-op: term hasn't changed from the currently committed search.
-	   Just normalize the input and close the modal — do not re-fetch. */
+	   Close the modal; if maxPerPage changed (viewport/layout changed), re-render current
+	   search pagination via changePage so cards-per-page and page mapping stay consistent. */
 	var committedFilter = $.trim(String(data.committedSearchFilter || ""));
 	var hasActiveSearch = !!(data.searchActive || data.searchFlag || data.docker);
 	if (filter && hasActiveSearch && filter === committedFilter) {
 		$('#searchBox').val(filter);
 		data.searchInProgress = false;
+		var nextMax = getMaxPerPage();
+		var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
+		var maxChanged = nextMax && nextMax > 0 && nextMax !== oldMax;
 		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+		if (maxChanged && typeof changePage === "function") {
+			/* Trigger page-geometry banner by passing a different page token.
+			   changePage() will remap to the correct page based on old first-visible index. */
+			var curPage = Math.max(1, parseInt(data.currentpage, 10) || 1);
+			changePage(curPage === 1 ? 2 : 1);
+		}
 		return;
 	}
 
@@ -1758,6 +1768,7 @@ function restoreState() {
 	var filter = $.cookie("ca_filter");
 	$("#searchBox").val(filter);
 	data.committedSearchFilter = $.trim(filter || "");
+	data.maxPerPage = getMaxPerPage();
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
 

@@ -26,8 +26,6 @@
 		--magnificCloseColor: var(--ca-named-black);
 		--ca-scrim-background: rgba(0, 0, 0, 0.25);
 		--ca-scrim-blur: 12px;
-		--ca-scrim-transition-duration: 0.5s;
-		--ca-scrim-transition-ease: ease-in-out;
 		/* Awesomplete <mark> highlight color in suggestion chips */
 		--ca-suggestion-mark-color: var(--ca-red-color, #882626);
 }

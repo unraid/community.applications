@@ -1,4 +1,4 @@
-d0b89e36c5c0f257d350d8beb19dbc2e  ./Apps.page
+c92776377065dd78e0c0eadd19f853c1  ./Apps.page
 c9f629c30f77fe438ebbe5af75929582  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -31,13 +31,13 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 4f21bb9b72bdd0cfc919b47013c885d3  ./scripts/pluginInstall.php
 69158f58637a757bd6dd1d6f8b06b1f4  ./scripts/updatePLG.sh
 3bdcd43cb101c88848e26834fed29b16  ./scripts/updatePluginSupport.php
-52956c6c53ccf9c15a892421396827dc  ./skins/Narrow/styles/community.applications.colors.css
+37fcfb8bf6c2f5dbca3e4285fd55de03  ./skins/Narrow/styles/community.applications.colors.css
 f22dbd68b0db071efc5e26a7e870a4bf  ./skins/Narrow/styles/community.applications.css
 6dfa74268008eac9819bc3783af23a27  ./skins/Narrow/styles/community.applications.responsive.css
-22d2b0ab3d4ae6087e35f41cbe25379f  ./skins/Narrow/themes/azure.css
-6599318bcfa323e861fecddf0b208f4f  ./skins/Narrow/themes/black.css
-c5db2711c82117b614c4b081c7b502fc  ./skins/Narrow/themes/gray.css
-a11f4fe51c3bd1e9d3117a03f6880dd1  ./skins/Narrow/themes/white.css
+c6329bd8d14ea900f6bbfa89a70bc23f  ./skins/Narrow/themes/azure.css
+d3d51c182617b4611654fd459a59a2c0  ./skins/Narrow/themes/black.css
+001ceb3cb1627bd3762ea217a2e612dc  ./skins/Narrow/themes/gray.css
+f9ff07c46fc2bd9093c875b1200db387  ./skins/Narrow/themes/white.css
 249443977085933c170ee8b23460cd70  ./skins/Narrow/skin.html
 95aa36f31fc1120accc2c79e615a27d8  ./skins/Narrow/skin.php
 27e9eb0ec9045579ae03eb2140a17e88  ./skins/Narrow/skin_helpers.php
