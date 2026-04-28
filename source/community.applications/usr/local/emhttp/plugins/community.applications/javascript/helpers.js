@@ -117,10 +117,10 @@ function caUpdateSearchModalLayout() {
 	var topPx = r.top + 2 * rootFont;
 	var panelW = r.width * 0.5;
 	var leftPx = r.left + (r.width - panelW) / 2;
-	var html = document.documentElement;
-	html.style.setProperty("--ca-search-modal-top", topPx + "px");
-	html.style.setProperty("--ca-search-modal-left", leftPx + "px");
-	html.style.setProperty("--ca-search-modal-width", panelW + "px");
+	$("html")
+		.css("--ca-search-modal-top", topPx + "px")
+		.css("--ca-search-modal-left", leftPx + "px")
+		.css("--ca-search-modal-width", panelW + "px");
 }
 
 /**
@@ -169,9 +169,8 @@ function caOpenSearchModal(options) {
 			   input has enough text. Otherwise force it closed so stale suggestions don't flash. */
 			try {
 				if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
-					var sbEl = document.getElementById("searchBox");
 					var minChars = typeof searchBoxAwesomplete.minChars === "number" ? searchBoxAwesomplete.minChars : 2;
-					var hasEnough = sbEl && String(sbEl.value || "").length >= minChars;
+					var hasEnough = $.trim(String($("#searchBox").val() || "")).length >= minChars;
 					if (hasEnough && !searchBoxAwesomplete.opened) {
 						if (typeof searchBoxAwesomplete.open === "function") searchBoxAwesomplete.open();
 					} else if (!hasEnough) {
@@ -209,9 +208,9 @@ function caRunSearchBoxAwesompleteEvaluate() {
  */
 function caKickSearchModalAwesomplete() {
 	if (typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
-	var el = document.getElementById("searchBox");
-	if (!el) return;
-	var v = String(el.value || "");
+	var $el = $("#searchBox");
+	if (!$el.length) return;
+	var v = String($el.val() || "");
 	var minC = typeof searchBoxAwesomplete.minChars === "number" ? searchBoxAwesomplete.minChars : 2;
 	caRunSearchBoxAwesompleteEvaluate();
 	if (v.length < minC) {
@@ -231,11 +230,12 @@ function caInitSearchModalSuggestionInputMode() {
 	/* Mouse hover marks "mouse used" */
 	$(document).on("mouseenter.caSuggestionInputMode", "body.ca_searchModalOpen #searchFilter .awesomplete > ul > li", function() {
 		$("body").addClass("ca_suggestionMouseUsed");
-		/* Keep arrow-key navigation working by ensuring the input stays focused */
+		/* Keep arrow-key navigation working by ensuring the input stays focused.
+		   Use the native focus() so we can pass preventScroll (jQuery .trigger("focus") can't). */
 		try {
-			var sb = document.getElementById("searchBox");
-			if (sb && document.activeElement !== sb) {
-				sb.focus({ preventScroll: true });
+			var $sb = $("#searchBox");
+			if ($sb.length && !$sb.is(":focus")) {
+				$sb[0].focus({ preventScroll: true });
 			}
 		} catch (err) { /* no-op */ }
 	});
@@ -251,20 +251,21 @@ function caInitSearchModalSuggestionInputMode() {
 	/*
 	Ensure arrow-key navigation always works even if focus drifts after mouse hover:
 	on ArrowUp/ArrowDown while the search modal is open, force focus back to #searchBox
-	and clear ca_suggestionMouseUsed (capture phase so it runs before Awesomplete).
+	and clear ca_suggestionMouseUsed. Capture phase is required so this runs before
+	Awesomplete's own keydown handler — jQuery does not expose the capture flag.
 	*/
 	try {
-		var sb2 = document.getElementById("searchBox");
-		if (sb2 && !sb2.__caSuggestionArrowKeyCap) {
-			sb2.__caSuggestionArrowKeyCap = true;
+		var sbArrow = $("#searchBox")[0];
+		if (sbArrow && !sbArrow.__caSuggestionArrowKeyCap) {
+			sbArrow.__caSuggestionArrowKeyCap = true;
 			window.addEventListener("keydown", function(e) {
 				if (!$("body").hasClass("ca_searchModalOpen")) return;
 				var k = e && (e.key || e.keyCode);
 				if (!(k === "ArrowDown" || k === "ArrowUp" || k === 40 || k === 38)) return;
 				try {
-					var sb = document.getElementById("searchBox");
-					if (sb && document.activeElement !== sb) {
-						sb.focus({ preventScroll: true });
+					var $sb = $("#searchBox");
+					if ($sb.length && !$sb.is(":focus")) {
+						$sb[0].focus({ preventScroll: true });
 					}
 				} catch (err) { /* no-op */ }
 				$("body").removeClass("ca_suggestionMouseUsed");
@@ -275,17 +276,18 @@ function caInitSearchModalSuggestionInputMode() {
 	/*
 	Enter key: if the mouse was used (so keyboard highlight is suppressed) and nothing is
 	currently hovered by the mouse, prevent Awesomplete from selecting the last keyboard
-	item on Enter. This keeps the raw input value as the search term.
+	item on Enter. This keeps the raw input value as the search term. Capture phase is
+	required to run before Awesomplete — jQuery does not expose the capture flag.
 	*/
 	try {
-		var sb = document.getElementById("searchBox");
-		if (sb && !sb.__caSuggestionInputModeEnterCap) {
-			sb.__caSuggestionInputModeEnterCap = true;
-			sb.addEventListener("keydown", function(e) {
+		var sbEnter = $("#searchBox")[0];
+		if (sbEnter && !sbEnter.__caSuggestionInputModeEnterCap) {
+			sbEnter.__caSuggestionInputModeEnterCap = true;
+			sbEnter.addEventListener("keydown", function(e) {
 				var k = e && (e.key || e.keyCode);
 				if (!(k === "Enter" || k === 13)) return;
 				if (!$("body").hasClass("ca_suggestionMouseUsed")) return;
-				if (document.querySelector("body.ca_searchModalOpen #searchFilter .awesomplete > ul > li:hover")) return;
+				if ($("body.ca_searchModalOpen #searchFilter .awesomplete > ul > li:hover").length) return;
 
 				/* Clear any active selection before Awesomplete's key handler runs */
 				try {
@@ -345,10 +347,10 @@ function caReopenSearchModalIfNeeded() {
 function caCloseSearchModal(options) {
 	options = options || {};
 	$(window).off("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
-	var html = document.documentElement;
-	html.style.removeProperty("--ca-search-modal-top");
-	html.style.removeProperty("--ca-search-modal-left");
-	html.style.removeProperty("--ca-search-modal-width");
+	$("html")
+		.css("--ca-search-modal-top", "")
+		.css("--ca-search-modal-left", "")
+		.css("--ca-search-modal-width", "");
 
 	/*
 	Abandonment paths (backdrop click, focusout, ESC) pass discardDraft:true:
@@ -362,11 +364,7 @@ function caCloseSearchModal(options) {
 			var d = (typeof data !== "undefined" && data) ? data : null;
 			var committed = d ? $.trim(String(d.committedSearchFilter || "")) : "";
 			var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
-			if (committed && hasActive) {
-				$("#searchBox").val(committed);
-			} else {
-				$("#searchBox").val("");
-			}
+			$("#searchBox").val((committed && hasActive) ? committed : "");
 			/* Force Awesomplete to re-evaluate against the new value so its cached <li> list updates
 			   (empty input drops the list; a restored committed term repopulates from that term). */
 			if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete && typeof searchBoxAwesomplete.evaluate === "function") {
@@ -375,18 +373,14 @@ function caCloseSearchModal(options) {
 		} catch (e) { /* no-op */ }
 	}
 
-	$("body").removeClass("ca_searchModalOpen");
-	$("body").removeClass("ca_suggestionMouseUsed");
+	$("body").removeClass("ca_searchModalOpen ca_suggestionMouseUsed ca_awesomplete_open");
 	$("#caSearchModalBackdrop").addClass("ca_hide");
 	if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 		try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 	}
-	$("body").removeClass("ca_awesomplete_open");
 	try {
-		var sb = document.getElementById("searchBox");
-		if (sb && document.activeElement === sb) {
-			sb.blur();
-		}
+		var $sb = $("#searchBox");
+		if ($sb.is(":focus")) $sb.trigger("blur");
 	} catch (e) { /* no-op */ }
 	caSyncSearchFilterCollapsed();
 }
@@ -901,11 +895,14 @@ function getMaxPerPage() {
 
 	if (!$templatesContent.length || !$caDisplayArea.length) return 0;
 
+	/* When the prior result was "No Matching Applications Found", the .ca_templatesDisplay wrapper
+	   is present but contains no .ca_holder, so we can't measure the card. Inject the #sampleApp
+	   markup whenever no .ca_holder is in #templates_content so getMaxPerPage can compute a real
+	   per-page count. Without this, maxPerPage returns 0 and the next search dumps every result
+	   onto page 1. */
 	const $sampleApp = $("#sampleApp");
-	const hasTemplatesDisplayChild = $templatesContent.children().toArray().some(function(el) {
-		return $(el).hasClass("ca_templatesDisplay");
-	});
-	const shouldUseSample = !!($sampleApp.length && !hasTemplatesDisplayChild);
+	const hasHolderChild = $templatesContent.find(".ca_holder").length > 0;
+	const shouldUseSample = !!($sampleApp.length && !hasHolderChild);
 
 	if (shouldUseSample) {
 		$templatesContent.html($sampleApp.html());
@@ -958,6 +955,8 @@ function caInitGlobalSearchHotkeyOverride() {
 	if (window.ca_globalSearchHotkeyOverrideInit) return;
 	window.ca_globalSearchHotkeyOverrideInit = true;
 
+	/* Capture phase is required so this beats Dynamix's own GUI-search hotkey handler;
+	   jQuery does not expose the capture flag, so this listener stays native. */
 	window.addEventListener("keydown", function(e) {
 		try {
 			var k = e && (e.key || e.keyCode);
@@ -969,15 +968,17 @@ function caInitGlobalSearchHotkeyOverride() {
 			var wants = isMac ? e.metaKey : e.ctrlKey;
 			if (!wants) return;
 
-			/* Don't steal Cmd/Ctrl+K while sidebar is open */
-			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
-
-			/* Only override when CA search exists on the page */
-			if (!document.getElementById("searchBox") || typeof caOpenSearchModal !== "function") return;
-
+			/* Always block Cmd/Ctrl+K so Dynamix's GUI-search never opens, even when CA can't act on it. */
 			e.preventDefault();
 			if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
 			if (typeof e.stopPropagation === "function") e.stopPropagation();
+
+			/* Swallow without opening CA search if the sidebar or a SweetAlert overlay is showing. */
+			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
+			if ($(".sweet-overlay").is(":visible")) return;
+
+			/* Only open CA search when it's actually present on the page. */
+			if (!$("#searchBox").length || typeof caOpenSearchModal !== "function") return;
 
 			if ($("body").hasClass("ca_searchModalOpen")) {
 				try { $("#searchBox").trigger("focus"); } catch (err) { /* no-op */ }
@@ -988,11 +989,7 @@ function caInitGlobalSearchHotkeyOverride() {
 	}, true);
 }
 
-/* Initialize after DOM is ready (best-effort). */
+/* jQuery's $(fn) covers both not-ready (queues) and already-ready (runs immediately). */
 try {
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", caInitGlobalSearchHotkeyOverride, { once: true });
-	} else {
-		caInitGlobalSearchHotkeyOverride();
-	}
+	$(caInitGlobalSearchHotkeyOverride);
 } catch (err) { /* no-op */ }

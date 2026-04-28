@@ -473,19 +473,17 @@ function caInitializeClickHandlers() {
 		}
 		caOpenSearchModal();
 	});
-	/* Capture: keep #searchBox focused when clicking ?/X so #searchFilter focusout does not close the modal. */
+	/* Capture phase keeps #searchBox focused when clicking ?/X so #searchFilter focusout does not close the modal.
+	   jQuery does not expose the capture flag, so this listener stays native. */
 	if (!window.__caSearchModalIconMouseDownCapture) {
 		window.__caSearchModalIconMouseDownCapture = true;
 		document.addEventListener(
 			"mousedown",
 			function(e) {
-				var t = e.target;
-				if (!t || !t.closest) return;
-				if (!t.closest(".searchModalQueryBtn, .searchModalClearBtn")) return;
-				if (!document.body.classList.contains("ca_searchModalOpen")) return;
+				if (!$(e.target).closest(".searchModalQueryBtn, .searchModalClearBtn").length) return;
+				if (!$("body").hasClass("ca_searchModalOpen")) return;
 				e.preventDefault();
-				var sb = document.getElementById("searchBox");
-				if (sb) sb.focus();
+				$("#searchBox").trigger("focus");
 			},
 			true
 		);

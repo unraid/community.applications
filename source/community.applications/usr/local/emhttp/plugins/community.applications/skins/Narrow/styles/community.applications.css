@@ -2314,6 +2314,10 @@ a {
 		align-items: center;
 		line-height: 1;
 	}
+	.caSearchModalIconControls .searchModalQueryBtn:hover,
+	.caSearchModalIconControls .searchModalClearBtn:hover {
+		color: var(--unraid-66-color);
+	}
 	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow {
 		display: grid;
 		grid-template-columns: auto 1fr;
