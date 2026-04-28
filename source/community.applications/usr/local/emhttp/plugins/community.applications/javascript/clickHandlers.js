@@ -25,6 +25,26 @@ function caInitializeClickHandlers() {
 			$root = $("<div>", { id: "ca_fixed_scroll_root" }).appendTo("body");
 		}
 
+		var getMainAreaClientRect = function() {
+			var m = document.querySelector(".mainArea");
+			if (!m) return null;
+			var r = m.getBoundingClientRect();
+			if (r.width <= 0 || r.height <= 0) return null;
+			return r;
+		};
+
+		/* Horizontal overlay is drawn along the bottom edge of the scroll target; hide it when that
+		   track does not intersect .mainArea (eg. mobile menu / other panes outside the main pane). */
+		var hTrackIntersectsMainArea = function(elRect) {
+			var mainRect = getMainAreaClientRect();
+			if (!mainRect) return true;
+			var hLeft = elRect.left;
+			var hRight = elRect.left + elRect.width;
+			var hTop = elRect.bottom - trackThicknessPx;
+			var hBottom = elRect.bottom;
+			return hLeft < mainRect.right && hRight > mainRect.left && hTop < mainRect.bottom && hBottom > mainRect.top;
+		};
+
 		var shouldAlwaysShowMenuIndicators = function(el) {
 			return !!(el && el.classList && el.classList.contains("menuItems") && $(".mobileMenu").hasClass("menuShowing"));
 		};
@@ -74,7 +94,7 @@ function caInitializeClickHandlers() {
 			}
 
 			if (entry.$hIndicator) {
-				if (!hasHorizontal) {
+				if (!hasHorizontal || !hTrackIntersectsMainArea(rect)) {
 					entry.$hIndicator.hide();
 				} else {
 					entry.$hIndicator

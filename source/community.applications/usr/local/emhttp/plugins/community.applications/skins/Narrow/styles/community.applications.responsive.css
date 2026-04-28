@@ -15,19 +15,27 @@
 		padding-left: 0;
 		margin-left: 0;
 	}
-	.pageNavigation {
+	.ca_display_area {
+		right: 1rem;
+	}
+	.pageNavigation,
+	.navigationSection {
 		position: fixed;
-		left: 0;
-		bottom: 0;
+		left: 15rem;
+		right: 0;
+		bottom: 2rem;
 		display: flex;
 		flex-direction: row;
 	}
-	.navigationSection {
-		position: fixed;
-		left: 0;
-		bottom: 0;
-		display: flex;
-		flex-direction: row;
+	/* Mobile/tablet: keep JS horizontal overlay scrollbar indicators visible whenever present.
+	   (Exception handled in main CSS: hide entirely while .mobileMenu.menuShowing.) */
+	.ca_fixed_hscroll_indicator {
+		opacity: 1 !important;
+	}
+	.navigationSection .pageNumber,
+	.navigationSection a.pageNumber {
+		width: revert;
+		max-width: revert;
 	}
 }
 @media (max-width: 767px) {
@@ -45,8 +53,14 @@
 	#footer {
 		display: none;
 	}
+	#header {
+		display: none;
+	}
 	.searchAreaHolder {
 		top: var(--search-area-mobile-top);
+	}
+	.Theme--nav-top .ca_display_area {
+		top: 11rem;
 	}
 	.upgrade_notice {
 		position: absolute;
@@ -65,7 +79,6 @@
 	.mobileMenu.menuShowing {
 		display: block;
 		width: 20rem;
-		padding-left:2rem;
 	}
 
 	.mobileMenuButton {
@@ -73,9 +86,11 @@
 		z-index: 5;
 	}
 	.menuItems {
-		padding-left: 2rem;
 		padding-right: 2rem;
 		top: 2rem;
+	}
+	.Theme--nav-top .menuItems {
+		top: 12rem;
 	}
 	.mainArea {
 		left: 0;
@@ -86,8 +101,26 @@
 	.multi_installDiv {
 		position: relative;
 	}
+	.navigationSection .pageNavigation {
+		left: 0;
+	}
 
 	#templates_content {
 		margin-bottom: 0;
+	}
+}
+@media (max-height: 600px) {
+	#header {
+		display: none;
+	}
+
+	.Theme--nav-top .ca_display_area {
+		top: 11rem;
+	}
+	.menuItems {
+		top: 2rem;
+	}
+	.Theme--nav-top .menuItems {
+		top: 12rem;
 	}
 }

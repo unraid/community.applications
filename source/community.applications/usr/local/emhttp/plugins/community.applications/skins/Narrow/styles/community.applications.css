@@ -626,6 +626,13 @@ a {
 		opacity: 0 !important;
 		pointer-events: none !important;
 	}
+	/* While the mobile menu is open, do not show JS horizontal overlay scrollbars at all. */
+	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_indicator,
+	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_thumb {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
 	.ca_custom_scroll_target::-webkit-scrollbar,
 	.menuItems::-webkit-scrollbar,
 	.sidenav::-webkit-scrollbar,
@@ -1847,6 +1854,7 @@ input[type="button"] {
 		align-content: stretch;
 		justify-content: center;
 		align-items: center;
+		background-color: var(--ca-legacy-background-color);
 	}
 
 

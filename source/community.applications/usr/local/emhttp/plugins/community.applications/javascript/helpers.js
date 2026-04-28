@@ -528,9 +528,24 @@ function caShowFatalReloadBanner(message, reloadDelayMs) {
 			alert(msg);
 		}
 
-		setTimeout(function() { window.location.reload(); }, ms);
+		var doHomeReload = function() {
+			var $homeBtn = $(".startupButton").first();
+			if ($homeBtn.length) {
+				$homeBtn.trigger("click");
+			} else {
+				window.location.reload();
+			}
+		};
+		setTimeout(doHomeReload, ms);
 	} catch(e) {
-		setTimeout(function() { window.location.reload(); }, 10000);
+		setTimeout(function() {
+			var $homeBtn = $(".startupButton").first();
+			if ($homeBtn.length) {
+				$homeBtn.trigger("click");
+			} else {
+				window.location.reload();
+			}
+		}, 10000);
 	}
 }
 

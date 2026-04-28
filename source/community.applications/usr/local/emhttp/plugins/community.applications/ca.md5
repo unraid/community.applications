@@ -11,8 +11,8 @@ e0d0ce291191cf53f61393577c0027d1  ./include/force_update_helpers.php
 63524e7d13191da4dc23bf82a6b6d6f9  ./include/pinned_apps_helpers.php
 a8a9b23b702b19c6669dc7f6085e416e  ./include/populate_autocomplete_helpers.php
 f3fa186c0dc46ecc1386948e8a9bcfd5  ./include/previous_apps_helpers.php
-ee03b15031c1a85893507d8ab0065366  ./javascript/clickHandlers.js
-82ce53d07903ea2ad5eee787ac0c256f  ./javascript/helpers.js
+04998a1578a834d0b3ac59aecb931ac1  ./javascript/clickHandlers.js
+ee32c93f2c397416e1d46a71ed178e2b  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f79e808011410b68cbbc76edf3cb663f  ./javascript/statistics.js
 e0925218cbd4a34973cf1f29f2074330  ./phpstan.neon
@@ -32,8 +32,8 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 69158f58637a757bd6dd1d6f8b06b1f4  ./scripts/updatePLG.sh
 3bdcd43cb101c88848e26834fed29b16  ./scripts/updatePluginSupport.php
 37fcfb8bf6c2f5dbca3e4285fd55de03  ./skins/Narrow/styles/community.applications.colors.css
-7e2bf29629ad58d18eeb7fd32502ef34  ./skins/Narrow/styles/community.applications.css
-8623e73f187ed4690540f13e494b2ea8  ./skins/Narrow/styles/community.applications.responsive.css
+794774ae7181b857d356534149f75b60  ./skins/Narrow/styles/community.applications.css
+ae199e23a9ef69c904de6afb28e6b06c  ./skins/Narrow/styles/community.applications.responsive.css
 c6329bd8d14ea900f6bbfa89a70bc23f  ./skins/Narrow/themes/azure.css
 d3d51c182617b4611654fd459a59a2c0  ./skins/Narrow/themes/black.css
 001ceb3cb1627bd3762ea217a2e612dc  ./skins/Narrow/themes/gray.css
