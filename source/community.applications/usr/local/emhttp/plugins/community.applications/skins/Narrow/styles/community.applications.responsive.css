@@ -1,3 +1,21 @@
+/* IntersectionObserver probe: in-viewport only under the same breakpoint as :root { --mobileDevice: true } (below). */
+#ca_mobile_layout_probe {
+	position: fixed;
+	width: 1px;
+	height: 1px;
+	top: 0;
+	left: -9999px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	pointer-events: none;
+	visibility: hidden;
+	z-index: -1;
+	opacity: 0;
+	overflow: hidden;
+	contain: strict;
+}
+
 @media (min-width: 769px) {
 	.mobileOverlay {
 		display: none !important;
@@ -37,10 +55,15 @@
 		width: revert;
 		max-width: revert;
 	}
+	:root {
+		--mobileDevice: true;
+	}
+	#ca_mobile_layout_probe {
+		left: 0;
+	}
 }
 @media (max-width: 767px) {
 	:root {
-		--mobileDevice: true;
 		/* Mobile: overlays should appear/disappear instantly (search/sidebar/SweetAlert). */
 		--ca-scrim-transition-duration: 0s;
 		--ca-scrim-transition-ease: linear;

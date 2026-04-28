@@ -479,6 +479,45 @@ function caInitializeClickHandlers() {
 	$(".showMenuButton").on("click", function() { showMenu(); });
 	$(".closeMenuButton,.menuOverlay").on("click", function() { closeMenu(); });
 	$(".mobileOverlay").on("click", function() { closeMenu(); });
+
+	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */
+	if (!window.__caMobileLayoutMenuSync) {
+		window.__caMobileLayoutMenuSync = true;
+		var caClearMenuShowingForDesktopLayout = function() {
+			try {
+				$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuHidden").removeClass("menuShowing");
+				$(".menuShowing").filter(function() {
+					return this === document.body || document.body.contains(this);
+				}).removeClass("menuShowing");
+			} catch (e) { /* no-op */ }
+		};
+		var $probe = $("#ca_mobile_layout_probe");
+		if ($probe.length === 0) {
+			$probe = $("<div>", {
+				id: "ca_mobile_layout_probe",
+				"aria-hidden": "true"
+			}).appendTo("body");
+		}
+		if (typeof IntersectionObserver !== "undefined") {
+			var ioMobileLayout = new IntersectionObserver(function(entries) {
+				entries.forEach(function(entry) {
+					if (!entry.isIntersecting) caClearMenuShowingForDesktopLayout();
+				});
+			}, { threshold: 0 });
+			ioMobileLayout.observe($probe[0]);
+		} else {
+			var mqCaMobile = window.matchMedia("(max-width: 1024px)");
+			var caMqFallback = function() {
+				if (!mqCaMobile.matches) caClearMenuShowingForDesktopLayout();
+			};
+			if (typeof mqCaMobile.addEventListener === "function") {
+				mqCaMobile.addEventListener("change", caMqFallback);
+			} else {
+				mqCaMobile.addListener(caMqFallback);
+			}
+			caMqFallback();
+		}
+	}
 	$(".sidebarClose").on("click", function() {
 		if ($(".moderationContainer").length)
 			showStatistics();
