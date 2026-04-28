@@ -311,7 +311,15 @@ $(function(){
 
 
 	searchBoxInput = $("#searchBox").get(0);
-	searchBoxAwesomplete = new Awesomplete(searchBoxInput);
+	searchBoxAwesomplete = new Awesomplete(searchBoxInput, {
+		item: function(text, input) {
+			/* Preserve Awesomplete's default markup (<mark> highlighting), just add our class */
+			var li = Awesomplete.ITEM(text, input);
+			try { li.classList.add("caButton"); } catch (e) { /* no-op */ }
+			return li;
+		}
+	});
+
 	// While the Awesomplete dropdown is open, disable other click handlers by toggling a body class.
 	$("#searchBox").on("awesomplete-open", function() {
 		$("body").addClass("ca_awesomplete_open");
@@ -319,6 +327,22 @@ $(function(){
 	$("#searchBox").on("awesomplete-close", function() {
 		$("body").removeClass("ca_awesomplete_open");
 	});
+
+	/* Hook Awesomplete evaluate() so we can call the status() callback after list renders. */
+	try {
+		var caOrigEvaluate = searchBoxAwesomplete.evaluate && searchBoxAwesomplete.evaluate.bind(searchBoxAwesomplete);
+		if (caOrigEvaluate && !searchBoxAwesomplete.__caEvaluateHooked) {
+			searchBoxAwesomplete.__caEvaluateHooked = true;
+			searchBoxAwesomplete.evaluate = function() {
+				caOrigEvaluate();
+				try {
+					if (searchBoxAwesomplete.options && typeof searchBoxAwesomplete.options.status === "function") {
+						searchBoxAwesomplete.options.status.call(searchBoxAwesomplete, searchBoxAwesomplete.input && searchBoxAwesomplete.input.value);
+					}
+				} catch (e0) { /* no-op */ }
+			};
+		}
+	} catch (e) { /* no-op */ }
 
 	if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
 	if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
@@ -596,11 +620,13 @@ function doSearch(button,newSearch) {
 		$("#searchBox").val(filter);
 		data.searchInProgress = false;
 		if ( data.searchActive || data.searchFlag || data.docker ) {
+			if (typeof caCloseSearchModal === "function") caCloseSearchModal();
 			appStore();
 			return;
 		}
 		data.committedSearchFilter = "";
-		caSyncSearchFilterCollapsed();
+		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+		else caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
 		return;
 	}
@@ -611,31 +637,24 @@ function doSearch(button,newSearch) {
 	$('#searchBox').val(filter);
 	$(".multi_installDiv").hide();
 
-	if ($('#searchButton').hasClass('fa-search')) {
-		if (filter) {
-			$('#searchButton').toggleClass('fa-search fa-remove');
-		}
-	} else if (button) {
-		clearSearchBox();
-		filter = '';
-	}
-
 	scrollToTop();
 	if (filter) {
+		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
 		caClearHomeSectionSubtitle();
 		$("#sortIconArea").show();
 	 // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
 		data.searchFlag = true;
 	} else {
 		if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-		/* X clear: only leave search / go home via updateContent when a search was actually active. Draft text alone must not trigger home. */
+		/* Cleared filter: only leave search / go home via updateContent when a search was actually active. Draft text alone must not trigger home. */
 		if (data.searchActive || data.searchFlag || data.docker) {
 			updateContent();
 		}
 		data.searchFlag = false;
 		data.searchInProgress = false;
 		data.committedSearchFilter = "";
-		caSyncSearchFilterCollapsed();
+		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+		else caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
 		return;
 	}
@@ -751,14 +770,18 @@ function downloadStatistics() {
 	postNoSpin({action:'downloadStatistics'});
 }
 
-function populateAutoComplete() {
+function populateAutoComplete(after) {
 	postNoSpin({action:'populateAutoComplete'},function(result) {
 		searchBoxAwesomplete.list = result.autocomplete;
 		searchBoxAwesomplete.maxItems = 20;
 		searchBoxAwesomplete.minChars = 3;
+		
 		$("#searchBox").off("awesomplete-selectcomplete", awesompleteSearch);
 		$("#searchBox").on("awesomplete-selectcomplete", awesompleteSearch);
 		searchBoxAwesomplete.close(); // otherwise it opens automatically during restore state
+		if (typeof after === "function") {
+			after();
+		}
 	});
 }
 
@@ -796,9 +819,6 @@ function clearSearchBox() {
 	$(".categoryMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
 	$("#searchBox").val("");
 	hideSortIcons();
-	if ($('#searchButton').hasClass('fa-remove')) {
-		$('#searchButton').toggleClass('fa-remove fa-search');
-	}
 	data.committedSearchFilter = "";
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
@@ -1725,8 +1745,6 @@ function restoreState() {
 	$(".categoryMenuName").html($.cookie("ca_categoryName"));
 	var filter = $.cookie("ca_filter");
 	$("#searchBox").val(filter);
-	if (filter)
-		$("#searchButton").removeClass("fa-search").addClass("fa-remove");
 	data.committedSearchFilter = $.trim(filter || "");
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();

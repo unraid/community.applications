@@ -44,9 +44,16 @@ $(function() {
 			<div class='showMenuButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
 			<div class='closeMenuButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
 		</div>
+		<div class="caSearchModalToolbarSpacer" id="caSearchModalToolbarSpacer" aria-hidden="true"></div>
 		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
-			<span class='searchSubmit' title="<?tr('Search');?>"><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-			<input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
+			<div class='caSearchModalTopRow'>
+				<div class="searchButton caButton"><?tr('SEARCH');?></div>
+				<div class="caSearchModalIconControls">
+					<span class="searchModalQueryBtn" title="<?tr('Search');?>"><i class="fa fa-question fa-lg" aria-hidden="true"></i></span>
+					<span class="searchModalClearBtn ca_hide" title="<?tr('Clear search');?>"><i class="fa fa-remove fa-lg" aria-hidden="true"></i></span>
+				</div>
+				<input type='text' id='searchBox' class='ca_searchBoxHidden' placeholder='<?tr('Search');?>' aria-label="<?tr('Search');?>">
+			</div>
 		</div>
 		<div id='sortIconArea' class='menuAdjust'>
 			<div class='caButton hideWithMenu' id='sortByButton'></div>
@@ -60,6 +67,7 @@ $(function() {
 		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
 		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
 	</div>
+	<div id="caSearchModalBackdrop" class="caSearchModalBackdrop ca_hide" role="presentation" aria-hidden="true"></div>
 </div>
 
 <!-- Status Bar.   This gets moved to the body -->
@@ -97,7 +105,7 @@ $(function() {
 		<div class='menuItems menuAdjust'>
 			<ul class='caMenu '>
 				<li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'>
-					<?tr("Home");?>
+					<span class='caHomeMenuLabel' data-home-label="<?tr('Home');?>" data-clear-label="<?tr('Clear Search');?>"><?tr("Home");?></span>
 					<div id='ca_homeSectionSubtitle' class='ca_homeSectionSubtitle ca_hide'></div>
 					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>
 				</li>
@@ -201,7 +209,7 @@ $(function() {
 				</span>
 			</div>
 			<div class='ca_center caModerationToggleAllWrap'>
-				<button type='button' id='caFixedToggleAll' class='ca_button' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></button>
+				<button type='button' id='caFixedToggleAll' class='caButton' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></button>
 			</div>
 			<div class='ca_moderationList caModerationFixedList'></div>
 			<div id='caFixedPluginDupesSection' class='caModerationFixedPluginDupes'></div>

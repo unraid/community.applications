@@ -61,15 +61,6 @@
 		padding-left: 1rem;
 	}
 
-	#searchBox {
-		width: 150px;
-	}
-
-	#searchFilter.ca_searchInputCollapsed:focus-within #searchBox {
-		width: 150px;
-		max-width: 150px;
-	}
-
 	.multi_installDiv {
 		position: relative;
 	}

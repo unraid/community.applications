@@ -158,7 +158,7 @@ a {
 
 	/* Visual */
 	background-color: var(--template-background);
-	border: 1px solid var(--border-color);
+	border: 1px solid var(--ca-border-color);
 	overflow: hidden;
 
 	/* Interactive */
@@ -355,6 +355,49 @@ a {
 		text-decoration: none;
 	}
 
+	/* Awesomplete suggestions: use caButton styling, force precedence */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
+		display: inline-block !important;
+		margin-right: 1rem !important;
+		padding: 1px 10px !important;
+		font-size: 1.2rem !important;
+		line-height: 2rem !important;
+		color: var(--support-popup-text) !important;
+		background: linear-gradient(
+		to bottom,
+		transparent 50%,
+		var(--ca-overlay-color) 100%
+		),
+		linear-gradient(
+		to right,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
+		var(--support-popup-background) 50%,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
+		) !important;
+		background-position: 0 0 !important;
+		background-size: 100% 100% !important;
+		border-radius: 15px !important;
+		cursor: pointer !important;
+	}
+	/* Mouse hover highlight: only applies while the mouse is the active input device.
+	   When the user presses an arrow key, JS removes ca_suggestionMouseUsed which instantly
+	   drops this style even if the cursor is still physically over a <li>, so only the
+	   keyboard-selected item is highlighted. */
+	body.ca_searchModalOpen.ca_suggestionMouseUsed #searchFilter .awesomplete > ul > li.caButton:hover {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
+	/* Keyboard navigation highlight (Awesomplete sets aria-selected="true") */
+	body.ca_searchModalOpen:not(.ca_suggestionMouseUsed) #searchFilter .awesomplete > ul > li.caButton[aria-selected="true"] {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
+	/* Awesomplete match highlight: per-theme color (red in black/gray, yellow in white/azure), no background fill */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton mark {
+		background: transparent !important;
+		color: var(--ca-suggestion-mark-color, var(--ca-red-color)) !important;
+	}
+
 	/* 2.5) Form Elements */
 	input[type="checkbox"] {
 		width: 2rem;
@@ -379,31 +422,6 @@ a {
 
 	input[type="button"][disabled] {
 		background: none !important;
-	}
-
-	.searchSubmit {
-		/* Layout */
-		width: 2rem;
-		min-width: 2rem;
-		height: 3.4rem;
-		padding: 1.1rem 1rem 1rem 1rem;
-		position: relative;
-		left: -1rem;
-
-		/* Typography */
-		font-family: 'FontAwesome';
-		font-size: 1.1rem;
-
-		/* Visual */
-		background: transparent;
-		border: none;
-
-		/* Interactive */
-		cursor: pointer;
-	}
-
-	.searchSubmit:hover {
-		background: transparent;
 	}
 
 	/* 2.6) Menu and Navigation */
@@ -538,6 +556,14 @@ a {
 		height: 0;
 		pointer-events: auto;
 		z-index: 1000;
+	}
+	/* While CA search modal is open, block interaction with custom scrollbars */
+	body.ca_searchModalOpen #ca_fixed_scroll_root,
+	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_hscroll_thumb,
+	body.ca_searchModalOpen .ca_fixed_vscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_vscroll_thumb {
+		pointer-events: none !important;
 	}
 
 	:root {
@@ -723,15 +749,15 @@ a {
 		min-width: 24rem;
 		max-width: 90vw;
 
-		background: linear-gradient(145deg, #2a2a2e, #1f1f22);
-		border: 1px solid rgba(255, 140, 50, 0.5);
+		background: linear-gradient(145deg, var(--ca-bottomBanner-bg-from), var(--ca-bottomBanner-bg-to));
+		border: 1px solid color-mix(in srgb, var(--unraid-66-color) 50%, transparent);
 		border-radius: 0.75rem;
 		box-shadow:
-		0 0 0 1px rgba(255, 140, 50, 0.1),
-		0 10px 30px rgba(0, 0, 0, 0.5),
-		0 0 40px rgba(255, 140, 50, 0.15);
+		0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 10%, transparent),
+		0 10px 30px var(--ca-dark-overlay-color),
+		0 0 40px color-mix(in srgb, var(--unraid-66-color) 15%, transparent);
 
-		color: #f0f0f0;
+		color: var(--ca-bottomBanner-text);
 		font-size: 2rem;
 		font-weight: 500;
 		letter-spacing: 0.01em;
@@ -794,6 +820,19 @@ a {
 		left: 0;
 		width: 100%;
 		height: 100vh;
+		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
+	}
+	body:has(.sidenavShow) .sidebarClose {
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.sidenav {
@@ -878,7 +917,7 @@ a {
 
 	.ca_settingCard {
 		background-color: var(--template-background);
-		border: 1px solid var(--border-color);
+		border: 1px solid var(--ca-border-color);
 		border-radius: 0.8rem;
 		padding: 1.2rem 1.4rem;
 	}
@@ -1651,7 +1690,6 @@ a {
 	}
 
 	.initDockerSearch:hover,
-	#searchButton:hover,
 	.caMenuItem:hover,
 	a.ca_repoPopup:hover,
 	a.popUpLink:hover,
@@ -2157,31 +2195,212 @@ a {
 		vertical-align: middle;
 	}
 
-	/* Icon-only: hide input until focus-within (keyboard) or JS removes collapsed class (search icon click) */
-	#searchFilter.ca_searchInputCollapsed #searchBox {
-		width: 0;
-		min-width: 0;
-		max-width: 0;
-		opacity: 0;
-		padding-left: 0;
-		padding-right: 0;
-		margin-left: 0;
-		margin-right: 0;
-		margin-bottom: 0;
-		border: none;
-		overflow: hidden;
-		pointer-events: none;
+	.caSearchModalTopRow {
+		display: inline-flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.25rem;
+		vertical-align: middle;
 	}
 
-	#searchFilter.ca_searchInputCollapsed:focus-within #searchBox {
-		width: 300px;
-		max-width: 300px;
-		min-width: 0;
+	/* Search pop-out: same #searchBox + Awesomplete, fixed to viewport (see caOpenSearchModal) */
+	.caSearchModalToolbarSpacer {
+		display: none;
+	}
+	body.ca_searchModalOpen {
+		overflow: hidden;
+	}
+	body.ca_searchModalOpen .caSearchModalToolbarSpaceca_searchModalOpenr {
+		display: inline-block;
+		width: 2.5rem;
+		min-width: 2.5rem;
+		min-height: 1.5rem;
+		flex: 0 0 auto;
+		align-self: center;
+	}
+	/* #caSearchModalBackdrop keeps display:block (not .ca_hide’s none) so opacity can fade. */
+	#caSearchModalBackdrop {
+		display: block !important;
+	}
+	.caSearchModalBackdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 1050;
+		/* Light dim + blur (shared with .sweet-overlay, .sidebarClose — see --ca-scrim-*) */
+		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25));
+		backdrop-filter: blur(var(--ca-scrim-blur, 12px));
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px));
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
+	}
+	body.ca_searchModalOpen .caSearchModalBackdrop:not(.ca_hide) {
 		opacity: 1;
-		padding: 0.6rem;
-		padding-right: 0.5rem;
-		margin-bottom: 1rem;
 		pointer-events: auto;
+	}
+
+	/* SweetAlert (swal) sets inline background/opacity on the overlay; match CA scrim + transition. */
+	.sweet-overlay {
+		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		background-color: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		transition:
+			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
+			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important;
+	}
+	body.ca_searchModalOpen #searchFilter {
+		position: fixed;
+		top: var(--ca-search-modal-top, 6rem);
+		left: var(--ca-search-modal-left, 0);
+		width: var(--ca-search-modal-width, 100%);
+		max-width: 100vw;
+		box-sizing: border-box;
+		transform: none;
+		z-index: 1060;
+		margin: 0;
+		padding: 0.9rem 1.1rem 0.6rem 1.1rem;
+		border-radius: 0.45rem;
+		box-shadow: 0 0.35rem 1.2rem var(--ca-medium-overlay-color);
+		background: var(--ca-legacy-background-color);
+		border: 1px solid var(--ca-medium-overlay-color);
+	}
+	body.ca_searchModalOpen #searchBox.ca_searchBoxHidden,
+	body.ca_searchModalOpen #searchBox {
+		position: static !important;
+		left: auto !important;
+		top: auto !important;
+		width: 100% !important;
+		max-width: none !important;
+		height: auto !important;
+		flex: 1 1 auto;
+		min-width: 0 !important;
+		margin: 0 0 0 0 !important;
+		margin-bottom: 0 !important;
+		padding: 0.6rem !important;
+		padding-right: 0.5rem !important;
+		overflow: visible !important;
+		clip: auto !important;
+		white-space: normal !important;
+		opacity: 1 !important;
+		pointer-events: auto !important;
+		border: none !important;
+	}
+	body:not(.ca_searchModalOpen) #searchFilter .caSearchModalIconControls {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .searchButton {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalIconControls {
+		display: inline-flex !important;
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+		grid-column: 1;
+		grid-row: 1;
+		align-self: center;
+		position: relative;
+		z-index: 2;
+	}
+	.caSearchModalIconControls .searchModalQueryBtn,
+	.caSearchModalIconControls .searchModalClearBtn {
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		line-height: 1;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		grid-template-rows: auto auto;
+		column-gap: 0.5rem;
+		row-gap: 0.55rem;
+		align-items: center;
+		width: 100%;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow > .awesomplete {
+		display: contents;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > input#searchBox,
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > input {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > ul {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		align-self: stretch;
+	}
+
+	/* Awesomplete in search modal: plain text list */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul {
+		position: static !important;
+		left: auto !important;
+		z-index: auto;
+		display: block !important;
+		width: 100%;
+		max-height: none;
+		overflow: visible;
+		min-width: 0 !important;
+		max-width: none;
+		margin: 0;
+		padding: 0.35rem 0 0 0;
+		box-shadow: none;
+		border: none;
+		border-radius: 0;
+		background: transparent;
+		color: inherit;
+		font-size: inherit;
+		transform: none !important;
+		opacity: 1 !important;
+		transition: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:before {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul[hidden],
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:empty {
+		display: none !important;
+		transform: none !important;
+		opacity: 0 !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li {
+		position: relative;
+		max-width: 100%;
+		box-sizing: border-box;
+		margin: 0.15rem 0;
+		padding: 0;
+		min-width: 0;
+		border-radius: 0;
+		border: none;
+		background: transparent;
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		letter-spacing: normal;
+		text-transform: none;
+		text-align: left;
+		text-decoration: none;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		line-height: 1.2;
+		cursor: pointer;
+		outline: none;
+		box-shadow: none;
+	}
+	/* No hover/selected styling for now — plain text baseline */
+	body.ca_searchModalOpen #searchFilter .awesomplete mark {
+		background: var(--ca-hsl-yellow);
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete li:hover mark,
+	body.ca_searchModalOpen #searchFilter .awesomplete li[aria-selected="true"] mark {
+		background: var(--ca-hsl-light-yellow);
 	}
 
 	#searchBox {
@@ -2200,10 +2419,31 @@ a {
 		box-sizing: border-box;
 	}
 
-	#searchFilter .searchSubmit {
+	/* Toolbar: #searchBox stays in DOM for Awesomplete; hide it (committed term shows under Home). */
+	body:not(.ca_searchModalOpen) #searchBox.ca_searchBoxHidden {
+		position: absolute !important;
+		left: -9999px !important;
+		top: 0;
+		width: 1px !important;
+		height: 1px !important;
+		min-width: 0 !important;
+		max-width: 0 !important;
+		padding: 0 !important;
+		margin: -1px !important;
+		margin-bottom: 0 !important;
+		overflow: hidden !important;
+		clip: rect(0, 0, 0, 0) !important;
+		white-space: nowrap !important;
+		border: 0 !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+		flex: 0 0 0 !important;
+	}
+
+	#searchFilter .searchButton {
 		left: 0;
 		flex: 0 0 auto;
-		background: transparent;
+		margin-top: 0.5rem;
 	}
 
 	.showMenuButton::before {
@@ -2402,8 +2642,8 @@ a {
 		/* Layout */
 		display: inline-block;
 		position: relative;
-		/* Typography */
-		color: var(--ca-named-red);
+		/* Typography: follow theme (search area / body), not fixed red */
+		color: inherit;
 	}
 
 	.awesomplete > input {
@@ -2453,13 +2693,15 @@ a {
 		display: none !important;
 	}
 
-	/* When Awesomplete is open, block clicks everywhere except the dropdown and the search X button. */
+	/* When Awesomplete is open, block clicks except the dropdown, toolbar SEARCH, and modal ? / X. */
 	body.ca_awesomplete_open * {
 		pointer-events: none;
 	}
 	body.ca_awesomplete_open .awesomplete,
 	body.ca_awesomplete_open .awesomplete *,
-	body.ca_awesomplete_open #searchButton {
+	body.ca_awesomplete_open .searchButton,
+	body.ca_awesomplete_open .caSearchModalIconControls,
+	body.ca_awesomplete_open .caSearchModalIconControls * {
 		pointer-events: auto;
 	}
 

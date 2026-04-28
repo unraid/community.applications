@@ -107,19 +107,319 @@ function enableSearch() {
 	$("#searchBox").prop("disabled",false);
 }
 
-/** Collapse search input to icon-only when empty; keep open if there is text or an active search (X icon). */
+/** Align search modal to .mainArea (fixed coords from getBoundingClientRect). */
+function caUpdateSearchModalLayout() {
+	if (!$("body").hasClass("ca_searchModalOpen")) return;
+	var $main = $(".mainArea");
+	if (!$main.length) return;
+	var r = $main[0].getBoundingClientRect();
+	var rootFont = parseFloat($("html").css("font-size")) || 16;
+	var topPx = r.top + 2 * rootFont;
+	var panelW = r.width * 0.5;
+	var leftPx = r.left + (r.width - panelW) / 2;
+	var html = document.documentElement;
+	html.style.setProperty("--ca-search-modal-top", topPx + "px");
+	html.style.setProperty("--ca-search-modal-left", leftPx + "px");
+	html.style.setProperty("--ca-search-modal-width", panelW + "px");
+}
+
+/**
+ * If the field is empty but a search is still active (e.g. user backspaced in the modal and closed it),
+ * put data.committedSearchFilter back in the input so the bar/modal show the current query.
+ */
+function caRestoreCommittedSearchTermIntoBoxIfEmpty() {
+	var d = typeof data !== "undefined" && data ? data : null;
+	if (!d) return false;
+	var c = $.trim(String(d.committedSearchFilter || ""));
+	var v = $.trim(String($("#searchBox").val() || ""));
+	if (!c || v) return false;
+	$("#searchBox").val(c);
+	return true;
+}
+
+/**
+ * Filled overlay + fixed panel (same #searchBox + Awesomplete).
+ * @param {object} [options] noRefocus: if true, do not move focus to #searchBox (e.g. focus handler already has it).
+ */
+function caOpenSearchModal(options) {
+	options = options || {};
+	caRestoreCommittedSearchTermIntoBoxIfEmpty();
+	$("body").addClass("ca_searchModalOpen");
+	caInitSearchModalSuggestionInputMode();
+	$("#caSearchModalBackdrop").removeClass("ca_hide");
+	$("#searchFilter").removeClass("ca_searchInputCollapsed");
+	caUpdateSearchModalLayout();
+	$(window).on("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
+	requestAnimationFrame(function() {
+		caUpdateSearchModalLayout();
+		setTimeout(function() {
+			if (!options.noRefocus) {
+				$("#searchBox").trigger("focus");
+			}
+			/* Always refresh chips when reopening: committed text is often already in #searchBox (didRestore false). */
+			var kick = function() {
+				caKickSearchModalAwesomplete();
+			};
+			requestAnimationFrame(function() {
+				kick();
+				setTimeout(kick, 40);
+				setTimeout(kick, 100);
+			});
+			/* Ensure the Awesomplete dropdown area is open/visible when the modal opens, but only when the
+			   input has enough text. Otherwise force it closed so stale suggestions don't flash. */
+			try {
+				if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+					var sbEl = document.getElementById("searchBox");
+					var minChars = typeof searchBoxAwesomplete.minChars === "number" ? searchBoxAwesomplete.minChars : 2;
+					var hasEnough = sbEl && String(sbEl.value || "").length >= minChars;
+					if (hasEnough && !searchBoxAwesomplete.opened) {
+						if (typeof searchBoxAwesomplete.open === "function") searchBoxAwesomplete.open();
+					} else if (!hasEnough) {
+						if (typeof searchBoxAwesomplete.close === "function") searchBoxAwesomplete.close();
+					}
+				}
+			} catch (e) { /* no-op */ }
+			caSyncSearchModalClearButton();
+		}, 0);
+	});
+}
+
+/** Run Awesomplete's internal evaluate (jQuery .trigger("input") does not always fire native listeners). */
+function caRunSearchBoxAwesompleteEvaluate() {
+	var el = document.getElementById("searchBox");
+	if (!el || typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
+	if (typeof searchBoxAwesomplete.evaluate === "function") {
+		searchBoxAwesomplete.evaluate();
+	} else {
+		var ev;
+		try {
+			ev = typeof InputEvent === "function" ? new InputEvent("input", { bubbles: true, cancelable: true }) : new Event("input", { bubbles: true });
+		} catch (err) {
+			ev = new Event("input", { bubbles: true });
+		}
+		el.dispatchEvent(ev);
+	}
+}
+
+/**
+ * Re-run suggestions when the search modal is shown.
+ * - If the field meets minChars, run evaluate() so the list (re)populates from the current term.
+ * - If the field is empty/below minChars, run evaluate() anyway so Awesomplete drops any cached
+ *   `<li>` items from a prior search and then close the dropdown.
+ */
+function caKickSearchModalAwesomplete() {
+	if (typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
+	var el = document.getElementById("searchBox");
+	if (!el) return;
+	var v = String(el.value || "");
+	var minC = typeof searchBoxAwesomplete.minChars === "number" ? searchBoxAwesomplete.minChars : 2;
+	caRunSearchBoxAwesompleteEvaluate();
+	if (v.length < minC) {
+		try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
+	}
+}
+
+/**
+ * Search suggestions: once the user uses the mouse to hover a suggestion, do not keep
+ * the keyboard-selected suggestion "hovered" when the mouse leaves. Require another
+ * ArrowUp/ArrowDown keypress to re-enable the keyboard hover state.
+ */
+function caInitSearchModalSuggestionInputMode() {
+	if (window.ca_searchModalSuggestionInputModeInit) return;
+	window.ca_searchModalSuggestionInputModeInit = true;
+
+	/* Mouse hover marks "mouse used" */
+	$(document).on("mouseenter.caSuggestionInputMode", "body.ca_searchModalOpen #searchFilter .awesomplete > ul > li", function() {
+		$("body").addClass("ca_suggestionMouseUsed");
+		/* Keep arrow-key navigation working by ensuring the input stays focused */
+		try {
+			var sb = document.getElementById("searchBox");
+			if (sb && document.activeElement !== sb) {
+				sb.focus({ preventScroll: true });
+			}
+		} catch (err) { /* no-op */ }
+	});
+
+	/* Arrow key navigation clears "mouse used" so keyboard hover can show again */
+	$(document).on("keydown.caSuggestionInputMode", "#searchBox", function(e) {
+		var k = e && (e.key || e.keyCode);
+		if (k === "ArrowDown" || k === "ArrowUp" || k === 40 || k === 38) {
+			$("body").removeClass("ca_suggestionMouseUsed");
+		}
+	});
+
+	/*
+	Ensure arrow-key navigation always works even if focus drifts after mouse hover:
+	on ArrowUp/ArrowDown while the search modal is open, force focus back to #searchBox
+	and clear ca_suggestionMouseUsed (capture phase so it runs before Awesomplete).
+	*/
+	try {
+		var sb2 = document.getElementById("searchBox");
+		if (sb2 && !sb2.__caSuggestionArrowKeyCap) {
+			sb2.__caSuggestionArrowKeyCap = true;
+			window.addEventListener("keydown", function(e) {
+				if (!$("body").hasClass("ca_searchModalOpen")) return;
+				var k = e && (e.key || e.keyCode);
+				if (!(k === "ArrowDown" || k === "ArrowUp" || k === 40 || k === 38)) return;
+				try {
+					var sb = document.getElementById("searchBox");
+					if (sb && document.activeElement !== sb) {
+						sb.focus({ preventScroll: true });
+					}
+				} catch (err) { /* no-op */ }
+				$("body").removeClass("ca_suggestionMouseUsed");
+			}, true);
+		}
+	} catch (err) { /* no-op */ }
+
+	/*
+	Enter key: if the mouse was used (so keyboard highlight is suppressed) and nothing is
+	currently hovered by the mouse, prevent Awesomplete from selecting the last keyboard
+	item on Enter. This keeps the raw input value as the search term.
+	*/
+	try {
+		var sb = document.getElementById("searchBox");
+		if (sb && !sb.__caSuggestionInputModeEnterCap) {
+			sb.__caSuggestionInputModeEnterCap = true;
+			sb.addEventListener("keydown", function(e) {
+				var k = e && (e.key || e.keyCode);
+				if (!(k === "Enter" || k === 13)) return;
+				if (!$("body").hasClass("ca_suggestionMouseUsed")) return;
+				if (document.querySelector("body.ca_searchModalOpen #searchFilter .awesomplete > ul > li:hover")) return;
+
+				/* Clear any active selection before Awesomplete's key handler runs */
+				try {
+					if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+						searchBoxAwesomplete.index = -1;
+					}
+				} catch (err) { /* no-op */ }
+			}, true);
+		}
+	} catch (err) { /* no-op */ }
+}
+
+/**
+ * If the field has any text (committed search or draft), focus/mousedown reopens the search modal
+ * so Awesomplete uses the in-modal chip layout. (mousedown runs when the input is already focused.)
+ * Empty field: opening the modal is done via the search icon or by focusing #searchBox (e.g. Tab).
+ */
+function caReopenSearchModalIfNeeded() {
+	if ($("body").hasClass("ca_searchModalOpen")) return;
+	var v = $.trim(String($("#searchBox").val() || ""));
+	if (!v) {
+		caRestoreCommittedSearchTermIntoBoxIfEmpty();
+		v = $.trim(String($("#searchBox").val() || ""));
+	}
+	if (!v) return;
+	caOpenSearchModal({ noRefocus: true });
+	var afterListReady = function() {
+		if (typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
+		var list = searchBoxAwesomplete._list;
+		if (list == null) {
+			try { list = searchBoxAwesomplete.list; } catch (e) { list = null; }
+		}
+		if (!list || (Array.isArray(list) && !list.length)) {
+			if (typeof populateAutoComplete === "function") {
+				populateAutoComplete(function() {
+					caRunSearchBoxAwesompleteEvaluate();
+				});
+			} else {
+				caRunSearchBoxAwesompleteEvaluate();
+			}
+			return;
+		}
+		caRunSearchBoxAwesompleteEvaluate();
+	};
+	/* Defer until modal + layout; repeat so Awesomplete sees the visible ul (flex-wrap) */
+	var kick = function() { afterListReady(); };
+	requestAnimationFrame(function() {
+		requestAnimationFrame(function() {
+			kick();
+			setTimeout(kick, 0);
+			setTimeout(kick, 40);
+			setTimeout(kick, 100);
+		});
+	});
+}
+
+function caCloseSearchModal(options) {
+	options = options || {};
+	$(window).off("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
+	var html = document.documentElement;
+	html.style.removeProperty("--ca-search-modal-top");
+	html.style.removeProperty("--ca-search-modal-left");
+	html.style.removeProperty("--ca-search-modal-width");
+
+	/*
+	Abandonment paths (backdrop click, focusout, ESC) pass discardDraft:true:
+	- If an active committed search exists, restore the input to that committed term
+	  (so reopening shows the prior search and its autocomplete).
+	- Otherwise, clear the draft entirely so reopening starts blank.
+	Commit paths (doSearch) pass nothing and must not have the input touched here.
+	*/
+	if (options.discardDraft) {
+		try {
+			var d = (typeof data !== "undefined" && data) ? data : null;
+			var committed = d ? $.trim(String(d.committedSearchFilter || "")) : "";
+			var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
+			if (committed && hasActive) {
+				$("#searchBox").val(committed);
+			} else {
+				$("#searchBox").val("");
+			}
+			/* Force Awesomplete to re-evaluate against the new value so its cached <li> list updates
+			   (empty input drops the list; a restored committed term repopulates from that term). */
+			if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete && typeof searchBoxAwesomplete.evaluate === "function") {
+				searchBoxAwesomplete.evaluate();
+			}
+		} catch (e) { /* no-op */ }
+	}
+
+	$("body").removeClass("ca_searchModalOpen");
+	$("body").removeClass("ca_suggestionMouseUsed");
+	$("#caSearchModalBackdrop").addClass("ca_hide");
+	if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+		try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
+	}
+	$("body").removeClass("ca_awesomplete_open");
+	try {
+		var sb = document.getElementById("searchBox");
+		if (sb && document.activeElement === sb) {
+			sb.blur();
+		}
+	} catch (e) { /* no-op */ }
+	caSyncSearchFilterCollapsed();
+}
+
+/** Modal: show X when there is text to clear or an active search/docker context to exit. */
+function caSyncSearchModalClearButton() {
+	var $x = $(".searchModalClearBtn");
+	if (!$x.length) return;
+	var v = $.trim(String($("#searchBox").val() || ""));
+	var d = typeof data !== "undefined" && data ? data : null;
+	var c = d ? $.trim(String(d.committedSearchFilter || "")) : "";
+	var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
+	var show = !!v;
+	if (!show && c && hasActive) {
+		show = true;
+	}
+	if (show) {
+		$x.removeClass("ca_hide");
+	} else {
+		$x.addClass("ca_hide");
+	}
+}
+
+/** Toolbar: icon-only row; full input only while the search modal is open. */
 function caSyncSearchFilterCollapsed() {
 	var $f = $("#searchFilter");
-	var $box = $("#searchBox");
-	if (!$f.length || !$box.length) return;
-	if ($.trim($box.val()) !== "" || $("#searchButton").hasClass("fa-remove")) {
+	if (!$f.length) return;
+	if ($("body").hasClass("ca_searchModalOpen")) {
 		$f.removeClass("ca_searchInputCollapsed");
-		return;
+	} else {
+		$f.addClass("ca_searchInputCollapsed");
 	}
-	if ($box.is(":focus")) {
-		return;
-	}
-	$f.addClass("ca_searchInputCollapsed");
+	caSyncSearchModalClearButton();
 }
 
 
@@ -156,14 +456,35 @@ function caSetHomeSectionSubtitle(text) {
 /** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */
 function caSyncHomeSearchSubtitle() {
 	var $el = $("#ca_homeSearchSubtitle");
-	if (!$el.length) return;
-	if (typeof data === "undefined" || !data) return;
-	var v = $.trim(String(data.committedSearchFilter || ""));
-	if (!v) {
-		$el.empty().addClass("ca_hide");
-		return;
+	if ($el.length && typeof data !== "undefined" && data) {
+		var v = $.trim(String(data.committedSearchFilter || ""));
+		if (!v) {
+			$el.empty().addClass("ca_hide");
+		} else {
+			$el.text(v).removeClass("ca_hide");
+		}
 	}
-	$el.text(v).removeClass("ca_hide");
+	caSyncHomeMenuLabel();
+}
+
+/**
+ * Toggle the Home menu item's label between "Home" and "Clear Search" based on whether
+ * a search is in progress. The two translated strings come from data attributes set by skin.html.
+ */
+function caSyncHomeMenuLabel() {
+	var $lbl = $(".caHomeMenuLabel");
+	if (!$lbl.length) return;
+	var d = (typeof data !== "undefined" && data) ? data : null;
+	var c = d ? $.trim(String(d.committedSearchFilter || "")) : "";
+	var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
+	var inProgress = !!c || hasActive;
+	$lbl.each(function() {
+		var $el = $(this);
+		var home = $el.attr("data-home-label") || "Home";
+		var clear = $el.attr("data-clear-label") || "Clear Search";
+		var want = inProgress ? clear : home;
+		if ($el.text() !== want) $el.text(want);
+	});
 }
 
 /** If the box was edited (e.g. backspaced) but not submitted, put the last committed search back. Called from the nav menu (#mobileMenu) or page change (changePage / dockerSearch). */
@@ -174,7 +495,6 @@ function caRestoreCommittedSearchIfDrafted() {
 	var cur = $.trim(String($("#searchBox").val() || ""));
 	if (cur === c) return;
 	$("#searchBox").val(c);
-	$("#searchButton").removeClass("fa-search").addClass("fa-remove");
 	caSyncSearchFilterCollapsed();
 }
 
@@ -629,3 +949,50 @@ function getMaxPerPage() {
 		}
 	}
 }
+
+/**
+ * Override Unraid GUI search hotkey (Cmd/Ctrl+K) while CA is present,
+ * so it opens CA search modal instead of Dynamix GUI search.
+ */
+function caInitGlobalSearchHotkeyOverride() {
+	if (window.ca_globalSearchHotkeyOverrideInit) return;
+	window.ca_globalSearchHotkeyOverrideInit = true;
+
+	window.addEventListener("keydown", function(e) {
+		try {
+			var k = e && (e.key || e.keyCode);
+			var isK = (k === "k" || k === "K" || k === 75);
+			if (!isK) return;
+			if (e.shiftKey || e.altKey) return;
+
+			var isMac = (navigator.appVersion || "").indexOf("Mac") !== -1;
+			var wants = isMac ? e.metaKey : e.ctrlKey;
+			if (!wants) return;
+
+			/* Don't steal Cmd/Ctrl+K while sidebar is open */
+			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
+
+			/* Only override when CA search exists on the page */
+			if (!document.getElementById("searchBox") || typeof caOpenSearchModal !== "function") return;
+
+			e.preventDefault();
+			if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+			if (typeof e.stopPropagation === "function") e.stopPropagation();
+
+			if ($("body").hasClass("ca_searchModalOpen")) {
+				try { $("#searchBox").trigger("focus"); } catch (err) { /* no-op */ }
+			} else {
+				try { caOpenSearchModal(); } catch (err) { /* no-op */ }
+			}
+		} catch (err) { /* no-op */ }
+	}, true);
+}
+
+/* Initialize after DOM is ready (best-effort). */
+try {
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", caInitGlobalSearchHotkeyOverride, { once: true });
+	} else {
+		caInitGlobalSearchHotkeyOverride();
+	}
+} catch (err) { /* no-op */ }

@@ -38,6 +38,12 @@
 	--ca-white-overlay: rgba(0, 0, 0, 1);
 	--ca-white-overlay-light: rgba(0, 0, 0, 0.1);
 
+	/* Full-screen scrim (search modal backdrop, SweetAlert .sweet-overlay, .sidebarClose) */
+	--ca-scrim-background: rgba(0, 0, 0, 0.25);
+	--ca-scrim-blur: 12px;
+	--ca-scrim-transition-duration: 0.5s;
+	--ca-scrim-transition-ease: ease-in-out;
+
 	/* HSL Colors */
 	--ca-hsl-light-blue: hsl(200, 40%, 80%);
 	--ca-hsl-dark-blue: hsl(205, 40%, 40%);

@@ -2,7 +2,12 @@
 		--template-background: transparent;
 		--template-hover-background: #0c0f0b;
 		--template-favourite: #2b2b2b;
-		--border-color: #606e7f;
+		/* Prefer Dynamix `--border-color`; fallback matches dynamix/styles/themes/gray.css => --theme-gray--cyan-300 */
+		--ca-border-color: var(--border-color, #606e7f);
+		/* Bottom banner (avoid hardcoded colors in main CSS) */
+		--ca-bottomBanner-bg-from: #2a2a2e;
+		--ca-bottomBanner-bg-to: #1f1f22;
+		--ca-bottomBanner-text: #f0f0f0;
 		--a-color: #00b8d6;
 		--sidebar-background: #121510;
 		--sidebar-text: #f2f2f2;
@@ -19,4 +24,10 @@
 		--tooltipster-content: #f2f2f2;
 		--chart-grid: #222222;
 		--magnificCloseColor: var(--ca-named-black);
+		--ca-scrim-background: rgba(0, 0, 0, 0.25);
+		--ca-scrim-blur: 12px;
+		--ca-scrim-transition-duration: 0.5s;
+		--ca-scrim-transition-ease: ease-in-out;
+		/* Awesomplete <mark> highlight color in suggestion chips */
+		--ca-suggestion-mark-color: var(--ca-red-color, #882626);
 }

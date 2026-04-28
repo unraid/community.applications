@@ -455,18 +455,71 @@ function caInitializeClickHandlers() {
 	$(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
 		data.actions = true;
 	});
-	/* Keep focus in #searchBox when clicking the icon again (mousedown would otherwise blur and trigger collapse). */
-	$(".searchSubmit").on("mousedown", function(e) {
+	$(".searchButton").on("mousedown", function(e) {
 		e.preventDefault();
 	});
-	$(".searchSubmit").on("click", function() {
-		var $f = $("#searchFilter");
-		if ($f.hasClass("ca_searchInputCollapsed") && !$.trim($("#searchBox").val())) {
-			$f.removeClass("ca_searchInputCollapsed");
+	$(".searchButton").on("click", function() {
+		if ($("body").hasClass("ca_searchModalOpen")) {
 			$("#searchBox").trigger("focus");
+			var kick = function() {
+				caKickSearchModalAwesomplete();
+			};
+			requestAnimationFrame(function() {
+				kick();
+				setTimeout(kick, 40);
+				setTimeout(kick, 100);
+			});
 			return;
 		}
-		doSearch(true);
+		caOpenSearchModal();
+	});
+	/* Capture: keep #searchBox focused when clicking ?/X so #searchFilter focusout does not close the modal. */
+	if (!window.__caSearchModalIconMouseDownCapture) {
+		window.__caSearchModalIconMouseDownCapture = true;
+		document.addEventListener(
+			"mousedown",
+			function(e) {
+				var t = e.target;
+				if (!t || !t.closest) return;
+				if (!t.closest(".searchModalQueryBtn, .searchModalClearBtn")) return;
+				if (!document.body.classList.contains("ca_searchModalOpen")) return;
+				e.preventDefault();
+				var sb = document.getElementById("searchBox");
+				if (sb) sb.focus();
+			},
+			true
+		);
+	}
+	$(document).on("click", ".searchModalQueryBtn", function(e) {
+		e.stopPropagation();
+		if (!$("body").hasClass("ca_searchModalOpen")) return;
+		/* Run the search using whatever is currently in #searchBox, mirroring Enter on the input. */
+		try {
+			if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete && typeof searchBoxAwesomplete.close === "function") {
+				searchBoxAwesomplete.close();
+			}
+		} catch (err) { /* no-op */ }
+		var sortButton = false;
+		$(".sortIcons").each(function() {
+			if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true;
+		});
+		if (!sortButton) {
+			$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+			post({ action: "defaultSortOrder" }, function() {
+				$("#defaultSort").addClass("enabledIcon");
+				if (typeof doSearch === "function") doSearch();
+			});
+		} else if (typeof doSearch === "function") {
+			doSearch();
+		}
+	});
+	$(document).on("click", ".searchModalClearBtn", function(e) {
+		e.stopPropagation();
+		if ($(this).hasClass("ca_hide")) return;
+		$("#searchBox").val("");
+		if (typeof doSearch === "function") {
+			doSearch(false);
+		}
 	});
 	$(".caChangeLog").on("click", function() { disableSort(); scrollToTop(); caChangeLog(); });
 	$(".mainArea").on("click", ".ca_multiselect", function() { enableMultiInstall(); });
@@ -691,7 +744,130 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".removeApp", function() { removeApp($(this).data("path"), $(this).data("name")); });
 }
 
+/**
+ * For flex-wrapped suggestions in the search modal: map arrow keys to 2D movement
+ * (left/right within a row, up/down to the nearest item in the adjacent row).
+ * Registered in capture phase so Awesomplete's linear list navigation does not run.
+ */
+function caBuildAwesompleteGridRows(ul) {
+	var items = Array.prototype.slice.call(ul.querySelectorAll("li"));
+	if (!items.length) return [];
+	var tol = 6;
+	var rowBuckets = [];
+	for (var i = 0; i < items.length; i++) {
+		var el = items[i];
+		var r = el.getBoundingClientRect();
+		var top = r.top;
+		var b, found = -1;
+		for (b = 0; b < rowBuckets.length; b++) {
+			if (Math.abs(rowBuckets[b].y - top) < tol) {
+				found = b;
+				break;
+			}
+		}
+		var it = { el: el, index: i, left: r.left, right: r.right, center: r.left + 0.5 * r.width };
+		if (found === -1) {
+			rowBuckets.push({ y: top, items: [it] });
+		} else {
+			rowBuckets[found].items.push(it);
+		}
+	}
+	for (b = 0; b < rowBuckets.length; b++) {
+		rowBuckets[b].items.sort(function(a, c) { return a.left - c.left; });
+	}
+	rowBuckets.sort(function(a, c) { return a.y - c.y; });
+	return rowBuckets;
+}
+function caAwesompleteGridFindPos(rows, listIndex) {
+	for (var ri = 0; ri < rows.length; ri++) {
+		for (var ci = 0; ci < rows[ri].items.length; ci++) {
+			if (rows[ri].items[ci].index === listIndex) {
+				return { ri: ri, ci: ci, item: rows[ri].items[ci] };
+			}
+		}
+	}
+	return null;
+}
+function caAwesompleteGridClosestInRow(row, centerX) {
+	var bestI = 0, bestD = Infinity;
+	for (var i = 0; i < row.items.length; i++) {
+		var d = Math.abs(row.items[i].center - centerX);
+		if (d < bestD - 0.5) {
+			bestD = d;
+			bestI = i;
+		} else if (Math.abs(d - bestD) < 0.5 && row.items[i].left < row.items[bestI].left) {
+			bestD = d;
+			bestI = i;
+		}
+	}
+	return row.items[bestI].index;
+}
+function caSearchModalAwesompleteGridKeydown(e) {
+	if (!e || e.isComposing === true) return;
+	var kc = e.keyCode;
+	if (kc < 37 || kc > 40) return;
+	if (!document.body.classList.contains("ca_searchModalOpen")) return;
+	if (typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete || !searchBoxAwesomplete.opened) return;
+	var ac = searchBoxAwesomplete;
+	var ul = ac.ul;
+	if (!ul || ul.getAttribute("hidden") !== null) return;
+	if (!ul.querySelector("li")) return;
+	var idx = ac.index;
+	/* No active suggestion: only Up/Down enter the grid; leave Left/Right for the input caret. */
+	if (idx < 0) {
+		if (kc === 38 || kc === 40) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			var rows0 = caBuildAwesompleteGridRows(ul);
+			if (!rows0.length) return;
+			if (kc === 40) ac.goto(0);
+			else {
+				var lastR = rows0[rows0.length - 1];
+				ac.goto(lastR.items[lastR.items.length - 1].index);
+			}
+			caScrollSearchModalAwesompleteToActive(ac);
+		}
+		return;
+	}
+	e.preventDefault();
+	e.stopImmediatePropagation();
+	var rows = caBuildAwesompleteGridRows(ul);
+	if (!rows.length) return;
+	var pos = caAwesompleteGridFindPos(rows, idx);
+	if (!pos) {
+		if (kc === 40) ac.next();
+		else if (kc === 38) ac.previous();
+		caScrollSearchModalAwesompleteToActive(ac);
+		return;
+	}
+	var nextIdx = -1;
+	if (kc === 37) {
+		if (pos.ci > 0) nextIdx = rows[pos.ri].items[pos.ci - 1].index;
+	} else if (kc === 39) {
+		if (pos.ci < rows[pos.ri].items.length - 1) nextIdx = rows[pos.ri].items[pos.ci + 1].index;
+	} else if (kc === 38) {
+		if (pos.ri > 0) nextIdx = caAwesompleteGridClosestInRow(rows[pos.ri - 1], pos.item.center);
+	} else if (kc === 40) {
+		if (pos.ri < rows.length - 1) nextIdx = caAwesompleteGridClosestInRow(rows[pos.ri + 1], pos.item.center);
+	}
+	if (nextIdx >= 0) {
+		ac.goto(nextIdx);
+		caScrollSearchModalAwesompleteToActive(ac);
+	}
+}
+function caScrollSearchModalAwesompleteToActive(ac) {
+	if (typeof ac === "undefined" || !ac || ac.index < 0) return;
+	setTimeout(function() {
+		var li = ac.ul && ac.ul.children[ac.index];
+		if (li) li.scrollIntoView({ block: "nearest", inline: "nearest" });
+	}, 0);
+}
+
 function caInitializeEventHandlers() {
+	var elSearch = document.getElementById("searchBox");
+	if (elSearch) {
+		elSearch.addEventListener("keydown", caSearchModalAwesompleteGridKeydown, true);
+	}
 	window.addEventListener("error", function(event) {
 		var target = event.target;
 		if (target && target.tagName === "IMG") {
@@ -735,16 +911,21 @@ function caInitializeEventHandlers() {
 	}
 
 	$("#searchBox").on("input", function() {
-		if (!$("#searchBox").val()) {
-			$("#searchButton").addClass("fa-search").removeClass("fa-remove");
-		} else {
-			$("#searchButton").addClass("fa-remove").removeClass("fa-search");
-		}
 		caSyncSearchFilterCollapsed();
 	});
 
 	$("#searchBox").on("focus", function() {
-		$("#searchFilter").removeClass("ca_searchInputCollapsed");
+		if ($("body").hasClass("ca_searchModalOpen")) {
+			caReopenSearchModalIfNeeded();
+			return;
+		}
+		caOpenSearchModal();
+	});
+	/* mousedown fires on click even when the input is already focused (no duplicate focus event). */
+	$("#searchBox").on("mousedown", function(e) {
+		if (e && e.button !== 0) return;
+		if ($(this).prop("disabled")) return;
+		caReopenSearchModalIfNeeded();
 	});
 
 	$("#searchFilter").on("focusout", function(e) {
@@ -755,8 +936,16 @@ function caInitializeEventHandlers() {
 			if (!el) return;
 			var active = document.activeElement;
 			if (active && (el.contains(active) || $(active).closest(".awesomplete").length)) return;
+			if ($("body").hasClass("ca_searchModalOpen")) {
+				caCloseSearchModal({ discardDraft: true });
+				return;
+			}
 			caSyncSearchFilterCollapsed();
 		}, 150);
+	});
+
+	$("#caSearchModalBackdrop").on("click", function() {
+		caCloseSearchModal({ discardDraft: true });
 	});
 
 	$("#mobileMenu").on("mousedown", function() {
@@ -807,18 +996,20 @@ function caInitializeEventHandlers() {
 				if ($("#searchBox").is(":focus") && !$("#searchBox").prop("disabled")) {
 					e.preventDefault();
 					e.stopPropagation();
-					if ($("#searchButton").hasClass("fa-remove")) $(".searchSubmit").trigger("click");
-					else {
+					if ($("body").hasClass("ca_searchModalOpen")) {
+						caCloseSearchModal({ discardDraft: true });
+					} else {
 						$("#searchBox").val("");
 						data.committedSearchFilter = "";
-						caSyncSearchFilterCollapsed();
 						caSyncHomeSearchSubtitle();
+						caSyncSearchFilterCollapsed();
 					}
 					return;
 				}
 				break;
 			case 37:
 				if ($(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible")) return;
+				if ($("body").hasClass("ca_searchModalOpen") && $("#searchBox").is(":focus")) return;
 				if (!$(".pageLeft").hasClass("pageNavNoClick")) {
 					e.preventDefault();
 					e.stopPropagation();
@@ -827,6 +1018,7 @@ function caInitializeEventHandlers() {
 				break;
 			case 39:
 				if ($(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible")) return;
+				if ($("body").hasClass("ca_searchModalOpen") && $("#searchBox").is(":focus")) return;
 				if (!$(".pageRight").hasClass("pageNavNoClick")) {
 					e.preventDefault();
 					e.stopPropagation();
