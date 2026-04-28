@@ -170,7 +170,7 @@ function caInitializeClickHandlers() {
 				$vThumb: $vThumb,
 				overlayHover: false,
 				dragging: false,
-				alwaysShowVertical: el.classList.contains("mainArea") || el.classList.contains("sidenav"),
+				alwaysShowVertical: el.classList.contains("mainArea"),
 				mainAreaScrollFxTimer: null
 			});
 			var entry = overlays.get(el);
@@ -736,7 +736,24 @@ function caInitializeClickHandlers() {
 	$(".multi_installClear").click(function() { clearMultiInstall(); });
 	$(".multi_deleteButton").click(function() { deleteMulti(); });
 	$(".multi_installAll").click(function() { selectAllPrevious(); enableMultiInstall(); });
-	$("body").on("click", ".startupButton", function() { window.location.reload(); });
+	$("body").on("click", ".startupButton", function() {
+		/* Home should start fresh; prevent onbeforeunload from writing saveState cookies back. */
+		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
+		[
+			"ca_data",
+			"ca_searchActive",
+			"ca_installMulti",
+			"ca_selectedMenu",
+			"ca_filter",
+			"ca_categoryName",
+			"ca_categoryText"
+		].forEach(function(name) {
+			try { $.removeCookie(name, { path: "/" }); } catch (e1) { /* no-op */ }
+			/* Some legacy calls used a non-standard cookie options string; clear that too just in case. */
+			try { $.removeCookie(name, { path: "/;SameSite=Lax" }); } catch (e2) { /* no-op */ }
+		});
+		window.location.reload();
+	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	$(".sortIcons").click(function() {
 		$(".sortIcons").removeClass("enabledIcon");

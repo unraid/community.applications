@@ -649,7 +649,12 @@ function doSearch(button,newSearch) {
 		data.searchInProgress = false;
 		if ( data.searchActive || data.searchFlag || data.docker ) {
 			if (typeof caCloseSearchModal === "function") caCloseSearchModal();
-			appStore();
+			var $homeBtn = $(".startupButton").first();
+			if ($homeBtn.length) {
+				$homeBtn.trigger("click");
+			} else {
+				appStore();
+			}
 			return;
 		}
 		data.committedSearchFilter = "";
