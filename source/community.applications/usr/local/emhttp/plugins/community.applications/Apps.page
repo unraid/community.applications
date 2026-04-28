@@ -621,10 +621,16 @@ function doSearch(button,newSearch) {
 	   Close the modal; if maxPerPage changed (viewport/layout changed), re-render current
 	   search pagination via changePage so cards-per-page and page mapping stay consistent. */
 	var committedFilter = $.trim(String(data.committedSearchFilter || ""));
-	var hasActiveSearch = !!(data.searchActive || data.searchFlag || data.docker);
-	if (filter && hasActiveSearch && filter === committedFilter) {
+	var hasActiveAppSearch = !!(data.searchActive || data.searchFlag) && !data.docker;
+	if (filter && hasActiveAppSearch && filter === committedFilter) {
 		$('#searchBox').val(filter);
 		data.searchInProgress = false;
+		if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
+			$('.dockerSearch').removeClass("ca_hide");
+			$('.templateSearch').addClass("ca_hide");
+		} else {
+			$('.dockerSearch,.templateSearch').addClass("ca_hide");
+		}
 		var nextMax = getMaxPerPage();
 		var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
 		var maxChanged = nextMax && nextMax > 0 && nextMax !== oldMax;
@@ -683,11 +689,10 @@ function doSearch(button,newSearch) {
 	data.searchActive = true;
 
 	if ( ! dockerNotEnabled && (filter.indexOf(" Repository") < 1) ) {
-		$('.dockerSearch').show();
-		$('.templateSearch').hide();
+		$('.dockerSearch').removeClass("ca_hide");
+		$('.templateSearch').addClass("ca_hide");
 	} else {
-		$('.dockerSearch').hide();
-		$('.templateSearch').hide();
+		$('.dockerSearch,.templateSearch').addClass("ca_hide");
 	}
 
 	data.searchInProgress = true;
@@ -766,7 +771,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 
 		var filter = $('#searchBox').val();
 		if ( ! filter ) {
-			$('.dockerSearch,.templateSearch').hide();
+			$('.dockerSearch,.templateSearch').addClass("ca_hide");
 		}
 		if ( description && ! filter ) {
 		 // $(".category").html(description);
@@ -1026,7 +1031,7 @@ function previousApps(installed,dontClear=false,filter="") {
 	data.docker = "";
 
 	clearSearchBox();
-	$(".dockerSearch,.templateSearch").hide();
+	$(".dockerSearch,.templateSearch").addClass("ca_hide");
 	showSortIcons();
 
 	// this is the checkSortOrder function running to prevent a race condition
@@ -1058,7 +1063,7 @@ function actionCentre() {
 	setPageOne();
 	data.docker = "";
 	clearSearchBox();
-	$(".dockerSearch,.templateSearch").hide();
+	$(".dockerSearch,.templateSearch").addClass("ca_hide");
 	showSortIcons();
 
 	// this is the checkSortOrder function running to prevent a race condition
@@ -1806,25 +1811,15 @@ function showSettings() {
 	caBindSettingsFormHandlers(initialFormState);
 }
 
-var menuScrollPosition = null;
 function showMenu() {
-	menuScrollPosition = $(window).scrollTop();
-	$(".menuAdjust,.hideWithMenu").addClass("menuShowing").removeClass("menuHidden");
-	$('.mobileMenu').toggle("slide", { direction: "left" }, 500);
-	$(":root").css("--mainAreaHeight",$(".mobileMenu").height()+"px");
-
-	$("#mobileMenu").get(0).scrollIntoView({behavior: "smooth", block: "start"});
+	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuShowing").removeClass("menuHidden");
 }
 
 function closeMenu() {
 	if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
 		return;
 	}
-	$(".menuAdjust,.hideWithMenu").addClass("menuHidden").removeClass("menuShowing");
-	$('.mobileMenu').toggle("slide", { direction: "left" }, 500);
-	$(window).scrollTop(menuScrollPosition);
-	menuScrollPosition = null;
-	$(":root").css("--mainAreaHeight","unset");
+	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuHidden").removeClass("menuShowing");
 }
 
 function caChangeLog() {
@@ -2566,17 +2561,16 @@ function checkSortOrder() {
 
 function initDockerSearch() {
 	caClearHomeSectionSubtitle();
-	dockerSearch(1);
 	data.docker = "searching docker";
 	data.section = "";
 	data.selected_category = "";
-	data.committedSearchFilter = "";
 	$(".selectedMenu").removeClass("selectedMenu");
 	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
 	hideSortIcons();
 	$(".subCategory").hide();
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
+	dockerSearch(1);
 }
 
 function dockerSearch(pageNumber) {
@@ -2588,8 +2582,9 @@ function dockerSearch(pageNumber) {
 	var filter = $('#searchBox').val();
 	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
 	data.docker = "searching docker";
-	$(".dockerSearch,.multi_installDiv").hide();
-	$(".templateSearch").show();
+	$(".dockerSearch").addClass("ca_hide");
+	$(".multi_installDiv").hide();
+	$(".templateSearch").removeClass("ca_hide");
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
 		data.committedSearchFilter = $.trim(String(filter || ""));

@@ -25,6 +25,10 @@ function caInitializeClickHandlers() {
 			$root = $("<div>", { id: "ca_fixed_scroll_root" }).appendTo("body");
 		}
 
+		var shouldAlwaysShowMenuIndicators = function(el) {
+			return !!(el && el.classList && el.classList.contains("menuItems") && $(".mobileMenu").hasClass("menuShowing"));
+		};
+
 		var clearHideTimer = function(el) {
 			var t = hideTimers.get(el);
 			if (t) {
@@ -44,10 +48,12 @@ function caInitializeClickHandlers() {
 		var hideIndicatorSoon = function(el) {
 			var entry = overlays.get(el);
 			if (!entry) return;
+			if (shouldAlwaysShowMenuIndicators(el)) return;
 			if (entry.dragging || entry.overlayHover || $(el).is(":hover")) return;
 			clearHideTimer(el);
 			hideTimers.set(el, setTimeout(function() {
 				// Don't hide if user is still interacting/hovering the scroll target.
+				if (shouldAlwaysShowMenuIndicators(el)) return;
 				if (entry.dragging || entry.overlayHover || $(el).is(":hover")) return;
 				if (entry.$hIndicator) entry.$hIndicator.removeClass("visible");
 				if (entry.$vIndicator && !entry.alwaysShowVertical) entry.$vIndicator.removeClass("visible");
@@ -120,6 +126,14 @@ function caInitializeClickHandlers() {
 						transform: "translateY(" + vTop + "px)"
 					});
 				}
+			}
+
+			if (shouldAlwaysShowMenuIndicators(el)) {
+				if (entry.$hIndicator && entry.$hIndicator.is(":visible")) entry.$hIndicator.addClass("visible");
+				if (entry.$vIndicator && entry.$vIndicator.is(":visible")) entry.$vIndicator.addClass("visible");
+			} else if (el.classList.contains("menuItems") && !entry.dragging && !entry.overlayHover && !$(el).is(":hover")) {
+				if (entry.$hIndicator) entry.$hIndicator.removeClass("visible");
+				if (entry.$vIndicator) entry.$vIndicator.removeClass("visible");
 			}
 		};
 
@@ -881,32 +895,6 @@ function caInitializeEventHandlers() {
 	window.onerror = function(msg, url, lineNo, columnNo, error) {
 		post({ action: "javascriptError", msg: msg, url: url, lineNo: lineNo, columnNo: columnNo, error: error });
 	};
-
-	if (window.caResponsiveOS) {
-		var resizeDebounce = function(func, wait) {
-			var timeout;
-			return function() {
-				var args = arguments;
-				var later = function() {
-					clearTimeout(timeout);
-					func.apply(null, args);
-				};
-				clearTimeout(timeout);
-				timeout = setTimeout(later, wait);
-			};
-		};
-		var resizeDebouncedOrientationHandler = resizeDebounce(function() {
-			saveState(false);
-			data.ignoreUnload = true;
-			window.location.replace("/Apps/Apps");
-		}, 100);
-		var debouncedOrientationHandler = resizeDebounce(function() {
-			resizeDebouncedOrientationHandler();
-		}, 300);
-		$(window).on("orientationchange", function() {
-			setTimeout(debouncedOrientationHandler, 100);
-		});
-	}
 
 	$("#searchBox").on("input", function() {
 		caSyncSearchFilterCollapsed();

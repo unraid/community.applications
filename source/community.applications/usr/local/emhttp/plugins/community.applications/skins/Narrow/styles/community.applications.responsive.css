@@ -15,14 +15,35 @@
 		padding-left: 0;
 		margin-left: 0;
 	}
+	.pageNavigation {
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: row;
+	}
+	.navigationSection {
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: row;
+	}
 }
 @media (max-width: 767px) {
 	:root {
 		--mobileDevice: true;
+		/* Mobile: overlays should appear/disappear instantly (search/sidebar/SweetAlert). */
+		--ca-scrim-transition-duration: 0s;
+		--ca-scrim-transition-ease: linear;
 	}
 	body {
 		overflow-x: unset !important;
 		width: initial;
+	}
+
+	#footer {
+		display: none;
 	}
 	.searchAreaHolder {
 		top: var(--search-area-mobile-top);
@@ -42,6 +63,7 @@
 		display: none;
 	}
 	.mobileMenu.menuShowing {
+		display: block;
 		width: 20rem;
 		padding-left:2rem;
 	}
@@ -64,11 +86,6 @@
 	.multi_installDiv {
 		position: relative;
 	}
-	.navigationSection {
-		bottom: 0 !important;
-		position: relative;
-	}
-
 
 	#templates_content {
 		margin-bottom: 0;

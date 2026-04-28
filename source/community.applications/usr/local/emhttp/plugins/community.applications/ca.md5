@@ -1,4 +1,4 @@
-f8707312d55ae6c4e4efd21ea961b5d0  ./Apps.page
+8c24f5e05db787021b2a9cb6681bc993  ./Apps.page
 c9f629c30f77fe438ebbe5af75929582  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -11,7 +11,7 @@ e0d0ce291191cf53f61393577c0027d1  ./include/force_update_helpers.php
 63524e7d13191da4dc23bf82a6b6d6f9  ./include/pinned_apps_helpers.php
 a8a9b23b702b19c6669dc7f6085e416e  ./include/populate_autocomplete_helpers.php
 f3fa186c0dc46ecc1386948e8a9bcfd5  ./include/previous_apps_helpers.php
-4556226f15ecb7fcd1b7dffee8a7fabf  ./javascript/clickHandlers.js
+5c2520836304b02d40290251686ba4a8  ./javascript/clickHandlers.js
 82ce53d07903ea2ad5eee787ac0c256f  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f79e808011410b68cbbc76edf3cb663f  ./javascript/statistics.js
@@ -32,12 +32,12 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 69158f58637a757bd6dd1d6f8b06b1f4  ./scripts/updatePLG.sh
 3bdcd43cb101c88848e26834fed29b16  ./scripts/updatePluginSupport.php
 37fcfb8bf6c2f5dbca3e4285fd55de03  ./skins/Narrow/styles/community.applications.colors.css
-f22dbd68b0db071efc5e26a7e870a4bf  ./skins/Narrow/styles/community.applications.css
-6dfa74268008eac9819bc3783af23a27  ./skins/Narrow/styles/community.applications.responsive.css
+7e2bf29629ad58d18eeb7fd32502ef34  ./skins/Narrow/styles/community.applications.css
+8623e73f187ed4690540f13e494b2ea8  ./skins/Narrow/styles/community.applications.responsive.css
 c6329bd8d14ea900f6bbfa89a70bc23f  ./skins/Narrow/themes/azure.css
 d3d51c182617b4611654fd459a59a2c0  ./skins/Narrow/themes/black.css
 001ceb3cb1627bd3762ea217a2e612dc  ./skins/Narrow/themes/gray.css
 f9ff07c46fc2bd9093c875b1200db387  ./skins/Narrow/themes/white.css
-c26581c2e7599c010726bdcb886a00a7  ./skins/Narrow/skin.html
+8ade661fcff3d7fff1d05553b5a31d08  ./skins/Narrow/skin.html
 95aa36f31fc1120accc2c79e615a27d8  ./skins/Narrow/skin.php
 27e9eb0ec9045579ae03eb2140a17e88  ./skins/Narrow/skin_helpers.php

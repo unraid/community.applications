@@ -405,25 +405,6 @@ a {
 		margin-left: 0;
 	}
 
-	input[type="button"] {
-		background: none;
-		font-size: 1.5rem;
-	}
-
-	input:hover[type="button"] {
-		color: var(--unraid-66-color) !important;
-		background: none !important;
-	}
-
-	input:hover[type="button"][disabled] {
-		background: none !important;
-		color: currentColor !important;
-	}
-
-	input[type="button"][disabled] {
-		background: none !important;
-	}
-
 	/* 2.6) Menu and Navigation */
 
 	.ca_hide,
@@ -435,9 +416,6 @@ a {
 	.mainArea.menuShowing {
 		overflow: hidden;
 		height: var(--mainAreaHeight) !important;
-	}
-	.mainArea.menuHidden {
-		height: unset !important
 	}
 
 	.showMenuButton.menuShowing {
@@ -697,8 +675,6 @@ a {
 	}
 	.menuItems.menuShowing {
 		padding-top: 3rem;
-		padding-left: 5rem;
-		padding-right: 5rem;
 	}
 
 	.selectedMenu {
@@ -803,7 +779,6 @@ a {
 		margin-bottom: 10px;
 		background-color: var(--ca-legacy-background-color);
 		z-index: 2;
-
 	}
 	.mobileOverlay.menuShowing {
 		display: inline-block;
@@ -883,7 +858,6 @@ a {
 		right: 1rem;
 		display: block;
 		align-items: stretch;
-		left: 18.5rem;
 	}
 
 	.caChangeLog > div:first-child {
@@ -1706,17 +1680,11 @@ a {
 		color: unset;
 	}
 
-	input[type="checkbox"] {
-		width: 2rem;
-		height: 2rem;
-		margin-left: 0rem;
+input[type="button"] {
+		background: none ! important;
+		font-size: 1.5rem ! important;
+    border: none ! important;
 	}
-
-	input[type="button"] {
-		background: none;
-		font-size: 1.5rem;
-	}
-
 	input:hover[type="button"] {
 		color: var(--unraid-66-color) !important;
 		background: none !important;
@@ -1732,6 +1700,7 @@ a {
 	input[type="button"][disabled] {
 		background: none !important;
 		background-color: none !important;
+    border: none ! important;
 	}
 
 	/* 3.10) Moderation comments and install status areas */
