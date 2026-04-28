@@ -1,4 +1,4 @@
-6baa6d2ac71b29e19a8be8595f7bfe69  ./Apps.page
+d0b89e36c5c0f257d350d8beb19dbc2e  ./Apps.page
 c9f629c30f77fe438ebbe5af75929582  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -12,7 +12,7 @@ e0d0ce291191cf53f61393577c0027d1  ./include/force_update_helpers.php
 a8a9b23b702b19c6669dc7f6085e416e  ./include/populate_autocomplete_helpers.php
 f3fa186c0dc46ecc1386948e8a9bcfd5  ./include/previous_apps_helpers.php
 4556226f15ecb7fcd1b7dffee8a7fabf  ./javascript/clickHandlers.js
-ea6eee0f2b5882b5312eef0b19abbde7  ./javascript/helpers.js
+1ed5124100239fed031f63c984691aef  ./javascript/helpers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f79e808011410b68cbbc76edf3cb663f  ./javascript/statistics.js
 e0925218cbd4a34973cf1f29f2074330  ./phpstan.neon

@@ -616,6 +616,18 @@ function doSearch(button,newSearch) {
 	var filter = $('#searchBox').val();
 	filter = $.trim(filter);
 	filter = stripTags(filter);
+
+	/* No-op: term hasn't changed from the currently committed search.
+	   Just normalize the input and close the modal — do not re-fetch. */
+	var committedFilter = $.trim(String(data.committedSearchFilter || ""));
+	var hasActiveSearch = !!(data.searchActive || data.searchFlag || data.docker);
+	if (filter && hasActiveSearch && filter === committedFilter) {
+		$('#searchBox').val(filter);
+		data.searchInProgress = false;
+		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+		return;
+	}
+
 	if ( ! filter ) {
 		$("#searchBox").val(filter);
 		data.searchInProgress = false;

@@ -890,22 +890,25 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 }
 
 function getMaxPerPage() {
-	const $templatesContent = $("#templates_content");
 	const $caDisplayArea = $(".ca_display_area").first();
+	if (!$caDisplayArea.length) return 0;
 
-	if (!$templatesContent.length || !$caDisplayArea.length) return 0;
+	/* We need a measurable .ca_holder inside #templates_content > .ca_templatesDisplay. If either
+	   .ca_templatesDisplay is absent or it has no .ca_holder descendant, replace #templates_content's
+	   html with the #sampleApp markup (which is already wrapped in .ca_templatesDisplay containing a
+	   .ca_holder). This covers both the initial empty-page state and the post-"No Matching
+	   Applications Found" state — without it, maxPerPage returns 0 and the next search dumps every
+	   result onto page 1. */
+	const $templatesContent = $("#templates_content");
+	if (!$templatesContent.length) return 0;
 
-	/* When the prior result was "No Matching Applications Found", the .ca_templatesDisplay wrapper
-	   is present but contains no .ca_holder, so we can't measure the card. Inject the #sampleApp
-	   markup whenever no .ca_holder is in #templates_content so getMaxPerPage can compute a real
-	   per-page count. Without this, maxPerPage returns 0 and the next search dumps every result
-	   onto page 1. */
-	const $sampleApp = $("#sampleApp");
-	const hasHolderChild = $templatesContent.find(".ca_holder").length > 0;
-	const shouldUseSample = !!($sampleApp.length && !hasHolderChild);
-
-	if (shouldUseSample) {
-		$templatesContent.html($sampleApp.html());
+	const $existingDisplay = $templatesContent.find(".ca_templatesDisplay").first();
+	const needsSample = !$existingDisplay.length || !$existingDisplay.find(".ca_holder").length;
+	if (needsSample) {
+		const $sampleApp = $("#sampleApp");
+		if ($sampleApp.length) {
+			$templatesContent.html($sampleApp.html());
+		}
 	}
 
 	try {
@@ -940,10 +943,8 @@ function getMaxPerPage() {
 		const perCol = Math.floor(availableHeight / fullHeight);
 		if (perRow < 3) return 4;
 		return perRow * perCol;
-	} finally {
-		if (shouldUseSample) {
-			// Keep copied sample markup in place for inspection/debugging.
-		}
+	} catch (err) {
+		return 0;
 	}
 }
 
