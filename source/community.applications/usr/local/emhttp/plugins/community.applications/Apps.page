@@ -208,7 +208,9 @@ data.searchInProgress = false;
 data.deprecated = false; // Only set by reinstalling a deprecated plugin
 data.loggedOut = false; // flag to prevent a second alert from popping up if you wind up being logged out due to a fatal error
 data.ignoreUnload = false;
-data.maxPerPage = 0;
+data.maxPerPage = 12;
+data.totalApps = 0;
+data.loadingMore = false;
 
 var dockerNotEnabled;
 var postCount = 0;
@@ -561,35 +563,17 @@ function changeCategory(button,subSwitch) {
 	getContent(false,category,description,false);
 }
 
-function changePage(pageNumber) {
+function changePage(pageNumber, append) {
 	pageNumber = parseInt(pageNumber, 10) || 1;
-	var max = getMaxPerPage();
-	if ( max !== data.maxPerPage ) {
-		if ( pageNumber !== data.currentpage ) {
-			$(".ca_bottomBanner").removeClass("ca_hide");
-			setTimeout(function() {
-				$(".ca_bottomBanner").addClass("ca_hide");
-			}, 1500);
-		}
-		// If per-page changes mid-pagination, keep the same first visible result.
-		var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
-		var oldPage = Math.max(1, parseInt(data.currentpage, 10) || pageNumber || 1);
-		if ( oldPage > 1 ) {
-			var startingIndex = (oldPage - 1) * oldMax; // 0-based index of first visible item
-			pageNumber = Math.floor(startingIndex / Math.max(1, max)) + 1;
-		} else {
-			pageNumber = 1;
-		}
-		data.maxPerPage = max;
-	}
+	var doAppend = !!append;
 	caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
 	var selected = data.selected;
 	data.currentpage = pageNumber;
 
 	post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
-		updateDisplay(result.display);
-		scrollToTop();
+		updateDisplay(result.display, doAppend);
+		if (!doAppend) scrollToTop();
 	});
 }
 
@@ -1702,8 +1686,24 @@ function installMulti() {
 function postMultiDockerInstall() {
 	window.location.reload();
 }
-function updateDisplay(content) {
-	$("#templates_content").html(content);
+function updateDisplay(content, append) {
+	if (append) {
+		var $existing = $("#templates_content .ca_templatesDisplay").first();
+		if ($existing.length) {
+			/* Parse the new payload off-DOM so its inline <script> (caRenderPageNavigation)
+			   runs and updates data.nextpage/totalApps; then move the cards into the
+			   existing display so prior pages stay visible (scrolling up shows the cache). */
+			var $tmp = $("<div>").html(content);
+			var $newChildren = $tmp.find(".ca_templatesDisplay").first().contents();
+			$existing.append($newChildren);
+		} else {
+			$("#templates_content").html(content);
+		}
+	} else {
+		$("#templates_content").html(content);
+	}
+	data.loadingMore = false;
+	caEnsureScrollable();
 	enableSearch();
 
 	$(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
@@ -2580,10 +2580,11 @@ function initDockerSearch() {
 	dockerSearch(1);
 }
 
-function dockerSearch(pageNumber) {
+function dockerSearch(pageNumber, append) {
+	var doAppend = !!append;
 	caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-	scrollToTop();
+	if (!doAppend) scrollToTop();
 	$(".selectedMenu").removeClass("selectedMenu");
 	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
 	var filter = $('#searchBox').val();
@@ -2596,7 +2597,7 @@ function dockerSearch(pageNumber) {
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
 		data.committedSearchFilter = $.trim(String(filter || ""));
 		caSyncHomeSearchSubtitle();
-		updateDisplay(result.display);
+		updateDisplay(result.display, doAppend);
 		caSyncSearchFilterCollapsed();
 	});
 }
@@ -2703,5 +2704,45 @@ function postCheckForUpdates() {
 	setupActionCentre();
 	$(".selectedMenu").click();
 }
+
+/* If the rendered page doesn't fill .mainArea (no scrollbar = no way for the
+   user to trigger infinite scroll), pull the next page automatically. Chains
+   on each successful render until the viewport scrolls or pages run out. */
+function caEnsureScrollable() {
+	if (data.loadingMore) return;
+	if (!data.nextpage || data.nextpage <= 0) return;
+	var el = $(".mainArea")[0];
+	if (!el) return;
+	if (el.scrollHeight - el.clientHeight > 4) return; // already scrollable
+	data.loadingMore = true;
+	var nextPage = data.nextpage;
+	if (data.docker) {
+		dockerSearch(nextPage, true);
+	} else {
+		changePage(nextPage, true);
+	}
+}
+
+/* Infinite scroll: when the user nears the bottom of .mainArea and the most
+   recent caRenderPageNavigation said another page exists, append the next 12
+   cards rather than waiting for a page-number click. dockerSearch and the
+   regular display path share the same pagination state (data.nextpage). */
+function caInitInfiniteScroll() {
+	$(".mainArea").on("scroll", function() {
+		if (data.loadingMore) return;
+		if (!data.nextpage || data.nextpage <= 0) return;
+		var el = this;
+		var bottomGap = el.scrollHeight - el.clientHeight - el.scrollTop;
+		if (bottomGap > 600) return;
+		data.loadingMore = true;
+		var nextPage = data.nextpage;
+		if (data.docker) {
+			dockerSearch(nextPage, true);
+		} else {
+			changePage(nextPage, true);
+		}
+	});
+}
+$(caInitInfiniteScroll);
 
 </script>

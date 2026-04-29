@@ -1,4 +1,4 @@
-c98aa7d114cb2918bb606d691dc61a36  ./Apps.page
+1b66751f1878b40de7f48ad85127f7cf  ./Apps.page
 c9f629c30f77fe438ebbe5af75929582  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -13,8 +13,8 @@ a8a9b23b702b19c6669dc7f6085e416e  ./include/populate_autocomplete_helpers.php
 f3fa186c0dc46ecc1386948e8a9bcfd5  ./include/previous_apps_helpers.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f79e808011410b68cbbc76edf3cb663f  ./javascript/statistics.js
-4f76a4e6f7d2c6b3d039983f28d0b403  ./javascript/helpers.js
 cc6a1e88a6f1f6d219397bab453511f6  ./javascript/clickHandlers.js
+885f3cf8771d9b8fc4a19ed2658c49b6  ./javascript/helpers.js
 e0925218cbd4a34973cf1f29f2074330  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook
@@ -32,8 +32,8 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 69158f58637a757bd6dd1d6f8b06b1f4  ./scripts/updatePLG.sh
 3bdcd43cb101c88848e26834fed29b16  ./scripts/updatePluginSupport.php
 37fcfb8bf6c2f5dbca3e4285fd55de03  ./skins/Narrow/styles/community.applications.colors.css
-ce090a899b4f2f0df627cd060533c0ef  ./skins/Narrow/styles/community.applications.responsive.css
-4b8d002fc9a31b3c94ff49b952331675  ./skins/Narrow/styles/community.applications.css
+f32052e5e7651bf2b0809d47bd496ca7  ./skins/Narrow/styles/community.applications.css
+7a513c853329be26ff1095023afa1c6f  ./skins/Narrow/styles/community.applications.responsive.css
 18c984c0eb6ae1e4cc2eaa96d9732e1c  ./skins/Narrow/themes/black.css
 229a6da48382c09cc0f1908e44ec5950  ./skins/Narrow/themes/azure.css
 0aa451e5aeab2eea5d6b358920ec28b2  ./skins/Narrow/themes/gray.css

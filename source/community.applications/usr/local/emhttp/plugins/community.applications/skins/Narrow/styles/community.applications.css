@@ -126,6 +126,13 @@ a {
 	color: var(--magnificCloseColor);
 }
 
+/* Pagination is now infinite-scroll — hide the page-number bar at all sizes. */
+#ca_pageNavigation,
+.pageNavigation,
+.navigationSection {
+	display: none !important;
+}
+
 .mainArea {
 	right: 6rem;
 	display: block;
@@ -163,6 +170,12 @@ a {
 
 	/* Interactive */
 	cursor: pointer;
+
+	/* Browser-native virtualization: skip layout/paint for cards not near the
+	   viewport. The intrinsic-size hint lets the browser reserve space without
+	   rendering the contents until the card scrolls close. */
+	content-visibility: auto;
+	contain-intrinsic-size: auto 24rem auto 20rem;
 }
 
 .ca_holder:hover,

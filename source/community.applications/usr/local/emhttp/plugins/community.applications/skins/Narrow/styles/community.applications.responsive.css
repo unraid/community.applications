@@ -64,6 +64,7 @@
 		width: 17rem;
 		padding: 0.75rem 0.4rem 0.75rem 0.75rem;
 		font-size: 1.05rem;
+		contain-intrinsic-size: auto 17rem auto 14rem;
 	}
 	.ca_homeTemplates {
 		height: 21rem;
@@ -224,6 +225,7 @@ body.ca-compact-cards .dockerHubHolder {
 	width: 17rem;
 	padding: 0.75rem 0.4rem 0.75rem 0.75rem;
 	font-size: 1.05rem;
+	contain-intrinsic-size: auto 17rem auto 14rem;
 }
 body.ca-compact-cards .ca_homeTemplates {
 	height: 21rem;

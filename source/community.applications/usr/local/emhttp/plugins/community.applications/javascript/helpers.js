@@ -888,6 +888,7 @@ function caRenderPageNavigation(targetId, navigationData) {
 	data.currentpage = pageNumber;
 	data.prevpage = pageNumber - 1;
 	data.nextpage = (pageNumber < totalPages) ? (pageNumber + 1) : 0;
+	data.totalApps = totalApps;
 
 	if ((isDockerSearch && totalApps <= 25) || totalApps < 2 || totalPages <= 1) {
 		$target.empty();
@@ -914,6 +915,13 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 }
 
 function getMaxPerPage() {
+	/* Pagination is now infinite-scroll (virtual): always fetch 12 per request.
+	   The viewport-fitting math + body.ca-compact-cards toggle that used to live
+	   here are no longer used — the scroll handler in caInitInfiniteScroll
+	   appends each new page into the existing .ca_templatesDisplay. */
+	return 12;
+}
+function _unused_getMaxPerPage_legacy() {
 	const $caDisplayArea = $(".ca_display_area").first();
 	if (!$caDisplayArea.length) return 0;
 
