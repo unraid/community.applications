@@ -191,7 +191,7 @@ function caInitializeClickHandlers() {
 				overlayHover: false,
 				dragging: false,
 				alwaysShowVertical: el.classList.contains("mainArea"),
-				mainAreaScrollFxTimer: null
+				scrollFxTimer: null
 			});
 			var entry = overlays.get(el);
 			if (el.classList.contains("mainArea")) {
@@ -332,15 +332,15 @@ function caInitializeClickHandlers() {
 				var current = overlays.get(el);
 				if (!current) return;
 				updateIndicator(el);
-				if (current.alwaysShowVertical && current.$vIndicator) {
-					current.$vIndicator.addClass("ca_mainarea_v_scrolling");
-					if (current.mainAreaScrollFxTimer) clearTimeout(current.mainAreaScrollFxTimer);
-					current.mainAreaScrollFxTimer = setTimeout(function() {
-						var latest = overlays.get(el);
-						if (!latest || !latest.$vIndicator) return;
-						latest.$vIndicator.removeClass("ca_mainarea_v_scrolling");
-					}, 450);
-				}
+				if (current.$vIndicator) current.$vIndicator.addClass("ca_scroll_active");
+				if (current.$hIndicator) current.$hIndicator.addClass("ca_scroll_active");
+				if (current.scrollFxTimer) clearTimeout(current.scrollFxTimer);
+				current.scrollFxTimer = setTimeout(function() {
+					var latest = overlays.get(el);
+					if (!latest) return;
+					if (latest.$vIndicator) latest.$vIndicator.removeClass("ca_scroll_active");
+					if (latest.$hIndicator) latest.$hIndicator.removeClass("ca_scroll_active");
+				}, 450);
 				if (current.dragging || current.overlayHover || $(el).is(":hover")) showIndicator(el);
 				hideIndicatorSoon(el);
 			});
@@ -830,6 +830,25 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
 	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
 	$("body").on("click", ".removeApp", function() { removeApp($(this).data("path"), $(this).data("name")); });
+	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
+}
+
+/* EXIT button on the "Updating Applications" swal: close the swal, briefly show
+   a bottom-banner notice that the download continues in the background, then
+   navigate to the previous page. */
+function caQuitUpdate() {
+	data.quittingUpdate = true;
+	try { if (typeof swal !== "undefined") swal.close(); } catch (err) { /* no-op */ }
+	$("div.spinner, .spinnerBackground").hide();
+
+	var $banner = $(".ca_bottomBanner");
+	var $msg = $banner.find(".ca_pageGeometryChange");
+	var savedHTML = $msg.html();
+	$msg.html(tr("The download will continue in the background"));
+	$banner.removeClass("ca_hide");
+	setTimeout(function() {
+		try { history.back(); } catch (err) { /* no-op */ }
+	}, 5000);
 }
 
 /**
@@ -956,6 +975,15 @@ function caInitializeEventHandlers() {
 	if (elSearch) {
 		elSearch.addEventListener("keydown", caSearchModalAwesompleteGridKeydown, true);
 	}
+
+	/* Cmd/Ctrl+Shift+D triggers the Debugging menu item from anywhere on the page. */
+	$(document).on("keydown", function(e) {
+		var key = e.key || "";
+		if ((e.metaKey || e.ctrlKey) && e.shiftKey && (key === "d" || key === "D")) {
+			e.preventDefault();
+			$(".debugging").first().trigger("click");
+		}
+	});
 	window.addEventListener("error", function(event) {
 		var target = event.target;
 		if (target && target.tagName === "IMG") {

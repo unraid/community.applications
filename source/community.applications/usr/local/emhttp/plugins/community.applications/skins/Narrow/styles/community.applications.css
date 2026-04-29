@@ -547,31 +547,51 @@ a {
 	:root {
 		--ca-fixed-scrollbar-thickness: 10px;
 	}
+	/* Horizontal indicator: always visible (subtle, transparent track) at any
+	   resolution; track styling fades in only while actively scrolling, hovered,
+	   or being dragged. */
 	.ca_fixed_hscroll_indicator {
 		position: fixed;
 		height: var(--ca-fixed-scrollbar-thickness);
-		opacity: 0;
+		opacity: 1;
 		pointer-events: auto;
 		cursor: pointer;
 		z-index: 1000;
 		transition: opacity 120ms ease-in-out;
-		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+		background: transparent;
+		box-shadow: none;
 		border-radius: 999px;
 	}
 	.ca_fixed_hscroll_indicator.visible {
 		opacity: 1;
 	}
+	.ca_fixed_hscroll_indicator:hover,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover),
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging),
+	.ca_fixed_hscroll_indicator.ca_scroll_active {
+		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+	}
+	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
 	.ca_fixed_hscroll_thumb {
 		position: absolute;
-		top: 0;
+		top: auto;
+		bottom: 0;
 		left: 0;
-		height: var(--ca-fixed-scrollbar-thickness);
+		height: 3px;
 		border-radius: 999px;
 		background: var(--unraid-66-color);
 		pointer-events: auto;
 		cursor: grab;
+		transition: height 150ms ease-out;
 	}
+	.ca_fixed_hscroll_indicator:hover > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover) > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging) > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator.ca_scroll_active > .ca_fixed_hscroll_thumb {
+		height: var(--ca-fixed-scrollbar-thickness);
+	}
+
 	.ca_fixed_vscroll_indicator {
 		position: fixed;
 		width: var(--ca-fixed-scrollbar-thickness);
@@ -595,19 +615,28 @@ a {
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb:hover),
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb.dragging),
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_mainarea_v_scrolling {
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_scroll_active {
 		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
 	}
+	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
 	.ca_fixed_vscroll_thumb {
 		position: absolute;
 		top: 0;
-		left: 0;
-		width: var(--ca-fixed-scrollbar-thickness);
+		left: auto;
+		right: 0;
+		width: 3px;
 		border-radius: 999px;
 		background: var(--unraid-66-color);
 		pointer-events: auto;
 		cursor: grab;
+		transition: width 150ms ease-out;
+	}
+	.ca_fixed_vscroll_indicator:hover > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb:hover) > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb.dragging) > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator.ca_scroll_active > .ca_fixed_vscroll_thumb {
+		width: var(--ca-fixed-scrollbar-thickness);
 	}
 	.ca_fixed_hscroll_thumb.dragging,
 	.ca_fixed_vscroll_thumb.dragging {
@@ -622,6 +651,13 @@ a {
 	}
 	/* When the sidebar is open, disable all other overlay scrollbars (e.g. home templates). */
 	body:has(.sidenavShow) .ca_scroll_nonsidenav {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* When the search modal is open, hide every JS overlay scrollbar (matches sidenav behavior). */
+	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_vscroll_indicator {
 		display: none !important;
 		opacity: 0 !important;
 		pointer-events: none !important;
@@ -784,14 +820,21 @@ a {
 		width: 100%;
 		height: 200vh;
 		margin-bottom: 10px;
-		background-color: var(--ca-legacy-background-color);
+		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
 		z-index: 2;
 	}
 	.mobileOverlay.menuShowing {
 		display: inline-block;
-		opacity: 0.5;
-		background-color: var(--ca-legacy-background-color);
-		filter: grayscale(100%);
+		opacity: 1;
+		pointer-events: auto;
 	}
 	.mobileOverlay.menuHidden {
 		display: none;
@@ -1244,8 +1287,8 @@ a {
 		top: 20rem;
 	}
 	.Theme--sidebar .ca_display_area {
-		left: 5rem;
-		top: 15rem;
+		left: 6rem;
+		top: 13rem;
 	}
 	.ca_fa-additional::before {
 		content: "\f055";
@@ -1736,6 +1779,10 @@ input[type="button"] {
 
 	.caDownloadProgress {
 		margin-top: 3rem;
+	}
+	.ca_quitUpdate {
+		vertical-align: middle;
+		margin-left: 1rem;
 	}
 	.ca_statusArea {
 		left: 2rem;
@@ -2243,7 +2290,7 @@ input[type="button"] {
 		padding: 0.9rem 1.1rem 0.6rem 1.1rem;
 		border-radius: 0.45rem;
 		box-shadow: 0 0.35rem 1.2rem var(--ca-medium-overlay-color);
-		background: var(--ca-legacy-background-color);
+		background: var(--ca-search-modal-background);
 		border: 1px solid var(--ca-medium-overlay-color);
 	}
 	body.ca_searchModalOpen #searchBox.ca_searchBoxHidden,
@@ -2427,27 +2474,11 @@ input[type="button"] {
 		margin-top: 0.5rem;
 	}
 
-	.showMenuButton::before {
-		content: '\f101';
-		font-family: fontAwesome;
-		font-size: 2rem;
-	}
-	.closeMenuButton::before {
-		content: '\f100';
-		font-family: fontAwesome;
-		font-size: 2rem;
-	}
 	.showMenuButton,
 	.closeMenuButton {
 		left: 2rem;
 		top: 2rem;
-		display: inline-block;
-		cursor: pointer;
 		margin-right: 1rem;
-	}
-	.showMenuButton:hover,
-	.closeMenuButton:hover {
-		color: var(--unraid-66-color);
 	}
 
 	#sortIconArea {
@@ -2477,6 +2508,10 @@ input[type="button"] {
 
 	div.spinner {
 		cursor: auto;
+	}
+	/* Hide the page spinner while a SweetAlert popup is open. */
+	body:has(.sweet-alert.showSweetAlert) div.spinner {
+		display: none !important;
 	}
 
 	.spotlightDate {

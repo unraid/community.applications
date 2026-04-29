@@ -616,6 +616,10 @@ function post(options,callback) {
 
 	}).fail(function(result){
 		myCloseSpinner();
+		/* Suppress the "browser failed to communicate" swal when the user clicked
+		   EXIT on the updating-applications popup — the failure is just the
+		   in-flight POST being aborted by the impending history.back() nav. */
+		if (data.quittingUpdate) return;
 		swal({
 			title: tr("Browser failed to communicate with Unraid Server"),
 			text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
@@ -913,6 +917,13 @@ function getMaxPerPage() {
 	const $caDisplayArea = $(".ca_display_area").first();
 	if (!$caDisplayArea.length) return 0;
 
+	/* Reset the JS-driven compact-cards override before measuring so the sample
+	   card reflects its default (non-compact) size. We re-apply below if the
+	   resulting column count would drop under 3 and .Theme--responsive exists
+	   anywhere in the DOM. */
+	const isResponsive = $(".Theme--responsive").length > 0;
+	if (isResponsive) $("body").removeClass("ca-compact-cards");
+
 	/* We need a measurable .ca_holder inside #templates_content > .ca_templatesDisplay. If either
 	   .ca_templatesDisplay is absent or it has no .ca_holder descendant, replace #templates_content's
 	   html with the #sampleApp markup (which is already wrapped in .ca_templatesDisplay containing a
@@ -959,8 +970,24 @@ function getMaxPerPage() {
 
 		if (availableWidth <= 0 || availableHeight <= 0 || !fullWidth || fullWidth <= 0) return 0;
 
-		const perRow = Math.floor(availableWidth  / fullWidth);
-		const perCol = Math.floor(availableHeight / fullHeight);
+		let perRow = Math.floor(availableWidth  / fullWidth);
+		let perCol = Math.floor(availableHeight / fullHeight);
+
+		/* If the natural card size can't fit three columns — or fits exactly three
+		   but only a single row — and Theme--responsive is active, switch to the
+		   compact card size and remeasure. */
+		if (isResponsive && (perRow < 3 || (perRow === 3 && perCol === 1))) {
+			$("body").addClass("ca-compact-cards");
+			const compactRect = sample.getBoundingClientRect();
+			const compactStyle = getComputedStyle(sample);
+			const compactWidth  = compactRect.width  + (parseFloat(compactStyle.marginLeft) || 0) + (parseFloat(compactStyle.marginRight)  || 0);
+			const compactHeight = compactRect.height + (parseFloat(compactStyle.marginTop)  || 0) + (parseFloat(compactStyle.marginBottom) || 0);
+			if (compactWidth > 0 && compactHeight > 0) {
+				perRow = Math.floor(availableWidth  / compactWidth);
+				perCol = Math.floor(availableHeight / compactHeight);
+			}
+		}
+
 		if (perRow < 3) return 4;
 		return perRow * perCol;
 	} catch (err) {
@@ -1014,3 +1041,4 @@ function caInitGlobalSearchHotkeyOverride() {
 try {
 	$(caInitGlobalSearchHotkeyOverride);
 } catch (err) { /* no-op */ }
+

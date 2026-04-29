@@ -371,6 +371,8 @@ $(function(){
 			clearTimeout(downloadProgressTimer);
 			downloadProgressTimer = null;
 			$(".caDownloadProgress").addClass("ca_hide");
+		} else {
+			$(".caDownloadProgress").append("<div class='caButton ca_quitUpdate'>"+tr('Abort')+"</div>");
 		}
 	});
 	downloadProgress.start();
@@ -439,7 +441,7 @@ $(function(){
 			<? endif;?>
 		} else {
 			post({action:"defaultSortOrder"},function() {
-				myAlert("<?tr('Updating Content');?>","<span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"info");
+				myAlert("","<div class='ca_center caLogoIcon'></div><?tr('Community Applications');?><br><br><?tr('Updating Applications');?><br><span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"");
 
 				updateContent(false,false);
 			 // clearTimeout(downloadStatusTimer);
@@ -567,7 +569,7 @@ function changePage(pageNumber) {
 			$(".ca_bottomBanner").removeClass("ca_hide");
 			setTimeout(function() {
 				$(".ca_bottomBanner").addClass("ca_hide");
-			}, 3000);
+			}, 1500);
 		}
 		// If per-page changes mid-pagination, keep the same first visible result.
 		var oldMax = Math.max(1, parseInt(data.maxPerPage, 10) || 1);

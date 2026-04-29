@@ -17,6 +17,7 @@
 		--mod-comment-border: #cf3131;
 		--unraid-66-color: var(--orange-500,#FF8C2F);
 		--ca-legacy-background-color: var(--background-color,#1d1b1b);
+		--ca-search-modal-background: var(--ca-legacy-background-color);
 		--search-area-top: 0;
 		--search-area-left: 7rem;
 		--search-area-mobile-left: 7rem;

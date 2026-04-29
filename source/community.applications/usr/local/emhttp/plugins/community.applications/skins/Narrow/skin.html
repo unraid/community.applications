@@ -41,8 +41,8 @@ $(function() {
 <div class="searchAreaHolder menuAdjust">
 	<div class='searchArea onlyShowWithFeed'>
 		<div class='mobileMenuButton'>
-			<div class='showMenuButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
-			<div class='closeMenuButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
+			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"><?tr("Menu");?></div>
+			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"><?tr("Hide");?></div>
 		</div>
 		<div class="caSearchModalToolbarSpacer" id="caSearchModalToolbarSpacer" aria-hidden="true"></div>
 		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
@@ -145,6 +145,9 @@ $(function() {
 				<?endif;?>
 				<li><hr/></li>
 				<li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
+				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
+				<li class='caMenuDisabled noSelect'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</li>
+				<?endif;?>
 			</ul>
 		</div>
 	</div>
