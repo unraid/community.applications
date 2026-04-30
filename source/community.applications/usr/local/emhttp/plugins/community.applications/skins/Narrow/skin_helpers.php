@@ -363,9 +363,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerRunni
 					}
 					if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && !$template['Blacklist'] && $template['ID'] !== false) {
 						if ($template['BranchID'] ?? false) {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'','".$template['PortsUsed']."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
 						} else {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','','".$template['PortsUsed']."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
 						}
 					}
 					if (is_file($info[$name]['template'])) {
@@ -380,7 +380,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerRunni
 					if ($template['InstallPath']) {
 						$userTemplate = readXmlFile($template['InstallPath'],false,false);
 						if (!$template['Blacklist']) {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','','".($userTemplate)."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','".($userTemplate)."');"];
 							$actionsContext[] = ["divider"=>true];
 						}
 						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
@@ -389,9 +389,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerRunni
 							if ($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") {
 								if (!$template['Deprecated'] || $GLOBALS['caSettings']['hideDeprecated'] !== "true") {
 									if (!isset($template['BranchID'])) {
-										$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','default','','".$template['PortsUsed']."');"];
+										$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','default','".$template['PortsUsed']."');"];
 									} else {
-										$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"displayTags('{$template['ID']}',false,'','".$template['PortsUsed']."');"];
+										$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"displayTags('{$template['ID']}',false,'".$template['PortsUsed']."');"];
 									}
 								}
 							}
@@ -600,29 +600,27 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
 }
 
 ##########################################################################
-# Prepare moderator/CA comments and requirements for use in cards/popups #
+# Apply search-link transforms to moderator/CA comments + requires for   #
+# the sidebar render. The install actions no longer carry a separate     #
+# comment payload — the sidebar always shows these blocks before the     #
+# install button, so a second confirm-swal would be redundant.           #
 ##########################################################################
 function caPrepareTemplateComments(array $template): array {
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment'] ?? "");
 	$template['CAComment'] = caApplySidebarSearchLinks($template['CAComment'] ?? "");
 
-	$installComment = $template['ModeratorComment'] ? "<span class=ca_bold>{$template['ModeratorComment']}</span>" : ($template['CAComment'] ?? "");
-
 	if ($template['Requires']) {
 		$template['Requires'] = markdown(strip_tags(str_replace(["\r", "\n", "&#xD;", "'"], ["", "<br>", "", "&#39;"], trim($template['Requires'])), "<br>"));
 		$template['Requires'] = caApplySidebarSearchLinks($template['Requires']);
-		$installComment = tr("This application has additional requirements")."<br>{$template['Requires']}<br>$installComment";
 	}
 
-	$installComment = str_replace("\n", "", $installComment ?: "");
-
-	return [$template, $installComment];
+	return $template;
 }
 
 #############################################################################
 # Build action contexts and flags for docker templates when rendering cards #
 #############################################################################
-function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus, string $installComment): array {
+function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus): array {
 	$actionsContext = [];
 	$selected = false;
 	$name = "";
@@ -661,9 +659,9 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && ! $template['Blacklist']) {
 				if ($template['ID'] !== false) {
 					if ($template['BranchID'] ?? false) {
-						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "displayTags('{$template['ID']}',true,'".str_replace(" ", "&#32;", htmlspecialchars($installComment, ENT_QUOTES))."','".$template['PortsUsed']."');"];
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
 					} else {
-						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "popupInstallXML('".addslashes($template['Path'])."','second','".str_replace(" ", "&#32;", htmlspecialchars($installComment, ENT_QUOTES))."','".$template['PortsUsed']."');"];
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
 					}
 				}
 			}
@@ -680,7 +678,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			if ($template['InstallPath']) {
 				$userTemplate = readXmlFile($template['InstallPath'], false, false);
 				if (! $template['Blacklist']) {
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall"), "action" => "popupInstallXML('".addslashes($template['InstallPath'])."','user','','".portsUsed($userTemplate)."');"];
+					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall"), "action" => "popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
 					$actionsContext[] = ["divider" => true];
 				}
 				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove from Previous Apps"), "alternate" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','{$template['Name']}');"];
@@ -690,14 +688,13 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 						$test = readXmlFile(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml", true);
 						if ($template['Repository'] == $test['Repository']) {
 							$userTemplate = readXmlFile($template['InstallPath'], false, false);
-							$actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}").".xml','user','','".portsUsed($userTemplate)."');"];
+							$actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}").".xml','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider" => true];
 						}
 					}
-					$installCommentSanitized = str_replace("'", "&apos;", $installComment);
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "popupInstallXML('".addslashes($template['Path'])."','default','".str_replace(" ", "&#32;", htmlspecialchars($installCommentSanitized, ENT_QUOTES))."','".$template['PortsUsed']."');"];
+					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "popupInstallXML('".addslashes($template['Path'])."','default','".$template['PortsUsed']."');"];
 				} else {
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "displayTags('{$template['ID']}',false,'".str_replace(" ", "&#32;", htmlspecialchars($installComment, ENT_QUOTES))."','".$template['PortsUsed']."');"];
+					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "displayTags('{$template['ID']}',false,'".$template['PortsUsed']."');"];
 				}
 			}
 		}
@@ -709,7 +706,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 #############################################################################
 # Build action contexts and state for plugin templates when rendering cards #
 #############################################################################
-function caProcessPluginTemplate(array $template, string $installComment): array {
+function caProcessPluginTemplate(array $template): array {
 	$actionsContext = [];
 	$pluginName = basename($template['PluginURL']);
 	$template['Installed'] = checkInstalledPlugin($template);
@@ -746,18 +743,6 @@ function caProcessPluginTemplate(array $template, string $installComment): array
 		}
 	} elseif (! $template['Blacklist'] || ! $template['Compatible']) {
 		$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
-		if (! $template['InstallPath']) {
-			$installComment = $template['CAComment'];
-			if (! $installComment && $template['Requires']) {
-				preg_match_all("/\/\/(.*?)\\\\/m", $template['Requires'], $searchMatches);
-				if (count($searchMatches[1])) {
-					foreach ($searchMatches[1] as $searchResult) {
-						$template['Requires'] = str_replace("//$searchResult\\\\", $searchResult, $template['Requires']);
-					}
-				}
-				$installComment = tr("This application has additional requirements")."<br>".markdown($template['Requires']);
-			}
-		}
 		$isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
 		$isDeprecated = $template['Compatible'] ? "&incompatible" : $isDeprecated;
 
@@ -766,12 +751,10 @@ function caProcessPluginTemplate(array $template, string $installComment): array
 		if ($template['RequiresFile'] && ! is_file($template['RequiresFile'])) {
 			$requiresText = "AnythingHere";
 			$updateFlag = true;
-		} else {
-			$installComment = $template['RequiresFile'] ? "" : $installComment;
 		}
 		if (! ($template['UninstallOnly'] ?? false)) {
 			if ($template['Compatible']) {
-				$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','".str_replace([" ", "\n"], ["&#32;", ""], htmlspecialchars(($installComment ?? ""), ENT_QUOTES))."','$requiresText');"];
+				$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','$requiresText');"];
 			}
 		}
 		if ($template['InstallPath']) {
@@ -1080,7 +1063,16 @@ function buildDockerHubResult(array $result, array $templates, bool $installsDis
 	if ($installsDisabled) {
 		unset($result['actionsContext']);
 	} else {
-		$result['actionsContext'] = [["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "dockerConvert({$result['ID']});"]];
+		/* Pass the Repository (e.g. "library/nginx" or "user/repo") rather than
+		   the per-page integer ID — IDs reset 0..24 on every paged search,
+		   so a stale page in the cache combined with the user clicking an
+		   older result would install the wrong container. The card's
+		   Description is base64-encoded so the click handler can pass it
+		   through to the install path even when the server-side cache no
+		   longer contains this Repository (e.g. user paged past). */
+		$safeRepo = addslashes((string)$result['Repository']);
+		$descB64  = base64_encode((string)($result['Description'] ?? ""));
+		$result['actionsContext'] = [["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "dockerConvert('{$safeRepo}','{$descB64}');"]];
 	}
 
 	$templateIndex = findTemplateMatch($templates, $result['Repository']);

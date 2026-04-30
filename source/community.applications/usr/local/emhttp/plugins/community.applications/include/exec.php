@@ -1569,37 +1569,181 @@ function getTemplateChanges() {
 
 function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", string $type = ""): string {
 	if ($url === "") return "";
-	if ($cacheKey === "") $cacheKey = hash("sha256", $url);
-	@mkdir(CA_PATHS['changesCacheDir'], 0777, true);
 
-	$cachePath = CA_PATHS['changesCacheDir'] . "/changes_{$cacheKey}." . ($type === "plugin" ? "plg" : "xml");
-	// If we already have a cached copy, reuse it without re-downloading.
-	if (is_file($cachePath) && @filesize($cachePath) > 0) {
-		$raw = @file_get_contents($cachePath);
-	} else {
-		$raw = @download_url($url, $cachePath);
-		if ($raw === false || trim((string)$raw) === "") {
-			@unlink($cachePath);
-			return "";
-		}
-	}
+	/* No on-disk caching (cacheKey was untrusted POST input flowing into a
+	   filename) and no SSRF surface — caFetchChangelogContents enforces
+	   https-only / size-capped / redirect-protocol-restricted curl. */
+	$raw = caFetchChangelogContents($url);
+	if ($raw === "" || trim($raw) === "") return "";
 
 	$changes = "";
 	if ($type === "plugin") {
-		$changes = @ca_plugin("changes", $cachePath) ?: "";
+		/* ca_plugin("changes", $path) needs a file path. Use a transient
+		   tempfile in /tmp that we unlink immediately after parsing. */
+		$tmp = @tempnam(sys_get_temp_dir(), "ca_chgs_");
+		if ($tmp !== false) {
+			@file_put_contents($tmp, $raw);
+			$changes = @ca_plugin("changes", $tmp) ?: "";
+			@unlink($tmp);
+		}
 	} else {
-		$xml = readXmlFile($cachePath);
-		if ($xml && isset($xml['Changes'])) {
-			$changes = $xml['Changes'];
+		/* Strict XML parse: LIBXML_NONET disables external network entity
+		   loading; libxml ≥ 2.9 already disables external general entities by
+		   default but the flag is belt-and-suspenders against XXE. */
+		$xml = @simplexml_load_string($raw, "SimpleXMLElement", LIBXML_NONET | LIBXML_NOCDATA);
+		if ($xml && isset($xml->Changes)) {
+			$changes = (string)$xml->Changes;
 		}
 	}
 
-	$changes = $changes ?: "";
+	$changes = (string)$changes;
+	if ($changes === "") return "";
+
+	/* Same sanitization shape as the README path: strip everything, auto-link
+	   bare http(s) URLs into Markdown link syntax, render Markdown, then
+	   re-strip the result against an explicit tag whitelist + attribute
+	   scrubber + http(s)-only href/src enforcement. */
 	$changes = str_replace("    ", "&nbsp;&nbsp;&nbsp;&nbsp;", $changes);
 	$changes = str_replace(["[", "]"], ["<", ">"], $changes);
-	$changes = Markdown(strip_tags($changes, "<br>"));
+	$changes = strip_tags($changes);
+
+	$changes = preg_replace_callback(
+		"/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
+		static function ($matches) {
+			$u = $matches[1];
+			return "[{$u}]({$u})";
+		},
+		$changes
+	);
+
+	$changes = Markdown($changes);
+	$changes = strip_tags($changes, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
+	$changes = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
+	$changes = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
+
+	$changes = preg_replace_callback(
+		"/<(a)\\b([^>]*)>/i",
+		static function ($matches) {
+			$attrs = $matches[2];
+			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
+				$href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
+				if (!preg_match("/^https?:\\/\\//i", $href)) {
+					return "<a>";
+				}
+				$safeHref = htmlspecialchars($href, ENT_QUOTES);
+				return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
+			}
+			return "<a>";
+		},
+		$changes
+	);
+
+	$changes = preg_replace_callback(
+		"/<(img)\\b([^>]*)>/i",
+		static function ($matches) {
+			$attrs = $matches[2];
+			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
+				$src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
+				if (!preg_match("/^https?:\\/\\//i", $src)) {
+					return "";
+				}
+				$safeSrc = htmlspecialchars($src, ENT_QUOTES);
+				return "<img src='{$safeSrc}' alt='Changelog image'>";
+			}
+			return "";
+		},
+		$changes
+	);
 
 	return trim((string)$changes);
+}
+
+/* Same hardening profile as caFetchReadmeContents but without a host
+   whitelist — plugin .plg URLs and template .xml URLs come from many
+   third-party sources (GitHub, forums, custom hosts), so we lean on the
+   protocol restriction (https only, including redirects), redirect cap, and
+   1 MB size cap to constrain SSRF / DoS surface. */
+function caFetchChangelogContents(string $url): string {
+	$maxBytes = 1024 * 1024; // 1 MB
+	$buf = "";
+
+	$ch = curl_init();
+	curl_setopt_array($ch, [
+		CURLOPT_URL            => $url,
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_MAXREDIRS      => 3,
+		CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+		CURLOPT_REDIR_PROTOCOLS=> CURLPROTO_HTTPS,
+		CURLOPT_TIMEOUT        => 15,
+		CURLOPT_CONNECTTIMEOUT => 5,
+		CURLOPT_FAILONERROR    => true,
+		CURLOPT_SSL_VERIFYPEER => true,
+		CURLOPT_SSL_VERIFYHOST => 2,
+		CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$buf, $maxBytes) {
+			$len = strlen($data);
+			if (strlen($buf) + $len > $maxBytes) {
+				return -1;
+			}
+			$buf .= $data;
+			return $len;
+		},
+	]);
+	@curl_exec($ch);
+	if (PHP_MAJOR_VERSION < 8) {
+		call_user_func('curl_close', $ch);
+	}
+
+	return $buf;
+}
+
+/* Dedicated hardened fetcher for README content. Doesn't go through
+   download_url() because:
+     - 1 MB cap via WRITEFUNCTION abort, so a hostile repo can't DoS us.
+     - Redirects allowed but restricted to https and capped at 3 hops, then
+       the effective URL host is rechecked against the GitHub raw whitelist
+       so a redirect can't smuggle in a different origin's content.
+     - 15s timeout / 5s connect.
+   download_url() keeps its general-purpose behavior (FOLLOWLOCATION, proxy
+   fallback, etc.) for every other caller. */
+function caFetchReadmeContents(string $url): string {
+	$maxBytes = 1024 * 1024; // 1 MB
+	$buf = "";
+
+	$ch = curl_init();
+	curl_setopt_array($ch, [
+		CURLOPT_URL            => $url,
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_MAXREDIRS      => 3,
+		CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
+		CURLOPT_REDIR_PROTOCOLS=> CURLPROTO_HTTPS,
+		CURLOPT_TIMEOUT        => 15,
+		CURLOPT_CONNECTTIMEOUT => 5,
+		CURLOPT_FAILONERROR    => true,
+		CURLOPT_SSL_VERIFYPEER => true,
+		CURLOPT_SSL_VERIFYHOST => 2,
+		CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$buf, $maxBytes) {
+			$len = strlen($data);
+			if (strlen($buf) + $len > $maxBytes) {
+				return -1; // abort transfer
+			}
+			$buf .= $data;
+			return $len;
+		},
+	]);
+	@curl_exec($ch);
+	$finalUrl = (string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+	if (PHP_MAJOR_VERSION < 8) {
+		call_user_func('curl_close', $ch);
+	}
+
+	// Make sure a redirect didn't smuggle us off-host before content-trust.
+	$finalHost = strtolower((string)parse_url($finalUrl, PHP_URL_HOST));
+	if (!in_array($finalHost, ["raw.githubusercontent.com", "www.raw.githubusercontent.com"], true)) {
+		return "";
+	}
+	return $buf;
 }
 
 function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
@@ -1611,22 +1755,11 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 	if (!in_array($host, ["raw.githubusercontent.com", "www.raw.githubusercontent.com"], true)) return "";
 	if (!preg_match("/\\/README\\.md$/i", $path)) return "";
 
-	// Cache key is provided by the caller (derived from the template's README URL), so a successful
-	// master fallback can be reused without ever re-trying main on subsequent views.
-	if ($cacheKey === "") {
-		$cacheKey = hash("sha256", $url);
-	}
-	@mkdir(CA_PATHS['readmeCacheDir'], 0777, true);
-	$tempReadmePath = CA_PATHS['readmeCacheDir']."/readme_{$cacheKey}.md";
-	// Cache README markdown on disk to avoid repeated downloads.
-	if (is_file($tempReadmePath)) {
-		$readmeContents = @file_get_contents($tempReadmePath);
-	} else {
-		$readmeContents = @download_url($url, $tempReadmePath);
-		// Intentionally keep the downloaded file as a cache entry.
-	}
-	if ($readmeContents === false || trim((string)$readmeContents) === "") {
-		@unlink($tempReadmePath);
+	/* No caching: README is an at-render thing — user can hit the GitHub URL
+	   directly for the live copy. Avoids cacheKey path-traversal concerns and
+	   keeps disk usage bounded. */
+	$readmeContents = caFetchReadmeContents($url);
+	if ($readmeContents === "" || trim($readmeContents) === "") {
 		return "";
 	}
 
@@ -2063,18 +2196,31 @@ function onStartupScreen() {
 function convert_docker() {
 	global $dockerManPaths;
 
-	$dockerID = getPost("ID","");
+	/* DockerHub search results were previously keyed by per-page integer ID
+	   (0..24) which reset every page — so a stale cached page combined with a
+	   click on an earlier result would install the wrong container. We now
+	   key by Repository ("user/repo" or "library/name"), which is stable. */
+	$repo = trim((string)getPost("repo", ""));
+	if ($repo === "") {
+		postReturn(['error' => "convert_docker: missing repo"]);
+		return;
+	}
 
-	$file = readJsonFile(CA_PATHS['dockerSearchResults']);
-	$dockerIndex = searchArray($file['results'],"ID",$dockerID);
-	$docker = $file['results'][$dockerIndex];
-	$docker['Description'] = str_replace("&", "&amp;", $docker['Description']);
+	$docker = caFindDockerHubResultByRepo($repo);
 
-	$dockerfile['Name'] = $docker['Name'];
-	$dockerfile['Description'] = $docker['Description']."\n\nConverted By Community Applications   Always verify this template (and values)  against the support page for the container\n\n{$docker['DockerHub']}";
+	$dockerfile = [];
+	$dockerfile['Name'] = (string)($docker['Name'] ?? caDockerNameFromRepo($repo));
+	/* Prefer the description forwarded from the click handler — that's the
+	   description the user actually saw on the card. Falls back to whatever
+	   the cache has, then to empty. */
+	$clientDescription = trim((string)getPost("description", ""));
+	$rawDescription = $clientDescription !== "" ? $clientDescription : (string)($docker['Description'] ?? "");
+	$description = str_replace("&", "&amp;", $rawDescription);
+	$dockerHubUrl = (string)($docker['DockerHub'] ?? caDockerHubUrlFromRepo($repo));
+	$dockerfile['Description'] = $description."\n\nConverted By Community Applications   Always verify this template (and values)  against the support page for the container\n\n{$dockerHubUrl}";
 	$dockerfile['Overview'] = $dockerfile['Description'];
-	$dockerfile['Registry'] = $docker['DockerHub'];
-	$dockerfile['Repository'] = $docker['Repository'];
+	$dockerfile['Registry'] = $dockerHubUrl;
+	$dockerfile['Repository'] = $repo;
 	$dockerfile['BindTime'] = "true";
 	$dockerfile['Privileged'] = "false";
 	$dockerfile['Networking']['Mode'] = "bridge";
@@ -2089,6 +2235,33 @@ function convert_docker() {
 
 	ca_file_put_contents(CA_PATHS['dockerSearchInstall'],$dockerXML);
 	postReturn(['xml'=>CA_PATHS['dockerSearchInstall']]);
+}
+
+/* Look up a DockerHub search result by Repository in the per-tab cache. The
+   cache may not have the result if the page that contained it was evicted by
+   a more recent search; the caller is expected to fall back to derived data
+   when this returns null. */
+function caFindDockerHubResultByRepo(string $repo): ?array {
+	if ($repo === "" || !is_file(CA_PATHS['dockerSearchResults'])) return null;
+	$file = readJsonFile(CA_PATHS['dockerSearchResults']);
+	$results = is_array($file) ? ($file['results'] ?? []) : [];
+	foreach ($results as $r) {
+		if (is_array($r) && (string)($r['Repository'] ?? '') === $repo) return $r;
+	}
+	return null;
+}
+
+function caDockerNameFromRepo(string $repo): string {
+	$parts = explode('/', $repo);
+	return (string)end($parts);
+}
+
+function caDockerHubUrlFromRepo(string $repo): string {
+	if (strpos($repo, '/') === false || strpos($repo, 'library/') === 0) {
+		$name = caDockerNameFromRepo($repo);
+		return "https://hub.docker.com/_/{$name}/";
+	}
+	return "https://hub.docker.com/r/{$repo}/";
 }
 
 #########################################################

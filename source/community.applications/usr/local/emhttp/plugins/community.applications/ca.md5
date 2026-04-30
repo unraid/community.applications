@@ -1,4 +1,4 @@
-a1c5de5fa34618d15469cc7bda9c875e  ./Apps.page
+c39121408ccc5ad0443aef877dcf8644  ./Apps.page
 c9f629c30f77fe438ebbe5af75929582  ./CA_notices.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 1137f6089c47a6a31df4ec19800cf807  ./default.cfg
@@ -8,9 +8,9 @@ e0d0ce291191cf53f61393577c0027d1  ./include/force_update_helpers.php
 63524e7d13191da4dc23bf82a6b6d6f9  ./include/pinned_apps_helpers.php
 a8a9b23b702b19c6669dc7f6085e416e  ./include/populate_autocomplete_helpers.php
 f3fa186c0dc46ecc1386948e8a9bcfd5  ./include/previous_apps_helpers.php
-f4fb96404a8caa751807845e657bc5aa  ./include/paths.php
-fadb41992acc79525dd0ffbcff821a50  ./include/exec.php
 ac38d5c3032e3cb7d0693fb4ca962303  ./include/helpers.php
+178adc54a29682deca229e192664895e  ./include/paths.php
+70dc0bd94fece7912ee5ea9dcd32fea9  ./include/exec.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 f79e808011410b68cbbc76edf3cb663f  ./javascript/statistics.js
 d2d6b06a00686322e996f60873dfc2ae  ./javascript/helpers.js
@@ -20,7 +20,6 @@ e0925218cbd4a34973cf1f29f2074330  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook
 cecad67c5134cf88ab3311a5201fc52f  ./scripts/checkForUpdates.php
 99a9d58a49a7f6812f18bd4be2b563b9  ./scripts/checkForUpdates.sh
-1235cb89aa9036a3f31c9fc640957cb3  ./scripts/dockerConvert.php
 3f86df733c2d77821094cc9a85778575  ./scripts/downloadPlugin
 2ad1a53d1cab7051b7361084d3297ccd  ./scripts/installMulti.php
 45d5f5dfa5f8557a64b973c781af41cf  ./scripts/installMultiPlugin.php
@@ -31,13 +30,14 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 4f21bb9b72bdd0cfc919b47013c885d3  ./scripts/pluginInstall.php
 69158f58637a757bd6dd1d6f8b06b1f4  ./scripts/updatePLG.sh
 3bdcd43cb101c88848e26834fed29b16  ./scripts/updatePluginSupport.php
+77f9eaab383b2705a290b39cd41c4e9a  ./scripts/dockerConvert.php
 37fcfb8bf6c2f5dbca3e4285fd55de03  ./skins/Narrow/styles/community.applications.colors.css
 010f41389c6c2f4c9d767b44d5445da5  ./skins/Narrow/styles/community.applications.responsive.css
-98b69509522fd261815ddf7d84409761  ./skins/Narrow/styles/community.applications.css
+40852f1082fba4b4fe3fb0c624e07697  ./skins/Narrow/styles/community.applications.css
 18c984c0eb6ae1e4cc2eaa96d9732e1c  ./skins/Narrow/themes/black.css
 229a6da48382c09cc0f1908e44ec5950  ./skins/Narrow/themes/azure.css
 0aa451e5aeab2eea5d6b358920ec28b2  ./skins/Narrow/themes/gray.css
 128d9dd0143b023b5036f06711f55bcb  ./skins/Narrow/themes/white.css
-27e9eb0ec9045579ae03eb2140a17e88  ./skins/Narrow/skin_helpers.php
-3bdc170145de7b0c205e19b71f2272c9  ./skins/Narrow/skin.php
-8e3154c985d25ec3c0e97b4f4a181a7a  ./skins/Narrow/skin.html
+0016e7a3df89117887608a5343d316fa  ./skins/Narrow/skin.html
+10f26d5d7278fd09fb4df934c17f9eba  ./skins/Narrow/skin.php
+1631716ced7ffe69c54267d915de595a  ./skins/Narrow/skin_helpers.php

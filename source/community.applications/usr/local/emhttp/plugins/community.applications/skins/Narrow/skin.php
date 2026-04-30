@@ -573,7 +573,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 			continue;
 		}
 
-		[$template, $installComment] = caPrepareTemplateComments($template);
+		$template = caPrepareTemplateComments($template);
 
 		$actionsContext = [];
 		$canInstall = ! $template['NoInstall'] && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false);
@@ -581,11 +581,11 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 		if (! $template['Language']) {
 			if (! $template['Plugin']) {
 				if ($canInstall) {
-					[$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus'], $installComment);
+					[$template, $actionsContext] = caProcessDockerTemplate($template, $dockerContext['info'], $dockerContext['dockerUpdateStatus']);
 				}
 			} else {
 				if ($canInstall) {
-					[$template, $actionsContext] = caProcessPluginTemplate($template, $installComment);
+					[$template, $actionsContext] = caProcessPluginTemplate($template);
 				} else {
 					$template['Installed'] = checkInstalledPlugin($template);
 				}

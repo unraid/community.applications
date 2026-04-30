@@ -71,6 +71,11 @@ body:has(.sidenavShow) {
 .ca_move_to_end::before {
 	font-family: fontAwesome;
 }
+/* Branch chooser rows in the install popup are clickable but rendered as
+   <a> without href, so the browser doesn't switch to a pointer by default. */
+.xmlInstall {
+	cursor: pointer;
+}
 .ca_back_to_top::before {
 	content: "\f0aa"; /* fa-arrow-circle-up */
 }
@@ -84,9 +89,15 @@ body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu, #ca_fixed_
 }
 /* Two copies of the scroll controls live in the markup: one at body level for
    the main view, one inside .sidenav for sidebar mode. Hide the body-level
-   pair while the sidebar is showing so only the in-sidebar pair is active. */
+   pair while the sidebar is showing so only the in-sidebar pair is active.
+   Also hide them while a MagnificPopup overlay (image/video) is open so they
+   don't sit clickable on top of the dimmed page. */
 body:has(.sidenavShow) > .ca_back_to_top,
-body:has(.sidenavShow) > .ca_move_to_end {
+body:has(.sidenavShow) > .ca_move_to_end,
+body:has(.mfp-bg) > .ca_back_to_top,
+body:has(.mfp-bg) > .ca_move_to_end,
+body:has(.mfp-wrap) > .ca_back_to_top,
+body:has(.mfp-wrap) > .ca_move_to_end {
 	display: none !important;
 }
 

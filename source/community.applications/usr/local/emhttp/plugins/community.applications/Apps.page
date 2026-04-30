@@ -906,8 +906,16 @@ function clearSearchBox() {
 	$("#searchBox").val("");
 	hideSortIcons();
 	data.committedSearchFilter = "";
+	/* Reset search-state flags so the Home menu reverts from "Clear Search" to
+	   "Home" and the All Apps item from "All Results" back to "All Apps" when
+	   the user navigates away from search results into Installed / Previous /
+	   Pinned / Action Centre / Favourite Repo. */
+	data.searchActive = false;
+	data.searchFlag = false;
+	data.docker = "";
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
+	if (typeof caSyncHomeMenuLabel === "function") caSyncHomeMenuLabel();
 }
 
 function closeSidebar(cookie=false,visible=false) {
@@ -934,7 +942,7 @@ function closeSidebar(cookie=false,visible=false) {
 	enableSearch();
 }
 
-function installPlugin(pluginURL,update=false,comment="",requires="") {
+function installPlugin(pluginURL,update=false,requires="") {
 	post({action:"checkPluginInProgress"},function(data) {
 		if (data.inProgress) {
 			swal({
@@ -952,7 +960,7 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
 				} else {
 					post({action:"clearPluginInstallFlag"},function(){
 						setTimeout(function() {
-							installPlugin(pluginURL,update,comment,requires);
+							installPlugin(pluginURL,update,requires);
 						},1000);
 					});
 				}
@@ -963,7 +971,7 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
 					if (! data.met) {
 						swal({
 							title: "<?tr('Requirements not met');?>",
-							text: "<?tr('The requirements for this upgrade have not been met on your system');?><br><br>"+comment,
+							text: "<?tr('The requirements for this upgrade have not been met on your system');?>",
 							allowOutsideClick: false,
 							showConfirmButton: true,
 							showCancelButton: false,
@@ -974,73 +982,37 @@ function installPlugin(pluginURL,update=false,comment="",requires="") {
 							enableSearch();
 						});
 					} else {
-						actuallyInstallPlugin(pluginURL,update,comment);
+						actuallyInstallPlugin(pluginURL,update);
 					}
 				});
 			} else {
-				actuallyInstallPlugin(pluginURL,update,comment);
+				actuallyInstallPlugin(pluginURL,update);
 			}
 		}
 	});
 }
 
-function actuallyInstallPlugin(pluginURL,update=false,comment="") {
+function actuallyInstallPlugin(pluginURL,update=false) {
 	var type = update ? "update" : "install";
 	if ( ! update ) {
 		pluginURL = "<?=CA_PATHS['pluginProxy']?>" + pluginURL;
 	}
 	title = update ? "<?tr("Update Plugin");?>" : "<?tr("Install Plugin");?>";
 	closeSidebar(true);
-//	disableSearch();
-	if ( $.trim(comment) ) {
-		swal({
-			title: "<?tr("Attention");?>",
-			text: comment,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr('OK');?>",
-			cancelButtonText: "<?tr('CANCEL');?>",
-			animation: false,
-			type: "warning",
-			html: true
-		}, function (isConfirm) {
-			if (isConfirm) {
-				hidePluginPending(pluginURL);
+	hidePluginPending(pluginURL);
 
-				if ( $(".selectedMenu").data("category") == "action_centre" ) {
-					var postFunction = "actionCentre";
-				} else {
-					var postFunction = "OpenSidebarAndRefreshDisplay";
-				}
-				data.deprecated = false; // global var here to trigger a rescan of action centre
-				if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")   ) {
-					data.deprecated = true;
-					pluginURL = pluginURL.replace("&deprecated","");
-					pluginURL = pluginURL.replace("&incompatible","");
-
-				}
-					ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
-			} else {
-				enableSearch();
-			}
-		});
+	if ( $(".selectedMenu").data("category") == "action_centre" ) {
+		var postFunction = "actionCentre";
 	} else {
-		hidePluginPending(pluginURL);
-
-		if ( $(".selectedMenu").data("category") == "action_centre" ) {
-			var postFunction = "actionCentre";
-		} else {
-			var postFunction = "OpenSidebarAndRefreshDisplay";
-		}
-		data.deprecated = false; // global var here to trigger a rescan of action centre
-		if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible")  ) {
-			data.deprecated = true;
-			pluginURL = pluginURL.replace("&deprecated","");
-			pluginURL = pluginURL.replace("&incompatible","");
-		}
-		ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
+		var postFunction = "OpenSidebarAndRefreshDisplay";
 	}
+	data.deprecated = false; // global var here to trigger a rescan of action centre
+	if ( pluginURL.includes("&deprecated") || pluginURL.includes("&incompatible") ) {
+		data.deprecated = true;
+		pluginURL = pluginURL.replace("&deprecated","");
+		pluginURL = pluginURL.replace("&incompatible","");
+	}
+	ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
 }
 
 function hidePluginPending(pluginURL) {
@@ -1393,7 +1365,7 @@ function pins() {
 	});
 }
 
-function displayTags(leadTemplate,rename=false,comment="",ports="") {
+function displayTags(leadTemplate,rename=false,ports="") {
 	event.stopPropagation();
 	closeSidebar();
 	var conflictingPorts = [];
@@ -1441,12 +1413,11 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 	};
 
 	if (conflictingPorts.length) {
-		var msg = $.trim(comment) ? comment + "<br><br>" : "";
 		var portList = conflictingPorts.join(", ");
 		var portTemplate = (conflictingPorts.length === 1)
 			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
 			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
-		msg += portTemplate.replace("%s", portList);
+		var msg = portTemplate.replace("%s", portList);
 		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
 		swal({
 			title: "<?tr("Port Conflict");?>",
@@ -1467,22 +1438,6 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 		}, function(isConfirm) {
 			window.caPendingAdjustPorts = !!isConfirm;
 			openBranchChooser();
-		});
-	} else if (comment) {
-		swal({
-			title: "<?tr("Attention");?>",
-			text: comment,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr("OK");?>",
-			cancelButtonText: "<?tr("Cancel");?>",
-			animation: false,
-			type: "warning",
-			html: true,
-			closeOnConfirm: false
-		},function(isConfirm) {
-			if (isConfirm) openBranchChooser();
 		});
 	} else {
 		openBranchChooser();
@@ -2279,7 +2234,7 @@ function setFavourite(button) {
 	});
 }
 
-function popupInstallXML(xml,type,comment="",ports="") {
+function popupInstallXML(xml,type,ports="") {
 	event.stopPropagation();
 	saveState();
 	var conflictingPorts = [];
@@ -2303,12 +2258,11 @@ function popupInstallXML(xml,type,comment="",ports="") {
 		/* Ports collide with something already on the host. Offer to auto-adjust
 		   them — Yes adjusts the XML server-side before opening AddContainer,
 		   No leaves the template alone (user fixes manually in the docker UI). */
-		var msg = $.trim(comment) ? comment + "<br><br>" : "";
 		var portList = conflictingPorts.join(", ");
 		var portTemplate = (conflictingPorts.length === 1)
 			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
 			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
-		msg += portTemplate.replace("%s", portList);
+		var msg = portTemplate.replace("%s", portList);
 		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
 		swal({
 			title: "<?tr("Port Conflict");?>",
@@ -2323,23 +2277,6 @@ function popupInstallXML(xml,type,comment="",ports="") {
 			html: true
 		}, function (isConfirm) {
 			installXML(xml, type, isConfirm);
-		});
-	} else if ( $.trim(comment) ) {
-		swal({
-			title: "<?tr("Attention");?>",
-			text: comment,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr("OK");?>",
-			cancelButtonText: "<?tr("Cancel");?>",
-			animation: false,
-			type: "warning",
-			html: true
-		}, function (isConfirm) {
-			if (isConfirm) {
-				installXML(xml,type,false);
-			}
 		});
 	} else {
 		installXML(xml,type,false);
@@ -2838,7 +2775,14 @@ function dockerSearch(pageNumber, append) {
 	});
 }
 
-function dockerConvert(dockerID) {
+function dockerConvert(repo, descB64) {
+	/* descB64 is the card's Description as it was rendered, base64-encoded by
+	   the server so it survives passing through an onclick attribute string.
+	   Decoded back to text here and forwarded to the install path so a
+	   cache-miss (user paged past the original DockerHub search results)
+	   still produces a template with the right description. */
+	var description = "";
+	try { description = descB64 ? atob(descB64) : ""; } catch (e) { description = ""; }
 	saveState();
 	swal({
 		title: "<?tr("Determine configuration?");?>",
@@ -2852,9 +2796,11 @@ function dockerConvert(dockerID) {
 	}, function (isConfirm) {
 		if ( isConfirm ) {
 			$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-			openBox('/plugins/<?=$plugin?>/scripts/dockerConvert.php?ID='+dockerID,"<?tr('Docker Test Install')?>",600,1100,true);
+			var url = '/plugins/<?=$plugin?>/scripts/dockerConvert.php?repo=' + encodeURIComponent(repo);
+			if (description) url += '&description=' + encodeURIComponent(description);
+			openBox(url,"<?tr('Docker Test Install')?>",600,1100,true);
 		} else {
-			post({action:'convert_docker',ID:dockerID},function(result) {
+			post({action:'convert_docker',repo:repo,description:description},function(result) {
 				myCloseAlert();
 				templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
 				openNewWindow(templateURL);

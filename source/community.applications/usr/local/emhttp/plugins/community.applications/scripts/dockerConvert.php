@@ -30,13 +30,51 @@ $exeFile = "/usr/local/emhttp/plugins/dynamix.docker.manager/include/CreateDocke
 $javascript = file_get_contents("/usr/local/emhttp/plugins/dynamix/javascript/dynamix.js");
 echo "<script>$javascript</script>";
 
-if ( $_GET['ID'] !== false) {
-	$dockerID = $_GET['ID'];
-	$file = readJsonFile(CA_PATHS['dockerSearchResults']);
-	$dockerIndex = searchArray($file['results'],"ID",$dockerID);
-	$docker = $file['results'][$dockerIndex];
-	$docker['Description'] = str_replace("&", "&amp;", $docker['Description']);
+/* Repository keys ("user/repo" or "library/name") are stable across paged
+   DockerHub search results; the older per-page integer ID would silently
+   resolve to the wrong cached entry once the user paged past the first set. */
+$repo = isset($_GET['repo']) ? trim((string)$_GET['repo']) : "";
+if ($repo !== "") {
+	$file = @readJsonFile(CA_PATHS['dockerSearchResults']);
+	$docker = null;
+	if (is_array($file) && !empty($file['results'])) {
+		foreach ($file['results'] as $r) {
+			if (is_array($r) && (string)($r['Repository'] ?? '') === $repo) {
+				$docker = $r;
+				break;
+			}
+		}
+	}
+	if (!is_array($docker)) {
+		$nameParts = explode('/', $repo);
+		$shortName = (string)end($nameParts);
+		$docker = [
+			'Repository'  => $repo,
+			'Name'        => $shortName,
+			'Description' => "",
+			'DockerHub'   => (strpos($repo, '/') === false || strpos($repo, 'library/') === 0)
+				? "https://hub.docker.com/_/{$shortName}/"
+				: "https://hub.docker.com/r/{$repo}/",
+		];
+	}
+	/* Cached entries from the docker-hub search may not include Name (or may
+	   carry the same fallback we just used) — derive it from the repo if
+	   missing so the post-test write at line below isn't left with an empty
+	   container name. */
+	if (empty($docker['Name'])) {
+		$nameParts = explode('/', $repo);
+		$docker['Name'] = (string)end($nameParts);
+	}
+	/* Prefer the description forwarded by the click handler over whatever the
+	   per-tab cache happens to hold — the user's seen description is the
+	   authoritative one. */
+	$clientDescription = isset($_GET['description']) ? trim((string)$_GET['description']) : "";
+	if ($clientDescription !== "") {
+		$docker['Description'] = $clientDescription;
+	}
+	$docker['Description'] = str_replace("&", "&amp;", (string)($docker['Description'] ?? ""));
 
+	$dockerfile = [];
 	$dockerfile['Name'] = "CA_TEST_CONTAINER_DOCKERHUB";
 	$dockerfile['Description'] = $docker['Description']."\n\nConverted By Community Applications   Always verify this template (and values)  against the support page for the container\n\n{$docker['DockerHub']}";
 	$dockerfile['Overview'] = $dockerfile['Description'];
