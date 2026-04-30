@@ -2243,8 +2243,13 @@ function convert_docker() {
 
 	$dockerXML = makeXML($dockerfile);
 
-	ca_file_put_contents(CA_PATHS['dockerSearchInstall'],$dockerXML);
-	postReturn(['xml'=>CA_PATHS['dockerSearchInstall']]);
+	/* Per-request output path so two concurrent convert_docker calls (e.g. two
+	   tabs) don't clobber each other's redirect target. Sweeping happens in
+	   scripts/dockerConvert.php — both endpoints write into the same dir. */
+	$convertToken = bin2hex(random_bytes(8));
+	$installXmlPath = CA_PATHS['tempFiles']."/dockerConvert_{$convertToken}.xml";
+	ca_file_put_contents($installXmlPath, $dockerXML);
+	postReturn(['xml' => $installXmlPath]);
 }
 
 /* Look up a DockerHub search result by Repository in the per-tab cache. The

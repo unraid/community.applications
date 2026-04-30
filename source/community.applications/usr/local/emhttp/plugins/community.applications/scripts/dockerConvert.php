@@ -84,8 +84,26 @@ if ($repo !== "") {
 	}
 	$docker['Description'] = str_replace("&", "&amp;", (string)($docker['Description'] ?? ""));
 
+	/* Per-request token so concurrent conversions don't collide on the temp
+	   container name, the temp template XML, or the final-install XML payload.
+	   Two browser tabs each invoking dockerConvert at once would otherwise
+	   overwrite each other's files and inspect/remove the wrong container. */
+	$convertToken = bin2hex(random_bytes(8));
+	$testContainerName = "CA_TEST_CONTAINER_DOCKERHUB_{$convertToken}";
+	$testTemplatePath = "/boot/config/plugins/dockerMan/templates-user/my-{$testContainerName}.xml";
+	$installXmlPath = CA_PATHS['tempFiles']."/dockerConvert_{$convertToken}.xml";
+	/* Sweep stale per-request artifacts older than an hour so the flash
+	   templates dir and tempFiles don't accrete forever. */
+	$oneHourAgo = time() - 3600;
+	foreach ((array)glob("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB_*.xml") as $stale) {
+		if (@filemtime($stale) < $oneHourAgo) @unlink($stale);
+	}
+	foreach ((array)glob(CA_PATHS['tempFiles']."/dockerConvert_*.xml") as $stale) {
+		if (@filemtime($stale) < $oneHourAgo) @unlink($stale);
+	}
+
 	$dockerfile = [];
-	$dockerfile['Name'] = "CA_TEST_CONTAINER_DOCKERHUB";
+	$dockerfile['Name'] = $testContainerName;
 	$dockerfile['Description'] = $docker['Description']."\n\nConverted By Community Applications   Always verify this template (and values)  against the support page for the container\n\n{$docker['DockerHub']}";
 	$dockerfile['Overview'] = $dockerfile['Description'];
 	$dockerfile['Registry'] = $docker['DockerHub'];
@@ -94,11 +112,11 @@ if ($repo !== "") {
 	$dockerfile['Privileged'] = "false";
 	$dockerfile['Networking']['Mode'] = "bridge";
 	$dockerXML = makeXML($dockerfile);
-	file_put_contents("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB.xml",$dockerXML);
+	file_put_contents($testTemplatePath,$dockerXML);
 
 
 	echo "<div id='output'>";
-	$dockers = ["CA_TEST_CONTAINER_DOCKERHUB"];
+	$dockers = [$testContainerName];
 	echo sprintf(tr("Installing test container"),htmlspecialchars($repo, ENT_QUOTES, 'UTF-8'))."<br>";
 	$_GET['updateContainer'] = true;
 	$_GET['ct'] = $dockers;
@@ -143,12 +161,12 @@ function addCloseButton() {
 }
 </script>
 <?
-	$output = shell_exec("docker inspect CA_TEST_CONTAINER_DOCKERHUB");
+	$output = shell_exec("docker inspect ".escapeshellarg($testContainerName));
 	echo "<br>".tr("Removing test installation")."<br>";
-	exec("docker rm CA_TEST_CONTAINER_DOCKERHUB");
+	exec("docker rm ".escapeshellarg($testContainerName));
 
 	exec("docker rmi ".escapeshellarg($docker['Repository']));
-	@unlink("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB.xml");
+	@unlink($testTemplatePath);
 
 	$json = json_decode($output,true);
 	if ( $json ) {
@@ -203,16 +221,16 @@ function addCloseButton() {
 			$dockerfile['Name'] .= "-1";
 	}
 
-	file_put_contents(CA_PATHS['dockerSearchInstall'],makeXML($dockerfile));
+	file_put_contents($installXmlPath,makeXML($dockerfile));
 }
 ?>
 <script>
 	<? if ( $json ):?>
-		window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=CA_PATHS['dockerSearchInstall']?>";
+		window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=htmlspecialchars($installXmlPath, ENT_QUOTES)?>";
 
 	<? else:?>
-		alert("<?=$error?>");
-		window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=CA_PATHS['dockerSearchInstall']?>";
+		alert(<?=json_encode((string)($error ?? ""), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)?>);
+		window.parent.location = "/Apps/AddContainer?xmlTemplate=default:<?=htmlspecialchars($installXmlPath, ENT_QUOTES)?>";
 
 	<? endif;?>
 </script>
