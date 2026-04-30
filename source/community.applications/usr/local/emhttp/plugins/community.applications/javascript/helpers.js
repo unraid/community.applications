@@ -428,6 +428,12 @@ function cookiesEnabled() {
 
 function scrollToTop() {
 	$('html,body').animate({scrollTop:0},0);
+	/* CA's actual scroller is .mainArea, not the document. Resetting only
+	   html/body left the user at the bottom of the previous category when
+	   switching to a new one (eg. clicking Repositories after scrolling deep
+	   into All Apps). Snap .mainArea too. */
+	var ma = $(".mainArea")[0];
+	if (ma) ma.scrollTop = 0;
 }
 
 function caClearHomeSectionSubtitle() {
@@ -507,16 +513,14 @@ function caBlockViewportForReload() {
 	} catch(e) {}
 }
 
-function caShowFatalReloadBanner(message, reloadDelayMs) {
+function caShowFatalReloadBanner(message, _unusedDelay) {
 	try {
 		if (window.ca_reloadPending) return;
 		window.ca_reloadPending = true;
 		try {
 			if (typeof closeSidebar === "function") closeSidebar(true, true);
 		} catch(e) {}
-		var ms = parseInt(reloadDelayMs, 10);
-		if (!ms || ms < 0) ms = 10000;
-		var msg = (typeof message === "string" && message) ? message : tr("An error occurred. Reloading the page...");
+		var msg = (typeof message === "string" && message) ? message : tr("Click anywhere to reload the page.");
 
 		var $banner = $(".ca_bottomBanner");
 		var $msg = $(".ca_fatalReloadBanner");
@@ -536,16 +540,23 @@ function caShowFatalReloadBanner(message, reloadDelayMs) {
 				window.location.reload();
 			}
 		};
-		setTimeout(doHomeReload, ms);
+		/* User-driven reload instead of a timer: multiple tabs receiving the
+		   same "feed updated" signal would otherwise all reload simultaneously,
+		   each spawning a new tabId and pile of cache files. Waiting for an
+		   explicit click means tabs only reload when the user actually wants
+		   to reuse them. Capture phase + once: true so the very first input
+		   anywhere triggers it without bubbling into other handlers first. */
+		var onAny = function() {
+			document.removeEventListener("click", onAny, true);
+			document.removeEventListener("keydown", onAny, true);
+			doHomeReload();
+		};
+		document.addEventListener("click", onAny, true);
+		document.addEventListener("keydown", onAny, true);
 	} catch(e) {
-		setTimeout(function() {
-			var $homeBtn = $(".startupButton").first();
-			if ($homeBtn.length) {
-				$homeBtn.trigger("click");
-			} else {
-				window.location.reload();
-			}
-		}, 10000);
+		var $homeBtn = $(".startupButton").first();
+		if ($homeBtn.length) $homeBtn.trigger("click");
+		else window.location.reload();
 	}
 }
 
@@ -566,6 +577,11 @@ function post(options,callback) {
 	} else {
 		var msg = postCount > 0 ? "Embedded Post: " : "Post: ";
 		console.log(msg+JSON.stringify(options));
+	}
+	/* Stamp the per-tab id on every request so paths.php can suffix the cache
+	   files for this tab. Skipped only if the caller already supplied one. */
+	if (options && typeof options === "object" && !options.tabId && typeof data !== "undefined" && data.tabId) {
+		options.tabId = data.tabId;
 	}
 	if ( ! options.noSpinner ) {
 		if ( postCount == 0) {
@@ -668,17 +684,29 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
 	});
 }
 
+/* Cache fitText results keyed by class + text content + overFlowType so each
+   unique label is measured only once across the entire session. The shrink
+   loop calls isOverflown which forces layout/reflow on every iteration, and
+   ribbon labels (INSTALLED / UPDATED / Blacklisted / etc.) repeat across
+   every page render — without caching we'd re-measure them constantly. */
+window.caFitTextCache = window.caFitTextCache || {};
 jQuery.fn.fitText = function(overFlowType=false) {
 	var el = this;
+	var cache = window.caFitTextCache;
 	$(el).each(function() {
-		var test = 100;
-		while (isOverflown(this,overFlowType)) {
-			test = test - 10;
-			if ( test < 10 ) {
-				break;
-			}
-			$(this).css("font-size",test+"%");
+		var key = (this.className || "") + "|" + ((this.textContent || "").trim()) + "|" + (overFlowType ? 1 : 0);
+		if (Object.prototype.hasOwnProperty.call(cache, key)) {
+			var cached = cache[key];
+			if (cached !== 100) $(this).css("font-size", cached + "%");
+			return;
 		}
+		var test = 100;
+		while (isOverflown(this, overFlowType)) {
+			test = test - 10;
+			if (test < 10) break;
+			$(this).css("font-size", test + "%");
+		}
+		cache[key] = test;
 	});
 	return el;
 }
@@ -915,92 +943,8 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 }
 
 function getMaxPerPage() {
-	/* Pagination is now infinite-scroll (virtual): always fetch 12 per request.
-	   The viewport-fitting math + body.ca-compact-cards toggle that used to live
-	   here are no longer used — the scroll handler in caInitInfiniteScroll
-	   appends each new page into the existing .ca_templatesDisplay. */
+	/* Pagination is now infinite-scroll: always fetch 12 per request. */
 	return 12;
-}
-function _unused_getMaxPerPage_legacy() {
-	const $caDisplayArea = $(".ca_display_area").first();
-	if (!$caDisplayArea.length) return 0;
-
-	/* Reset the JS-driven compact-cards override before measuring so the sample
-	   card reflects its default (non-compact) size. We re-apply below if the
-	   resulting column count would drop under 3 and .Theme--responsive exists
-	   anywhere in the DOM. */
-	const isResponsive = $(".Theme--responsive").length > 0;
-	if (isResponsive) $("body").removeClass("ca-compact-cards");
-
-	/* We need a measurable .ca_holder inside #templates_content > .ca_templatesDisplay. If either
-	   .ca_templatesDisplay is absent or it has no .ca_holder descendant, replace #templates_content's
-	   html with the #sampleApp markup (which is already wrapped in .ca_templatesDisplay containing a
-	   .ca_holder). This covers both the initial empty-page state and the post-"No Matching
-	   Applications Found" state — without it, maxPerPage returns 0 and the next search dumps every
-	   result onto page 1. */
-	const $templatesContent = $("#templates_content");
-	if (!$templatesContent.length) return 0;
-
-	const $existingDisplay = $templatesContent.find(".ca_templatesDisplay").first();
-	const needsSample = !$existingDisplay.length || !$existingDisplay.find(".ca_holder").length;
-	if (needsSample) {
-		const $sampleApp = $("#sampleApp");
-		if ($sampleApp.length) {
-			$templatesContent.html($sampleApp.html());
-		}
-	}
-
-	try {
-		const $sample = $templatesContent.find(".ca_holder").first();
-		const sample = $sample.length ? $sample[0] : null;
-		if (!sample) return 0;
-
-		const rect = sample.getBoundingClientRect();
-		const style = getComputedStyle(sample);
-		const fullWidth = rect.width + (parseFloat(style.marginLeft) || 0) + (parseFloat(style.marginRight) || 0);
-		const fullHeight = rect.height + (parseFloat(style.marginTop)  || 0) + (parseFloat(style.marginBottom) || 0);
-
-		const $templatesDisplay = $templatesContent.find(".ca_templatesDisplay").first();
-		const templatesDisplay = $templatesDisplay.length ? $templatesDisplay[0] : null;
-		if (!templatesDisplay) return 0;
-		const templatesContent = $templatesContent[0];
-		const caDisplayArea = $caDisplayArea[0];
-		const tRect = templatesContent.getBoundingClientRect();
-		const displayRect = caDisplayArea.getBoundingClientRect();
-		const remPx = parseFloat(getComputedStyle(caDisplayArea).fontSize) || 16;
-
-		const availableWidth = templatesDisplay.getBoundingClientRect().width;
-		var templatesTopInDisplay = caOffsetTopWithinAncestor(templatesContent, caDisplayArea);
-		if (templatesTopInDisplay == null) {
-			templatesTopInDisplay = tRect.top - displayRect.top;
-		}
-		const availableHeight = displayRect.height - templatesTopInDisplay - remPx;
-
-		if (availableWidth <= 0 || availableHeight <= 0 || !fullWidth || fullWidth <= 0) return 0;
-
-		let perRow = Math.floor(availableWidth  / fullWidth);
-		let perCol = Math.floor(availableHeight / fullHeight);
-
-		/* If the natural card size can't fit three columns — or fits exactly three
-		   but only a single row — and Theme--responsive is active, switch to the
-		   compact card size and remeasure. */
-		if (isResponsive && (perRow < 3 || (perRow === 3 && perCol === 1))) {
-			$("body").addClass("ca-compact-cards");
-			const compactRect = sample.getBoundingClientRect();
-			const compactStyle = getComputedStyle(sample);
-			const compactWidth  = compactRect.width  + (parseFloat(compactStyle.marginLeft) || 0) + (parseFloat(compactStyle.marginRight)  || 0);
-			const compactHeight = compactRect.height + (parseFloat(compactStyle.marginTop)  || 0) + (parseFloat(compactStyle.marginBottom) || 0);
-			if (compactWidth > 0 && compactHeight > 0) {
-				perRow = Math.floor(availableWidth  / compactWidth);
-				perCol = Math.floor(availableHeight / compactHeight);
-			}
-		}
-
-		if (perRow < 3) return 4;
-		return perRow * perCol;
-	} catch (err) {
-		return 0;
-	}
 }
 
 /**

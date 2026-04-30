@@ -36,17 +36,58 @@ body.menuShowing {
 body:has(.sidenavShow) {
 	overflow: hidden !important;
 }
-/* Never show built-in mainArea scroll controls */
+/* Hide the built-in dynamix scroll controls within CA — we use our own
+   .ca_back_to_top / .ca_move_to_end instead, but the dynamix scroll handler
+   is left bound so other plugins that depend on it keep working. */
 :is(.back_to_top, .move_to_end) {
 	display: none !important;
 	visibility: hidden !important;
 	opacity: 0 !important;
 	pointer-events: none !important;
 }
+/* CA's own scroll controls — independent of dynamix's .back_to_top /
+   .move_to_end so we don't conflict with other plugins. Visibility and click
+   targets (.mainArea instead of html/body) are managed in Apps.page. */
+.ca_back_to_top,
+.ca_move_to_end {
+	display: none;
+	position: fixed;
+	bottom: 24px;
+	color: var(--red-800);
+	font-size: 2.5rem;
+	/* High enough to beat the sidebar (1000) and any wrapper stacking context
+	   it inherits from, while still under SweetAlert (10000+) and the viewport
+	   blocker (9999). */
+	z-index: 9998;
+	cursor: pointer;
+}
+.ca_back_to_top {
+	right: 40px;
+}
+.ca_move_to_end {
+	right: 12px;
+}
+.ca_back_to_top::before,
+.ca_move_to_end::before {
+	font-family: fontAwesome;
+}
+.ca_back_to_top::before {
+	content: "\f0aa"; /* fa-arrow-circle-up */
+}
+.ca_move_to_end::before {
+	content: "\f0ab"; /* fa-arrow-circle-down */
+}
 /* Dim all page content except the visible sidebar and its children */
 body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu, #ca_fixed_scroll_root) {
 	opacity: 0.5;
 	transition: opacity 250ms ease-in-out;
+}
+/* Two copies of the scroll controls live in the markup: one at body level for
+   the main view, one inside .sidenav for sidebar mode. Hide the body-level
+   pair while the sidebar is showing so only the in-sidebar pair is active. */
+body:has(.sidenavShow) > .ca_back_to_top,
+body:has(.sidenavShow) > .ca_move_to_end {
+	display: none !important;
 }
 
 body:has(.sidenavShow) :is(#menu, .upgrade_notice, #footer),
@@ -134,7 +175,7 @@ a {
 }
 
 .mainArea {
-	right: 6rem;
+	right: 0rem;
 	display: block;
 	overflow-x: hidden;
 	align-items: stretch;
@@ -142,7 +183,28 @@ a {
 	align-items: stretch;
 	position: absolute;
 	left: 18.5rem;
+  bottom: 1rem;
 	height:100%;
+	overscroll-behavior-x: none; /* don't translate left/right scroll-bounce into browser back/forward */
+}
+/* Same suppression on the home-row strips and the html root, so two-finger
+   trackpad swipes anywhere in the app don't trigger browser navigation. */
+html,
+body,
+.ca_homeTemplates,
+.menuItems,
+.sidenav {
+	overscroll-behavior-x: none;
+}
+/* Suppress the focus ring on panes we focus via mouseenter so native arrow-key
+   scroll works without showing a visible focus outline. */
+.mainArea:focus,
+.mainArea:focus-visible,
+.menuItems:focus,
+.menuItems:focus-visible,
+.sidenav:focus,
+.sidenav:focus-visible {
+	outline: none;
 }
 .Theme--sidebar .mainArea {
 	top: 2rem;
@@ -162,6 +224,8 @@ a {
 	padding: 1.25rem 0.625rem 1.25rem 1.25rem;
 	margin: 0 1rem 1rem 0;
 	font-size: 1.2rem;
+	position: relative; /* anchor for the corner-ribbon flag */
+	flex-shrink: 0;     /* keep fixed width inside flex containers (home strip, templatesDisplay) */
 
 	/* Visual */
 	background-color: var(--template-background);
@@ -175,7 +239,7 @@ a {
 	   viewport. The intrinsic-size hint lets the browser reserve space without
 	   rendering the contents until the card scrolls close. */
 	content-visibility: auto;
-	contain-intrinsic-size: auto 24rem auto 20rem;
+	contain-intrinsic-size: auto 24rem 20rem;
 }
 
 .ca_holder:hover,
@@ -568,7 +632,7 @@ a {
 		height: var(--ca-fixed-scrollbar-thickness);
 		opacity: 1;
 		pointer-events: auto;
-		cursor: pointer;
+		cursor: default;
 		z-index: 1000;
 		transition: opacity 120ms ease-in-out;
 		background: transparent;
@@ -581,7 +645,8 @@ a {
 	.ca_fixed_hscroll_indicator:hover,
 	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover),
 	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging),
-	.ca_fixed_hscroll_indicator.ca_scroll_active {
+	.ca_fixed_hscroll_indicator.ca_scroll_active,
+	.ca_fixed_hscroll_indicator.ca_scroll_target_hover {
 		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
 		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
 	}
@@ -595,13 +660,14 @@ a {
 		border-radius: 999px;
 		background: var(--unraid-66-color);
 		pointer-events: auto;
-		cursor: grab;
+		cursor: default;
 		transition: height 150ms ease-out;
 	}
 	.ca_fixed_hscroll_indicator:hover > .ca_fixed_hscroll_thumb,
 	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover) > .ca_fixed_hscroll_thumb,
 	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging) > .ca_fixed_hscroll_thumb,
-	.ca_fixed_hscroll_indicator.ca_scroll_active > .ca_fixed_hscroll_thumb {
+	.ca_fixed_hscroll_indicator.ca_scroll_active > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator.ca_scroll_target_hover > .ca_fixed_hscroll_thumb {
 		height: var(--ca-fixed-scrollbar-thickness);
 	}
 
@@ -610,7 +676,7 @@ a {
 		width: var(--ca-fixed-scrollbar-thickness);
 		opacity: 0;
 		pointer-events: auto;
-		cursor: pointer;
+		cursor: default;
 		z-index: 1000;
 		transition: opacity 120ms ease-in-out;
 		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
@@ -642,18 +708,19 @@ a {
 		border-radius: 999px;
 		background: var(--unraid-66-color);
 		pointer-events: auto;
-		cursor: grab;
+		cursor: default;
 		transition: width 150ms ease-out;
 	}
 	.ca_fixed_vscroll_indicator:hover > .ca_fixed_vscroll_thumb,
 	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb:hover) > .ca_fixed_vscroll_thumb,
 	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb.dragging) > .ca_fixed_vscroll_thumb,
-	.ca_fixed_vscroll_indicator.ca_scroll_active > .ca_fixed_vscroll_thumb {
+	.ca_fixed_vscroll_indicator.ca_scroll_active > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator.ca_scroll_target_hover > .ca_fixed_vscroll_thumb {
 		width: var(--ca-fixed-scrollbar-thickness);
 	}
 	.ca_fixed_hscroll_thumb.dragging,
 	.ca_fixed_vscroll_thumb.dragging {
-		cursor: grabbing;
+		cursor: default;
 	}
 	/* Keep JS-based scroll indicators available in sidenav too. */
 	.sidenavShow .ca_scroll_mainarea,
@@ -806,7 +873,6 @@ a {
 		inset: 0;
 		z-index: 9999;
 		background: transparent;
-		cursor: wait;
 		pointer-events: auto;
 	}
 
@@ -1293,7 +1359,7 @@ a {
 		display: flex;
 		position: fixed;
 		bottom: 4rem;
-		right: 5rem;
+		right: 0rem;
 	}
 	.Theme--nav-top .ca_display_area {
 		left: 0;
@@ -1797,6 +1863,14 @@ input[type="button"] {
 		vertical-align: middle;
 		margin-left: 1rem;
 	}
+	.ca_displayCount {
+		display: inline-block;
+		margin-left: 1rem;
+		font-size: 1.2rem;
+		opacity: 0.7;
+		white-space: nowrap;
+		vertical-align: middle;
+	}
 	.ca_statusArea {
 		left: 2rem;
 		position: fixed;
@@ -1832,13 +1906,12 @@ input[type="button"] {
 	.greenCardBackground,
 	.installedCardBackground {
 		clip-path: polygon(0 0, 100% 0, 100% 100%);
-		top: 0px;
+		position: absolute;
+		top: 0;
+		right: 0;
 		height: 9rem;
 		width: 9rem;
-		position: relative;
-		display: inline-block;
-		left: -10rem;
-		margin-right: -9rem;
+		pointer-events: none;
 	}
 	.installedCardBackground {
 		background-color: var(--ca-purple-color);

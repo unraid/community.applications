@@ -316,7 +316,7 @@ function download_url($url, $path = "", $timeout = 0) {
 		debug("DOWNLOAD starting $url\n");
 		$startTime = time();
 		$curl_options = [
-		//  CURLOPT_ENCODING=>"",
+		    CURLOPT_ENCODING=>"",
 			CURLOPT_FRESH_CONNECT=>true,
 			CURLOPT_RETURNTRANSFER=>true,
 			CURLOPT_FOLLOWLOCATION=>true,
@@ -327,10 +327,6 @@ function download_url($url, $path = "", $timeout = 0) {
 
 		];
 
-		// Cap download speed to 250 KB/s.
-		if (defined("CURLOPT_MAX_RECV_SPEED_LARGE")) {
-			$curl_options[CURLOPT_MAX_RECV_SPEED_LARGE] = 250 * 1024;
-		}
 
 		if ( $timeout > 0 ) {
 			$curl_options[CURLOPT_TIMEOUT] = $timeout;

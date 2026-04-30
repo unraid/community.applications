@@ -66,6 +66,7 @@ $(function() {
 		</div>
 		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
 		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
+		<div class='ca_displayCount hideWithMenu' aria-live='polite'></div>
 	</div>
 	<div id="caSearchModalBackdrop" class="caSearchModalBackdrop ca_hide" role="presentation" aria-hidden="true"></div>
 </div>
@@ -92,8 +93,16 @@ $(function() {
 			<input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
 		</div>
 	</div>
-	<div id='ca_pageNavigation' class='navigationSection'></div>
 </div>
+<!-- Pagination target lives outside the display tree (infinite-scroll handles
+     paging now; kept as a render target for caRenderPageNavigation so
+     data.nextpage / data.totalApps still get populated; hidden via CSS). -->
+<div id='ca_pageNavigation' class='navigationSection'></div>
+<!-- CA's own scroll controls — visibility & click are handled in
+     caInitInfiniteScroll (Apps.page); independent of dynamix's .back_to_top
+     / .move_to_end so we don't disturb other plugins that bind them. -->
+<div class='ca_back_to_top' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
+<div class='ca_move_to_end' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
 <div class='ca_bottomBanner ca_hide'>
 	<div class='ca_pageGeometryChange'>
 		<?tr("Page numbering changed due to display size change");?>
@@ -164,6 +173,13 @@ $(function() {
 	<div class='sidenav sidenavHide'>
 		<div id='sidenavContent'></div>
 	</div>
+	<!-- Sidebar copy of the scroll controls. Sibling of .sidenav, not child,
+	     so they're outside the scrollable area and don't move with sidenav
+	     content. .sidebar has no transform, so position:fixed resolves
+	     against the viewport. .sidebar's stacking context (z-index 1000)
+	     keeps these above .sidenav since they appear later in DOM order. -->
+	<div class='ca_back_to_top' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
+	<div class='ca_move_to_end' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
 </div>
 
 <!-- Templates / HTML for alternate views -->
@@ -474,10 +490,6 @@ $(function() {
 					</div>
 				</div>
 
-				<div class='ca_settingsButtons'>
-					<input type='submit' name='#apply' class='ca_settingsApply' value='<?tr("Apply");?>'>
-					<input type='button' class='ca_settingsDone' value='<?tr("Reset");?>'>
-				</div>
 			</form>
 		</div>
 	</div>

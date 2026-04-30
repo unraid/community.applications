@@ -33,6 +33,16 @@ if ( ! isset($dockerManPaths) ) {
 
 $dynamixSettings = parse_plugin_cfg("dynamix");
 
+/* Per-tab cache suffix: JS generates a stable tabId in sessionStorage on page
+   load and posts it with every request. Server suffixes a small, explicit set
+   of cache files so two tabs in the same browser don't stomp each other's
+   filtered/displayed/search results. The shared feed/templates files (and
+   anything not in the per-tab list below) are intentionally left untouched. */
+$caTabSuffix = '';
+if (!empty($_POST['tabId']) && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $_POST['tabId'])) {
+	$caTabSuffix = '.' . $_POST['tabId'];
+}
+
 define("CA_PATHS",[
 	'tempFiles'                           => "/tmp/$CA/tempFiles",
 	'flashDrive'                          => "/boot/config/plugins/$CA",
@@ -44,11 +54,11 @@ define("CA_PATHS",[
 	'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
 	'haveTemplates'												=> "/tmp/ca_haveTemplates",
 	'gettingTemplates'										=> "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
-	'community-templates-displayed'       => "$tempFiles/displayed.json",                     /* json file containing all of the templates currently displayed */
-	'community-templates-allSearchResults'=> "$tempFiles/allSearchResults.json",
-	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults.json",
-	'startupDisplayed'                    => "$tempFiles/startupDisplayed",
-	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed.json",
+	'community-templates-displayed'       => "$tempFiles/displayed{$caTabSuffix}.json",        /* json file containing all of the templates currently displayed (per-tab) */
+	'community-templates-allSearchResults'=> "$tempFiles/allSearchResults{$caTabSuffix}.json", /* per-tab */
+	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults{$caTabSuffix}.json", /* per-tab */
+	'startupDisplayed'                    => "$tempFiles/startupDisplayed{$caTabSuffix}",      /* per-tab */
+	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
 	'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
 	'humanReadable'                       => false,     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
 	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
@@ -61,7 +71,7 @@ define("CA_PATHS",[
 	'repositoryList'                      => "$tempFiles/repositoryList.json",
 	'extraBlacklist'                      => "$tempFiles/extraBlacklist.json",
 	'extraDeprecated'                     => "$tempFiles/extraDeprecated.json",
-	'sortOrder'                           => "$tempFiles/sortOrder.json",
+	'sortOrder'                           => "$tempFiles/sortOrder{$caTabSuffix}.json", /* per-tab */
 	'currentServer'                       => "$tempFiles/currentServer.txt",
 	'lastUpdated'                         => "$tempFiles/lastUpdated.json",
 	'lastUpdated-old'                     => "$tempFiles/lastUpdated-old.json",
@@ -99,9 +109,9 @@ define("CA_PATHS",[
 	'updateTime'                          => "/tmp/$CA/checkForUpdatesTime", # can't be in /tmp/community.applications/tempFiles because new feed downloads erases everything there
 	'updateRunning'                       => "/tmp/$CA/updateRunning",
 	'info'                                => "$tempFiles/info.json",
-	'dockerSearchResults'                 => "$tempFiles/dockerSearch.json",
+	'dockerSearchResults'                 => "$tempFiles/dockerSearch{$caTabSuffix}.json",  /* per-tab */
 	'dockerSearchInstall'                 => "$tempFiles/dockerConvert.xml",
-	'dockerSearchActive'                  => "$tempFiles/dockerSearchActive",
+	'dockerSearchActive'                  => "$tempFiles/dockerSearchActive{$caTabSuffix}", /* per-tab */
 	'dockerConvertFlash'                  => $dockerManPaths['templates-user']."/my-CA_TEST_CONTAINER_DOCKERHUB.xml",
 	'pluginPending'                       => "/tmp/plugins/pluginPending/",
 	'phpErrorSettings'                    => "/etc/php.d/errors-php.ini",

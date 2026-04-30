@@ -211,6 +211,28 @@ data.ignoreUnload = false;
 data.maxPerPage = 12;
 data.totalApps = 0;
 data.loadingMore = false;
+data.cardCache = []; // current loaded slice of cards (HTML strings) — array, not necessarily aligned with global index
+data.cardCacheOffset = 0; // global index of cardCache[0] (non-zero after a jump-load like move-to-end)
+data.firstInDom = 0; // index within cardCache of the first card currently in the DOM
+
+/* Per-tab id: sessionStorage is scoped per browser-tab and survives reloads of
+   that same tab, which is exactly what we need so the server-side cache files
+   (displayed.{id}.json, etc.) line up with this tab's view. */
+(function() {
+	var key = "ca_tabId";
+	var id = "";
+	try { id = sessionStorage.getItem(key) || ""; } catch (e) {}
+	if (!id) {
+		try {
+			id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+				: (Date.now().toString(36) + Math.random().toString(36).slice(2));
+		} catch (e) {
+			id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+		}
+		try { sessionStorage.setItem(key, id); } catch (e) {}
+	}
+	data.tabId = id;
+})();
 
 var dockerNotEnabled;
 var postCount = 0;
@@ -392,7 +414,7 @@ $(function(){
 		}
 		if ( ! message ) return;
 		caBlockViewportForReload();
-		caShowFatalReloadBanner(tr("Another browser instance is updating the application feed. Reloading the page..."), 10000);
+		caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
 	});
 
 	caInitializeSortMenu();
@@ -426,7 +448,12 @@ $(function(){
 			}
 		});
 	}	else {
-		if ( "<?=$startupDisplayed?>" != "true" && (document.referrer.indexOf("/Apps/") > 1) && ( document.referrer.indexOf("/Apps/ca_settings") < 1 ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+		/* Restore state when we came back from a child URL of /Apps (Docker, plugin
+		   install pages, etc.). document.referrer covers the "Done" button case;
+		   the ca_apps_referrer cookie — set by CA_notices.page on every Unraid
+		   page load while the URL is under /Apps/ and cleared as soon as it
+		   isn't — covers the browser-back case where the referrer is empty. */
+		if ( "<?=$startupDisplayed?>" != "true" && ( ((document.referrer.indexOf("/Apps/") > 1) && (document.referrer.indexOf("/Apps/ca_settings") < 1)) || <?=$ca_apps_referrer?> ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
 			getCategories();
 			restoreState();
 			<? if ( $dockerSearchActive ):?>
@@ -460,7 +487,9 @@ $(function(){
 			actionCentreRestoreState = true;
 
 		setupActionCentre();
-		$.cookie("ca_apps_referrer");
+		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
+		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
+		$.removeCookie("ca_apps_referrer", { path: "/" });
 	}
 	<?endif;?>
 });
@@ -572,7 +601,7 @@ function changePage(pageNumber, append) {
 	data.currentpage = pageNumber;
 
 	post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
-		updateDisplay(result.display, doAppend);
+		updateDisplay(result.display_data || result.display, doAppend);
 		if (!doAppend) scrollToTop();
 	});
 }
@@ -696,7 +725,7 @@ function doSearch(button,newSearch) {
 		$(".selectedMenu").removeClass("selectedMenu");
 		$(".subCategory").hide();
 		$(".allApps").addClass("selectedMenu");
-		updateDisplay(result.display);
+		updateDisplay(result.display_data || result.display);
 		caSyncSearchFilterCollapsed();
 		data.section = "AppStore";
 		post({action:'getCategoriesPresent'},function(result) {
@@ -723,8 +752,18 @@ function changeSortOrder(button,buttonClass,previousApps) {
 			startup = "true";
 		}
 	});
-	post({action:'display_content',pageNumber:pageNumber,selected:selected,startup:startup},function(result) {
-		updateDisplay(result.display);
+	/* Previous Apps / Installed Apps / Action Centre rely on Select All etc., so
+	   load every card up front (no pagination) and disable the virtualizer's
+	   eviction so the full DOM stays available. */
+	var postOpts = {action:'display_content',pageNumber:pageNumber,selected:selected,startup:startup};
+	if (previousApps) {
+		postOpts.maxPerPage = 99999;
+		data.allLoaded = true;
+	} else {
+		data.allLoaded = false;
+	}
+	post(postOpts,function(result) {
+		updateDisplay(result.display_data || result.display);
 	});
 }
 
@@ -768,7 +807,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 		 // $(".category").html(description);
 		}
 		post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
-			updateDisplay(result.display);
+			updateDisplay(result.display_data || result.display);
 			if ( initialize ) {
 				populateAutoComplete();
 				downloadStatistics();
@@ -849,6 +888,17 @@ function closeSidebar(cookie=false,visible=false) {
 	}
 	context.destroy("#supportPopup");
 	context.destroy("#actionsPopup");
+
+	/* If a settings form was open with unsaved edits, submit it instead of just
+	   closing — the submit handler saves and reloads, which subsumes closing. */
+	var $settingsForm = $("#sidenavContent .ca_settingsForm");
+	if ($settingsForm.length) {
+		var initialState = $settingsForm.data("caInitialState");
+		if (typeof initialState === "string" && $settingsForm.serialize() !== initialState) {
+			$settingsForm.trigger("submit");
+			return;
+		}
+	}
 
 	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
 	$(".nav-user.show").show();
@@ -1686,24 +1736,117 @@ function installMulti() {
 function postMultiDockerInstall() {
 	window.location.reload();
 }
+
+/* Build the .ca_templatesDisplay wrapper from structured display_data. The
+   header may contain inline scripts (showSidebarApp / hideSortIcons / etc.);
+   the trailing scripts string holds caRenderPageNavigation. jQuery's html()
+   evaluates both as part of the assignment. */
+/* Refresh the "displaying X - Y of Z" indicator in the search area. X..Y is
+   the range of cards currently visible in the viewport (computed from scrollTop
+   plus the live card layout); Z is the full result count from
+   caRenderPageNavigation. Falls back to the loaded range when the layout
+   signals aren't measurable, and hides itself on the home page / empty result. */
+function caUpdateDisplayCount() {
+	var $el = $(".ca_displayCount");
+	if (!$el.length) return;
+	var loaded = $.isArray(data.cardCache) ? data.cardCache.length : 0;
+	var total = parseInt(data.totalApps, 10) || 0;
+	if (total < 2 || loaded === 0) {
+		$el.empty().hide();
+		return;
+	}
+
+	var offset = parseInt(data.cardCacheOffset, 10) || 0;
+	var first = offset + 1;
+	var last = Math.min(offset + loaded, total);
+
+	var mainArea = $(".mainArea")[0];
+	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+	if (mainArea && $cards.length && typeof caVirtCardsPerRow === "function" && typeof caVirtRowHeight === "function") {
+		var perRow = caVirtCardsPerRow($cards);
+		var rowH = caVirtRowHeight($cards, perRow);
+		if (perRow > 0 && rowH > 0) {
+			var firstInDom = (typeof data.firstInDom === "number") ? data.firstInDom : 0;
+			/* The top spacer takes up scrollTop space equal to evicted rows; that
+			   eviction is already encoded in firstInDom, so subtract the spacer
+			   to avoid double-counting. */
+			var spacerH = (typeof caVirtSpacerHeight === "function") ? caVirtSpacerHeight() : 0;
+			var scrollAfterSpacer = Math.max(0, mainArea.scrollTop - spacerH);
+			var scrolledRows = Math.floor(scrollAfterSpacer / rowH);
+			var rowsVisible = Math.max(1, Math.ceil(mainArea.clientHeight / rowH));
+			first = offset + firstInDom + (scrolledRows * perRow) + 1;
+			last  = offset + firstInDom + ((scrolledRows + rowsVisible) * perRow);
+		}
+	}
+	if (first > total) first = total;
+	if (last > total) last = total;
+	if (last < first) last = first;
+
+	$el.text(tr("Displaying") + " " + first + " - " + last + " " + tr("of") + " " + total).show();
+}
+
+function caRenderStructuredFresh(content) {
+	var html = "<div class='ca_templatesDisplay'>" +
+		(content.header || "") +
+		content.cards.join("") +
+		(content.scripts || "") +
+		"</div>";
+	$("#templates_content").html(html);
+}
 function updateDisplay(content, append) {
-	if (append) {
-		var $existing = $("#templates_content .ca_templatesDisplay").first();
-		if ($existing.length) {
-			/* Parse the new payload off-DOM so its inline <script> (caRenderPageNavigation)
-			   runs and updates data.nextpage/totalApps; then move the cards into the
-			   existing display so prior pages stay visible (scrolling up shows the cache). */
-			var $tmp = $("<div>").html(content);
-			var $newChildren = $tmp.find(".ca_templatesDisplay").first().contents();
-			$existing.append($newChildren);
+	var isStructured = content && typeof content === "object" && $.isArray(content.cards);
+
+	if (isStructured) {
+		if (append) {
+			var $existing = $("#templates_content .ca_templatesDisplay").first();
+			if ($existing.length) {
+				for (var i = 0; i < content.cards.length; i++) {
+					data.cardCache.push(content.cards[i]);
+					$existing.append(content.cards[i]);
+				}
+				/* Re-evaluate scripts (caRenderPageNavigation) so data.nextpage updates.
+				   Detached-element .html() doesn't auto-eval scripts in jQuery, so pull
+				   each <script> body out and pass it through $.globalEval. */
+				if (content.scripts) {
+					$("<div>").html(content.scripts).find("script").each(function() {
+						$.globalEval(this.text || this.textContent || $(this).html() || "");
+					});
+				}
+			} else {
+				caRenderStructuredFresh(content);
+			}
 		} else {
-			$("#templates_content").html(content);
+			data.cardCache = content.cards.slice();
+			data.firstInDom = 0;
+			var _pn  = parseInt(content.pageNumber, 10) || 1;
+			var _ppg = parseInt(content.maxPerPage, 10) || data.maxPerPage || 12;
+			data.cardCacheOffset = (_pn - 1) * _ppg;
+			caRenderStructuredFresh(content);
 		}
 	} else {
-		$("#templates_content").html(content);
+		if (append) {
+			var $existing = $("#templates_content .ca_templatesDisplay").first();
+			if ($existing.length) {
+				var $tmp = $("<div>").html(content);
+				var $newChildren = $tmp.find(".ca_templatesDisplay").first().contents();
+				$existing.append($newChildren);
+			} else {
+				$("#templates_content").html(content);
+				data.firstInDom = 0;
+				data.cardCache = [];
+				data.cardCacheOffset = 0;
+			}
+		} else {
+			$("#templates_content").html(content);
+			data.firstInDom = 0;
+			data.cardCache = [];
+			data.cardCacheOffset = 0;
+		}
 	}
 	data.loadingMore = false;
 	caEnsureScrollable();
+	caUpdateDisplayCount();
+	if (typeof caUpdateScrollControls === "function") caUpdateScrollControls();
 	enableSearch();
 
 	$(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
@@ -1736,7 +1879,15 @@ function saveState(legacy=true) {
 	}
 	console.log("Save State");
 	//$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
-	$.cookie("ca_data",JSON.stringify(data),{path:"/;SameSite=Lax"});
+	/* Strip out fields that re-derive from a fresh server fetch — the card
+	   cache + virt offsets can be 100s of KB which would blow past the 4KB
+	   cookie cap and cause restoreState's JSON.parse to fail (which
+	   triggered window.location.reload() in the catch). */
+	var _saveData = Object.assign({}, data);
+	delete _saveData.cardCache;
+	delete _saveData.firstInDom;
+	delete _saveData.cardCacheOffset;
+	$.cookie("ca_data", JSON.stringify(_saveData), { path: "/;SameSite=Lax" });
 	$.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
 	$.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
 	var selectedMenu = $(".selectedMenu").data("category");
@@ -1766,6 +1917,12 @@ function restoreState() {
 	try {
 		data = JSON.parse($.cookie("ca_data"));
 		data.ignoreUnload = false;
+		/* These were intentionally stripped before saving; re-init so the next
+		   render path (refreshDisplay → updateDisplay) repopulates cleanly. */
+		data.cardCache = [];
+		data.firstInDom = 0;
+		data.cardCacheOffset = 0;
+		data.loadingMore = false;
 		$.removeCookie("ca_data");
 	} catch (e) {
 		console.log("Unable to restore state - reloading to clear errors");
@@ -2597,7 +2754,7 @@ function dockerSearch(pageNumber, append) {
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
 		data.committedSearchFilter = $.trim(String(filter || ""));
 		caSyncHomeSearchSubtitle();
-		updateDisplay(result.display, doAppend);
+		updateDisplay(result.display_data || result.display, doAppend);
 		caSyncSearchFilterCollapsed();
 	});
 }
@@ -2705,15 +2862,152 @@ function postCheckForUpdates() {
 	$(".selectedMenu").click();
 }
 
-/* If the rendered page doesn't fill .mainArea (no scrollbar = no way for the
-   user to trigger infinite scroll), pull the next page automatically. Chains
-   on each successful render until the viewport scrolls or pages run out. */
+/* Virtualization: evict cards far above the viewport into a top-spacer (so
+   scroll height stays the same) and restore them from data.cardCache when the
+   user scrolls back up. Cards are kept in row-aligned chunks because the float
+   layout would mis-pack a partial row. */
+function caVirtSpacer() {
+	var $spacer = $("#templates_content .ca_virtTopSpacer").first();
+	if ($spacer.length) return $spacer;
+	var $first = $("#templates_content").find(".ca_holder, .dockerHubHolder").first();
+	if (!$first.length) return $();
+	$spacer = $("<div class='ca_virtTopSpacer'></div>").css({
+		width: "100%",
+		height: "0px",
+		flexBasis: "100%"
+	});
+	$first.before($spacer);
+	return $spacer;
+}
+function caVirtSpacerHeight() {
+	var $s = $("#templates_content .ca_virtTopSpacer").first();
+	if (!$s.length) return 0;
+	return parseFloat($s[0].style.height) || 0;
+}
+function caVirtAdjustSpacer(deltaPx) {
+	var $s = caVirtSpacer();
+	if (!$s.length) return;
+	var current = parseFloat($s[0].style.height) || 0;
+	var next = Math.max(0, current + deltaPx);
+	$s.css("height", next + "px");
+}
+function caVirtCardsPerRow($cards) {
+	if (!$cards.length) return 0;
+	var firstTop = $cards[0].offsetTop;
+	for (var i = 1; i < $cards.length; i++) {
+		if ($cards[i].offsetTop !== firstTop) return i;
+	}
+	return $cards.length;
+}
+function caVirtRowHeight($cards, perRow) {
+	if (perRow < 1 || $cards.length <= perRow) return 0;
+	return $cards[perRow].offsetTop - $cards[0].offsetTop;
+}
+function caVirtUpdate() {
+	var mainArea = $(".mainArea")[0];
+	if (!mainArea) return;
+	/* The home/spotlight view uses .ca_homeTemplates rows (everything already in
+	   the DOM, no pagination), not the .ca_templatesDisplay grid we virtualize.
+	   Skip eviction/restoration there. */
+	if (!$("#templates_content .ca_templatesDisplay").length) return;
+	/* When the section explicitly loaded everything (Previous Apps / Action
+	   Centre / Installed Apps) we keep the full DOM around so things like
+	   Select All can operate on every checkbox at once. */
+	if (data.allLoaded) return;
+	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+	if ($cards.length < 24) return;
+
+	var perRow = caVirtCardsPerRow($cards);
+	if (perRow < 1) return;
+	var rowHeight = caVirtRowHeight($cards, perRow);
+	if (rowHeight <= 0) return;
+
+	var scrollTop = mainArea.scrollTop;
+	var clientHeight = mainArea.clientHeight;
+	var buffer = clientHeight; // 1 viewport above & below
+	var mainTop = mainArea.getBoundingClientRect().top;
+
+	/* If the user just jumped a long way upward (Cmd/Ctrl+Up, Home, End→top,
+	   thumb drag, etc.) into the evicted region, the spacer can be many rows
+	   tall and incremental restoration would only fill 8 rows per scroll event
+	   — leaving them looking at blank space. Detect the jump and reset to a
+	   fresh page-1 fetch instead. */
+	var prevScrollTop = data._prevScrollTop || 0;
+	data._prevScrollTop = scrollTop;
+	if (data.firstInDom > 0 && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
+		data.firstInDom = 0;
+		data.cardCache = [];
+		data.loadingMore = false;
+		data._prevScrollTop = 0;
+		if (typeof changePage === "function") changePage(1);
+		return;
+	}
+
+	/* EVICT: rows whose bottom is more than 1 viewport above the visible area. */
+	var evictAboveY = scrollTop - buffer;
+	var rowsToEvict = 0;
+	for (var i = 0; i + perRow <= $cards.length; i += perRow) {
+		var rowBottom = $cards[i].getBoundingClientRect().bottom - mainTop + scrollTop;
+		if (rowBottom >= evictAboveY) break;
+		rowsToEvict++;
+	}
+	var minKeep = 36;
+	rowsToEvict = Math.min(rowsToEvict, Math.floor(($cards.length - minKeep) / perRow));
+	if (rowsToEvict > 0) {
+		var n = rowsToEvict * perRow;
+		for (var k = 0; k < n; k++) {
+			$cards[k].parentNode.removeChild($cards[k]);
+		}
+		data.firstInDom += n;
+		caVirtAdjustSpacer(rowsToEvict * rowHeight);
+		return;
+	}
+
+	/* RESTORE: user has scrolled back into the spacer region. */
+	if (data.firstInDom > 0) {
+		var spacerH = caVirtSpacerHeight();
+		if (spacerH > 0 && scrollTop < spacerH + buffer) {
+			var rowsToRestore = Math.min(
+				Math.ceil(((spacerH + buffer) - scrollTop) / rowHeight),
+				Math.floor(data.firstInDom / perRow) || 1
+			);
+			rowsToRestore = Math.min(rowsToRestore, 8);
+			if (rowsToRestore <= 0) return;
+			var cardsToRestore = Math.min(rowsToRestore * perRow, data.firstInDom);
+			var html = "";
+			for (var j = 0; j < cardsToRestore; j++) {
+				var idx = data.firstInDom - cardsToRestore + j;
+				html += data.cardCache[idx];
+			}
+			data.firstInDom -= cardsToRestore;
+			caVirtSpacer().after(html);
+			caVirtAdjustSpacer(-(rowsToRestore * rowHeight));
+		}
+	}
+}
+
+/* If the rendered page doesn't fill .mainArea — or only just barely fills it —
+   pull the next page automatically. We require at least one card-row's worth
+   of overflow past the viewport so there's always a visible "more below" cue
+   at the bottom; this also covers the zoom-out edge case where the page goes
+   from scrollable to non-scrollable without crossing the trigger. */
 function caEnsureScrollable() {
 	if (data.loadingMore) return;
 	if (!data.nextpage || data.nextpage <= 0) return;
 	var el = $(".mainArea")[0];
 	if (!el) return;
-	if (el.scrollHeight - el.clientHeight > 4) return; // already scrollable
+
+	var rowHeight = 4;
+	var $card = $("#templates_content").find(".ca_holder, .dockerHubHolder").first();
+	if ($card.length) {
+		var rect = $card[0].getBoundingClientRect();
+		var style = getComputedStyle($card[0]);
+		var rowH = rect.height + (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
+		if (rowH > rowHeight) rowHeight = rowH;
+	}
+
+	if (el.scrollHeight - el.clientHeight > rowHeight * 2) return;
+
 	data.loadingMore = true;
 	var nextPage = data.nextpage;
 	if (data.docker) {
@@ -2728,12 +3022,10 @@ function caEnsureScrollable() {
    cards rather than waiting for a page-number click. dockerSearch and the
    regular display path share the same pagination state (data.nextpage). */
 function caInitInfiniteScroll() {
-	$(".mainArea").on("scroll", function() {
+	var virtScheduled = false;
+	var triggerNext = function() {
 		if (data.loadingMore) return;
 		if (!data.nextpage || data.nextpage <= 0) return;
-		var el = this;
-		var bottomGap = el.scrollHeight - el.clientHeight - el.scrollTop;
-		if (bottomGap > 600) return;
 		data.loadingMore = true;
 		var nextPage = data.nextpage;
 		if (data.docker) {
@@ -2741,7 +3033,180 @@ function caInitInfiniteScroll() {
 		} else {
 			changePage(nextPage, true);
 		}
+	};
+
+	/* CA's own scroll controls (.ca_back_to_top / .ca_move_to_end). dynamix's
+	   .back_to_top / .move_to_end are left alone so other plugins keep working;
+	   ours operate on whichever pane is currently the user-facing scroller —
+	   .sidenav when the sidebar is open, otherwise .mainArea. Visibility is
+	   driven from the same scroll events the rest of CA already uses. */
+	var $backTop = $(".ca_back_to_top");
+	var $moveEnd = $(".ca_move_to_end");
+	var caGetActiveScroller = function() {
+		var $sidenav = $(".sidenav.sidenavShow");
+		if ($sidenav.length) return $sidenav[0];
+		return $(".mainArea")[0];
+	};
+	$backTop.on("click", function(e) {
+		e.preventDefault();
+		var s = caGetActiveScroller();
+		if (s) $(s).stop(true, true).animate({ scrollTop: 0 }, 500);
+		return false;
 	});
+	$moveEnd.on("click", function(e) {
+		e.preventDefault();
+		var s = caGetActiveScroller();
+		if (!s) return false;
+
+		/* Sidebar mode: content is already entirely in the DOM, just scroll
+		   to its bottom — no fetch needed (and the Apps grid pagination logic
+		   below would be irrelevant anyway). */
+		if ($(".sidenav.sidenavShow").length) {
+			$(s).stop(true, true).animate({ scrollTop: s.scrollHeight }, 500);
+			return false;
+		}
+
+		/* Home page (no .ca_templatesDisplay): everything is already in the
+		   DOM — just scroll to the bottom of the viewport, no fetch needed. */
+		if (!$("#templates_content .ca_templatesDisplay").length) {
+			$(s).stop(true, true).animate({ scrollTop: s.scrollHeight }, 500);
+			return false;
+		}
+
+		/* Apps grid: fetch the entire result set in one request so the user can
+		   scroll up freely from the end. Virtualization + content-visibility
+		   keep this affordable even for thousands of cards. data.maxPerPage is
+		   bumped only for this request and restored once cards are in the DOM. */
+		var total = parseInt(data.totalApps, 10) || 0;
+		if (total <= 0) return false;
+		var savedMaxPerPage = data.maxPerPage;
+		data.maxPerPage = Math.max(total, 12);
+		var scrollToEnd = function() {
+			data.maxPerPage = savedMaxPerPage;
+			var ma2 = $(".mainArea")[0];
+			if (ma2) ma2.scrollTop = ma2.scrollHeight;
+		};
+		if (data.docker) {
+			dockerSearch(1, false);
+		} else {
+			changePage(1, false);
+		}
+		var attempts = 0;
+		var poll = function() {
+			if ($.isArray(data.cardCache) && data.cardCache.length >= total) {
+				scrollToEnd();
+				return;
+			}
+			if (++attempts > 60) {
+				scrollToEnd();
+				return;
+			}
+			setTimeout(poll, 100);
+		};
+		setTimeout(poll, 100);
+		return false;
+	});
+	var caUpdateScrollControls = window.caUpdateScrollControls = function() {
+		/* Fresh queries each call so a removed/re-added element or a class
+		   change still gets picked up. */
+		var $bt = $(".ca_back_to_top");
+		var $me = $(".ca_move_to_end");
+		if (!$bt.length && !$me.length) return;
+		var s = caGetActiveScroller();
+		if (!s) return;
+		var atTop = s.scrollTop <= 0;
+		var atBottom = s.scrollTop + s.clientHeight >= s.scrollHeight - 1;
+		var canScroll = s.scrollHeight - s.clientHeight > 1;
+		var showBack = canScroll && !atTop;
+		var showEnd  = canScroll && !atBottom;
+		if ($bt.length && ($bt.data("caShown") || false) !== showBack) {
+			$bt.data("caShown", showBack);
+			$bt.stop(true, true)[showBack ? "fadeIn" : "fadeOut"](500);
+		}
+		if ($me.length && ($me.data("caShown") || false) !== showEnd) {
+			$me.data("caShown", showEnd);
+			$me.stop(true, true)[showEnd ? "fadeIn" : "fadeOut"](500);
+		}
+	};
+	/* Initial state: hide both until we know the page actually scrolls.
+	   Live updates come from attachOverlay's existing scroll listener (which
+	   already covers .mainArea, .sidenav, .menuItems, .ca_homeTemplates), so
+	   we don't bind a second scroll handler here. */
+	$backTop.hide().data("caShown", false);
+	$moveEnd.hide().data("caShown", false);
+	caUpdateScrollControls();
+	/* Re-check after first paint so the initial values reflect post-layout
+	   scroll dimensions, not whatever they are at attach time. */
+	requestAnimationFrame(function() { caUpdateScrollControls(); });
+	setTimeout(function() { caUpdateScrollControls(); }, 250);
+
+	/* Sidebar open/close changes the active scroller, so recompute when its
+	   class list flips between sidenavShow / sidenavHide. */
+	(function() {
+		var sn = $(".sidenav")[0];
+		if (!sn || typeof MutationObserver !== "function") return;
+		new MutationObserver(function() { caUpdateScrollControls(); })
+			.observe(sn, { attributes: true, attributeFilter: ["class"] });
+	})();
+
+	$(".mainArea").on("scroll", function() {
+		if (!virtScheduled) {
+			virtScheduled = true;
+			requestAnimationFrame(function() {
+				virtScheduled = false;
+				caVirtUpdate();
+			});
+		}
+		caUpdateDisplayCount();
+		var el = this;
+		var bottomGap = el.scrollHeight - el.clientHeight - el.scrollTop;
+		if (bottomGap > 600) return;
+		triggerNext();
+	});
+
+	/* When the user is parked at the exact scroll bottom, the browser stops
+	   firing scroll events on further wheel/touch attempts — so a "scroll past
+	   the end" gesture wouldn't pull the next page. Catch that intent directly
+	   from the wheel/touch input. */
+	$(".mainArea").on("wheel", function(e) {
+		var dy = e.originalEvent ? e.originalEvent.deltaY : 0;
+		if (dy <= 0) return; // only downward
+		var el = this;
+		if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+			triggerNext();
+		}
+	});
+	var touchStartY = 0;
+	$(".mainArea").on("touchstart", function(e) {
+		var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+		touchStartY = t ? t.clientY : 0;
+	});
+	$(".mainArea").on("touchmove", function(e) {
+		var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+		if (!t) return;
+		if (touchStartY - t.clientY < 12) return; // upward swipe = scroll down; require modest distance
+		var el = this;
+		if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+			triggerNext();
+		}
+	});
+
+	/* Zoom-out / window-resize can leave the page non-scrollable even though
+	   more results exist on the server — without a scrollbar the infinite-scroll
+	   handler never fires. Re-run caEnsureScrollable on viewport changes so we
+	   keep pulling pages until the layout is scrollable again. */
+	var resizeTimer = null;
+	var onResize = function() {
+		if (resizeTimer) clearTimeout(resizeTimer);
+		resizeTimer = setTimeout(function() {
+			resizeTimer = null;
+			caEnsureScrollable();
+		}, 150);
+	};
+	$(window).on("resize", onResize);
+	if (window.visualViewport) {
+		$(window.visualViewport).on("resize", onResize);
+	}
 }
 $(caInitInfiniteScroll);
 

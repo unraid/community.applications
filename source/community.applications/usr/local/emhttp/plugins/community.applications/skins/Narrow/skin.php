@@ -490,7 +490,7 @@ function displayPopup($template) {
 	return ob_get_clean();
 }
 
-function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
+function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
 
 	$filesToCheck = [
 		CA_PATHS['repositoriesDisplayed'] ?? null,
@@ -512,12 +512,25 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
 	}
 	$totalApplications = count($communityApplications);
 
-	$display = ( $totalApplications ) ? my_display_apps($communityApplications,$pageNumber,$selectedApps,$startup) : "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>$('.multi_installDiv').hide();hideSortIcons();</script>";
+	if ($totalApplications) {
+		return my_display_apps($communityApplications,$pageNumber,$selectedApps,$startup,$returnArray);
+	}
 
-	return $display;
+	$emptyHtml = "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>$('.multi_installDiv').hide();hideSortIcons();</script>";
+
+	if ($returnArray) {
+		return [
+			'header' => $emptyHtml,
+			'cards' => [],
+			'scripts' => '',
+			'totalApps' => 0,
+			'pageNumber' => (int)$pageNumber,
+		];
+	}
+	return $emptyHtml;
 }
 
-function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
+function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
 
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
 	$extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
@@ -525,6 +538,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 	$pinnedApps = readJsonFile(CA_PATHS['pinnedV2']);
 
 	$ct = "";
+	$cardsArray = [];
 	$count = 0;
 
 	$dockerContext = caDockerContext();
@@ -549,7 +563,9 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 			$template['display_dockerName'] = $template['RepoName'];
 			$template['ca_fav'] = $GLOBALS['caSettings']['favourite'] && ($GLOBALS['caSettings']['favourite'] == $template['RepoName']);
 
-			$ct .= displayCard($template);
+			$cardHtml = displayCard($template);
+			$cardsArray[] = $cardHtml;
+			$ct .= $cardHtml;
 			$count++;
 			if ($count == $GLOBALS['caSettings']['maxPerPage']) {
 				break;
@@ -630,14 +646,17 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 			$template['Official'] = true;
 		}
 
-		$ct .= displayCard($template);
+		$cardHtml = displayCard($template);
+		$cardsArray[] = $cardHtml;
+		$ct .= $cardHtml;
 		$count++;
 		if ($count == $GLOBALS['caSettings']['maxPerPage']) {
 			break;
 		}
 	}
 
-	$ct .= getPageNavigation($pageNumber, count($file), false, true);
+	$navScript = getPageNavigation($pageNumber, count($file), false, true);
+	$ct .= $navScript;
 
 	if (! $count) {
 		$displayHeader .= "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>hideSortIcons();</script>";
@@ -652,6 +671,16 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
 			}
 			$displayHeader .= "<script>showSidebarApp('{$template['Path']}','{$template['Name']}');</script>";
 		}
+	}
+
+	if ($returnArray) {
+		return [
+			'header' => $displayHeader,
+			'cards' => $cardsArray,
+			'scripts' => $navScript,
+			'totalApps' => count($file),
+			'pageNumber' => (int)$pageNumber,
+		];
 	}
 
 	return "$displayHeader$ct";
@@ -839,7 +868,7 @@ function getRepoDescriptionSkin($repository) {
 ##############################################################
 # function that actually displays the results from dockerHub #
 ##############################################################
-function displaySearchResults($pageNumber) {
+function displaySearchResults($pageNumber, $returnArray=false) {
 
 	$searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
 	$numPages = $searchData['num_pages'] ?? 0;
@@ -855,9 +884,20 @@ function displaySearchResults($pageNumber) {
 		$results
 	);
 
-	$cardsHtml = implode("", $cards);
+	$navScript = dockerNavigate($numPages, $pageNumber);
 
-	return "<div class='ca_templatesDisplay'>{$cardsHtml}</div>".dockerNavigate($numPages, $pageNumber);
+	if ($returnArray) {
+		return [
+			'header' => '',
+			'cards' => array_values($cards),
+			'scripts' => $navScript,
+			'totalApps' => (int)($numPages * 25),
+			'pageNumber' => (int)$pageNumber,
+		];
+	}
+
+	$cardsHtml = implode("", $cards);
+	return "<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
 }
 
 ###########################
@@ -959,7 +999,10 @@ function displayCard($template) {
 	$cardFlag = caBuildCardFlag($template, $flagTextStart, $flagTextEnd);
 
 	$cardEnd = "</div>";
-	$cardFinish = "<div>{$cardFlag} {$cardStart} {$card} {$cardEnd}</div>";
+	/* The corner-ribbon flag is rendered inside .ca_holder so it can position
+	   absolutely against the card itself rather than relying on negative-margin
+	   sibling tricks against an outer wrapper. */
+	$cardFinish = "{$cardStart}{$cardFlag}{$card}{$cardEnd}";
 
 	return str_replace(["\t", "\n"], "", $cardFinish);
 }

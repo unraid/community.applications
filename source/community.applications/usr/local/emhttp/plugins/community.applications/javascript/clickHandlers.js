@@ -141,6 +141,29 @@ function caInitializeClickHandlers() {
 					var vMaxTop = Math.max(0, trackHeight - thumbHeight);
 					var vTop = Math.max(0, Math.min(vMaxTop, vMaxTop * vRatio));
 
+					/* Read-only "true progress" mode for the always-on mainArea bar:
+					   the local scroll only covers the loaded+un-evicted slice of cards,
+					   so size/position the thumb against data.totalApps (the full result
+					   set from caRenderPageNavigation) instead. Fall back to the local
+					   calc above if any required signal is missing. */
+					if (entry.alwaysShowVertical && typeof data !== "undefined" && data.totalApps > 0 && Array.isArray(data.cardCache)) {
+						var $virtCards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+						var perRow = (typeof caVirtCardsPerRow === "function") ? caVirtCardsPerRow($virtCards) : 1;
+						var rowH = (typeof caVirtRowHeight === "function") ? caVirtRowHeight($virtCards, perRow) : 0;
+						if (perRow > 0 && rowH > 0) {
+							var firstInDom = (typeof data.firstInDom === "number") ? data.firstInDom : 0;
+							var scrolledRows = Math.max(0, Math.floor(el.scrollTop / rowH));
+							var firstVisibleGlobal = firstInDom + (scrolledRows * perRow);
+							var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowH));
+							var visibleCount = Math.min(data.totalApps, rowsVisible * perRow);
+							var fractionSize = visibleCount / data.totalApps;
+							var fractionPos = firstVisibleGlobal / data.totalApps;
+							thumbHeight = Math.max(20, Math.min(trackHeight, trackHeight * fractionSize));
+							vMaxTop = Math.max(0, trackHeight - thumbHeight);
+							vTop = Math.max(0, Math.min(vMaxTop, trackHeight * fractionPos));
+						}
+					}
+
 					entry.$vThumb.css({
 						height: thumbHeight + "px",
 						transform: "translateY(" + vTop + "px)"
@@ -313,6 +336,50 @@ function caInitializeClickHandlers() {
 					updateIndicator(el);
 				}
 			});
+			/* The overlay indicators sit on top of the scroll target with
+			   pointer-events:auto (so clicks/drags work), which means trackpad
+			   and wheel gestures over the bar don't reach the underlying pane.
+			   Forward the wheel delta into the scroll target so hovering the
+			   bar feels just like hovering the content. */
+			if (entry.$hIndicator) entry.$hIndicator.on("wheel", function(e) {
+				var oe = e.originalEvent;
+				if (!oe) return;
+				var dx = oe.deltaX || 0;
+				var dy = oe.deltaY || 0;
+				if (!dx && !dy) return;
+				var modeX = (oe.deltaMode === 1 ? 16 : (oe.deltaMode === 2 ? el.clientWidth  : 1));
+				var modeY = (oe.deltaMode === 1 ? 16 : (oe.deltaMode === 2 ? el.clientHeight : 1));
+				if (Math.abs(dx) >= Math.abs(dy)) {
+					/* Horizontal intent — scroll the strip the indicator belongs to. */
+					el.scrollLeft += dx * modeX;
+				} else {
+					/* Vertical intent — forward to the nearest scrollable ancestor
+					   (typically .mainArea) so the page scrolls as if the bar
+					   weren't catching the event. */
+					var v = el.parentElement;
+					while (v && v !== document.body) {
+						var oy = getComputedStyle(v).overflowY;
+						if ((oy === "auto" || oy === "scroll") && v.scrollHeight - v.clientHeight > 1) {
+							v.scrollTop += dy * modeY;
+							break;
+						}
+						v = v.parentElement;
+					}
+					if (!v || v === document.body) {
+						window.scrollBy(0, dy * modeY);
+					}
+				}
+				e.preventDefault();
+			});
+			if (entry.$vIndicator) entry.$vIndicator.on("wheel", function(e) {
+				var oe = e.originalEvent;
+				if (!oe || !oe.deltaY) return;
+				var delta = oe.deltaY;
+				if (oe.deltaMode === 1) delta *= 16;
+				else if (oe.deltaMode === 2) delta *= el.clientHeight;
+				el.scrollTop += delta;
+				e.preventDefault();
+			});
 			[entry.$hIndicator, entry.$vIndicator].filter(Boolean).forEach(function($indicator) {
 				$indicator.on("mouseenter", function() {
 					var entry = overlays.get(el);
@@ -343,13 +410,28 @@ function caInitializeClickHandlers() {
 				}, 450);
 				if (current.dragging || current.overlayHover || $(el).is(":hover")) showIndicator(el);
 				hideIndicatorSoon(el);
+				/* Single hook so .ca_back_to_top / .ca_move_to_end visibility
+				   updates uniformly for whichever pane the user is scrolling. */
+				if (typeof window.caUpdateScrollControls === "function") {
+					window.caUpdateScrollControls();
+				}
 			});
 			$(el).on("mouseenter", function() {
 				updateIndicator(el);
 				showIndicator(el);
+				var entry = overlays.get(el);
+				if (entry) {
+					if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_target_hover");
+					if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_target_hover");
+				}
 			});
 			$(el).on("mouseleave", function() {
 				hideIndicatorSoon(el);
+				var entry = overlays.get(el);
+				if (entry) {
+					if (entry.$hIndicator) entry.$hIndicator.removeClass("ca_scroll_target_hover");
+					if (entry.$vIndicator) entry.$vIndicator.removeClass("ca_scroll_target_hover");
+				}
 			});
 			updateIndicator(el);
 		};
@@ -691,7 +773,13 @@ function caInitializeClickHandlers() {
 		showSidebarApp(apppath, appname);
 	});
 	$("body").on("click", ".caMenuItem", function(e) {
-		if ($(this).hasClass("caMenuDisabled") || $(this).hasClass("selectedMenu")) return;
+		if ($(this).hasClass("caMenuDisabled")) return;
+		/* Suppress re-clicks of the already-selected menu item, EXCEPT when
+		   the user is on Repositories and clicking a different (previously
+		   selected) category to return to it. Re-clicking Repositories itself
+		   while it's selected is still a no-op. */
+		if ($(this).hasClass("selectedMenu") &&
+		    (!$(".caRepositoryMenu").hasClass("selectedMenu") || $(this).hasClass("caRepositoryMenu"))) return;
 		if ($(this).hasClass("showStatistics")) { e.stopPropagation(); showStatistics(); }
 		else if ($(this).hasClass("showSettings")) { e.stopPropagation(); showSettings(); }
 		else if ($(this).hasClass("showCredits")) { e.stopPropagation(); showCredits(); }
@@ -699,7 +787,9 @@ function caInitializeClickHandlers() {
 	});
 	$(".menuItems").on("click", ".categoryMenu", function() {
 		var menu = this;
-		if ($(menu).hasClass("caMenuDisabled") || $(menu).hasClass("selectedMenu")) return;
+		if ($(menu).hasClass("caMenuDisabled")) return;
+		if ($(menu).hasClass("selectedMenu") &&
+		    (!$(".caRepositoryMenu").hasClass("selectedMenu") || $(menu).hasClass("caRepositoryMenu"))) return;
 		caClearHomeSectionSubtitle();
 		if (!data.searchFlag) {
 			$("#searchBox").val("");
@@ -984,6 +1074,43 @@ function caInitializeEventHandlers() {
 			$(".debugging").first().trigger("click");
 		}
 	});
+
+	/* Hovering a scrollable pane focuses it, so the browser's native arrow /
+	   PgUp / PgDn / Home / End handling scrolls that pane without us writing a
+	   key handler. Skipped while an input/textarea is focused so typing isn't
+	   interrupted. preventScroll keeps the focus call from snapping the page.
+
+	   We also bind a throttled mouseover and a keydown-restore so focus stays
+	   on the hovered pane even if a downstream operation (re-render, content
+	   replace, etc.) drifts focus to <body>. Without that, arrow keys after
+	   the first scroll would scroll the document instead of the pane. */
+	var caHoverTarget = null;
+	var caFocusOnHoverFn = function(el) {
+		if (!el) return;
+		caHoverTarget = el;
+		if (document.activeElement === el) return;
+		var ae = document.activeElement;
+		if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
+		if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+		try { el.focus({ preventScroll: true }); } catch (err) { el.focus(); }
+	};
+	$(document).on("mouseenter", ".mainArea, .menuItems, .sidenav", function() {
+		caFocusOnHoverFn(this);
+	});
+	$(document).on("mouseleave", ".mainArea, .menuItems, .sidenav", function() {
+		if (caHoverTarget === this) caHoverTarget = null;
+	});
+	/* Restore focus before a navigational key actually does anything. */
+	$(document).on("keydown", function(e) {
+		var key = e.key || "";
+		if (key !== "ArrowUp" && key !== "ArrowDown" && key !== "PageUp" && key !== "PageDown" &&
+		    key !== "Home" && key !== "End" && key !== " " && key !== "Spacebar") return;
+		if (!caHoverTarget) return;
+		if (document.activeElement === caHoverTarget) return;
+		var ae = document.activeElement;
+		if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
+		caFocusOnHoverFn(caHoverTarget);
+	});
 	window.addEventListener("error", function(event) {
 		var target = event.target;
 		if (target && target.tagName === "IMG") {
@@ -1097,24 +1224,6 @@ function caInitializeEventHandlers() {
 					return;
 				}
 				break;
-			case 37:
-				if ($(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible")) return;
-				if ($("body").hasClass("ca_searchModalOpen") && $("#searchBox").is(":focus")) return;
-				if (!$(".pageLeft").hasClass("pageNavNoClick")) {
-					e.preventDefault();
-					e.stopPropagation();
-					$(".pageLeft").click();
-				}
-				break;
-			case 39:
-				if ($(".sidenav").hasClass("sidenavShow") || $(".menuOverlay").is(":visible")) return;
-				if ($("body").hasClass("ca_searchModalOpen") && $("#searchBox").is(":focus")) return;
-				if (!$(".pageRight").hasClass("pageNavNoClick")) {
-					e.preventDefault();
-					e.stopPropagation();
-					$(".pageRight").click();
-				}
-				break;
 		}
 	});
 }
@@ -1122,28 +1231,16 @@ function caInitializeEventHandlers() {
 function caBindSettingsFormHandlers(initialFormState) {
 	var $sidenav = $("#sidenavContent");
 	var $form = $sidenav.find(".ca_settingsForm");
-	var $applyButton = $sidenav.find(".ca_settingsApply");
-	var $resetButton = $sidenav.find(".ca_settingsDone");
-	var updateSettingsButtonState = function() {
-		var hasChanges = $form.serialize() !== initialFormState;
-		$resetButton.prop("disabled", !hasChanges);
-		$applyButton.prop("disabled", !hasChanges);
-	};
+	if (!$form.length) return;
 
-	updateSettingsButtonState();
-	$sidenav.off("change.caSettings input.caSettings", ".ca_settingsForm :input").on("change.caSettings input.caSettings", ".ca_settingsForm :input", function() {
-		updateSettingsButtonState();
-	});
-
-	$sidenav.off("click.caSettings", ".ca_settingsDone").on("click.caSettings", ".ca_settingsDone", function() {
-		showSettings();
-	});
+	/* Stash the initial serialized state on the form so closeSidebar() can
+	   detect dirty fields and auto-submit when the panel is dismissed. */
+	$form.data("caInitialState", initialFormState);
 
 	$sidenav.off("submit.caSettings", ".ca_settingsForm").on("submit.caSettings", ".ca_settingsForm", function() {
 		var $localForm = $(this);
 		if ($localForm.data("submitting")) return false;
 		$localForm.data("submitting", true);
-		$sidenav.find(".ca_settingsApply,.ca_settingsDone").prop("disabled", true);
 
 		addBannerWarning(tr("Saving settings..."), false, true);
 		var onSaved = function() {

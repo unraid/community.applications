@@ -958,7 +958,7 @@ function get_content() {
 	clearstatcache();
 	if ( !is_file(CA_PATHS['community-templates-info']) || empty($GLOBALS['templates']) ) {
 		postReturn([
-			'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+			'script' => "caShowFatalReloadBanner(tr('An error occurred. Click anywhere to reload the page.'));"
 		]);
 		return;
 	}
@@ -976,7 +976,7 @@ function get_content() {
 
 	if ( $categoryContext['action'] === 'repos' ) {
 			 displayRepositories(); // writes repositoriesDisplayed cache
-			 $o['display'] = display_apps();
+			 $o['display_data'] = display_apps(1, false, false, true);
 			 postReturn($o);
 		return;
 	}
@@ -999,7 +999,7 @@ function get_content() {
 
 	if ( empty($file)) {
 		postReturn([
-			'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+			'script' => "caShowFatalReloadBanner(tr('An error occurred. Click anywhere to reload the page.'));"
 		]);
 		return;
 	}
@@ -1067,7 +1067,7 @@ function get_content() {
 
 	GetContentHelpers::cacheDisplayApplications($categoryRegex, $filter, $displayApplications);
 
-	$o['display'] = "<div class='ca_templatesDisplay'>".display_apps()."</div>";
+	$o['display_data'] = display_apps(1, false, false, true);
 
 	postReturn($o);
 }
@@ -1148,12 +1148,12 @@ function display_content() {
 	clearstatcache();
 	if ( !file_exists(CA_PATHS['community-templates-displayed']) && !file_exists(CA_PATHS['repositoriesDisplayed']) ) {
 		postReturn([
-			'script' => "caShowFatalReloadBanner(tr('An error occurred. Reloading the page...'), 10000);"
+			'script' => "caShowFatalReloadBanner(tr('An error occurred. Click anywhere to reload the page.'));"
 		]);
 		return;
 	}
 
-	$o['display'] = "<div class='ca_templatesDisplay'>".display_apps($pageNumber,$selectedApps,$startup)."</div>";
+	$o['display_data'] = display_apps($pageNumber,$selectedApps,$startup,true);
 
 	postReturn($o);
 }
@@ -2141,7 +2141,7 @@ function search_dockerhub() {
 	$dockerFile['results'] = $dockerResults;
 
 	writeJsonFile(CA_PATHS['dockerSearchResults'],$dockerFile);
-	postReturn(['display'=>displaySearchResults($pageNumber)]);
+	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);
 }
 ##############################################
 # Gets the last update issued to a container #
