@@ -1880,6 +1880,12 @@ function createXML() {
 			}
 		}
 
+		// Auto-adjust conflicting host ports when the client opted in via the
+		// "Adjust automatically?" prompt during install.
+		if ( filter_var(getPost("adjustPorts", false), FILTER_VALIDATE_BOOLEAN) ) {
+			adjustTemplatePorts($template, getPortsInUse());
+		}
+
 		$xml = makeXML($template);
 		@mkdir(dirname($xmlFile),0777,true);
 		ca_file_put_contents($xmlFile,$xml);

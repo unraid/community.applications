@@ -734,8 +734,13 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".xmlInstall", function() {
 		var type = $(this).data("type");
 		var xml = $(this).data("xml");
+		/* displayTags() (Apps.page) sets window.caPendingAdjustPorts based on
+		   the user's Yes/No answer to the port-conflict prompt. Forward that to
+		   createXML so the server can rewrite conflicting host ports. */
+		var adjustPorts = !!window.caPendingAdjustPorts;
+		window.caPendingAdjustPorts = false;
 		saveState();
-		post({ action: "createXML", xml: xml, type: type }, function(result) {
+		post({ action: "createXML", xml: xml, type: type, adjustPorts: adjustPorts }, function(result) {
 			if (result.status == "ok") {
 				if (type == "second") type = "default";
 				openNewWindow("/Apps/AddContainer?xmlTemplate=" + type + ":" + xml);

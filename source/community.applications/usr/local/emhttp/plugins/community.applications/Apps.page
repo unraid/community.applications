@@ -453,14 +453,43 @@ $(function(){
 		   the ca_apps_referrer cookie — set by CA_notices.page on every Unraid
 		   page load while the URL is under /Apps/ and cleared as soon as it
 		   isn't — covers the browser-back case where the referrer is empty. */
-		if ( "<?=$startupDisplayed?>" != "true" && ( ((document.referrer.indexOf("/Apps/") > 1) && (document.referrer.indexOf("/Apps/ca_settings") < 1)) || <?=$ca_apps_referrer?> ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+		if ( "<?=$startupDisplayed?>" != "true" && ( ((document.referrer.indexOf("/Apps/") > 1) && (document.referrer.indexOf("/Apps/ca_settings") < 1)) || <?=$ca_apps_referrer?> ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") && $.cookie("ca_data") || $.cookie("ca_languageSwitch") ) {
 			getCategories();
 			restoreState();
 			<? if ( $dockerSearchActive ):?>
 				dockerSearch(data.currentpage);
 			<? else:?>
 				actionCentreRestoreState = true;
-				refreshDisplay();
+				/* If the user was past page 1 when they left, fetch every card from
+				   page 1 through their saved page in one bulk request so they can
+				   freely scroll back to earlier results, then snap the viewport to
+				   where they were. */
+				var _restoreSavedPage = parseInt(data.currentpage, 10) || 1;
+				var _restorePerPage = parseInt(data.maxPerPage, 10) || 12;
+				if (_restoreSavedPage > 1) {
+					data.maxPerPage = _restoreSavedPage * _restorePerPage;
+					data.currentpage = 1;
+					changePage(1, false);
+					var _restoreTarget = (_restoreSavedPage - 1) * _restorePerPage;
+					var _restoreAttempts = 0;
+					var _restoreScroll = function() {
+						if ($.isArray(data.cardCache) && data.cardCache.length > _restoreTarget) {
+							var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+							var perRow = $cards.length ? caVirtCardsPerRow($cards) : 0;
+							var rowH   = (perRow > 0) ? caVirtRowHeight($cards, perRow) : 0;
+							if (perRow > 0 && rowH > 0) {
+								var ma = $(".mainArea")[0];
+								if (ma) ma.scrollTop = Math.floor(_restoreTarget / perRow) * rowH;
+							}
+							return;
+						}
+						if (++_restoreAttempts > 60) return;
+						setTimeout(_restoreScroll, 100);
+					};
+					setTimeout(_restoreScroll, 200);
+				} else {
+					refreshDisplay();
+				}
 				searchBoxAwesomplete.close();
 				var apppath = $.cookie("sidebarAppPath");
 				var appname = $.cookie("sidebarAppName");
@@ -1367,7 +1396,7 @@ function pins() {
 function displayTags(leadTemplate,rename=false,comment="",ports="") {
 	event.stopPropagation();
 	closeSidebar();
-	var flag = false;
+	var conflictingPorts = [];
 
 	if ( ports ) {
 		try {
@@ -1378,50 +1407,20 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 		if ( ports ) {
 			ports.forEach(function(port){
 				portsInUse.forEach(function(used) {
-					if (port == used)
-						flag = true;
+					if (port == used && conflictingPorts.indexOf(port) < 0)
+						conflictingPorts.push(port);
 				});
 			});
 		}
-		if (flag) {
-			comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
-		}
 	}
-	if (comment) {
-		swal({
-			title: "<?tr("Attention");?>",
-			text: comment,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr("OK");?>",
-			cancelButtonText: "<?tr("Cancel");?>",
-			animation: false,
-			type: "warning",
-			html: true,
-			closeOnConfirm: false
-		},function(isConfirm) {
-			if (isConfirm) {
-				post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
-					disableSearch();
-					swal({
-						title: "<?tr("Choose A Branch To Install");?>",
-						text: result.tags,
-						html: true,
-						type: "warning",
-						showCancelButton: true,
-						showConfirmButton: false,
-						cancelButtonText: "<?tr("Cancel");?>",
-						allowOutsideClick: true
-					}, function(isConfirm) {
-						if ( ! isConfirm ) {
-							enableSearch();
-						}
-					});
-				});
-			}
-		});
-	} else {
+
+	/* The .xmlInstall click handler reads window.caPendingAdjustPorts when the
+	   user picks a branch from the chooser swal below — that's how this Yes/No
+	   answer reaches the createXML POST. Reset to false on every entry so a
+	   stale "yes" from a prior template doesn't leak. */
+	window.caPendingAdjustPorts = false;
+
+	var openBranchChooser = function() {
 		post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
 			disableSearch();
 			swal({
@@ -1439,6 +1438,54 @@ function displayTags(leadTemplate,rename=false,comment="",ports="") {
 				}
 			});
 		});
+	};
+
+	if (conflictingPorts.length) {
+		var msg = $.trim(comment) ? comment + "<br><br>" : "";
+		var portList = conflictingPorts.join(", ");
+		var portTemplate = (conflictingPorts.length === 1)
+			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
+			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
+		msg += portTemplate.replace("%s", portList);
+		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
+		swal({
+			title: "<?tr("Port Conflict");?>",
+			text: msg,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr("Yes, adjust automatically");?>",
+			cancelButtonText: "<?tr("No, install anyway");?>",
+			animation: false,
+			type: "warning",
+			html: true,
+			/* Both kept open so the branch-chooser swal can replace this one
+			   cleanly — letting either close first eats the next swal in the
+			   transition. */
+			closeOnConfirm: false,
+			closeOnCancel: false
+		}, function(isConfirm) {
+			window.caPendingAdjustPorts = !!isConfirm;
+			openBranchChooser();
+		});
+	} else if (comment) {
+		swal({
+			title: "<?tr("Attention");?>",
+			text: comment,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr("OK");?>",
+			cancelButtonText: "<?tr("Cancel");?>",
+			animation: false,
+			type: "warning",
+			html: true,
+			closeOnConfirm: false
+		},function(isConfirm) {
+			if (isConfirm) openBranchChooser();
+		});
+	} else {
+		openBranchChooser();
 	}
 }
 
@@ -1877,6 +1924,15 @@ function saveState(legacy=true) {
 	if (legacy) {
 		return;
 	}
+	/* On the home/spotlight view there's no .ca_templatesDisplay — its content
+	   comes from .ca_homeTemplates rows that don't line up with the displayed
+	   cache restoreState relies on. Skip saving (and drop any stale ca_data
+	   cookie) so restoreState doesn't repaint a mismatched earlier view when
+	   the user comes back from /Apps/Docker etc. */
+	if (!$("#templates_content .ca_templatesDisplay").length) {
+		$.removeCookie("ca_data", { path: "/" });
+		return;
+	}
 	console.log("Save State");
 	//$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
 	/* Strip out fields that re-derive from a fresh server fetch — the card
@@ -2226,7 +2282,7 @@ function setFavourite(button) {
 function popupInstallXML(xml,type,comment="",ports="") {
 	event.stopPropagation();
 	saveState();
-	var flag = false;
+	var conflictingPorts = [];
 	if ( ports ) {
 		try {
 			ports = JSON.parse(ports);
@@ -2236,16 +2292,39 @@ function popupInstallXML(xml,type,comment="",ports="") {
 		if ( ports ) {
 			ports.forEach(function(port){
 				portsInUse.forEach(function(used) {
-					if (port == used)
-						flag = true;
+					if (port == used && conflictingPorts.indexOf(port) < 0)
+						conflictingPorts.push(port);
 				});
 			});
 		}
-		if (flag) {
-			comment = comment.concat("<br><?tr("One or more ports used by this application are already in use by another service or app running on your server.  You will need to adjust the host ports accordingly on the template");?>");
-		}
 	}
-	if ( $.trim(comment) ) {
+
+	if (conflictingPorts.length) {
+		/* Ports collide with something already on the host. Offer to auto-adjust
+		   them — Yes adjusts the XML server-side before opening AddContainer,
+		   No leaves the template alone (user fixes manually in the docker UI). */
+		var msg = $.trim(comment) ? comment + "<br><br>" : "";
+		var portList = conflictingPorts.join(", ");
+		var portTemplate = (conflictingPorts.length === 1)
+			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
+			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
+		msg += portTemplate.replace("%s", portList);
+		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
+		swal({
+			title: "<?tr("Port Conflict");?>",
+			text: msg,
+			allowOutsideClick: true,
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "<?tr("Yes, adjust automatically");?>",
+			cancelButtonText: "<?tr("No, install anyway");?>",
+			animation: false,
+			type: "warning",
+			html: true
+		}, function (isConfirm) {
+			installXML(xml, type, isConfirm);
+		});
+	} else if ( $.trim(comment) ) {
 		swal({
 			title: "<?tr("Attention");?>",
 			text: comment,
@@ -2259,15 +2338,15 @@ function popupInstallXML(xml,type,comment="",ports="") {
 			html: true
 		}, function (isConfirm) {
 			if (isConfirm) {
-				installXML(xml,type);
+				installXML(xml,type,false);
 			}
 		});
 	} else {
-		installXML(xml,type);
+		installXML(xml,type,false);
 	}
 }
-function installXML(xml,type) {
-	post({action:'createXML',xml:xml,type:type},function(result){
+function installXML(xml,type,adjustPorts) {
+	post({action:'createXML',xml:xml,type:type,adjustPorts:!!adjustPorts},function(result){
 		if ( result.status == "ok" ) {
 			if (type == "second") {
 				type = "default";

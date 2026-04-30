@@ -1135,6 +1135,46 @@ function portsUsed($template) {
 	return json_encode($portsUsed,JSON_NUMERIC_CHECK);
 }
 
+###########################################################################
+# Walk a template's Config Port entries and bump any host port that's      #
+# already in use (by the system or by an earlier port within this same     #
+# template) to the next free port. Edits $template in place. No-op for     #
+# non-bridge networks since host ports don't apply there.                  #
+###########################################################################
+function adjustTemplatePorts(array &$template, array $portsInUse): void {
+	if (!isset($template['Config'])) return;
+	if (($template['Network'] ?? "") !== "bridge") return;
+
+	if (isset($template['Config']['@attributes'])) {
+		$template['Config'] = ['@attributes' => $template['Config']];
+	}
+	if (!is_array($template['Config'])) return;
+
+	$taken = [];
+	foreach ($portsInUse as $p) {
+		$pi = (int)$p;
+		if ($pi > 0) $taken[$pi] = true;
+	}
+
+	foreach ($template['Config'] as &$config) {
+		if (!is_array($config) || ($config['@attributes']['Type'] ?? null) !== 'Port') continue;
+		$current = (int)($config['value'] ?: ($config['@attributes']['Default'] ?? 0));
+		if ($current <= 0 || $current > 65535) continue;
+		if (!isset($taken[$current])) {
+			$taken[$current] = true;
+			continue;
+		}
+		$candidate = $current + 1;
+		while ($candidate < 65536 && isset($taken[$candidate])) {
+			$candidate++;
+		}
+		if ($candidate >= 65536) continue;
+		$taken[$candidate] = true;
+		$config['value'] = (string)$candidate;
+	}
+	unset($config);
+}
+
 ########################
 # Get the ports in use #
 ########################
