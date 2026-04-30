@@ -1621,19 +1621,24 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 	$changes = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
 	$changes = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
 
+	/* Match the whole anchor element so we can drop the wrapper entirely (not
+	   just the href) when the link points anywhere other than http(s). Relative
+	   paths like /Main/... or /Settings/... would otherwise survive as styled
+	   pseudo-links and trick users into clicking through to local GUI pages. */
 	$changes = preg_replace_callback(
-		"/<(a)\\b([^>]*)>/i",
+		"/<a\\b([^>]*)>(.*?)<\\/a>/is",
 		static function ($matches) {
-			$attrs = $matches[2];
+			$attrs = $matches[1];
+			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
 				$href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
-				if (!preg_match("/^https?:\\/\\//i", $href)) {
-					return "<a>";
+				if (preg_match("/^https?:\\/\\//i", $href)) {
+					$safeHref = htmlspecialchars($href, ENT_QUOTES);
+					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
 				}
-				$safeHref = htmlspecialchars($href, ENT_QUOTES);
-				return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
 			}
-			return "<a>";
+			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
+			return $inner;
 		},
 		$changes
 	);
@@ -1778,19 +1783,24 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 	$readmeContents = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
 	$readmeContents = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
 
+	/* Match the whole anchor element so we can drop the wrapper entirely (not
+	   just the href) when the link points anywhere other than http(s). Relative
+	   paths like /Main/... or /Settings/... would otherwise survive as styled
+	   pseudo-links and trick users into clicking through to local GUI pages. */
 	$readmeContents = preg_replace_callback(
-		"/<(a)\\b([^>]*)>/i",
+		"/<a\\b([^>]*)>(.*?)<\\/a>/is",
 		static function ($matches) {
-			$attrs = $matches[2];
+			$attrs = $matches[1];
+			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
 				$href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
-				if (!preg_match("/^https?:\\/\\//i", $href)) {
-					return "<a>";
+				if (preg_match("/^https?:\\/\\//i", $href)) {
+					$safeHref = htmlspecialchars($href, ENT_QUOTES);
+					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
 				}
-				$safeHref = htmlspecialchars($href, ENT_QUOTES);
-				return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>";
 			}
-			return "<a>";
+			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
+			return $inner;
 		},
 		$readmeContents
 	);

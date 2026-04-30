@@ -8,10 +8,10 @@ dc5ee49892cce8dbdf94187f39ecf94c  ./include/paths.php
 4bcabcfff63a29d8044915ccc1ec921d  ./include/pinned_apps_helpers.php
 288fe668833a9a26d6042af83d475b92  ./include/helpers.php
 9e85b66e638f81b6f87c42a3adfb4e32  ./include/force_update_helpers.php
-3069d32752b7717cd2e1dde0c44721ed  ./include/exec.php
 839bc91ff693248dc492cfac1696f6ee  ./include/get_content_helpers.php
 012aecb59635a34fbc56999b4ed5c523  ./include/populate_autocomplete_helpers.php
 983641291302abdb93de99832c660faa  ./include/previous_apps_helpers.php
+a716f535e8049cf2a60a24b8592da0a9  ./include/exec.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 37113d541a2c72670b619cf441d75483  ./javascript/statistics.js
 0c3c7cc387771af2f193504e0adcefd9  ./javascript/clickHandlers.js
