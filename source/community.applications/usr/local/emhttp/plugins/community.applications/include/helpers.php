@@ -763,7 +763,41 @@ function moderateTemplates() {
 # Function to check for a valid URL                   #
 #######################################################
 function validURL($URL) {
-	return filter_var($URL, FILTER_VALIDATE_URL);
+	/* filter_var alone accepts ftp:/file:/etc., so additionally require an
+	   http(s) scheme — every place this is called is rendering a clickable
+	   link from template-supplied data, and we don't want a malicious
+	   template slipping in javascript:, file://, or scheme-less local paths
+	   like /Main/Dashboard. Loopback hosts (localhost, 127.x, ::1, 0.0.0.0,
+	   plus the decimal/hex/octal IPv4 bypasses browsers still resolve) are
+	   also rejected so a template can't aim a click at the user's own GUI
+	   through a "real" http URL. */
+	if (!filter_var($URL, FILTER_VALIDATE_URL)) return false;
+	if (!preg_match('/^https?:\/\//i', (string)$URL)) return false;
+	$host = strtolower((string)parse_url((string)$URL, PHP_URL_HOST));
+	if ($host === "") return false;
+	/* Strip surrounding brackets from IPv6 literals so the comparisons below
+	   work for both "[::1]" and "::1". */
+	if ($host[0] === "[" && substr($host, -1) === "]") {
+		$host = substr($host, 1, -1);
+	}
+	if ($host === "localhost" || $host === "0" || $host === "0.0.0.0" || $host === "::1" || $host === "0:0:0:0:0:0:0:1") return false;
+	if (preg_match('/^127(?:\.\d{1,3}){3}$/', $host)) return false;
+	/* IPv4-mapped IPv6 loopback: ::ffff:127.x.x.x */
+	if (preg_match('/^::ffff:127(?:\.\d{1,3}){3}$/', $host)) return false;
+	/* Decimal-encoded IPv4: a single integer the browser still resolves —
+	   2130706432..2147483647 covers the 127.0.0.0/8 range. */
+	if (ctype_digit($host)) {
+		$asInt = (int)$host;
+		if ($asInt === 0) return false;
+		if ($asInt >= 2130706432 && $asInt <= 2147483647) return false;
+	}
+	/* Hex-encoded IPv4 (0x7f000001 etc.) */
+	if (preg_match('/^0x[0-9a-f]+$/i', $host)) {
+		$asInt = hexdec(substr($host, 2));
+		if ($asInt === 0) return false;
+		if ($asInt >= 0x7f000000 && $asInt <= 0x7fffffff) return false;
+	}
+	return true;
 }
 #######################################################
 # Function used to determine if a search term matches #

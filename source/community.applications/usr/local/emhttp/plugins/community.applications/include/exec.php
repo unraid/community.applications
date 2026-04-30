@@ -1631,7 +1631,7 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 			$attrs = $matches[1];
 			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
-				$href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
+				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
 				if (preg_match("/^https?:\\/\\//i", $href)) {
 					$safeHref = htmlspecialchars($href, ENT_QUOTES);
 					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
@@ -1648,7 +1648,7 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 		static function ($matches) {
 			$attrs = $matches[2];
 			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
-				$src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
+				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
 				if (!preg_match("/^https?:\\/\\//i", $src)) {
 					return "";
 				}
@@ -1793,7 +1793,7 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 			$attrs = $matches[1];
 			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
-				$href = $hrefMatch[2] ?: ($hrefMatch[3] ?: ($hrefMatch[4] ?? ""));
+				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
 				if (preg_match("/^https?:\\/\\//i", $href)) {
 					$safeHref = htmlspecialchars($href, ENT_QUOTES);
 					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
@@ -1810,7 +1810,7 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 		static function ($matches) {
 			$attrs = $matches[2];
 			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
-				$src = $srcMatch[2] ?: ($srcMatch[3] ?: ($srcMatch[4] ?? ""));
+				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
 				if (!preg_match("/^https?:\\/\\//i", $src)) {
 					return "";
 				}

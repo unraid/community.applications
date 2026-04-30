@@ -195,11 +195,11 @@ function addCloseButton() {
 	} else {
 		$error = tr("An error occurred - Could not determine configuration");
 	}
-	$dockerfile['Name'] = $docker['Name'];
+	$dockerfile['Name'] = (string)($docker['Name'] ?? "");
 
 	$existing_templates = array_diff(scandir($dockerManPaths['templates-user']),[".",".."]);
 	foreach ( $existing_templates as $template ) {
-		if ( strtolower($dockerfile['Name']) == strtolower(str_replace(["my-",".xml"],["",""],$template)) )
+		if ( strtolower((string)$dockerfile['Name']) == strtolower((string)str_replace(["my-",".xml"],["",""],$template)) )
 			$dockerfile['Name'] .= "-1";
 	}
 

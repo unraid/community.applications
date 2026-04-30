@@ -208,7 +208,12 @@ function displayPopup($template) {
 		$ModeratorComment .= "  $CAComment";
 	}
 	if ($Language && $LanguagePack !== "en_US") {
-		$ModeratorComment .= "<a href='$disclaimLineLink' target='_blank'>$disclaimLine1</a>";
+		if (validURL($disclaimLineLink)) {
+			$safeDisclaim = htmlspecialchars($disclaimLineLink, ENT_QUOTES);
+			$ModeratorComment .= "<a href='$safeDisclaim' target='_blank'>$disclaimLine1</a>";
+		} else {
+			$ModeratorComment .= $disclaimLine1;
+		}
 	}
 	if ((! ($Compatible ?? false) || ($UninstallOnly ?? false)) && ($Featured ?? false)) {
 		$ModeratorComment = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"), $Name)."</span>";
@@ -262,20 +267,22 @@ function displayPopup($template) {
 		if ($pictures) {
 			foreach ($pictures as $shot) {
 				$shot = trim($shot);
-				if ($shot === "") {
+				if ($shot === "" || !validURL($shot)) {
 					continue;
 				}
-				$mediaSections[] = "<a class='screenshot mfp-image' href='$shot'><img class='screen' src='$shot'></img></a>";
+				$safeShot = htmlspecialchars($shot, ENT_QUOTES);
+				$mediaSections[] = "<a class='screenshot mfp-image' href='$safeShot'><img class='screen' src='$safeShot'></img></a>";
 			}
 		}
 		if ($Video) {
 			foreach ($Video as $vid) {
 				$vid = trim($vid);
-				if ($vid === "") {
+				if ($vid === "" || !validURL($vid)) {
 					continue;
 				}
 				$thumbnail = getYoutubeThumbnail($vid);
-				$mediaSections[] = "<a class='screenshot mfp-iframe videoPlayOverlay' href='$vid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+				$safeVid = htmlspecialchars($vid, ENT_QUOTES);
+				$mediaSections[] = "<a class='screenshot mfp-iframe videoPlayOverlay' href='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
 			}
 		}
 		if ($mediaSections) {
@@ -333,7 +340,8 @@ function displayPopup($template) {
 
 	if ($Licence) {
 		if (validURL($Licence)) {
-			$Licence = "<img class='licence' src='$Licence' onerror='this.outerHTML=&quot;<a href=$Licence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
+			$safeLicence = htmlspecialchars($Licence, ENT_QUOTES);
+			$Licence = "<img class='licence' src='$safeLicence' onerror='this.outerHTML=&quot;<a href=$safeLicence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
 		}
 		$detailsRows[] = "<tr><td class='popupTableLeft'>".tr("Licence")."</td><td class='popupTableRight'>$Licence</td></tr>";
 	}
@@ -378,7 +386,7 @@ function displayPopup($template) {
 	}
 	$readmeSection = caBuildReadmeSectionDiv($template);
 	$readmeButton = "";
-	if ($readmeSection === "" && !empty($template['ReadMe'])) {
+	if ($readmeSection === "" && !empty($template['ReadMe']) && validURL($template['ReadMe'])) {
 		$safeReadmeUrl = htmlspecialchars($template['ReadMe'], ENT_QUOTES);
 		$readmeButton = "<div class='caButton actionsPopup'><a href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'><span class='ca_fa-readme'> ".tr("Read Me First")."</span></a></div>";
 	}
@@ -421,8 +429,8 @@ function displayPopup($template) {
 					<?php endif; ?>
 					<?= $readmeButton ?>
 
-					<?php if (count($supportContext) === 1): ?>
-						<div class='caButton supportPopup'><a href='<?= $supportContext[0]['link'] ?>' target='_blank'><span class='<?= $supportContext[0]['icon'] ?>'> <?= $supportContext[0]['text'] ?></span></a></div>
+					<?php if (count($supportContext) === 1 && validURL($supportContext[0]['link'] ?? "")): ?>
+						<div class='caButton supportPopup'><a href='<?= htmlspecialchars($supportContext[0]['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $supportContext[0]['icon'] ?>'> <?= $supportContext[0]['text'] ?></span></a></div>
 					<?php elseif ($supportContext): ?>
 						<div class='caButton supportPopup' id='supportPopup'><span class='ca_fa-support'> <?= tr("Support") ?></span></div>
 					<?php endif; ?>
@@ -466,12 +474,13 @@ function displayPopup($template) {
 					</div>
 					<?php if ($Repo || $Private): ?>
 						<div class='popupInfoLeft'>
-							<?php $remoteIconPrefix = startsWith($ProfileIcon, "http") ? "<a class='screenshot mfp-image' href='$ProfileIcon'>" : ""; ?>
+							<?php $safeProfileIcon = validURL($ProfileIcon) ? htmlspecialchars($ProfileIcon, ENT_QUOTES) : ""; ?>
+							<?php $remoteIconPrefix = $safeProfileIcon ? "<a class='screenshot mfp-image' href='$safeProfileIcon'>" : ""; ?>
 							<?php $remoteIconPostfix = $remoteIconPrefix ? "</a>" : ""; ?>
 							<div class='popupAuthorTitle'><?= tr("Maintainer") ?></div>
 							<div>
 								<div class='popupAuthor'><?= $RepoName ?></div>
-								<div class='popupAuthorIcon'><?= $remoteIconPrefix ?><img class='popupAuthorIcon' src='<?= $ProfileIcon ?>' alt='Repository Icon'></img><?= $remoteIconPostfix ?></div>
+								<div class='popupAuthorIcon'><?= $remoteIconPrefix ?><img class='popupAuthorIcon' src='<?= $safeProfileIcon ?>' alt='Repository Icon'></img><?= $remoteIconPostfix ?></div>
 							</div>
 							<div class='caButton ca_repoSearchPopUp popupProfile' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("All Apps") ?></div>
 							<div class='caButton repoPopup' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Profile") ?></div>
@@ -767,7 +776,14 @@ function getPopupDescriptionSkin($appNumber) {
 		$template['display_icon'] = "<i class='$templateIcon popupIcon'></i>";
 	} else {
 		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? $template['Icon'];
-		$template['display_icon'] = "<img class='popupIcon screenshot' href='{$template['Icon']}' src='{$template['Icon']}' alt='Application Icon'>";
+		/* Only emit an external icon URL when it's a real http(s) link;
+		   anything else (relative paths like /Settings/X, javascript:, etc.)
+		   falls back to the local "?" icon so a malicious template can't
+		   trigger a same-origin GET against the user's own GUI. */
+		$iconCandidate = (string)$template['Icon'];
+		$safeIcon = validURL($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
+		$safeIconAttr = htmlspecialchars($safeIcon, ENT_QUOTES);
+		$template['display_icon'] = "<img class='popupIcon screenshot' href='{$safeIconAttr}' src='{$safeIconAttr}' alt='Application Icon'>";
 	}
 
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment']);
@@ -822,9 +838,10 @@ function getRepoDescriptionSkin($repository) {
 
 	$repo = $repositories[$repository] ?? [];
 	$iconUrl = $repo['icon'] ?? null;
-	$iconPrefix = $iconUrl ? "<a class='screenshot mfp-image' href='{$iconUrl}'>" : "";
+	$safeIconUrl = ($iconUrl && validURL($iconUrl)) ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
+	$iconPrefix = $safeIconUrl ? "<a class='screenshot mfp-image' href='{$safeIconUrl}'>" : "";
 	$iconPostfix = $iconUrl ? "</a>" : "";
-	$repoIcon = $iconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";
+	$repoIcon = $safeIconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";
 	$repoBio = isset($repo['bio']) ? markdown($repo['bio']) : "<br><center>".tr("No description present");
 	$favRepoClass = ($GLOBALS['caSettings']['favourite'] == $repository) ? "fav" : "nonfav";
 	$encodedRepository = htmlentities($repository, ENT_QUOTES);

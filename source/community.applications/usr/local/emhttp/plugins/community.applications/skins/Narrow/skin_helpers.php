@@ -379,7 +379,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerRunni
 					if ($template['InstallPath']) {
 						$userTemplate = readXmlFile($template['InstallPath'],false,false);
 						if (!$template['Blacklist']) {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','".($userTemplate)."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider"=>true];
 						}
 						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
@@ -913,17 +913,19 @@ function caSummarizeRepositoryTemplates(array $templates, string $repository): a
 # Build the donation section for repository popups               #
 ##################################################################
 function caBuildRepoDonationSection(array $repo): string {
-	if (empty($repo['DonateLink']??"")) {
+	$donateLink = $repo['DonateLink'] ?? "";
+	if (empty($donateLink) || !validURL($donateLink)) {
 		return "";
 	}
 
 	$donateText = $repo['DonateText'] ?? "";
 	$donateLabel = tr("Donate");
+	$safeDonate = htmlspecialchars($donateLink, ENT_QUOTES);
 
 	return "
 			<div class='donateArea'>
 				<div class='repoDonateText'>{$donateText}</div>
-				<a class='caButton donate' href='{$repo['DonateLink']}' target='_blank'>$donateLabel</a>
+				<a class='caButton donate' href='{$safeDonate}' target='_blank'>$donateLabel</a>
 			</div>
 	";
 }
@@ -945,10 +947,11 @@ function caBuildRepoMediaSection(array $repo): string {
 		$photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
 		foreach ($photos as $shot) {
 			$shot = trim($shot);
-			if ($shot === "") {
+			if ($shot === "" || !validURL($shot)) {
 				continue;
 			}
-			$mediaHtml .= "<a class='screenshot' href='{$shot}'><img class='screen' src='{$shot}' onerror='this.style.display=&quot;none&quot;'></img></a>";
+			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
+			$mediaHtml .= "<a class='screenshot' href='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></a>";
 		}
 	}
 
@@ -956,11 +959,12 @@ function caBuildRepoMediaSection(array $repo): string {
 		$videos = is_array($repo['Video']) ? $repo['Video'] : [$repo['Video']];
 		foreach ($videos as $vid) {
 			$vid = trim($vid);
-			if ($vid === "") {
+			if ($vid === "" || !validURL($vid)) {
 				continue;
 			}
 			$thumbnail = getYoutubeThumbnail($vid);
-			$mediaHtml .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='{$vid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
+			$mediaHtml .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
 		}
 	}
 
@@ -985,11 +989,12 @@ function caBuildRepoLinkSection(array $repo): string {
 
 	$links = "";
 	foreach ($definitions as $key => $definition) {
-		if (empty($repo[$key])) {
+		if (empty($repo[$key]) || !validURL($repo[$key])) {
 			continue;
 		}
 		$label = tr($definition['label']);
-		$links .= "<a class='caButton {$definition['class']}' href='{$repo[$key]}' target='_blank' rel='noopener noreferrer'> {$label}</a>";
+		$safeUrl = htmlspecialchars($repo[$key], ENT_QUOTES);
+		$links .= "<a class='caButton {$definition['class']}' href='{$safeUrl}' target='_blank' rel='noopener noreferrer'> {$label}</a>";
 	}
 
 	return "<div class='repoLinkArea'>{$links}</div>";
@@ -1012,8 +1017,9 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 		$rows[] = "<tr><td class='repoLeft'>".tr("Total Languages")."</td><td class='repoRight'>{$totals['languages']}</td></tr>";
 	}
 
-	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url'])) {
-		$rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$repo['url']}' target='_blank'>".tr("Repository URL")."</a></td></tr>";
+	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url']) && validURL($repo['url'])) {
+		$safeRepoUrl = htmlspecialchars($repo['url'], ENT_QUOTES);
+		$rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$safeRepoUrl}' target='_blank'>".tr("Repository URL")."</a></td></tr>";
 	}
 
 	$rows[] = "<tr><td class='repoLeft'>".tr("Total Applications")."</td><td class='repoRight'>{$totals['apps']}</td></tr>";
@@ -1330,17 +1336,18 @@ function caBuildBottomLineSection(
 	$bottomClass = "ca_bottomLineSpotLight";
 	$card = "";
 
-	if (!empty($template['DockerHub'])) {
+	if (!empty($template['DockerHub']) && validURL($template['DockerHub'])) {
 		$backgroundClickable = "dockerCardBackground";
+		$safeDockerHub = htmlspecialchars($template['DockerHub'], ENT_QUOTES);
 		$cardStart = "
 			<div class='dockerHubHolder {$class} {$popupType}'>";
 		$card .= "
 			<div class='ca_bottomLine {$bottomClass}'>
-			<div class='caButton infoButton_docker ca_href' data-href='{$template['DockerHub']}'>".tr("Docker Hub")."</div>
+			<div class='caButton infoButton_docker ca_href' data-href='{$safeDockerHub}'>".tr("Docker Hub")."</div>
 			<div class='caButton actionsButton similarSearch' data-search='".($template['similarSearch'] ?? "")."'>".tr("Similar")."</div>";
 	} else {
 		$backgroundClickable = "ca_backgroundClickable";
-		$dataPluginURL = empty($template['PluginURL']) ? "" : "data-pluginurl='{$template['PluginURL']}'";
+		$dataPluginURL = empty($template['PluginURL']) ? "" : "data-pluginurl='".htmlspecialchars((string)$template['PluginURL'], ENT_QUOTES)."'";
 		$cardStart = "
 			<div class='ca_holder {$class} {$popupType} {$holderClass}' data-apppath='".($template['Path'] ?? "")."' data-appname='{$name}' data-repository='".htmlentities($repoName, ENT_QUOTES)."' {$dataPluginURL}>";
 		$card .= "
@@ -1362,7 +1369,10 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 		}
 		$link = trim((string)($context['link'] ?? ""));
 		$text = trim(strip_tags((string)($context['text'] ?? "")));
-		return ($link !== "" && $text !== "");
+		/* Drop any context whose link isn't a real http(s) URL — the JS
+		   ca_href handler treats a leading "/" as internal and would happily
+		   open /Main/Dashboard on the user's own GUI. */
+		return ($link !== "" && $text !== "" && validURL($link));
 	}));
 
 	if (empty($supportContext)) {
@@ -1376,7 +1386,8 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 			$context['text'] = tr("Support");
 		}
 
-		return "<div class='caButton supportButton'><span class='ca_href' data-href='{$context['link']}' data-target='_blank'>{$context['text']}</span></div>";
+		$safeLink = htmlspecialchars($context['link'], ENT_QUOTES);
+		return "<div class='caButton supportButton'><span class='ca_href' data-href='{$safeLink}' data-target='_blank'>{$context['text']}</span></div>";
 	}
 
 	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;
@@ -1472,8 +1483,15 @@ function caBuildIconMarkup(array $template, bool $dockerHub): string {
 	$imageNoClick = $dockerHub ? "noClick" : ($template['imageNoClick'] ?? "");
 
 	if (empty($template['IconFA'])) {
+		/* Same protection as the popup icon path: only emit external icon
+		   URLs when they're real http(s) — anything else falls back to the
+		   local "?" image so a malicious template can't trigger a same-origin
+		   GET against the user's GUI. */
+		$iconCandidate = (string)($template['Icon'] ?? "");
+		$safeIcon = validURL($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
+		$safeIconAttr = htmlspecialchars($safeIcon, ENT_QUOTES);
 		return "
-			<img class='ca_displayIcon {$imageNoClick}' src='".($template['Icon'] ?? "")."' alt='Application Icon'></img>
+			<img class='ca_displayIcon {$imageNoClick}' src='{$safeIconAttr}' alt='Application Icon'></img>
 		";
 	}
 
