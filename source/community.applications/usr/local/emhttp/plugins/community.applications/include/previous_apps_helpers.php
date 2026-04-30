@@ -136,8 +136,13 @@ class PreviousAppsHelpers {
 			$template['ID'] = $containerID;
 
 			if ( $isActionCentre ) {
-				$tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
-				if ( ! strpos($tmpRepo,"/") ) {
+				/* "Already tagged" means a colon AFTER the last slash — `registry:5000/repo`
+				   has a port, not a tag, and still needs `:latest` appended. */
+				$repoStr = $template['Repository'];
+				$lastSlash = strrpos($repoStr, "/");
+				$colonAfterPath = $lastSlash !== false ? strpos($repoStr, ":", $lastSlash) : strpos($repoStr, ":");
+				$tmpRepo = $colonAfterPath !== false ? $repoStr : $repoStr.":latest";
+				if ( strpos($tmpRepo,"/") === false ) {
 					$tmpRepo = "library/$tmpRepo";
 				}
 
@@ -147,7 +152,7 @@ class PreviousAppsHelpers {
 					$updateCount++;
 				}
 
-				if ( ! $template['Blacklist'] && ! $template['Deprecated'] ) {
+				if ( ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) ) {
 					if ( $extraBlacklist[$template['Repository']] ?? false ) {
 						$template['Blacklist'] = true;
 						$template['ModeratorComment'] = $extraBlacklist[$template['Repository']];
@@ -158,7 +163,7 @@ class PreviousAppsHelpers {
 					}
 				}
 
-				if ( ! $template['Blacklist'] && ! $template['Deprecated'] && ! ($template['actionCentre'] ?? null) ) {
+				if ( ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
 					continue;
 				}
 			}

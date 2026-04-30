@@ -706,7 +706,12 @@ jQuery.fn.fitText = function(overFlowType=false) {
 	var el = this;
 	var cache = window.caFitTextCache;
 	$(el).each(function() {
-		var key = (this.className || "") + "|" + ((this.textContent || "").trim()) + "|" + (overFlowType ? 1 : 0);
+		/* Geometry must be part of the cache key — overflow depends on the
+		   element's box, so the same label/class can need different sizes in a
+		   wider vs narrower container after a layout change. */
+		var w = Math.round(this.clientWidth || 0);
+		var h = Math.round(this.clientHeight || 0);
+		var key = (this.className || "") + "|" + ((this.textContent || "").trim()) + "|" + (overFlowType ? 1 : 0) + "|" + w + "x" + h;
 		if (Object.prototype.hasOwnProperty.call(cache, key)) {
 			var cached = cache[key];
 			if (cached !== 100) $(this).css("font-size", cached + "%");

@@ -466,7 +466,19 @@ function caInitializeClickHandlers() {
 				refreshTargets();
 			});
 		};
-		var domObserver = new MutationObserver(queueRefresh);
+		/* Filter out mutations on our own overlay nodes — this module toggles
+		   .visible/.dragging/.ca_scroll_active inside #ca_fixed_scroll_root and
+		   would otherwise re-queue refreshTargets() on every hover/scroll. */
+		var domObserver = new MutationObserver(function(mutations) {
+			for (var i = 0; i < mutations.length; i++) {
+				var t = mutations[i].target;
+				if (!t) continue;
+				if (t.id === "ca_fixed_scroll_root") continue;
+				if (t.nodeType === 1 && $(t).closest("#ca_fixed_scroll_root").length) continue;
+				queueRefresh();
+				return;
+			}
+		});
 		domObserver.observe(document.body, {
 			childList: true,
 			subtree: true,
@@ -520,6 +532,12 @@ function caInitializeClickHandlers() {
 			}
 			if (href === "#" || href.toLowerCase().indexOf("javascript") === 0 || href.toLowerCase().indexOf("data:") === 0 || href.toLowerCase().indexOf("vbscript:") === 0) return;
 			var dom = isValidURL(href);
+			/* Protocol-relative URLs (//example.com) — isValidURL returns false because
+			   `new URL` requires a base, but parsedHref already resolved it above.
+			   Promote parsedHref to dom so the external-link warning still fires. */
+			if (dom === false && href.indexOf("//") === 0 && parsedHref) {
+				dom = parsedHref;
+			}
 			if (dom === false) {
 				if (href.indexOf("/") === 0) return;
 				var baseURLpage = href.split("/");
@@ -960,6 +978,9 @@ function caQuitUpdate() {
 	$banner.removeClass("ca_hide");
 	setTimeout(function() {
 		try { history.back(); } catch (err) { /* no-op */ }
+		/* Clear the flag so any unrelated POST failures on this page after the
+		   exit countdown still surface their communication-failure alert. */
+		data.quittingUpdate = false;
 	}, 5000);
 }
 

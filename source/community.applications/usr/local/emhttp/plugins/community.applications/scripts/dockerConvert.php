@@ -36,6 +36,14 @@ echo "<script>$javascript</script>";
    DockerHub search results; the older per-page integer ID would silently
    resolve to the wrong cached entry once the user paged past the first set. */
 $repo = isset($_GET['repo']) ? trim((string)$_GET['repo']) : "";
+if ($repo === "") {
+	/* Fail fast — without a repo, the trailing $json/$error block at the end of
+	   this file would still emit a redirect to the previous CA_PATHS['dockerSearchInstall']
+	   payload, reopening a stale conversion from an earlier request. */
+	echo "<div id='output'>".htmlspecialchars(tr("No DockerHub repository was supplied for conversion."), ENT_QUOTES, 'UTF-8')."</div>";
+	echo "<script>setTimeout(function(){ if (parent && parent.Shadowbox) parent.Shadowbox.close(); }, 1500);</script>";
+	exit;
+}
 if ($repo !== "") {
 	$file = @readJsonFile(CA_PATHS['dockerSearchResults']);
 	$docker = null;
@@ -91,7 +99,7 @@ if ($repo !== "") {
 
 	echo "<div id='output'>";
 	$dockers = ["CA_TEST_CONTAINER_DOCKERHUB"];
-	echo sprintf(tr("Installing test container"),htmlspecialchars(str_replace(",",", ",$_GET['docker'] ?? ""), ENT_QUOTES, 'UTF-8'))."<br>";
+	echo sprintf(tr("Installing test container"),htmlspecialchars($repo, ENT_QUOTES, 'UTF-8'))."<br>";
 	$_GET['updateContainer'] = true;
 	$_GET['ct'] = $dockers;
 	$_GET['communityApplications'] = true;
