@@ -120,9 +120,12 @@ function renderModerationFixed(payload) {
 	const duplicateRepos = Array.isArray(payload.duplicateRepos) ? payload.duplicateRepos : [];
 	const $shell = caCloneTemplate("caModerationShellTemplate");
 	const $body = $shell.find(".caModerationBody");
-	if (!repos.length) {
+	if (!repos.length && !pluginDupes.length && !duplicateRepos.length) {
 		$body.append("<br><br><div class='ca_center'><span class='ca_bold'>" + tr("No templates were automatically fixed") + "</span></div>");
 		return $("<div></div>").append($shell).html();
+	}
+	if (!repos.length) {
+		$body.append("<br><br><div class='ca_center'><span class='ca_bold'>" + tr("No templates were automatically fixed") + "</span></div>");
 	}
 
 	const $fixed = caCloneTemplate("caModerationFixedTemplate");
@@ -294,10 +297,13 @@ function showStatistics() {
 		setText("repositories", stats.repositories, unknownLabel);
 		const hasPrivate = parseInt(stats.private, 10) > 0;
 		const $privateRow = $content.find("[data-stat-row='private']");
-		if (hasPrivate) {
-			setText("private", stats.private);
-		} else {
-			$privateRow.remove();
+		if ($privateRow.length) {
+			if (hasPrivate) {
+				$privateRow.show();
+				setText("private", stats.private);
+			} else {
+				$privateRow.hide();
+			}
 		}
 		setText("invalidXML", stats.invalidXML, unknownLabel);
 		setText("caFixed", safeValue(stats.caFixed) + "+");

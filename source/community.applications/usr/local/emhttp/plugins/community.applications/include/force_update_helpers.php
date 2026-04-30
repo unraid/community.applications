@@ -58,14 +58,16 @@ class ForceUpdateHelpers {
 		}
 
 		$tempFile = @file_get_contents(CA_PATHS['appFeedDownloadError']);
-		$downloaded = @file_get_contents($tempFile) ?: "";
+		$downloaded = (is_string($tempFile) && $tempFile !== "" && is_file($tempFile))
+			? (@file_get_contents($tempFile) ?: "")
+			: "";
 
 		if (strlen($downloaded) > 100) {
 			$response['data'] .= "<font size='2' color='red'><br><br>It *appears* that a partial download of the application feed happened (or is malformed), therefore it is probable that the application feed is temporarily down.  Please try again later)</font>";
 		}
 
 		$response['data'] .= "<div class='ca_center'>Last JSON error Recorded: ";
-		$jsonDecode = json_decode($downloaded, true);
+		json_decode($downloaded, true);
 		$response['data'] .= json_last_error_msg();
 		$response['data'] .= "</div>";
 

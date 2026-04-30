@@ -154,7 +154,7 @@ class PreviousAppsHelpers {
 					}
 					if ( $extraDeprecated[$template['Repository']] ?? false ) {
 						$template['Deprecated'] = true;
-						$template['ModeratorComment'] = $extraDeprecated[$template['Deprecated']];
+						$template['ModeratorComment'] = $extraDeprecated[$template['Repository']];
 					}
 				}
 
@@ -276,20 +276,25 @@ class PreviousAppsHelpers {
 			$template['Uninstall'] = true;
 
 			if ( $isActionCentre && $template['PluginURL'] && $template['Name'] !== "Community Applications" ) {
-				if ( ca_plugin("pluginURL","/var/log/plugins/$filename") !== $template['PluginURL'] ) {
+				if ( strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$filename"))) !== strtolower(trim($template['PluginURL'])) ) {
 					continue;
 				}
 
 				$installedVersion = ca_plugin("version","/var/log/plugins/$filename");
+				$pluginUpdated = false;
 				if ( ( strcmp($installedVersion,$template['pluginVersion']) < 0 || ($template['UpdateAvailable'] ?? null) ) ) {
 					$template['actionCentre'] = true;
 					$template['UpdateAvailable'] = true;
-					$updateCount++;
+					$pluginUpdated = true;
 				}
 
 				if ( is_file("/tmp/plugins/$filename") && strcmp($installedVersion,ca_plugin("version","/tmp/plugins/$filename")) < 0 ) {
 					$template['actionCentre'] = true;
 					$template['UpdateAvailable'] = true;
+					$pluginUpdated = true;
+				}
+
+				if ( $pluginUpdated ) {
 					$updateCount++;
 				}
 			}

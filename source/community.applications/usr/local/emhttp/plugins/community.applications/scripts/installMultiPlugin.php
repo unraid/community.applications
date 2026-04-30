@@ -23,13 +23,13 @@ foreach ($plugins as $plugin) {
 	$pathInfo = pathinfo($plugin);
 	if ( $pathInfo['extension'] !== "plg" ) {
 		if ( is_file("/var/log/plugins/lang-$pluginName.xml") ) {
-			passthru("/usr/local/emhttp/plugins/community.applications/scripts/languageInstall.sh update $pluginName");
+			passthru("/usr/local/emhttp/plugins/community.applications/scripts/languageInstall.sh update ".escapeshellarg($pluginName));
 			continue;
 		}
 	}
 	if ( searchArray($apps,"PluginURL",$plugin) !== false ) {
 		if ( is_file("/var/log/plugins/$pluginName") ) {
-			passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin update $pluginName");
+			passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin update ".escapeshellarg($pluginName));
 		} else {
 			passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin install ".escapeshellarg($plugin));
 		}

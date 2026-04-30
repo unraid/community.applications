@@ -420,7 +420,7 @@ function caSyncSearchFilterCollapsed() {
 
 
 function evaluateBoolean(str) {
-	regex=/^\s*(true|1|on)\s*$/i
+	var regex=/^\s*(true|1|on)\s*$/i
 	return regex.test(str);
 }
 
@@ -576,9 +576,13 @@ function postNoSpin(options,callback) {
 function post(options,callback) {
 	if ( typeof options === "function" ) {
 		callback = options;
+		options = {};
 	} else {
 		var msg = postCount > 0 ? "Embedded Post: " : "Post: ";
 		console.log(msg+JSON.stringify(options));
+	}
+	if ( ! options || typeof options !== "object" ) {
+		options = {};
 	}
 	/* Stamp the per-tab id on every request so paths.php can suffix the cache
 	   files for this tab. Skipped only if the caller already supplied one. */
@@ -633,6 +637,12 @@ function post(options,callback) {
 		}
 
 	}).fail(function(result){
+		if ( ! options.noSpinner ) {
+			postCount--;
+			if (postCount < 0) {
+				postCount = 0;
+			}
+		}
 		myCloseSpinner();
 		/* Suppress the "browser failed to communicate" swal when the user clicked
 		   EXIT on the updating-applications popup — the failure is just the

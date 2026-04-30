@@ -260,9 +260,9 @@ if ( version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.0.0-rc1","<") ) 
 }
 ?>
 
-var caEnableLegacyExternalLinkGuard = <?=version_compare($GLOBALS['caSettings']['unRaidVersion'],"6.12.15","<=") ? "true" : "false"?>;
-var caResponsiveOS = <?=$responsiveOS ? "true" : "false"?>;
-var caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
+window.caEnableLegacyExternalLinkGuard = <?=version_compare($GLOBALS['caSettings']['unRaidVersion'],"6.12.15","<=") ? "true" : "false"?>;
+window.caResponsiveOS = <?=$responsiveOS ? "true" : "false"?>;
+window.caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
 
 $(function(){
 
@@ -939,7 +939,7 @@ function closeSidebar(cookie=false,visible=false) {
 		}
 	}
 
-	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide");
+	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide").scrollTop(0);
 	$(".nav-user.show").show();
 	enableSearch();
 }
@@ -2522,7 +2522,6 @@ function showSidebarApp(apppath,appname) {
 				},
 				callbacks: {
 					beforeOpen: function() {
-						event.stopPropagation();
 						closeSidebar();
 					},
 					afterClose: function() {
@@ -2711,7 +2710,6 @@ function showRepoPopup(repository) {
 			},
 			callbacks: {
 				beforeOpen: function() {
-					event.stopPropagation();
 					closeSidebar();
 				},
 				afterClose: function() {

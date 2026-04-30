@@ -34,7 +34,11 @@ $(function() {
 	$("body,.content").addClass("menuAdjust");
 
 	// Override the OS switch language function so that CA can save it's current state when switching via the OS
-	$(".LanguageButton").find("a").attr("onclick","CAswitchLanguage('<?=$previousLocale?>')");
+	const caPreviousLocale = <?= json_encode($previousLocale, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+	$(".LanguageButton").find("a").off("click.caLang").on("click.caLang", function(e) {
+		e.preventDefault();
+		CAswitchLanguage(caPreviousLocale);
+	});
 
 });
 </script>
@@ -121,7 +125,7 @@ $(function() {
 					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>
 				</li>
 				<li><hr class='onlyShowWithFeed'/></li>
-				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?>
+				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?></li>
 				<li class='subCategory onlyShowWithFeed'>
 					<ul class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></ul>
 					<ul class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></ul>

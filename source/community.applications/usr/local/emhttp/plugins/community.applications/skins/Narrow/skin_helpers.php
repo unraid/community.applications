@@ -118,29 +118,26 @@ function caInitializeDockerState($DockerClient) {
 # Locate a template entry based on an app identifier within the displayed listings #
 ####################################################################################
 function caLocateTemplate(array $displayed, $appNumber) {
-	$index = searchArray($displayed['community'] ?? [],"InstallPath",$appNumber);
+	$community = $displayed['community'] ?? [];
+	$index = searchArray($community,"InstallPath",$appNumber);
 
 	if ($index === false) {
-		$ind = $index;
+		$startIndex = 0;
 		while (true) {
-			if ($ind !== false) {
-				if (isset($displayed[$ind])) {
-					$template = $displayed[$ind];
-					if ($template['Name'] == ($displayed['community'][$ind]['Name'] ?? "")) {
-						$index = $ind;
-						break;
-					}
-				}
-			}
-			$ind = searchArray($displayed['community'] ?? [],"Path",$appNumber,$ind+1);
+			$ind = searchArray($community,"Path",$appNumber,$startIndex);
 			if ($ind === false) {
 				return [null, false];
 			}
+			if (isset($community[$ind])) {
+				$index = $ind;
+				break;
+			}
+			$startIndex = $ind + 1;
 		}
 	}
 
-	if ($index !== false) {
-		return [$displayed['community'][$index], $index];
+	if ($index !== false && isset($community[$index])) {
+		return [$community[$index], $index];
 	}
 
 	return [null, false];
@@ -352,7 +349,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerRunni
 					if (($info[$name]['url'] ?? false) && ($info[$name]['running'] ?? false)) {
 						$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("WebUI"),"action"=>"openNewWindow('{$info[$name]['url']}','_blank');"];
 						if ($info[$name]['TSurl'] ?? false) {
-							$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailescale WebUI"),"action"=>"openNewWindow('{$info[$name]['TSurl']}','_blank');"];
+							$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailscale WebUI"),"action"=>"openNewWindow('{$info[$name]['TSurl']}','_blank');"];
 						}
 					}
 					$tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
@@ -567,7 +564,8 @@ function caNormalizeSelectedApps($selectedApps): array {
 # Slice the current page worth of templates from the full listing #
 ###################################################################
 function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
-	$startingApp = ($pageNumber - 1) * $GLOBALS['caSettings']['maxPerPage'] + 1;
+	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
+	$startingApp = ($pageNumber - 1) * $maxPerPage + 1;
 	$startingAppCounter = 0;
 	$displayedTemplates = [];
 
@@ -577,6 +575,9 @@ function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
 			continue;
 		}
 		$displayedTemplates[] = $template;
+		if ($maxPerPage > 0 && count($displayedTemplates) >= $maxPerPage) {
+			break;
+		}
 	}
 
 	return $displayedTemplates;
@@ -687,10 +688,11 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			} else {
 				if (! ($template['BranchID'] ?? null)) {
 					if (is_file(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml")) {
-						$test = readXmlFile(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml", true);
+						$previousTemplatePath = CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml";
+						$test = readXmlFile($previousTemplatePath, true);
 						if ($template['Repository'] == $test['Repository']) {
-							$userTemplate = readXmlFile($template['InstallPath'], false, false);
-							$actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}").".xml','user','".portsUsed($userTemplate)."');"];
+							$userTemplate = readXmlFile($previousTemplatePath, false, false);
+							$actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes($previousTemplatePath)."','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider" => true];
 						}
 					}

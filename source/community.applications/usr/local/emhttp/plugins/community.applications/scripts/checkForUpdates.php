@@ -39,7 +39,7 @@ echo tr("Checking for language updates")."\n";
 foreach (glob("/var/log/plugins/lang-*.xml") as $lang) {
 	$lingo = str_replace(["lang-",".xml"],["",""],$lang);
 	echo sprintf(tr("Checking %s"),basename($lingo))."\n";
-	exec("$docroot/plugins/dynamix.plugin.manager/scripts/language check ".basename($lingo));
+	exec("$docroot/plugins/dynamix.plugin.manager/scripts/language check ".escapeshellarg(basename($lingo)));
 }
 @unlink(CA_PATHS['updateRunning']);
 ?>

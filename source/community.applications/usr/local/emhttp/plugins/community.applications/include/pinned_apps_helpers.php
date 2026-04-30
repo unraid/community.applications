@@ -18,7 +18,7 @@ class PinnedAppsHelpers {
 		list($repository, $sortName) = $search;
 		$startIndex = 0;
 
-		for ($i = 0; $i < 10; $i++) {
+		while (true) {
 			$index = searchArray($templates, "Repository", $repository, $startIndex);
 			if ($index === false && strpos($repository, "library/") !== false) {
 				$index = searchArray($templates, "Repository", str_replace("library/", "", $repository), $startIndex);

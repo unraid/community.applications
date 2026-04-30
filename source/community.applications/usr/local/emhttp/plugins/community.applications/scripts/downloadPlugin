@@ -60,24 +60,25 @@ write("Downloading plugin\n");
 
 if (!isset($argv[3]) || empty($argv[3])) {
 	write("Error: No URL provided\n");
-	done(0);
+	done(1);
 }
 if (!filter_var($argv[3], FILTER_VALIDATE_URL)) {
 	write("Error: Invalid URL format\n");
-	done(0);
+	done(1);
 }
 
 $url = $argv[3];
-$result = download_url($url,"/tmp/community.applications/".basename($url));
+$plgFile = "/tmp/community.applications/".basename($url);
+$result = download_url($url,$plgFile);
 if ( $result === false ) {
 		write("Download failed\n");
-		@unlink("/tmp/community.applications/".basename($url));
-		done(0);
+		@unlink($plgFile);
+		done(1);
 } else {
-		run("plugin install /tmp/community.applications/".basename($url));
+		$exit = run("plugin install ".escapeshellarg($plgFile));
 		write("Plugin installed\n");
-		@unlink("/tmp/community.applications/".basename($url));
-		done(0);
+		@unlink($plgFile);
+		done($exit ? 1 : 0);
 }
 
 

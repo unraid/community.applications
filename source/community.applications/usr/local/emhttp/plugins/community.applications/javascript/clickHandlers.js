@@ -501,7 +501,16 @@ function caInitializeClickHandlers() {
 			}
 			if (!href) return;
 			href = href.trim();
-			if (href.match("https?://[^\\.]*.(my)?unraid.net/") || href.indexOf("https://unraid.net/") === 0 || href === "https://unraid.net" || href.indexOf("http://lime-technology.com") === 0) {
+			var parsedHref = null;
+			try { parsedHref = new URL(href, window.location.origin); } catch (err) { parsedHref = null; }
+			var isInternalUnraid = false;
+			if (parsedHref && (parsedHref.protocol === "http:" || parsedHref.protocol === "https:")) {
+				var parsedHost = parsedHref.hostname.toLowerCase();
+				if (parsedHost === "unraid.net" || parsedHost === "lime-technology.com" || parsedHost.endsWith(".unraid.net") || parsedHost.endsWith(".myunraid.net") || parsedHost.endsWith(".lime-technology.com")) {
+					isInternalUnraid = true;
+				}
+			}
+			if (isInternalUnraid) {
 				if (ca_href) {
 					e.stopPropagation();
 					e.preventDefault();
@@ -509,7 +518,7 @@ function caInitializeClickHandlers() {
 				}
 				return;
 			}
-			if (href === "#" || href.indexOf("javascript") === 0) return;
+			if (href === "#" || href.toLowerCase().indexOf("javascript") === 0 || href.toLowerCase().indexOf("data:") === 0 || href.toLowerCase().indexOf("vbscript:") === 0) return;
 			var dom = isValidURL(href);
 			if (dom === false) {
 				if (href.indexOf("/") === 0) return;
@@ -521,7 +530,11 @@ function caInitializeClickHandlers() {
 			try { domainsAllowed = JSON.parse($.cookie("allowedDomains")); } catch (err) { domainsAllowed = {}; }
 			$.cookie("allowedDomains", JSON.stringify(domainsAllowed), { expires: 3650 });
 			if (dom && domainsAllowed[dom.hostname]) {
-				if (dockerHub) {
+				if (dockerHub || ca_href) {
+					if (ca_href) {
+						e.stopPropagation();
+						e.preventDefault();
+					}
 					var popupOpen = window.open(href, target);
 					if (!popupOpen || popupOpen.closed || typeof popupOpen == "undefined") {
 						var popupWarning = addBannerWarning(tr("Popup Blocked."));
@@ -532,9 +545,12 @@ function caInitializeClickHandlers() {
 			}
 			e.preventDefault();
 			var host = dom && dom.hostname ? dom.hostname : "";
+			var escapeHtml = function(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); };
+			var hrefSafe = escapeHtml(href);
+			var hostSafe = escapeHtml(host);
 			swal({
 				title: tr("External Link"),
-				text: "<span title='" + href + "'>" + tr("Clicking OK will take you to a 3rd party website not associated with Limetech") + "<br><br><b>" + href + "<br><br><input id='Link_Always_Allow' type='checkbox'></input>" + tr("Always Allow") + " " + host + "</span>",
+				text: "<span title='" + hrefSafe + "'>" + tr("Clicking OK will take you to a 3rd party website not associated with Limetech") + "<br><br><b>" + hrefSafe + "<br><br><input id='Link_Always_Allow' type='checkbox'></input>" + tr("Always Allow") + " " + hostSafe + "</span>",
 				html: true,
 				type: "warning",
 				showCancelButton: true,
@@ -561,8 +577,7 @@ function caInitializeClickHandlers() {
 	});
 
 	$(".showMenuButton").on("click", function() { showMenu(); });
-	$(".closeMenuButton,.menuOverlay").on("click", function() { closeMenu(); });
-	$(".mobileOverlay").on("click", function() { closeMenu(); });
+	$(".closeMenuButton,.mobileOverlay").on("click", function() { closeMenu(); });
 
 	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */
 	if (!window.__caMobileLayoutMenuSync) {
@@ -1179,7 +1194,9 @@ function caInitializeEventHandlers() {
 	$("#searchBox").keydown(function(e) {
 		if (e.which === 13) {
 			e.stopPropagation();
-			searchBoxAwesomplete.close();
+			if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete && typeof searchBoxAwesomplete.close === "function") {
+				searchBoxAwesomplete.close();
+			}
 			var sortButton = false;
 			$(".sortIcons").each(function() {
 				if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true;
@@ -1211,7 +1228,7 @@ function caInitializeEventHandlers() {
 					closeSidebar();
 					return;
 				}
-				if ($(".menuOverlay").is(":visible")) {
+				if ($(".mobileOverlay").is(":visible")) {
 					e.preventDefault();
 					e.stopPropagation();
 					closeMenu();

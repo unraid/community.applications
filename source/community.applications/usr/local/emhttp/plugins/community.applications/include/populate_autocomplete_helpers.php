@@ -81,10 +81,13 @@ class PopulateAutoCompleteHelpers {
 		}
 
 		$autoComplete[$nameKey] = $nameKey;
-		$autoComplete[$nameKey] = self::stripPrefix($autoComplete[$nameKey], "dynamix ");
-		$autoComplete[$nameKey] = self::stripPrefix($autoComplete[$nameKey], "ca ");
-		$autoComplete[$nameKey] = self::stripPrefix($autoComplete[$nameKey], "binhex ");
-		$autoComplete[$nameKey] = self::stripPrefix($autoComplete[$nameKey], "activ ");
+
+		foreach (["dynamix ", "ca ", "binhex ", "activ "] as $prefix) {
+			$stripped = self::stripPrefix($nameKey, $prefix);
+			if ($stripped !== $nameKey && $stripped !== "") {
+				$autoComplete[$stripped] = $stripped;
+			}
+		}
 
 		return $autoComplete;
 	}
@@ -120,7 +123,7 @@ class PopulateAutoCompleteHelpers {
 
 	private static function stripPrefix($value, $prefix) {
 		if (startsWith($value, $prefix)) {
-			return str_replace($prefix, "", $value);
+			return substr($value, strlen($prefix));
 		}
 
 		return $value;

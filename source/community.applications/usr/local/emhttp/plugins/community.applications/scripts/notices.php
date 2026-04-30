@@ -95,6 +95,7 @@ switch ($action) {
 
 		if ( ! is_array($notices) ) $notices = array();
 		$dismissed = readJsonFile($paths['dismiss']);
+		$unRaidNotifications = [];
 		foreach ( $notices as $app => $notice ) {
 			if ( in_array($notice['ID'],$dismissed) )
 				continue;
@@ -112,9 +113,11 @@ switch ($action) {
 
 				foreach($info as $container) {
 					if ( ($search[1] ?? "") == "*" ) {
-						if ( explode(":",$container['Image'])[0] == $search[0])
+						if ( explode(":",$container['Image'])[0] == $search[0]) {
 							$found = true;
 							break;
+						}
+						continue;
 					}
 					if ($container['Image'] == $app) {
 						$found = true;
@@ -183,6 +186,7 @@ switch ($action) {
 							break;
 						case "gt":
 							$condition[0] = ">";
+							break;
 						case "ne":
 							$condition[0] = "!";
 							break;
@@ -207,7 +211,7 @@ switch ($action) {
 						case "<=":
 							conditionsMet($cmp < 1);
 							break;
-						case "=>":
+						case ">=":
 							conditionsMet($cmp > -1);
 							break;
 						case "!":
@@ -222,7 +226,6 @@ switch ($action) {
 				conditionsMet(eval($notice['Conditions']['code']));
 			}
 
-			$unRaidNotifications = [];
 			if ($conditionsMet) {
 				debug1("Conditions Met.  Send the notification!\n");
 				if ( $sendNotification ) {

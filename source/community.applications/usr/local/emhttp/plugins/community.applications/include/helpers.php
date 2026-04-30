@@ -208,7 +208,7 @@ function readJsonFile($filename, $default = []) {
 	if ( $json === false ) {
 		debug("$filename is not serialized.  Reading as JSON.");
 		$json = json_decode(@file_get_contents($filename),true);
-			if ( $json === false ) {
+			if ( $json === null ) {
 				debug("JSON Read Error ($filename)");
 				return $default;
 			}
@@ -426,9 +426,9 @@ function testProgress($ch,$download_total,$download_current,$upload_total,$uploa
 
 function ca_publish($endpoint,$message) {
 	if ( ! function_exists("publish_noDupe") ) {
-		return publish($endpoint,$message);
+		publish($endpoint,$message);
 	} else {
-		return publish_noDupe($endpoint,$message);
+		publish_noDupe($endpoint,$message);
 	}
 }
 function download_json($url,$path="",$timeout=0) {
@@ -902,7 +902,8 @@ function fixDescription($Description) {
 		"#\[br\s*\]#i"   => "{}",
 		"#\[b[\\\]*\s*\]#i" => "||",
 		'#\[([^\]]*)\]#' => '<$1>',
-		"#<span.*#si"    => "",
+		"#<span[^>]*>#si" => "",
+		"#</span>#si"     => "",
 		"#<[^>]*>#i"     => "",
 	];
 

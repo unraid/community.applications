@@ -47,8 +47,14 @@ echo "<script>$javascript</script>";
 
 if ( $_GET['docker'] ) {
 	echo "<div id='output'>";
-	$dockers = explode(",",$_GET['docker']);
-	echo sprintf(tr("Installing docker applications %s"),str_replace(",",", ",$_GET['docker']))."<br>";
+	$rawDockers = explode(",",$_GET['docker']);
+	$dockers = [];
+	foreach ($rawDockers as $d) {
+		$d = trim($d);
+		if ($d === "" || !preg_match('/^[A-Za-z0-9_.-]+$/', $d)) continue;
+		$dockers[] = $d;
+	}
+	echo sprintf(tr("Installing docker applications %s"),htmlspecialchars(implode(", ",$dockers), ENT_QUOTES, 'UTF-8'))."<br>";
 	$_GET['updateContainer'] = true;
 	$_GET['ct'] = $dockers;
 	$_GET['communityApplications'] = true;
@@ -95,14 +101,15 @@ function addCloseButton() {
 <?
 	$failFlag = false;
 	foreach ($dockers as $docker) {
-		echo sprintf(tr("Starting %s"),"<span class='ca_bold'>$docker</span>")."<br>";
+		$dockerSafe = htmlspecialchars($docker, ENT_QUOTES, 'UTF-8');
+		echo sprintf(tr("Starting %s"),"<span class='ca_bold'>$dockerSafe</span>")."<br>";
 		unset($output);
-		exec("docker start $docker 2>&1",$output,$retval);
+		exec("docker start ".escapeshellarg($docker)." 2>&1",$output,$retval);
 		if ($retval) {
 			$failFlag = true;
-			echo sprintf(tr("%s failed to start.  You should install it by itself to fix the errors"),"<span class='ca_bold'>$docker</span>")."<br>";
+			echo sprintf(tr("%s failed to start.  You should install it by itself to fix the errors"),"<span class='ca_bold'>$dockerSafe</span>")."<br>";
 			foreach ($output as $line) {
-				echo "<tt>$line</tt><br>";
+				echo "<tt>".htmlspecialchars($line, ENT_QUOTES, 'UTF-8')."</tt><br>";
 			}
 			echo "<br>";
 		}

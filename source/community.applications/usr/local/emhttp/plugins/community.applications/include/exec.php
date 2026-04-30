@@ -218,6 +218,7 @@ switch ($_POST['action']) {
 
 function DownloadApplicationFeed() {
 	exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
+	@mkdir(CA_PATHS['tempFiles'],0777,true);
 	@unlink(CA_PATHS['downloadLocks']);
 	@mkdir(CA_PATHS['templates-community'],0777,true);
 
@@ -914,10 +915,7 @@ function displayRepositories() {
 		$repository = $repositories[$repoName];
 
 		if ( $repoName == $GLOBALS['caSettings']['favourite'] ) {
-			$fav = $repository;
-			$fav['RepositoryTemplate'] = true;
-			$fav['RepoName'] = $repoName;
-			$fav['SortName'] = $repoName;
+			$fav = $prepareRepository($repository, $repoName);
 			continue;
 		}
 

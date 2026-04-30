@@ -91,7 +91,7 @@ if ($repo !== "") {
 
 	echo "<div id='output'>";
 	$dockers = ["CA_TEST_CONTAINER_DOCKERHUB"];
-	echo sprintf(tr("Installing test container"),str_replace(",",", ",$_GET['docker'] ?? ""))."<br>";
+	echo sprintf(tr("Installing test container"),htmlspecialchars(str_replace(",",", ",$_GET['docker'] ?? ""), ENT_QUOTES, 'UTF-8'))."<br>";
 	$_GET['updateContainer'] = true;
 	$_GET['ct'] = $dockers;
 	$_GET['communityApplications'] = true;
@@ -139,7 +139,7 @@ function addCloseButton() {
 	echo "<br>".tr("Removing test installation")."<br>";
 	exec("docker rm CA_TEST_CONTAINER_DOCKERHUB");
 
-	exec("docker rmi {$docker['Repository']}");
+	exec("docker rmi ".escapeshellarg($docker['Repository']));
 	@unlink("/boot/config/plugins/dockerMan/templates-user/my-CA_TEST_CONTAINER_DOCKERHUB.xml");
 
 	$json = json_decode($output,true);

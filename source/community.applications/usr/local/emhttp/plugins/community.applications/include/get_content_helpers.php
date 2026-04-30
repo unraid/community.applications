@@ -160,7 +160,7 @@ class GetContentHelpers {
 				$o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
 				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']} ";
 				if ( $type['cat'] ?? false )
-					$o['display'] .= "<span class='homeMore' data-des='{$type['text1']}' data-category='{$type['cat']}' data-sortby='{$type['sortby']}' data-sortdir='{$type['sortdir']}'>".tr("SHOW MORE");
+					$o['display'] .= "<span class='homeMore' data-des='{$type['text1']}' data-category='{$type['cat']}' data-sortby='{$type['sortby']}' data-sortdir='{$type['sortdir']}'>".tr("SHOW MORE")."</span>";
 				$o['display'] .= "</div>";
 				$homeClass = "caHomeSpotlight";
 
@@ -189,7 +189,7 @@ class GetContentHelpers {
 						$startupType = "Top Performing"; break;
 				}
 
-				$o['display'] .=  "<br><div class='ca_center'><font size='4' color='purple'><span class='ca_bold'>".sprintf(tr("An error occurred.  Could not find any %s Apps"),$startupType)."</span></font><br><br>";
+				$o['display'] .=  "<br><div class='ca_center'><font size='4' color='purple'><span class='ca_bold'>".sprintf(tr("An error occurred.  Could not find any %s Apps"),$startupType)."</span></font><br><br></div>";
 				$o['script'] = "$('#templateSortButtons,#sortButtons,.maxPerPage').hide();";
 
 				writeJsonFile(CA_PATHS['community-templates-displayed'],$displayApplications);
