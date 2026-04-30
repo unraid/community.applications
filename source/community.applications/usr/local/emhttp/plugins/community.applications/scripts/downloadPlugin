@@ -6,7 +6,9 @@
 # Copyright 2020-2026, Lime Technology #
 # Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
-# Licenced under GPLv2                 #
+# Licensed under GPL-2.0-or-later      #
+# SPDX-License-Identifier:             #
+#   GPL-2.0-or-later                   #
 #                                      #
 ########################################
 

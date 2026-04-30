@@ -12,9 +12,11 @@ Code="f0db"
 # Copyright 2020-2026, Lime Technology #
 # Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
-# Licenced under GPLv2                 #
+# Licensed under GPL-2.0-or-later      #
 #                                      #
 ########################################
+
+SPDX-License-Identifier: GPL-2.0-or-later
 */
 if (false) {
 	// IDE-only hint for static analyzers; never executed at runtime.
@@ -3098,12 +3100,27 @@ function caInitInfiniteScroll() {
 			return false;
 		}
 
+		var total = parseInt(data.totalApps, 10) || 0;
+		if (total <= 0) return false;
+
+		if (data.docker) {
+			/* DockerHub API caps each search at 25 results/page — we can't
+			   ask for everything in one shot like the Apps grid path. Jump
+			   to the last page instead; updateDisplay's structured-replace
+			   path sets cardCacheOffset from the server's pageNumber so the
+			   "Displaying X - Y of Z" indicator stays correct, and the
+			   existing jump-to-top reset in caVirtUpdate handles scroll-up
+			   back to page 1 when the user wants it. */
+			var dockerPerPage = 25;
+			var dockerLastPage = Math.max(1, Math.ceil(total / dockerPerPage));
+			dockerSearch(dockerLastPage, false);
+			return false;
+		}
+
 		/* Apps grid: fetch the entire result set in one request so the user can
 		   scroll up freely from the end. Virtualization + content-visibility
 		   keep this affordable even for thousands of cards. data.maxPerPage is
 		   bumped only for this request and restored once cards are in the DOM. */
-		var total = parseInt(data.totalApps, 10) || 0;
-		if (total <= 0) return false;
 		var savedMaxPerPage = data.maxPerPage;
 		data.maxPerPage = Math.max(total, 12);
 		var scrollToEnd = function() {
@@ -3111,11 +3128,7 @@ function caInitInfiniteScroll() {
 			var ma2 = $(".mainArea")[0];
 			if (ma2) ma2.scrollTop = ma2.scrollHeight;
 		};
-		if (data.docker) {
-			dockerSearch(1, false);
-		} else {
-			changePage(1, false);
-		}
+		changePage(1, false);
 		var attempts = 0;
 		var poll = function() {
 			if ($.isArray(data.cardCache) && data.cardCache.length >= total) {
