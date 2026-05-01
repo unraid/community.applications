@@ -127,7 +127,10 @@ if ( $CArequirementsNOTmet && isset($_COOKIE['ca_memoryOverride']) && $_COOKIE['
 
 $ServerDateCorrect = checkServerDate() ? "true": "false";
 
-$startupSearch = htmlspecialchars($_GET['search']??"");
+/* Raw value — gets emitted into a JS string literal below via json_encode,
+   which is robust against any PHP version's htmlspecialchars defaults and
+   handles edge characters (trailing backslash, U+2028/U+2029, etc.) cleanly. */
+$startupSearch = (string)($_GET['search'] ?? "");
 
 $classList = [];
 if ( ! $responsiveOS ) {
@@ -246,7 +249,7 @@ var repoBanner = false;
 var repoBannerTimer = false;
 var resizeTimer;
 var portsInUse = [];
-var startupSearch = "<?=$startupSearch?>";
+var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var ca_done_override = false;
 
 // handle 3rd party links on older versions of OS

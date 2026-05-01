@@ -310,6 +310,7 @@ function DownloadApplicationFeed() {
 		if ( ! $des && ($o['Description']??null) )
 			$des = $o['Description'];
 		if ( ! ($o['Language']??null) ) {
+			$des = (string)($des ?? "");
 			$des = str_replace(["[","]"],["<",">"],$des);
 			$des = str_replace("\n","  ",$des);
 			$des = html_entity_decode($des);
@@ -351,11 +352,16 @@ function DownloadApplicationFeed() {
 		$ApplicationFeed['repositories'][$o['RepoName']]['downloads']++;
 		$ApplicationFeed['repositories'][$o['RepoName']]['trending'] += $o['trending']??null;
 		if ( ! ($o['ModeratorComment']??null) == "Duplicated Template" ) {
-			if ( $ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] ?? false) {
-				if ( $o['FirstSeen'] < $ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'])
-					$ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] = $o['FirstSeen'];
-			} else {
-				$ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] = $o['FirstSeen'];
+			$oFirstSeen = $o['FirstSeen'] ?? null;
+			if ($oFirstSeen !== null) {
+				$repoFirstSeen = $ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] ?? null;
+				if ($repoFirstSeen !== null) {
+					if ($oFirstSeen < $repoFirstSeen) {
+						$ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] = $oFirstSeen;
+					}
+				} else {
+					$ApplicationFeed['repositories'][$o['RepoName']]['FirstSeen'] = $oFirstSeen;
+				}
 			}
 		}
 		if ( is_array($o['Branch']??null) ) {
@@ -1599,27 +1605,15 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 	$changes = (string)$changes;
 	if ($changes === "") return "";
 
-	/* Same sanitization shape as the README path: strip everything, auto-link
-	   bare http(s) URLs into Markdown link syntax, render Markdown, then
-	   re-strip the result against an explicit tag whitelist + attribute
-	   scrubber + http(s)-only href/src enforcement. */
+	/* Strip any raw HTML from the source first so the markdown processor
+	   only sees plain text — markdown's own syntax can't generate dangerous
+	   tags or attributes (no onclick, no javascript: in parens, no inline
+	   styles), so once raw HTML is gone the markdown output is bounded to a
+	   safe shape. The post-render whitelist + anchor/img sanitizers below
+	   are the second-layer defense. */
 	$changes = str_replace("    ", "&nbsp;&nbsp;&nbsp;&nbsp;", $changes);
-	$changes = str_replace(["[", "]"], ["<", ">"], $changes);
 	$changes = strip_tags($changes);
-
-	$changes = preg_replace_callback(
-		"/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
-		static function ($matches) {
-			$u = $matches[1];
-			return "[{$u}]({$u})";
-		},
-		$changes
-	);
-
 	$changes = Markdown($changes);
-	$changes = strip_tags($changes, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
-	$changes = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
-	$changes = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $changes);
 
 	/* Match the whole anchor element so we can drop the wrapper entirely (not
 	   just the href) when the link points anywhere other than http(s). Relative
@@ -1632,9 +1626,16 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
 				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
-				if (preg_match("/^https?:\\/\\//i", $href)) {
+				if (caIsPublicHttpUrl($href)) {
 					$safeHref = htmlspecialchars($href, ENT_QUOTES);
-					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
+					$titleHtml = "";
+					if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
+						$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
+						if ($title !== "") {
+							$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
+						}
+					}
+					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'{$titleHtml}>{$inner}</a>";
 				}
 			}
 			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
@@ -1649,11 +1650,23 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 			$attrs = $matches[2];
 			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
 				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
-				if (!preg_match("/^https?:\\/\\//i", $src)) {
+				if (!caIsPublicHttpUrl($src)) {
 					return "";
 				}
 				$safeSrc = htmlspecialchars($src, ENT_QUOTES);
-				return "<img src='{$safeSrc}' alt='Changelog image'>";
+				$alt = "Changelog image";
+				if (preg_match("/\\balt\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $altMatch)) {
+					$altRaw = ($altMatch[2] ?? "") ?: (($altMatch[3] ?? "") ?: ($altMatch[4] ?? ""));
+					if ($altRaw !== "") $alt = $altRaw;
+				}
+				$titleHtml = "";
+				if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
+					$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
+					if ($title !== "") {
+						$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
+					}
+				}
+				return "<img src='{$safeSrc}' alt='".htmlspecialchars($alt, ENT_QUOTES)."'{$titleHtml}>";
 			}
 			return "";
 		},
@@ -1768,20 +1781,13 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 		return "";
 	}
 
+	/* Strip any raw HTML up front so markdown only sees plain text — markdown
+	   syntax can't produce dangerous tags or attributes (no onclick, no
+	   javascript: in href parens, no inline styles), so the output is
+	   bounded to a safe shape. The whitelist + anchor/img sanitizers below
+	   are the second-layer defense. */
 	$readmeContents = strip_tags((string)$readmeContents);
-	$readmeContents = preg_replace_callback(
-		"/(?<!\\]\\()(?<![\\\"'=<\\(])(https?:\\/\\/[^\s<>)]+)/i",
-		static function ($matches) {
-			$u = $matches[1];
-			return "[{$u}]({$u})";
-		},
-		$readmeContents
-	);
-
 	$readmeContents = Markdown($readmeContents);
-	$readmeContents = strip_tags($readmeContents, "<a><img><p><br><ul><ol><li><pre><code><blockquote><em><strong><b><i><h1><h2><h3><h4><h5><h6><table><thead><tbody><tr><th><td><hr>");
-	$readmeContents = preg_replace("/\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
-	$readmeContents = preg_replace("/\\s+style\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)/i", "", $readmeContents);
 
 	/* Match the whole anchor element so we can drop the wrapper entirely (not
 	   just the href) when the link points anywhere other than http(s). Relative
@@ -1794,9 +1800,16 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 			$inner = $matches[2];
 			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
 				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
-				if (preg_match("/^https?:\\/\\//i", $href)) {
+				if (caIsPublicHttpUrl($href)) {
 					$safeHref = htmlspecialchars($href, ENT_QUOTES);
-					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'>{$inner}</a>";
+					$titleHtml = "";
+					if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
+						$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
+						if ($title !== "") {
+							$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
+						}
+					}
+					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'{$titleHtml}>{$inner}</a>";
 				}
 			}
 			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
@@ -1811,11 +1824,23 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 			$attrs = $matches[2];
 			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
 				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
-				if (!preg_match("/^https?:\\/\\//i", $src)) {
+				if (!caIsPublicHttpUrl($src)) {
 					return "";
 				}
 				$safeSrc = htmlspecialchars($src, ENT_QUOTES);
-				return "<img src='{$safeSrc}' alt='README image'>";
+				$alt = "README image";
+				if (preg_match("/\\balt\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $altMatch)) {
+					$altRaw = ($altMatch[2] ?? "") ?: (($altMatch[3] ?? "") ?: ($altMatch[4] ?? ""));
+					if ($altRaw !== "") $alt = $altRaw;
+				}
+				$titleHtml = "";
+				if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
+					$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
+					if ($title !== "") {
+						$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
+					}
+				}
+				return "<img src='{$safeSrc}' alt='".htmlspecialchars($alt, ENT_QUOTES)."'{$titleHtml}>";
 			}
 			return "";
 		},

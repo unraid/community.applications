@@ -1,4 +1,4 @@
-1fc2fd48d15d2e5bb57b79b3956f4e3e  ./Apps.page
+07e9c2ff9b17e27f4c7ae4b6547a7df8  ./Apps.page
 9d7f1be426a0abbdbc41ce68cdaf1df8  ./CA_notices.page
 8dc2ca6d9cd7011d3443ffbb164d7c72  ./LICENSE
 71f911a818d88d3d567f8a2898094ee2  ./README.md
@@ -10,8 +10,8 @@ dc5ee49892cce8dbdf94187f39ecf94c  ./include/paths.php
 839bc91ff693248dc492cfac1696f6ee  ./include/get_content_helpers.php
 012aecb59635a34fbc56999b4ed5c523  ./include/populate_autocomplete_helpers.php
 983641291302abdb93de99832c660faa  ./include/previous_apps_helpers.php
-8e05dd7a28639367ab05e1e1f60814ef  ./include/helpers.php
-48608299229a09cc86aacebbed2017fd  ./include/exec.php
+09a463c11a6cfaeb45bf1ca921c500b1  ./include/helpers.php
+f90dec099cbeb41927bb36a2f955fece  ./include/exec.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 37113d541a2c72670b619cf441d75483  ./javascript/statistics.js
 0c3c7cc387771af2f193504e0adcefd9  ./javascript/clickHandlers.js

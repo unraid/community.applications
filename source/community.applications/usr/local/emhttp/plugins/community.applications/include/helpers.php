@@ -575,7 +575,8 @@ function fixTemplates($template) {
 	if ( ! ($template['Date']??null) ) $template['Date'] = (is_numeric($template['DateInstalled']??null)) ? $template['DateInstalled'] : 0;
 	$template['Date'] = max($template['Date']??null,$template['FirstSeen']??null);
 	if ($template['Date'] == 1) $template['Date'] = null;
-	if ( ($template['Date'] == $template['FirstSeen']) && ( $template['FirstSeen'] >= 1538357652 )) {# 1538357652 is when the new appfeed first started
+	$firstSeen = $template['FirstSeen'] ?? null;
+	if ( $firstSeen !== null && ($template['Date'] == $firstSeen) && ($firstSeen >= 1538357652) ) {# 1538357652 is when the new appfeed first started
 		$template['BrandNewApp'] = true;
 		$template['Date'] = null;
 	}
@@ -799,6 +800,80 @@ function validURL($URL) {
 	}
 	return true;
 }
+
+##################################################################
+# Test whether a host string resolves to a private or loopback   #
+# address. Used by the README/changelog sanitizers, which need a #
+# stricter policy than validURL — every link/image must point to #
+# the public internet, not LAN hosts, link-local, ULA, etc.      #
+##################################################################
+function caIsPrivateOrLoopbackHost(string $host): bool {
+	$host = strtolower(trim($host));
+	if ($host === "") return true;
+	/* Strip surrounding brackets from IPv6 literals. */
+	if ($host[0] === "[" && substr($host, -1) === "]") {
+		$host = substr($host, 1, -1);
+	}
+	/* Trivial hostname matches and the unspecified address. */
+	if (in_array($host, ["localhost", "0", "0.0.0.0", "::", "0:0:0:0:0:0:0:0"], true)) return true;
+
+	/* Normalize decimal- and hex-encoded IPv4 (browser-accepted bypass forms)
+	   to a dotted quad so the byte-range checks below cover them. */
+	$normalized = $host;
+	if (ctype_digit($host)) {
+		$n = (int)$host;
+		$normalized = sprintf("%d.%d.%d.%d", ($n >> 24) & 0xFF, ($n >> 16) & 0xFF, ($n >> 8) & 0xFF, $n & 0xFF);
+	} elseif (preg_match('/^0x[0-9a-f]{1,8}$/i', $host)) {
+		$n = (int)hexdec(substr($host, 2));
+		$normalized = sprintf("%d.%d.%d.%d", ($n >> 24) & 0xFF, ($n >> 16) & 0xFF, ($n >> 8) & 0xFF, $n & 0xFF);
+	}
+
+	if (filter_var($normalized, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+		$parts = explode(".", $normalized);
+		$b = [(int)$parts[0], (int)$parts[1], (int)$parts[2], (int)$parts[3]];
+		if ($b[0] === 0)   return true;                                  // 0.0.0.0/8
+		if ($b[0] === 10)  return true;                                  // 10.0.0.0/8
+		if ($b[0] === 127) return true;                                  // 127.0.0.0/8 loopback
+		if ($b[0] === 169 && $b[1] === 254) return true;                 // 169.254.0.0/16 link-local
+		if ($b[0] === 172 && $b[1] >= 16 && $b[1] <= 31) return true;    // 172.16.0.0/12
+		if ($b[0] === 192 && $b[1] === 168) return true;                 // 192.168.0.0/16
+		return false;
+	}
+
+	if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+		$packed = @inet_pton($host);
+		if ($packed === false || strlen($packed) !== 16) return true;
+		if ($packed === inet_pton("::1")) return true;                   // loopback
+		if ($packed === inet_pton("::"))  return true;                   // unspecified
+		$b0 = ord($packed[0]); $b1 = ord($packed[1]);
+		if (($b0 & 0xFE) === 0xFC) return true;                          // fc00::/7 ULA
+		if ($b0 === 0xFE && ($b1 & 0xC0) === 0x80) return true;          // fe80::/10 link-local
+		/* IPv4-mapped (::ffff:0:0/96): pull out the embedded v4 and recurse. */
+		if (substr($packed, 0, 10) === str_repeat("\x00", 10) && substr($packed, 10, 2) === "\xFF\xFF") {
+			$v4 = sprintf("%d.%d.%d.%d", ord($packed[12]), ord($packed[13]), ord($packed[14]), ord($packed[15]));
+			return caIsPrivateOrLoopbackHost($v4);
+		}
+		return false;
+	}
+
+	/* Domain name — without a DNS lookup we can't know where it points, so
+	   accept it. DNS-rebinding-style attacks are a different threat model. */
+	return false;
+}
+
+##################################################################
+# Stricter sibling of validURL: requires http(s) and a publicly  #
+# routable host. Used in README/changelog sanitization where any #
+# pointer at a LAN host is considered hostile.                   #
+##################################################################
+function caIsPublicHttpUrl(string $url): bool {
+	if (!filter_var($url, FILTER_VALIDATE_URL)) return false;
+	if (!preg_match('/^https?:\/\//i', $url)) return false;
+	$host = (string)parse_url($url, PHP_URL_HOST);
+	if ($host === "") return false;
+	return !caIsPrivateOrLoopbackHost($host);
+}
+
 #######################################################
 # Function used to determine if a search term matches #
 #######################################################
