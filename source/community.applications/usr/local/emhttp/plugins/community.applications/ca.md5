@@ -10,13 +10,13 @@ dc5ee49892cce8dbdf94187f39ecf94c  ./include/paths.php
 012aecb59635a34fbc56999b4ed5c523  ./include/populate_autocomplete_helpers.php
 16e18d0276e4a60ae27af20e5683f554  ./include/get_content_helpers.php
 e43ab27bd51896cc260f9430c1f94945  ./include/helpers.php
-f566793cff5f20b62e989d417f3d02a1  ./include/previous_apps_helpers.php
 ff6427e7b0d2bb7537021fe9a7ad7c51  ./include/exec.php
+0c8db51eb002e92eb2d99c1159c23e3e  ./include/previous_apps_helpers.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 66361adff468f8cff0588f0a39a08458  ./javascript/statistics.js
 cc10aef83373044da351b5c3db1bb47c  ./javascript/Untitled
 0c3c7cc387771af2f193504e0adcefd9  ./javascript/clickHandlers.js
-b99b7fdaa44da4d709bfc3552e728fdc  ./javascript/helpers.js
+8f84ef043539c725805c8e0eb06d9257  ./javascript/helpers.js
 5d4bd67852f602f59d6e7da06eb97e01  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook
@@ -41,5 +41,5 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 0aa451e5aeab2eea5d6b358920ec28b2  ./skins/Narrow/themes/gray.css
 128d9dd0143b023b5036f06711f55bcb  ./skins/Narrow/themes/white.css
 36074056e77f3d8b0196a7bae3c67390  ./skins/Narrow/skin.html
-7aecc240db9e0b81b05653b8efcd8e64  ./skins/Narrow/skin.php
-cfc039357b7f4029f33b93e1e1b130ec  ./skins/Narrow/skin_helpers.php
+35d15cd6c26ee6b238b40eb9dd53bf40  ./skins/Narrow/skin_helpers.php
+e4a92fe602d22720d89f29da1807ca04  ./skins/Narrow/skin.php

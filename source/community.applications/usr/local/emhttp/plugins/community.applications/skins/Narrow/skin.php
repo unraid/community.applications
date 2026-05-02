@@ -235,7 +235,15 @@ function displayPopup($template) {
 			preg_match_all("/\/\/(.*?)\\\\/m", $RecommendedReason[$RecommendedLanguage], $searchMatches);
 			if (count($searchMatches[1])) {
 				foreach ($searchMatches[1] as $searchResult) {
-					$RecommendedReason[$RecommendedLanguage] = str_replace("//$searchResult\\\\", "<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>", $RecommendedReason[$RecommendedLanguage]);
+					/* Same defense as caApplySidebarSearchLinks: htmlspecialchars
+					   the visible anchor text, json_encode the JS argument. */
+					$safeText = htmlspecialchars($searchResult, ENT_QUOTES, "UTF-8");
+					$jsArg    = json_encode($searchResult, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+					$RecommendedReason[$RecommendedLanguage] = str_replace(
+						"//$searchResult\\\\",
+						"<a style='cursor:pointer;' onclick='doSidebarSearch({$jsArg});'>{$safeText}</a>",
+						$RecommendedReason[$RecommendedLanguage]
+					);
 				}
 			}
 

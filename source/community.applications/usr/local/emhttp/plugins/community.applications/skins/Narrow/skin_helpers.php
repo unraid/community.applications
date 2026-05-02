@@ -25,7 +25,18 @@ function caApplySidebarSearchLinks($text) {
 	}
 
 	foreach ($searchMatches[1] as $searchResult) {
-		$text = str_replace("//$searchResult&#92;","<a style=cursor:pointer; onclick=doSidebarSearch(&quot;$searchResult&quot;);>$searchResult</a>",$text);
+		/* The display text and the JS argument are both user-derived (token
+		   came from feed-supplied description / overview content). Escape
+		   each for its target context: htmlspecialchars for the visible
+		   anchor text, json_encode for the onclick argument so a quote in
+		   the term can't break out of the JS string literal. */
+		$safeText = htmlspecialchars($searchResult, ENT_QUOTES, "UTF-8");
+		$jsArg    = json_encode($searchResult, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+		$text = str_replace(
+			"//$searchResult&#92;",
+			"<a style='cursor:pointer;' onclick='doSidebarSearch({$jsArg});'>{$safeText}</a>",
+			$text
+		);
 	}
 
 	return $text;
@@ -1046,7 +1057,7 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 	$rowsHtml = implode("", $rows);
 
 	return "
-		<div class='repoStats'>Statistics</div>
+		<div class='repoStats'>".tr("Statistics")."</div>
 			<table class='repoTable'>
 				{$rowsHtml}
 			</table>

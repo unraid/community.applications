@@ -677,8 +677,10 @@ function post(options,callback) {
 			if (postCount < 0) {
 				postCount = 0;
 			}
+			if (postCount === 0) {
+				myCloseSpinner();
+			}
 		}
-		myCloseSpinner();
 		/* Suppress the "browser failed to communicate" swal when the user clicked
 		   EXIT on the updating-applications popup — the failure is just the
 		   in-flight POST being aborted by the impending history.back() nav. */

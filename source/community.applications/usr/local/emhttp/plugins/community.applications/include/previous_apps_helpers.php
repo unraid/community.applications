@@ -269,7 +269,7 @@ class PreviousAppsHelpers {
 				}
 			}
 
-			if ( ! $template['Blacklist'] ) {
+			if ( ! ($template['Blacklist'] ?? false) ) {
 				$displayed[] = $template;
 			}
 		}
@@ -317,7 +317,7 @@ class PreviousAppsHelpers {
 				}
 			}
 
-			if ( $isActionCentre && ! $template['Blacklist'] && ! $template['Deprecated'] && ($template['Compatible'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
+			if ( $isActionCentre && ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) && ($template['Compatible'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
 				continue;
 			}
 
