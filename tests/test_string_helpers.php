@@ -15,10 +15,11 @@ ok("array of needles, one matches",  startsWith("/var/log/plugins/foo.plg", ["/u
 ok("array of needles, none matches", !startsWith("/etc/passwd", ["/usr/", "/var/", "/tmp/"]));
 ok("non-string haystack returns false", !startsWith(123, "1"));
 ok("non-string needle returns false",   !startsWith("abc", null));
-ok("case sensitive (lowercase prefix vs upper haystack)",
-                                     !startsWith("Hello", "hello") || true);
-                                     /* Note: implementation uses strripos which is case-INsensitive
-                                        — leaving as-is to document current behavior. */
+/* Implementation uses strripos which is case-INsensitive — pin that
+   behavior so a future change to strrpos (case-sensitive) would break the
+   test instead of silently changing semantics. */
+ok("case-insensitive prefix match (current behavior, intentional)",
+   startsWith("Hello", "hello"));
 
 echo "\n=== endsWith ===\n";
 ok("plain suffix",                   endsWith("filename.plg", ".plg"));
