@@ -77,8 +77,13 @@ if ($repo !== "") {
 	}
 	/* Prefer the description forwarded by the click handler over whatever the
 	   per-tab cache happens to hold — the user's seen description is the
-	   authoritative one. */
-	$clientDescription = isset($_GET['description']) ? trim((string)$_GET['description']) : "";
+	   authoritative one. The wire format is base64 (encoded by skin_helpers
+	   so it survives an onclick attribute round-trip); decode here. */
+	$clientDescription = "";
+	if (isset($_GET['description']) && $_GET['description'] !== "") {
+		$decoded = base64_decode((string)$_GET['description'], true);
+		$clientDescription = trim((string)($decoded !== false ? $decoded : ""));
+	}
 	if ($clientDescription !== "") {
 		$docker['Description'] = $clientDescription;
 	}

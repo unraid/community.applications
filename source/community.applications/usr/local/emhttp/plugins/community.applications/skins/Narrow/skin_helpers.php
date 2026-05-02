@@ -332,7 +332,7 @@ function caPrepareLanguagePack(array &$template, array &$language) {
 #######################################################################
 # Build the context menu for template actions (install/update/manage) #
 #######################################################################
-function caBuildActionsContext(array &$template, array $info, array $dockerRunning, array $dockerUpdateStatus, $selected, $name, $pluginName) {
+function caBuildActionsContext(array &$template, array $info, array $dockerUpdateStatus, $selected, $name, $pluginName) {
 		$actionsContext = [];
 
 		if ($template['Language']) {
@@ -505,8 +505,6 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 # Assemble docker-related context (warnings, info caches) for listings #
 ########################################################################
 function caDockerContext(): array {
-	$dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
-
 	if ( caIsDockerRunning() ) {
 		$info = getAllInfo();
 		$dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
@@ -677,15 +675,21 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			if ($info[$ind]['template']) {
 				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "uninstallDocker('".addslashes($info[$ind]['template'])."','{$template['Name']}');"];
 			}
-		} elseif (! ($template['Blacklist'] ?? false) || ! ($template['Compatible'] ?? false)) {
+		} elseif (! ($template['Blacklist'] ?? false)) {
+			/* The Install/Reinstall branch fires for non-blacklisted templates
+			   regardless of $template['Compatible'] — we need Reinstall and the
+			   Previous-Apps remove action to remain available even on
+			   incompatible OS versions (so the user can clean up). The fresh
+			   "Install" actions further down get gated separately by the
+			   Compatible/Deprecated checks the user has configured. */
 			if ($template['InstallPath']) {
 				$userTemplate = readXmlFile($template['InstallPath'], false, false);
-				if (! $template['Blacklist']) {
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall"), "action" => "popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
-					$actionsContext[] = ["divider" => true];
-				}
+				$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall"), "action" => "popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
+				$actionsContext[] = ["divider" => true];
 				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove from Previous Apps"), "alternate" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','{$template['Name']}');"];
 			} else {
+				$canFreshInstall = (($template['Compatible'] ?? false) || ($GLOBALS['caSettings']['hideIncompatible'] ?? "true") !== "true")
+					&& (! ($template['Deprecated'] ?? false) || ($GLOBALS['caSettings']['hideDeprecated'] ?? "true") !== "true");
 				if (! ($template['BranchID'] ?? null)) {
 					if (is_file(CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml")) {
 						$previousTemplatePath = CA_PATHS['dockerManTemplates']."/my-{$template['Name']}.xml";
@@ -696,9 +700,13 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 							$actionsContext[] = ["divider" => true];
 						}
 					}
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "popupInstallXML('".addslashes($template['Path'])."','default','".$template['PortsUsed']."');"];
+					if ($canFreshInstall) {
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "popupInstallXML('".addslashes($template['Path'])."','default','".$template['PortsUsed']."');"];
+					}
 				} else {
-					$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "displayTags('{$template['ID']}',false,'".$template['PortsUsed']."');"];
+					if ($canFreshInstall) {
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "displayTags('{$template['ID']}',false,'".$template['PortsUsed']."');"];
+					}
 				}
 			}
 		}
@@ -717,13 +725,17 @@ function caProcessPluginTemplate(array $template): array {
 
 	if ($template['Installed'])  {
 		$pluginInstalledVersion = ca_plugin("version", "/var/log/plugins/$pluginName");
+		/* The temp .plg file in /tmp/plugins/$pluginName is dropped there by the
+		   plugin updater after a fresh download. Only consider it when present
+		   AND newer than the version we already have — never blindly overwrite
+		   $template['pluginVersion'] with the result of ca_plugin() (which
+		   returns false for missing files and would break update detection). */
 		if (file_exists("/tmp/plugins/$pluginName")) {
 			$tmpPluginVersion = ca_plugin("version", "/tmp/plugins/$pluginName");
 			if ($tmpPluginVersion && strcmp($template['pluginVersion'], $tmpPluginVersion) < 0) {
 				$template['pluginVersion'] = $tmpPluginVersion;
 			}
 		}
-		$template['pluginVersion'] = ca_plugin("version", "/tmp/plugins/$pluginName");
 
 		if ((strcmp($pluginInstalledVersion, $template['pluginVersion']) < 0 || $template['UpdateAvailable']) && $template['Name'] !== "Community Applications" && (! ($template['UninstallOnly'] ?? false))) {
 			@copy(CA_PATHS['pluginTempDownload'], "/tmp/plugins/$pluginName");
@@ -951,7 +963,9 @@ function caBuildRepoMediaSection(array $repo): string {
 				continue;
 			}
 			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
-			$mediaHtml .= "<a class='screenshot' href='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></a>";
+			/* span (not <a>) so the legacy external-link click handler doesn't
+			   intercept this — magnific reads data-mfp-src for the source. */
+			$mediaHtml .= "<span class='screenshot' data-mfp-src='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></span>";
 		}
 	}
 
@@ -964,7 +978,7 @@ function caBuildRepoMediaSection(array $repo): string {
 			}
 			$thumbnail = getYoutubeThumbnail($vid);
 			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-			$mediaHtml .= "<a class='screenshot mfp-iframe videoPlayOverlay' href='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></span>";
 		}
 	}
 
@@ -1393,7 +1407,7 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;
 
 	return "
-			<div class='caButton supportButton supportButtonCardContext' id='support{$sanitizedName}' data-context='".json_encode($supportContext)."'>".tr("Support")."</div>
+			<div class='caButton supportButton supportButtonCardContext' id='support{$sanitizedName}' data-context='".json_encode($supportContext, JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP)."'>".tr("Support")."</div>
 		";
 }
 
@@ -1590,7 +1604,7 @@ function caBuildCardFlag(array $template, string $flagTextStart, string $flagTex
 	if (!empty($template['Blacklist'])) {
 		return "
 			<div class='warningCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This application template / has been blacklisted")."'>".tr("Blacklisted")."{$flagTextEnd}</div>
+				<div class='installedCardText ca_center' title='".tr("This application template has been blacklisted")."'>".tr("Blacklisted")."{$flagTextEnd}</div>
 			</div>
 		";
 	}

@@ -1056,24 +1056,33 @@ function formatTags($leadTemplate,$rename="false") {
 	$branchDefault = $template['BranchDefault'] ?? null;
 	$defaultTag = $branchDefault ? $branchDefault : "latest";
 
-	$buildRow = function($path, $label, $description) use ($type) {
+	/* Defense-in-depth: escape path and label on emit so a stray quote in feed
+	   data can't break the data-xml attribute or inject markup into the cell.
+	   $description is treated as pre-built HTML — caller is responsible for
+	   escaping any user-controlled fragments inside it (the only such fragment
+	   today is the default-tag span built with $safeDefaultTag below). */
+	$buildRow = function($path, $label, $descriptionHtml) use ($type) {
+		$safePath = htmlspecialchars((string)$path, ENT_QUOTES, 'UTF-8');
+		$safeLabel = htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8');
 		return "<tr>"
 			. "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
-			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$label</a></td>"
-			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$path'>$description</a></td>"
+			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$safePath'>$safeLabel</a></td>"
+			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$safePath'>$descriptionHtml</a></td>"
 			. "</tr>";
 	};
 
 	$rows = [];
+	$safeDefaultTag = htmlspecialchars((string)$defaultTag, ENT_QUOTES, 'UTF-8');
 	$rows[] = $buildRow(
 		$template['Path'],
 		"Default",
-		tr("Install Using The Template's Default Tag") . " (<span class='ca_bold'>:$defaultTag</span>)"
+		tr("Install Using The Template's Default Tag") . " (<span class='ca_bold'>:$safeDefaultTag</span>)"
 	);
 
 	$defaultTagDescription = $template['DefaultTagDescription'] ?? null;
 	if ( $defaultTagDescription && ! is_array($defaultTagDescription) ) {
-		$rows[] = "<tr><td></td><td></td><td>$defaultTagDescription</td></tr>";
+		$safeDesc = htmlspecialchars((string)$defaultTagDescription, ENT_QUOTES, 'UTF-8');
+		$rows[] = "<tr><td></td><td></td><td>$safeDesc</td></tr>";
 	}
 
 	foreach ($childTemplates as $child) {
@@ -1085,7 +1094,7 @@ function formatTags($leadTemplate,$rename="false") {
 		$rows[] = $buildRow(
 			$childTemplate['Path'] ?? "",
 			$childTemplate['BranchName'] ?? "",
-			$childTemplate['BranchDescription'] ?? ""
+			htmlspecialchars((string)($childTemplate['BranchDescription'] ?? ""), ENT_QUOTES, 'UTF-8')
 		);
 	}
 

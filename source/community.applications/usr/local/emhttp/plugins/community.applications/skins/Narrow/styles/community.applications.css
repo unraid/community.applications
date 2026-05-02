@@ -2361,6 +2361,14 @@ input[type="button"] {
 		pointer-events: auto;
 	}
 
+	/* While a SweetAlert is on screen the overlay must remain visible — other CA
+	   layers (sidebar dim, search-modal backdrop, magnific) can otherwise either
+	   fade or be display:none'd via their own scoped rules and leave the swal
+	   sitting on a non-scrim'd page. */
+	body:has(.sweet-alert.showSweetAlert) .sweet-overlay {
+		display: block !important;
+	}
+
 	/* SweetAlert (swal) sets inline background/opacity on the overlay; match CA scrim + transition. */
 	.sweet-overlay {
 		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;

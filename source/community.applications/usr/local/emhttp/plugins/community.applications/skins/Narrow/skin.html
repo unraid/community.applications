@@ -219,26 +219,31 @@ $(function() {
 			<div class='ca_moderationDetails'></div>
 		</div>
 	</div>
+	<!-- Source template — gets cloned into #sidenavContent via showAlternateView.
+	     Inner descendants use classes instead of IDs to avoid duplicate-ID
+	     conditions (the source remains in the hidden DOM after cloning). -->
 	<div id='caModerationFixedTemplate'>
 		<div class='caModerationFixedRoot'>
 			<div class='caModerationFixedIntro'></div>
 			<div class='ca_center caModerationJumpWrap'>
-				<label for='caFixedRepoJump' class='caModerationJumpLabel'><?tr("Jump to repository");?>:</label>
-				<select id='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>
-					<option value=''><?tr("Select repository");?></option>
-				</select>
+				<label class='caModerationJumpLabel'>
+					<span><?tr("Jump to repository");?>:</span>
+					<select class='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>
+						<option value=''><?tr("Select repository");?></option>
+					</select>
+				</label>
 				<span class='caModerationJumpLinks'>
-					<span class='popUpLink caModerationJumpPluginDupes ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection("#caFixedPluginDupesSection");'><?tr("Duplicated plugin filenames");?></span>
+					<span class='popUpLink caModerationJumpPluginDupes ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection(".caModerationFixedPluginDupes");'><?tr("Duplicated plugin filenames");?></span>
 					<span class='caModerationJumpSep ca_hide'> | </span>
-					<span class='popUpLink caModerationJumpDuplicateRepos ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection("#caFixedDuplicateReposSection");'><?tr("Duplicated repositories");?></span>
+					<span class='popUpLink caModerationJumpDuplicateRepos ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection(".caModerationFixedDuplicateRepos");'><?tr("Duplicated repositories");?></span>
 				</span>
 			</div>
 			<div class='ca_center caModerationToggleAllWrap'>
-				<span id='caFixedToggleAll' class='caButton' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></span>
+				<span class='caFixedToggleAll caButton' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></span>
 			</div>
 			<div class='ca_moderationList caModerationFixedList'></div>
-			<div id='caFixedPluginDupesSection' class='caModerationFixedPluginDupes'></div>
-			<div id='caFixedDuplicateReposSection' class='caModerationFixedDuplicateRepos'></div>
+			<div class='caModerationFixedPluginDupes'></div>
+			<div class='caModerationFixedDuplicateRepos'></div>
 		</div>
 	</div>
 	<div id='caModerationFixedRepoTemplate'>

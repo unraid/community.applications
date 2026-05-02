@@ -261,7 +261,7 @@ class GetContentHelpers {
 			return;
 		}
 
-		if ( strpos($filter,"/") && filterMatch($filter,[$template['Repository']]) ) {
+		if ( strpos($filter,"/") !== false && filterMatch($filter,[$template['Repository']]) ) {
 			$searchResults['nameHit'][] = $template;
 			return;
 		}
@@ -311,7 +311,7 @@ class GetContentHelpers {
 			}
 		}
 
-		if ( isset($searchResults['nameHit']) && ! strpos($filter," Repository") ) {
+		if ( isset($searchResults['nameHit']) && strpos($filter," Repository") === false ) {
 			if ( $GLOBALS['caSettings']['favourite'] && $GLOBALS['caSettings']['favourite'] !== "none" ) {
 				usort($searchResults['nameHit'],"favouriteSort");
 			}

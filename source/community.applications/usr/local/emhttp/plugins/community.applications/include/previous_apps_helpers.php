@@ -1,6 +1,19 @@
 <?php
 
 class PreviousAppsHelpers {
+	/* Strip a docker image tag without breaking registry ports.
+	   `registry:5000/ns/app:latest` → `registry:5000/ns/app`
+	   `library/foo:latest`           → `library/foo`
+	   `library/foo`                  → `library/foo`
+	   The port colon comes BEFORE the last slash; the tag colon comes AFTER. */
+	private static function stripImageTag(string $repository): string {
+		$lastSlash = strrpos($repository, "/");
+		$lastColon = strrpos($repository, ":");
+		if ($lastColon === false) return $repository;
+		if ($lastSlash !== false && $lastColon < $lastSlash) return $repository;
+		return substr($repository, 0, $lastColon);
+	}
+
 	public static function clearPreviousAppsCaches() {
 		$paths = [
 			'community-templates-allSearchResults',
@@ -102,7 +115,7 @@ class PreviousAppsHelpers {
 				$isRunning = true;
 				$searchResult = searchArray($templates,'Repository',$template['Repository']);
 				if ( $searchResult === false ) {
-					$searchResult = searchArray($templates,'Repository',explode(":",$template['Repository'])[0]);
+					$searchResult = searchArray($templates,'Repository',self::stripImageTag($template['Repository']));
 				}
 
 				if ( $searchResult !== false ) {
@@ -214,7 +227,7 @@ class PreviousAppsHelpers {
 			}
 
 			$foundflag = false;
-			$testRepo = explode(":",$template['Repository'])[0];
+			$testRepo = self::stripImageTag($template['Repository']);
 
 			if ( $template['TemplateURL'] ?? false ) {
 				$search = searchArray($templates,'TemplateURL',$template['TemplateURL']);

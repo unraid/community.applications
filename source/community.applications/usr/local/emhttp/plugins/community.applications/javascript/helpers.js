@@ -69,7 +69,42 @@ function enableButtons() {
 }
 
 function refreshDisplay() {
-	changeSortOrder(null,null,null);
+	/* changeSortOrder() refetches a SINGLE page (data.currentpage), which is
+	   fine for sort-button clicks (user expects to land back at the top) but
+	   breaks the scroll model when install/uninstall hooks call us from a
+	   deep-scroll position: the cardCache gets replaced with just the current
+	   page's slice and there's nothing to restore when the user scrolls up.
+	   Bulk-load pages 1..currentpage in a single fetch, then put the viewport
+	   back where it was. Reuses post()'s callback so we don't poll. */
+	var savedPage    = parseInt(data.currentpage, 10) || 1;
+	var savedPerPage = parseInt(data.maxPerPage, 10) || (typeof getMaxPerPage === "function" ? getMaxPerPage() : 12);
+	if (savedPage <= 1) {
+		changeSortOrder(null, null, null);
+		return;
+	}
+	var $ma = $(".mainArea");
+	var savedScrollTop = $ma.length ? ($ma[0].scrollTop || 0) : 0;
+	var startup = false;
+	$(".startupButton").each(function() { if ($(this).hasClass("selectedMenu")) startup = "true"; });
+	data.allLoaded = false;
+	data.searchFlag = false;
+	post({
+		action:     "display_content",
+		pageNumber: 1,
+		selected:   data.selected,
+		startup:    startup,
+		maxPerPage: savedPage * savedPerPage
+	}, function(result) {
+		updateDisplay(result.display_data || result.display);
+		/* Put the viewport back where the user was. updateDisplay just rebuilt
+		   the DOM with all cards through the user's page, so scrollTop maps to
+		   the same content. Restore on the next frame so layout has settled. */
+		data.currentpage = savedPage;
+		data.maxPerPage  = savedPerPage;
+		requestAnimationFrame(function() {
+			if ($ma.length) $ma[0].scrollTop = savedScrollTop;
+		});
+	});
 }
 
 function makePlural(string,count) {

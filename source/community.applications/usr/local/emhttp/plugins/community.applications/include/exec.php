@@ -198,9 +198,6 @@ switch ($_POST['action']) {
 	case 'checkPluginInProgress':
 		checkPluginInProgress();
 		break;
-	case 'clearPluginInstallFlag':
-		clearPluginInstallFlag();
-		break;
 	case 'networkAlreadyCreated':
 		networkAlreadyCreated();
 		break;
@@ -2247,8 +2244,15 @@ function convert_docker() {
 	$dockerfile['Name'] = (string)($docker['Name'] ?? caDockerNameFromRepo($repo));
 	/* Prefer the description forwarded from the click handler — that's the
 	   description the user actually saw on the card. Falls back to whatever
-	   the cache has, then to empty. */
-	$clientDescription = trim((string)getPost("description", ""));
+	   the cache has, then to empty. The wire format is base64 (encoded by
+	   skin_helpers so it survives an onclick attribute round-trip); decode
+	   here at the boundary. */
+	$clientDescription = "";
+	$postedDescription = (string)getPost("description", "");
+	if ($postedDescription !== "") {
+		$decoded = base64_decode($postedDescription, true);
+		$clientDescription = trim((string)($decoded !== false ? $decoded : ""));
+	}
 	$rawDescription = $clientDescription !== "" ? $clientDescription : (string)($docker['Description'] ?? "");
 	$description = str_replace("&", "&amp;", $rawDescription);
 	$dockerHubUrl = (string)($docker['DockerHub'] ?? caDockerHubUrlFromRepo($repo));
@@ -2627,25 +2631,31 @@ function downloadStatistics() {
 }
 
 ###########################################################################
-# Checks to see if a plugin installation or update is already in progress #
+# Checks to see if THIS plugin's install/update is already in progress    #
+# by looking for its basename inside CA_PATHS['pluginPending']. The caller #
+# passes whatever it has (a .plg URL, /var/log/plugins/foo.plg path, etc); #
+# basename normalizes them all to "foo.plg". If no path is provided the   #
+# answer is "not in progress" (we can't lock against an unknown).         #
 ###########################################################################
 function checkPluginInProgress() {
 
-	$pluginsPending = glob(CA_PATHS['pluginPending']."/*");
-
-	postReturn(['inProgress'=>empty($pluginsPending)? "" : "true"]);
-}
-
-###################################
-# Clears any plugin pending flags #
-###################################
-function clearPluginInstallFlag() {
-
-	$pluginsPending = glob(CA_PATHS['pluginPending']."/*");
-	array_walk($pluginsPending,function($val,$key) {
-		@unlink($val);
-	});
-	postreturn(['done']);
+	$pluginPath = trim((string)getPost("pluginPath",""));
+	if ($pluginPath === "") {
+		postReturn(['inProgress' => ""]);
+		return;
+	}
+	$pluginName = basename($pluginPath);
+	if ($pluginName === "" || $pluginName === "." || $pluginName === "..") {
+		postReturn(['inProgress' => ""]);
+		return;
+	}
+	$flag = rtrim(CA_PATHS['pluginPending'], "/") . "/" . $pluginName;
+	/* PHP caches stat results within a process; on a long-lived FPM worker the
+	   cached state from an earlier request can be stale (an install script in
+	   another process may have created or removed this flag in the meantime).
+	   Targeted clearstatcache() forces a fresh fs lookup for just this path. */
+	clearstatcache(true, $flag);
+	postReturn(['inProgress' => is_file($flag) ? "$flag" : ""]);
 }
 
 function networkAlreadyCreated() {

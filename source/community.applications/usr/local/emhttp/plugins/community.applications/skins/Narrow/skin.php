@@ -271,7 +271,9 @@ function displayPopup($template) {
 					continue;
 				}
 				$safeShot = htmlspecialchars($shot, ENT_QUOTES);
-				$mediaSections[] = "<a class='screenshot mfp-image' href='$safeShot'><img class='screen' src='$safeShot'></img></a>";
+				/* span (not <a>) so the legacy external-link click handler doesn't
+				   intercept this — magnific uses data-mfp-src as the source. */
+				$mediaSections[] = "<span class='screenshot mfp-image' data-mfp-src='$safeShot'><img class='screen' src='$safeShot'></img></span>";
 			}
 		}
 		if ($Video) {
@@ -282,7 +284,7 @@ function displayPopup($template) {
 				}
 				$thumbnail = getYoutubeThumbnail($vid);
 				$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-				$mediaSections[] = "<a class='screenshot mfp-iframe videoPlayOverlay' href='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></a>";
+				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></span>";
 			}
 		}
 		if ($mediaSections) {
@@ -475,8 +477,8 @@ function displayPopup($template) {
 					<?php if ($Repo || $Private): ?>
 						<div class='popupInfoLeft'>
 							<?php $safeProfileIcon = validURL($ProfileIcon) ? htmlspecialchars($ProfileIcon, ENT_QUOTES) : ""; ?>
-							<?php $remoteIconPrefix = $safeProfileIcon ? "<a class='screenshot mfp-image' href='$safeProfileIcon'>" : ""; ?>
-							<?php $remoteIconPostfix = $remoteIconPrefix ? "</a>" : ""; ?>
+							<?php $remoteIconPrefix = $safeProfileIcon ? "<span class='screenshot mfp-image' data-mfp-src='$safeProfileIcon'>" : ""; ?>
+							<?php $remoteIconPostfix = $remoteIconPrefix ? "</span>" : ""; ?>
 							<div class='popupAuthorTitle'><?= tr("Maintainer") ?></div>
 							<div>
 								<div class='popupAuthor'><?= $RepoName ?></div>
@@ -790,7 +792,7 @@ function getPopupDescriptionSkin($appNumber) {
 	$template['CAComment'] = caApplySidebarSearchLinks($template['CAComment']);
 	$template['Requires'] = caNormalizeRequiresField($template['Requires']);
 
-	$actionsContext = caBuildActionsContext($template, $info, $dockerRunning, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
+	$actionsContext = caBuildActionsContext($template, $info, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
 
 	if ($template['Language']) {
 		$actionsContext = caBuildLanguageActions($template, $countryCode, $actionsContext);
@@ -839,8 +841,8 @@ function getRepoDescriptionSkin($repository) {
 	$repo = $repositories[$repository] ?? [];
 	$iconUrl = $repo['icon'] ?? null;
 	$safeIconUrl = ($iconUrl && validURL($iconUrl)) ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
-	$iconPrefix = $safeIconUrl ? "<a class='screenshot mfp-image' href='{$safeIconUrl}'>" : "";
-	$iconPostfix = $iconUrl ? "</a>" : "";
+	$iconPrefix = $safeIconUrl ? "<span class='screenshot mfp-image' data-mfp-src='{$safeIconUrl}'>" : "";
+	$iconPostfix = $safeIconUrl ? "</span>" : "";
 	$repoIcon = $safeIconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";
 	$repoBio = isset($repo['bio']) ? markdown($repo['bio']) : "<br><center>".tr("No description present");
 	$favRepoClass = ($GLOBALS['caSettings']['favourite'] == $repository) ? "fav" : "nonfav";

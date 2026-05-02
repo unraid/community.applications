@@ -133,7 +133,7 @@ function renderModerationFixed(payload) {
 	const notes = caEscapeHtml(payload.notes || "");
 	const helpUrl = caEscapeHtml(payload.helpUrl || "#");
 	$fixed.find(".caModerationFixedIntro").html(intro + "<br><br>" + notes + " <a href='" + helpUrl + "' target='_blank'>" + tr("HERE") + "</a><br><br>");
-	const $jump = $fixed.find("#caFixedRepoJump");
+	const $jump = $fixed.find(".caFixedRepoJump");
 	repos.forEach(function(repo, idx) {
 		$jump.append($("<option></option>").val("caFixedItem" + idx).text(repo.name || ""));
 	});
@@ -219,7 +219,7 @@ function caSetAllFixedDetails(showAll) {
 	if (!$root.length) return;
 	$root.find(".ca_fixedDetails").css("display", showAll ? "block" : "none");
 	$root.find(".ca_fixedToggle").html(showAll ? "<i class='fa fa-minus' aria-hidden='true'></i>" : "<i class='fa fa-plus' aria-hidden='true'></i>");
-	var $allButton = $root.find("#caFixedToggleAll").first();
+	var $allButton = $root.find(".caFixedToggleAll").first();
 	if ($allButton.length) {
 		$allButton.attr("data-show-all", showAll ? "1" : "0");
 		$allButton.text(showAll ? tr("Hide All") : tr("Show All"));
@@ -235,7 +235,7 @@ function caSyncFixedToggleAllState() {
 	var $root = $("#sidenavContent .moderationContainer").first();
 	if (!$root.length) return;
 	var $sections = $root.find(".ca_fixedDetails");
-	var $allButton = $root.find("#caFixedToggleAll").first();
+	var $allButton = $root.find(".caFixedToggleAll").first();
 	if (!$allButton.length || !$sections.length) return;
 	var anyExpanded = $sections.toArray().some(function(el) {
 		return $(el).css("display") !== "none";
