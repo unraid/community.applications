@@ -16,7 +16,7 @@ e43ab27bd51896cc260f9430c1f94945  ./include/helpers.php
 66361adff468f8cff0588f0a39a08458  ./javascript/statistics.js
 cc10aef83373044da351b5c3db1bb47c  ./javascript/Untitled
 cb18b0f14ad17d795adc2793a8ff0477  ./javascript/helpers.js
-0eb68129e51633dc44a22b6f7aeabc64  ./javascript/clickHandlers.js
+d2e8a89e4fada1ddfc7fb0b19e987ddf  ./javascript/clickHandlers.js
 5d4bd67852f602f59d6e7da06eb97e01  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook

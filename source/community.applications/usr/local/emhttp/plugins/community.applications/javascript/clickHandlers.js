@@ -964,13 +964,9 @@ function caInitializeClickHandlers() {
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { changeSortOrder(); });
 	});
 	$("body").on("click", ".languageSwitch", function() { CAswitchLanguage($(this).data("language")); });
-	$("body").on("click", ".languageInstall", function() { installLanguage($(this).data("language_xml"), $(this).data("language")); });
-	$("body").on("click", ".languageRemove", function() { removeLanguage($(this).data("language")); });
-	$("body").on("click", ".languageUpdate", function() { updateLanguage($(this).data("language")); });
 	$("body").on("click", ".popUpClose", function() { closeSidebar(); });
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
 	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
-	$("body").on("click", ".removeApp", function() { removeApp($(this).data("path"), $(this).data("name")); });
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
 }
 
