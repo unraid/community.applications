@@ -952,7 +952,9 @@ function displayCard($template) {
 		}
 	}
 
-	$class = "spotlightHome";
+	/* Repository cards aren't app templates — only stamp ca_appTemplate on
+	   non-repo (and non-docker, handled separately) cards. */
+	$class = !empty($template['RepositoryTemplate']) ? "" : "ca_appTemplate";
 	$repoName = $template['RepoName'] ?? "";
 	[$appType, $typeTitle] = caResolveAppType($template);
 

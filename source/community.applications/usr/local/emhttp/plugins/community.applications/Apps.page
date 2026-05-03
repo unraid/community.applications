@@ -480,7 +480,7 @@ $(function(){
 					var _restoreAttempts = 0;
 					var _restoreScroll = function() {
 						if ($.isArray(data.cardCache) && data.cardCache.length > _restoreTarget) {
-							var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+							var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 							var perRow = $cards.length ? caVirtCardsPerRow($cards) : 0;
 							var rowH   = (perRow > 0) ? caVirtRowHeight($cards, perRow) : 0;
 							if (perRow > 0 && rowH > 0) {
@@ -1761,7 +1761,7 @@ function caUpdateDisplayCount() {
 	var last = Math.min(offset + loaded, total);
 
 	var mainArea = $(".mainArea")[0];
-	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 	if (mainArea && $cards.length && typeof caVirtCardsPerRow === "function" && typeof caVirtRowHeight === "function") {
 		var perRow = caVirtCardsPerRow($cards);
 		var rowH = caVirtRowHeight($cards, perRow);
@@ -2888,7 +2888,7 @@ function postCheckForUpdates() {
 function caVirtSpacer() {
 	var $spacer = $("#templates_content .ca_virtTopSpacer").first();
 	if ($spacer.length) return $spacer;
-	var $first = $("#templates_content").find(".ca_holder, .dockerHubHolder").first();
+	var $first = $("#templates_content").find(".ca_holder").first();
 	if (!$first.length) return $();
 	$spacer = $("<div class='ca_virtTopSpacer'></div>").css({
 		width: "100%",
@@ -2933,7 +2933,7 @@ function caVirtUpdate() {
 	   Centre / Installed Apps) we keep the full DOM around so things like
 	   Select All can operate on every checkbox at once. */
 	if (data.allLoaded) return;
-	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 	if ($cards.length < 24) return;
 
 	var perRow = caVirtCardsPerRow($cards);
@@ -3017,7 +3017,7 @@ function caEnsureScrollable() {
 	if (!el) return;
 
 	var rowHeight = 4;
-	var $card = $("#templates_content").find(".ca_holder, .dockerHubHolder").first();
+	var $card = $("#templates_content").find(".ca_holder").first();
 	if ($card.length) {
 		var rect = $card[0].getBoundingClientRect();
 		var style = getComputedStyle($card[0]);

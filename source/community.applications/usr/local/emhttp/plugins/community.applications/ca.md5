@@ -1,4 +1,4 @@
-a9df15cce4821ec3ea0236d00463d14b  ./Apps.page
+0a8b512a1fe52e4e5afbe586f6a9e177  ./Apps.page
 9d7f1be426a0abbdbc41ce68cdaf1df8  ./CA_notices.page
 8dc2ca6d9cd7011d3443ffbb164d7c72  ./LICENSE
 71f911a818d88d3d567f8a2898094ee2  ./README.md
@@ -10,13 +10,13 @@ dc5ee49892cce8dbdf94187f39ecf94c  ./include/paths.php
 012aecb59635a34fbc56999b4ed5c523  ./include/populate_autocomplete_helpers.php
 16e18d0276e4a60ae27af20e5683f554  ./include/get_content_helpers.php
 e43ab27bd51896cc260f9430c1f94945  ./include/helpers.php
-ff6427e7b0d2bb7537021fe9a7ad7c51  ./include/exec.php
 34ebbb175ab22509d72a205b251ae466  ./include/previous_apps_helpers.php
+8c3fd8620b6121b2b8c701a700ec1a08  ./include/exec.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 66361adff468f8cff0588f0a39a08458  ./javascript/statistics.js
 cc10aef83373044da351b5c3db1bb47c  ./javascript/Untitled
-d922833a1b8b9768d6fa3c954c673688  ./javascript/clickHandlers.js
 cb18b0f14ad17d795adc2793a8ff0477  ./javascript/helpers.js
+0eb68129e51633dc44a22b6f7aeabc64  ./javascript/clickHandlers.js
 5d4bd67852f602f59d6e7da06eb97e01  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook
@@ -35,11 +35,11 @@ a1fcea107852290a424810f87d4c091c  ./scripts/languageInstall.sh
 71f5da75afcceafc11f65e557dbb45df  ./scripts/dockerConvert.php
 89d83e877e3f8b4d39a1615da9d651bf  ./skins/Narrow/styles/community.applications.responsive.css
 9329240ddb729a2b0abe84a5e4ba01ec  ./skins/Narrow/styles/community.applications.colors.css
-cc4831c002a2a661a5f79770a2d8ecaf  ./skins/Narrow/styles/community.applications.css
+d30c9fbbe3cc04bdbcd34f545c1e9f26  ./skins/Narrow/styles/community.applications.css
 18c984c0eb6ae1e4cc2eaa96d9732e1c  ./skins/Narrow/themes/black.css
 229a6da48382c09cc0f1908e44ec5950  ./skins/Narrow/themes/azure.css
 0aa451e5aeab2eea5d6b358920ec28b2  ./skins/Narrow/themes/gray.css
 128d9dd0143b023b5036f06711f55bcb  ./skins/Narrow/themes/white.css
-97e0c39c2d7c8c0a9d87dca69462adef  ./skins/Narrow/skin_helpers.php
-e4a92fe602d22720d89f29da1807ca04  ./skins/Narrow/skin.php
-e240b43765329055d1401ad54bc42829  ./skins/Narrow/skin.html
+868eb4f1e22c85a02faa51e6bfc7156c  ./skins/Narrow/skin.html
+b8b3266f4e02387845ba6725ef926b68  ./skins/Narrow/skin_helpers.php
+8ffa584139208c53a26e3a9ad5c88101  ./skins/Narrow/skin.php

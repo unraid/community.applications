@@ -228,12 +228,11 @@ body,
 
 /* 2.1) Cards & Containers
 -------------------------------------------------------------------------- */
-.ca_holder,
-.dockerHubHolder {
+.ca_holder {
 	/* Layout */
 	float: left;
-	height: 20rem;
-	width:24rem;
+	height: 24rem;
+	width: 36rem;
 	padding: 1.25rem 0.625rem 1.25rem 1.25rem;
 	margin: 0 1rem 1rem 0;
 	font-size: 1.2rem;
@@ -252,11 +251,10 @@ body,
 	   viewport. The intrinsic-size hint lets the browser reserve space without
 	   rendering the contents until the card scrolls close. */
 	content-visibility: auto;
-	contain-intrinsic-size: auto 24rem 20rem;
+	contain-intrinsic-size: auto 36rem 24rem;
 }
 
-.ca_holder:hover,
-.dockerHubHolder:hover {
+.ca_holder:hover {
 	background-color: var(--template-hover-background);
 	box-shadow: 5px 5px 5px -3px var(--ca-shadow-color);
 }
@@ -2639,17 +2637,6 @@ input[type="button"] {
 	.spotlightDateSidebar {
 		margin-left: 0.5rem !important;
 	}
-
-	.spotlightHome {
-		width: 36rem !important;
-		height: 24rem !important;
-		margin-bottom: 1rem;
-	}
-	/* might not be needed
-	.Theme--legacyOS .caHomeSpotlight {
-	height: 27rem !important;
-}
-	*/
 
 	.spotlightHeader {
 		font-size: 2rem;

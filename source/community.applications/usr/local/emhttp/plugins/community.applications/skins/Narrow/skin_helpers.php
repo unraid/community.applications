@@ -1365,7 +1365,7 @@ function caBuildBottomLineSection(
 		$backgroundClickable = "dockerCardBackground";
 		$safeDockerHub = htmlspecialchars($template['DockerHub'], ENT_QUOTES);
 		$cardStart = "
-			<div class='dockerHubHolder {$class} {$popupType}'>";
+			<div class='ca_holder ca_dockerTemplate {$popupType}'>";
 		$card .= "
 			<div class='ca_bottomLine {$bottomClass}'>
 			<div class='caButton infoButton_docker ca_href' data-href='{$safeDockerHub}'>".tr("Docker Hub")."</div>

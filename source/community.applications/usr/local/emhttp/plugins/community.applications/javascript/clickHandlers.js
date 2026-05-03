@@ -149,7 +149,7 @@ function caInitializeClickHandlers() {
 					   set from caRenderPageNavigation) instead. Fall back to the local
 					   calc above if any required signal is missing. */
 					if (entry.alwaysShowVertical && typeof data !== "undefined" && data.totalApps > 0 && Array.isArray(data.cardCache)) {
-						var $virtCards = $("#templates_content .ca_templatesDisplay").find(".ca_holder, .dockerHubHolder");
+						var $virtCards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 						var perRow = (typeof caVirtCardsPerRow === "function") ? caVirtCardsPerRow($virtCards) : 1;
 						var rowH = (typeof caVirtRowHeight === "function") ? caVirtRowHeight($virtCards, perRow) : 0;
 						if (perRow > 0 && rowH > 0) {
@@ -802,16 +802,6 @@ function caInitializeClickHandlers() {
 				openNewWindow("/Apps/AddContainer?xmlTemplate=" + type + ":" + xml);
 			}
 		});
-	});
-	$("body").on("click", ".pluginInstall", function() { installPlugin($(this).data("url"), $(this).data("update") ? true : false); });
-	$("body").on("click", ".uninstallApp", function() {
-		var type = $(this).data("type");
-		var name = $(this).data("name");
-		var app = $(this).data("app");
-		if (type === "docker")
-			uninstallDocker(app, name);
-		else
-			uninstallApp(app, name);
 	});
 	$("body").on("click", ".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function(e) {
 		e.stopPropagation();

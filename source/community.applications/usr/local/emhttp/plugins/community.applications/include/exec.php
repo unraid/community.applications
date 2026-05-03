@@ -1036,7 +1036,7 @@ function get_content() {
 			continue;
 		}
 		if ( $categoryRegex === "/spotlight:/i" ) {
-			$template['class'] = "spotlightHome";
+			$template['class'] = "ca_appTemplate";
 		}
 
 		if ( ($template['Plugin']??null) && file_exists("/var/log/plugins/".basename($template['PluginURL'])) ) {
