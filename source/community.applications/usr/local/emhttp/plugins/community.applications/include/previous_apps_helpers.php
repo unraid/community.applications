@@ -305,7 +305,16 @@ class PreviousAppsHelpers {
 				continue;
 			}
 
-			$filename = pathinfo($template['Repository'],PATHINFO_BASENAME);
+			/* Derive $filename from PluginURL — checkInstalledPlugin() and the
+			   /var/log/plugins/... checks below are keyed off the installed
+			   plugin filename produced by the plugin system, which comes from
+			   PluginURL. Repository can diverge for custom XML, leaving us
+			   reading the wrong file. */
+			$pluginUrl = $template['PluginURL'] ?? null;
+			if ( ! $pluginUrl ) {
+				continue;
+			}
+			$filename = basename($pluginUrl);
 			if ( ! checkInstalledPlugin($template) ) {
 				continue;
 			}

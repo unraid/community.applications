@@ -278,12 +278,12 @@ function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 		}
 
 		if (is_array($template['trends'])) {
-			if (count($template['trends']) < count($template['downloadtrend'])) {
+			if (is_array($template['downloadtrend']) && count($template['trends']) < count($template['downloadtrend'])) {
 				array_shift($template['downloadtrend']);
 			}
 
 			$chartLabel = $template['trendsDate'];
-			if (is_array($template['downloadtrend'])) {
+			if (is_array($template['downloadtrend']) && !empty($template['downloadtrend'])) {
 				$minDownload = intval(((100 - $template['trends'][0]) / 100) * ($template['downloadtrend'][0]));
 				foreach ($template['downloadtrend'] as $download) {
 					$totalDown[] = $download;
@@ -531,6 +531,12 @@ function caDockerContext(): array {
 	if ( caIsDockerRunning() ) {
 		$info = getAllInfo();
 		$dockerUpdateStatus = readJsonFile(CA_PATHS['dockerUpdateStatus']);
+		/* readJsonFile returns whatever the file decodes to — coerce to array
+		   so caProcessDockerTemplate's typed array param doesn't trip when
+		   the file is empty / scalar / corrupted. */
+		if ( ! is_array($dockerUpdateStatus) ) {
+			$dockerUpdateStatus = [];
+		}
 	} else {
 		$info = [];
 		$dockerUpdateStatus = [];
