@@ -358,15 +358,26 @@ class PreviousAppsHelpers {
 
 	private static function collectInstalledLanguagePacks($templates, $isActionCentre, &$updateCount) {
 		$displayed = [];
-		$languagesDir = CA_PATHS['languageInstalled'] ?? null;
+		/* Source the user's installed language *plugins* from the boot config
+		   directory (lang-<code>.xml files) — not /usr/local/emhttp/languages/
+		   which holds the runtime-extracted folders. languageCheck() and the
+		   plugin-system both treat lang-<code>.xml as the source of truth. */
+		$languagesDir = CA_PATHS['installedLanguages'] ?? null;
 
 		if ( ! $languagesDir || ! is_dir($languagesDir) ) {
 			return $displayed;
 		}
 
-		$installedLanguages = array_diff(scandir($languagesDir) ?: [],[".","..","en_US"]);
+		$entries = scandir($languagesDir) ?: [];
 
-		foreach ($installedLanguages as $language) {
+		foreach ($entries as $entry) {
+			if ( preg_match('/^lang-(.+)\.xml$/', $entry, $matches) !== 1 ) {
+				continue;
+			}
+			$language = $matches[1];
+			if ( $language === "en_US" ) {
+				continue;
+			}
 			$index = searchArray($templates,"LanguagePack",$language);
 			if ( $index === false ) {
 				continue;

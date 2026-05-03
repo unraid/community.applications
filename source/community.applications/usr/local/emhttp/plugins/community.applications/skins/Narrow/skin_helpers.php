@@ -683,7 +683,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			$tmpRepo = $hasTag ? $template['Repository'] : "{$template['Repository']}:latest";
 			$tmpRepo = strpos($tmpRepo, "/") !== false ? $tmpRepo : "library/$tmpRepo";
 
-			if (isset($dockerUpdateStatus[$tmpRepo]) && $dockerUpdateStatus[$tmpRepo]['status'] == "false") {
+			if (($dockerUpdateStatus[$tmpRepo]['status'] ?? null) === "false") {
 				$template['UpdateAvailable'] = true;
 				$actionsContext[] = ["icon" => "ca_fa-update", "text" => tr("Update"), "action" => "updateDocker('$name');"];
 			} else {
@@ -984,7 +984,7 @@ function caBuildRepoDonationSection(array $repo): string {
 	return "
 			<div class='donateArea'>
 				<div class='repoDonateText'>{$donateText}</div>
-				<a class='caButton donate' href='{$safeDonate}' target='_blank'>$donateLabel</a>
+				<a class='caButton donate' href='{$safeDonate}' target='_blank' rel='noopener noreferrer'>$donateLabel</a>
 			</div>
 	";
 }
@@ -1080,7 +1080,7 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 
 	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url']) && validURL($repo['url'])) {
 		$safeRepoUrl = htmlspecialchars($repo['url'], ENT_QUOTES);
-		$rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$safeRepoUrl}' target='_blank'>".tr("Repository URL")."</a></td></tr>";
+		$rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$safeRepoUrl}' target='_blank' rel='noopener noreferrer'>".tr("Repository URL")."</a></td></tr>";
 	}
 
 	$rows[] = "<tr><td class='repoLeft'>".tr("Total Applications")."</td><td class='repoRight'>{$totals['apps']}</td></tr>";
