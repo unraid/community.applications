@@ -135,6 +135,12 @@ class PreviousAppsHelpers {
 					$template['CardDescription'] = $tmpOvr;
 					$template['InstallPath'] = $tempPath;
 					$template['SortName'] = str_replace("-"," ",$template['Name']);
+					/* Preserve the catalog Repository before we overwrite it with the
+					   running image name — moderation overrides ($extraBlacklist /
+					   $extraDeprecated) are keyed by the canonical catalog repository,
+					   and the running image often carries a tag or registry prefix
+					   that wouldn't match those keys. */
+					$catalogRepo = $template['Repository'];
 					$template['Repository'] = $installedDocker['Image'];
 				}
 
@@ -167,13 +173,16 @@ class PreviousAppsHelpers {
 				}
 
 				if ( ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) ) {
-					if ( $extraBlacklist[$template['Repository']] ?? false ) {
+					/* Look up overrides by $catalogRepo (saved above) — $template['Repository']
+					   here is the running image name and won't match the catalog-keyed override map. */
+					$overrideKey = $catalogRepo ?? $template['Repository'];
+					if ( $extraBlacklist[$overrideKey] ?? false ) {
 						$template['Blacklist'] = true;
-						$template['ModeratorComment'] = $extraBlacklist[$template['Repository']];
+						$template['ModeratorComment'] = $extraBlacklist[$overrideKey];
 					}
-					if ( $extraDeprecated[$template['Repository']] ?? false ) {
+					if ( $extraDeprecated[$overrideKey] ?? false ) {
 						$template['Deprecated'] = true;
-						$template['ModeratorComment'] = $extraDeprecated[$template['Repository']];
+						$template['ModeratorComment'] = $extraDeprecated[$overrideKey];
 					}
 				}
 

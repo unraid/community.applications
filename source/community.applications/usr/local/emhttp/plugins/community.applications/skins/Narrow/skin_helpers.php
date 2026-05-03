@@ -785,10 +785,14 @@ function caProcessPluginTemplate(array $template): array {
 			}
 			$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ", "&#32;", $template['Name'])."');"];
 		}
-	} elseif (! $template['Blacklist'] || ! $template['Compatible']) {
+	} elseif (! $template['Blacklist']) {
 		$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
 		$isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
-		$isDeprecated = $template['Compatible'] ? "&incompatible" : $isDeprecated;
+		/* If the template is *not* compatible we want to flag the install URL
+		   with &incompatible so the install handler can warn — the previous
+		   `$template['Compatible'] ? "&incompatible" : ...` had the polarity
+		   inverted, marking compatible installs as incompatible. */
+		$isDeprecated = ! $template['Compatible'] ? "&incompatible" : $isDeprecated;
 
 		$updateFlag = false;
 		$requiresText = "";
