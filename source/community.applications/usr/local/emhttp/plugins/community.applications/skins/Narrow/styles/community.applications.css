@@ -71,10 +71,14 @@ body:has(.sidenavShow) {
 .ca_move_to_end::before {
 	font-family: fontAwesome;
 }
-/* Branch chooser rows in the install popup are clickable but rendered as
-   <a> without href, so the browser doesn't switch to a pointer by default. */
+/* Branch chooser rows in the install popup — rendered as <span> with
+   role='button' so screen readers / keyboard nav treat them correctly.
+   Cursor + hover color match the rest of CA's clickable text affordances. */
 .xmlInstall {
 	cursor: pointer;
+}
+.xmlInstall:hover {
+	color: var(--unraid-66-color);
 }
 .ca_back_to_top::before {
 	content: "\f0aa"; /* fa-arrow-circle-up */
@@ -168,6 +172,49 @@ a {
 /* Move the banners to the very top of the page.  When displayed, it covers up part of the search area when display scrolled */
 .upgrade_notice {
 	top: 0rem !important;
+}
+/* Drop .upgrade_notice below the .ca_modal_overlay (z-index 999) when any
+   modal is open so it gets blurred/dimmed along with the rest of the page
+   instead of sitting on top of the scrim. */
+body:has(.sidenavShow) .upgrade_notice,
+body.ca_searchModalOpen .upgrade_notice,
+body:has(.mobileMenu.menuShowing) .upgrade_notice,
+body:has(.ca_sweetalert_open) .upgrade_notice,
+body:has(.mfp-bg) .upgrade_notice {
+	z-index: 998;
+}
+/* #sortIconArea / .dockerSearch / .templateSearch / .ca_displayCount otherwise
+   float above the search modal's input/dropdown — push them all well behind
+   everything when any modal scrim is up. */
+body:has(.sidenavShow) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body.ca_searchModalOpen :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.mobileMenu.menuShowing) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.ca_sweetalert_open) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.mfp-bg) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount) {
+	z-index: -1;
+}
+/* When the multi-install bar is showing in Theme--sidebar layouts, give the
+   main display area extra bottom padding so the bar doesn't overlap the last
+   row of cards. .multi_installDiv is toggled via jQuery .show()/.hide() which
+   sets inline `display:none` when hidden — `:not([style*="display: none"])`
+   matches the shown state. */
+.Theme--sidebar body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 9rem;
+}
+.Theme--nav-top body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 6rem;
+}
+
+/* In Theme--sidebar layouts the persistent #menu is the sidebar itself — keep
+   it parked at the same plane as the .ca_modal_overlay (999) when a modal is
+   open so it stays visible/interactive at scrim level instead of being pushed
+   below the page content like upgrade_notice. */
+.Theme--sidebar body:has(.sidenavShow) #menu,
+.Theme--sidebar body.ca_searchModalOpen #menu,
+.Theme--sidebar body:has(.mobileMenu.menuShowing) #menu,
+.Theme--sidebar body:has(.ca_sweetalert_open) #menu,
+.Theme--sidebar body:has(.mfp-bg) #menu {
+	z-index: 999;
 }
 
 .ca_href {
@@ -502,6 +549,7 @@ body,
 
 	}
 	.mainArea.menuShowing {
+		top: 0;
 		overflow: hidden;
 		height: var(--mainAreaHeight) !important;
 	}
@@ -516,6 +564,13 @@ body,
 
 	.closeMenuButton.menuHidden {
 		display: none;
+	}
+	/* Hide the show/close menu buttons entirely while the search modal is up —
+	   the menu shouldn't be reachable from inside search and the buttons would
+	   otherwise sit on top of the modal layout. */
+	body.ca_searchModalOpen .showMenuButton,
+	body.ca_searchModalOpen .closeMenuButton {
+		display: none !important;
 	}
 	.mobileMenuButton {
 		display: none;
@@ -1507,9 +1562,11 @@ body,
 	}
 
 	.ca_popupIconArea {
-		height: 15.5rem;
-		top: 1rem;
-		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
 	}
 
 	.ca_profile::before {
@@ -1636,6 +1693,15 @@ body,
 	.chartTitle {
 		margin-top: 1.5rem;
 		font-size: 2.5rem;
+	}
+	/* Align the trends/charts area, stats-note line, changelog block, and
+	   moderation/template-errors block with the other indented popup content
+	   blocks (popupDescription / popupTable etc.). */
+	.popupChartBlock,
+	.popupStatsNote,
+	.popupChangeLogBlock,
+	.popupModerationBlock {
+		margin-left: 1rem;
 	}
 
 	.checkForUpdates {
@@ -1847,15 +1913,8 @@ input[type="button"] {
 		font-weight: normal;
 	}
 
-	.moderatorCommentHeader:before {
-		content: "\e97d";
-		font-family: Unraid;
-		color: var(--mod-comment-border);
-	}
-
 	.moderatorComment {
 		font-size: 1.2rem;
-		font-style: italic;
 		line-height: 1.5rem;
 	}
 
@@ -2057,8 +2116,8 @@ input[type="button"] {
 	.popupAuthorMain {
 		font-size: 1.7rem;
 		line-height: 2rem;
+		margin-top: 0;
 		margin-bottom: 0.5rem;
-		margin-top: 0.5rem;
 	}
 
 	.popupAuthorIcon {
@@ -2112,22 +2171,41 @@ input[type="button"] {
 		color: var(--ca-grey-color);
 		font-size: 10rem;
 		padding-left: 1rem;
-		padding-top: 2.2rem;
 	}
 
 	img.popupIcon {
 		width: 10rem;
 		height: 10rem;
 		padding: 0.3rem;
-		margin-top: 2.2rem;
 		border-radius: 1rem 1rem 1rem 1rem;
 	}
 
 	.popupInfo {
-		position: absolute;
-		top: 3rem;
-		left: 15rem;
-		right: 0;
+		flex: 1;
+		min-width: 0;             /* allow ellipsis on .popupName inside flex item */
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	/* Force name / author / maintainer line each onto their own row inside the
+	   flex layout — the buttons that follow each then wrap together below as a
+	   compact button row. */
+	.popupInfo > .popupName,
+	.popupInfo > .popupAuthorMain,
+	.popupInfo > .popupMaintainerLine {
+		flex-basis: 100%;
+	}
+	.popupMaintainerLine {
+		font-size: 1.5rem;
+		margin-top: 0.5rem;
+	}
+	/* Zero out the right-margin that .caButton ships with so the flex gap above
+	   is the sole source of spacing — guarantees even row spacing whether 3 or
+	   8 buttons are present, and consistent wrapping behavior. */
+	.popupInfo > .caButton {
+		margin: 0;
 	}
 
 	.popupInfoLeft {
@@ -2199,7 +2277,6 @@ input[type="button"] {
 
 	.popup {
 		margin: 1.5rem;
-		margin-top: -2rem;
 	}
 
 	.readmore-js-collapsed {
@@ -2214,7 +2291,6 @@ input[type="button"] {
 
 	.repoLinks {
 		margin-top: 3rem;
-		margin-left: 1.5rem;
 	}
 
 	.repoStats {
@@ -2283,7 +2359,8 @@ input[type="button"] {
 	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
 	   inside is composited as part of the holder's context (z-index 6) and ends
 	   up *behind* the overlay — getting blurred along with the rest of the page. */
-	body.ca_searchModalOpen .searchAreaHolder {
+	body.ca_searchModalOpen .searchAreaHolder,
+	body.menuShowing .searchAreaHolder {
 		z-index: 1000;
 	}
 	.searchArea {
@@ -2361,6 +2438,11 @@ input[type="button"] {
 	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
 	body:has(.mobileMenu.menuShowing) .mobileMenu {
 		z-index: 1000;
+	}
+	/* When the mobile menu is open the menu's own header bar sits at the
+	   top 8rem of the viewport — pull the scrim down so the bar shows above it. */
+	body.menuShowing .ca_modal_overlay {
+		top: 8rem;
 	}
 
 	/* While a SweetAlert is on screen the overlay must remain visible — other CA
@@ -3439,10 +3521,6 @@ input[type="button"] {
 
 	.ReadmeSection.readmore-js-expanded {
 		height: unset !important;
-	}
-
-	.actionsPopup {
-		margin-bottom: 1rem;
 	}
 
 	.additionalRequirementsHeader {

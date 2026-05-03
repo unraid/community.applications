@@ -221,7 +221,7 @@ function displayPopup($template) {
 
 	$ModeratorCommentBlock = "";
 	if ($ModeratorComment) {
-		$ModeratorCommentBlock = "<div class='modComment'><div class='moderatorCommentHeader'> ".tr("Attention:")."</div><div class='moderatorComment'>$ModeratorComment</div></div>";
+		$ModeratorCommentBlock = "<div class='modComment'><div class='moderatorCommentHeader'>".tr("Note:")."</div><div class='moderatorComment'>$ModeratorComment</div></div>";
 	}
 
 	$RecommendedBlock = "";
@@ -359,22 +359,25 @@ function displayPopup($template) {
 	$chartBlock = "";
 	if (count($trends) > 1 && $downloadtrend) {
 		$chartBlock = "
-				<div class='charts chartTitle'>".tr("Trends")."</div>
-				<div><span class='charts'>Show: <span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
+			<div class='popupChartBlock'>
+				<div><span class='charts'><span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
 				<div>
 					<div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
 					<div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
 					<div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
 				</div>
+			</div>
 		";
 	}
 
 	$changeLogBlock = "";
 	if (isset($display_changes)) {
 		$changeLogBlock = "
-			<div class='changelogTitle'>".tr("Change Log")."</div>
-			<div class='changelogMessage'>$display_changelogMessage</div>
-			<div class='changelog popup_readmore'>$display_changes</div>
+			<div class='popupChangeLogBlock'>
+				<div class='changelogTitle'>".tr("Change Log")."</div>
+				<div class='changelogMessage'>$display_changelogMessage</div>
+				<div class='changelog popup_readmore'>$display_changes</div>
+			</div>
 		";
 	}
 
@@ -386,13 +389,13 @@ function displayPopup($template) {
 			return "<li class='templateErrorsList'>$error</li>";
 		}, $moderation['fixedTemplates'][$Repo][$repoKey]);
 		if ($errors) {
-			$moderationBlock = "<div class='templateErrors'>".tr("Template Errors")."</div>".implode("", $errors);
+			$moderationBlock = "<div class='popupModerationBlock'><div class='templateErrors'>".tr("Template Errors")."</div>".implode("", $errors)."</div>";
 		}
 	}
 
 	$statsNote = "";
 	if (! $Plugin && ! $Language) {
-		$statsNote = "<div><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
+		$statsNote = "<div class='popupStatsNote'><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
 	}
 	$readmeSection = caBuildReadmeSectionDiv($template);
 	$readmeButton = "";
@@ -426,6 +429,7 @@ function displayPopup($template) {
 				<div class='popupIcon'><?= $display_icon ?></div>
 				<div class='popupInfo'>
 					<div class='popupName ellipsis'><?= $Name ?></div>
+
 					<?php if (! $Language): ?>
 						<div class='popupAuthorMain'><?= $Author ?></div>
 					<?php endif; ?>
@@ -466,14 +470,22 @@ function displayPopup($template) {
 					<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
 						<div class='ca_red'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
 					<?php endif; ?>
+
+					<?php if ($Repo): ?>
+						<div class='popupMaintainerLine'><?= tr("Maintainer") ?>: <?= $RepoName ?></div>
+						<div class='caButton ca_repoSearchPopUp popupProfile' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("All Apps") ?></div>
+						<div class='caButton repoPopup' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Profile") ?></div>
+						<div class='caButton ca_favouriteRepo <?= $favRepoClass ?>' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Favourite") ?></div>
+					<?php endif; ?>
 				</div>
 			</div>
 			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
+			<?= $ModeratorCommentBlock ?>
 			<?= $RequiresMessage ?>
 			<?= $readmeSection ?>
-			<?= $ModeratorCommentBlock ?>
 			<?= $RecommendedBlock ?>
 			<?= $mediaBlock ?>
+			<?= $chartBlock ?>
 			<div>
 				<div class='popupInfoSection'>
 					<div class='popupInfoLeft'>
@@ -482,25 +494,9 @@ function displayPopup($template) {
 							<?= implode("", $detailsRows) ?>
 						</table>
 					</div>
-					<?php if ($Repo || $Private): ?>
-						<div class='popupInfoLeft'>
-							<?php $safeProfileIcon = validURL($ProfileIcon) ? htmlspecialchars($ProfileIcon, ENT_QUOTES) : ""; ?>
-							<?php $remoteIconPrefix = $safeProfileIcon ? "<span class='screenshot mfp-image' data-mfp-src='$safeProfileIcon'>" : ""; ?>
-							<?php $remoteIconPostfix = $remoteIconPrefix ? "</span>" : ""; ?>
-							<div class='popupAuthorTitle'><?= tr("Maintainer") ?></div>
-							<div>
-								<div class='popupAuthor'><?= $RepoName ?></div>
-								<div class='popupAuthorIcon'><?= $remoteIconPrefix ?><img class='popupAuthorIcon' src='<?= $safeProfileIcon ?>' alt='Repository Icon'></img><?= $remoteIconPostfix ?></div>
-							</div>
-							<div class='caButton ca_repoSearchPopUp popupProfile' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("All Apps") ?></div>
-							<div class='caButton repoPopup' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Profile") ?></div>
-							<div class='caButton ca_favouriteRepo <?= $favRepoClass ?>' data-repository='<?= htmlentities($Repo, ENT_QUOTES) ?>'><?= tr("Favourite") ?></div>
-						</div>
-					<?php endif; ?>
 				</div>
 			</div>
 			<?= $statsNote ?>
-			<?= $chartBlock ?>
 			<?= $changeLogBlock ?>
 			<?= $moderationBlock ?>
 		</div>

@@ -1066,8 +1066,8 @@ function formatTags($leadTemplate,$rename="false") {
 		$safeLabel = htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8');
 		return "<tr>"
 			. "<td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>"
-			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$safePath'>$safeLabel</a></td>"
-			. "<td><a class='xmlInstall ca_normal' data-type='$type' data-xml='$safePath'>$descriptionHtml</a></td>"
+			. "<td><span class='xmlInstall ca_normal' role='button' tabindex='0' data-type='$type' data-xml='$safePath'>$safeLabel</span></td>"
+			. "<td><span class='xmlInstall ca_normal' role='button' tabindex='0' data-type='$type' data-xml='$safePath'>$descriptionHtml</span></td>"
 			. "</tr>";
 	};
 

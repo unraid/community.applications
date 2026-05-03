@@ -58,6 +58,9 @@
 		--ca-scrim-transition-duration: 0s;
 		--ca-scrim-transition-ease: linear;
 	}
+	.Theme--nav-top .ca_display_area {
+		top: 14rem;
+	}
 	body {
 		overflow-x: unset !important;
 		width: initial;
@@ -103,21 +106,32 @@
 		top: 2rem;
 	}
 	.Theme--nav-top .menuItems {
-		top: 12rem;
+		top: 11rem;
 	}
 	.Theme--sidebar .menuItems {
+		top: 2.5rem;
+	}
+	.Theme--sidebar .ca_display_area {
+		top: 1rem;
+	}
+	/* On mobile sidebar layouts the menu doesn't reserve a top bar, so the
+	   .ca_modal_overlay should fill the whole viewport — override the
+	   `top: 8rem` push-down applied at body.menuShowing in the desktop CSS. */
+	.Theme--sidebar body.menuShowing .ca_modal_overlay {
 		top: 0;
 	}
-	
+	/* Mobile menu slides in from the left and is 7rem wide here — pull the
+	   scrim in by that amount so the menu itself isn't blurred/dimmed. */
+	body.menuShowing .ca_modal_overlay {
+		left: 7rem;
+	}
+
 	.mainArea {
 		left: 0;
 		right: 0;
 		padding-left: 1rem;
 	}
 
-	.multi_installDiv {
-		position: relative;
-	}
 	.navigationSection .pageNavigation {
 		left: 0;
 	}

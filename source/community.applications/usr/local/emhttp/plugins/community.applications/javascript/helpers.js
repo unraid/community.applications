@@ -1025,9 +1025,13 @@ function caInitGlobalSearchHotkeyOverride() {
 			if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
 			if (typeof e.stopPropagation === "function") e.stopPropagation();
 
-			/* Swallow without opening CA search if the sidebar or a SweetAlert overlay is showing. */
+			/* Swallow without opening CA search whenever the .ca_modal_overlay
+			   is up — sidebar, sweetalert, mobile menu, or MagnificPopup.
+			   The .ca_searchModalOpen case is handled below as a refocus. */
 			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
 			if ($(".ca_sweetalert_open").length) return;
+			if ($(".mobileMenu.menuShowing").length) return;
+			if ($(".mfp-bg").length) return;
 
 			/* Only open CA search when it's actually present on the page. */
 			if (!$("#searchBox").length || typeof caOpenSearchModal !== "function") return;

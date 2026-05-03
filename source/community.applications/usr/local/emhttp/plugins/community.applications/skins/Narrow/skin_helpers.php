@@ -445,9 +445,14 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (!$template['Deprecated'] || $GLOBALS['caSettings']['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
 						if (($template['RequiresFile'] && is_file($template['RequiresFile'])) || !$template['RequiresFile']) {
 							$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
-							$isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
-							$isDeprecated = $template['Compatible'] ? "&incompatible" : "";
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}$isDeprecated');"];
+							/* Build install URL flags additively. The previous form overwrote
+							   the deprecated flag with the incompatible one (and inverted the
+							   compatibility polarity), so deprecated+incompatible plugins lost
+							   their deprecated marker and compatible plugins were mislabeled. */
+							$installFlags = "";
+							if ( ! empty($template['Deprecated']) )      $installFlags .= "&deprecated";
+							if ( empty($template['Compatible']) )        $installFlags .= "&incompatible";
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}{$installFlags}');"];
 						}
 					}
 				}
@@ -787,12 +792,12 @@ function caProcessPluginTemplate(array $template): array {
 		}
 	} elseif (! $template['Blacklist']) {
 		$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
-		$isDeprecated = $template['Deprecated'] ? "&deprecated" : "";
-		/* If the template is *not* compatible we want to flag the install URL
-		   with &incompatible so the install handler can warn — the previous
-		   `$template['Compatible'] ? "&incompatible" : ...` had the polarity
-		   inverted, marking compatible installs as incompatible. */
-		$isDeprecated = ! $template['Compatible'] ? "&incompatible" : $isDeprecated;
+		/* Build install URL flags additively (deprecated + incompatible can both
+		   apply at once). Previous form overwrote one with the other and had
+		   the compatibility polarity inverted on top. */
+		$installFlags = "";
+		if ( ! empty($template['Deprecated']) )      $installFlags .= "&deprecated";
+		if ( empty($template['Compatible']) )        $installFlags .= "&incompatible";
 
 		$updateFlag = false;
 		$requiresText = "";
@@ -802,10 +807,10 @@ function caProcessPluginTemplate(array $template): array {
 		}
 		/* No inner Compatible gate — if we're past the outer hideIncompatible
 		   filter the user wants to install (or reinstall) regardless. The
-		   $isDeprecated query string already carries the &incompatible flag
-		   so the install handler can warn appropriately. */
+		   $installFlags query string already carries any &deprecated/&incompatible
+		   markers so the install handler can warn appropriately. */
 		if (! ($template['UninstallOnly'] ?? false)) {
-			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','$requiresText');"];
+			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}{$installFlags}','$updateFlag','$requiresText');"];
 		}
 		if ($template['InstallPath']) {
 			if (! empty($actionsContext)) {
@@ -1430,12 +1435,17 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 	if (count($supportContext) === 1) {
 		$context = $supportContext[0];
 
-		if ( ($context['text'] ?? "") === tr("Support Forum")) {
-			$context['text'] = tr("Support");
+		/* Sanitize the visible label — SupportLanguage can be a user-supplied
+		   string in custom templates, so strip tags and escape before rendering.
+		   The earlier filter only used the stripped form for emptiness, not output. */
+		$displayText = trim(strip_tags((string)($context['text'] ?? "")));
+		if ($displayText === tr("Support Forum")) {
+			$displayText = tr("Support");
 		}
 
 		$safeLink = htmlspecialchars($context['link'], ENT_QUOTES);
-		return "<div class='caButton supportButton'><span class='ca_href' data-href='{$safeLink}' data-target='_blank'>{$context['text']}</span></div>";
+		$safeText = htmlspecialchars($displayText, ENT_QUOTES, "UTF-8");
+		return "<div class='caButton supportButton'><span class='ca_href' data-href='{$safeLink}' data-target='_blank'>{$safeText}</span></div>";
 	}
 
 	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;

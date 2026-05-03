@@ -102,6 +102,11 @@ class PreviousAppsHelpers {
 
 			$containerID = false;
 			$isRunning = false;
+			/* Default $catalogRepo to the original (catalog) Repository so
+			   moderation lookups still work when the search loop below finds a
+			   running container but no catalog template, and the Repository
+			   mutation never happens. */
+			$catalogRepo = $template['Repository'];
 
 			foreach ($info as $installedDocker) {
 				if ( $installedDocker['Name'] != $template['Name'] ) {
