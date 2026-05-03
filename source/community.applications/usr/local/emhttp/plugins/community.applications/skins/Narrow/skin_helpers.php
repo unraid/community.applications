@@ -363,8 +363,15 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 							$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailscale WebUI"),"action"=>"openNewWindow('{$info[$name]['TSurl']}','_blank');"];
 						}
 					}
-					$tmpRepo = strpos($template['Repository'],":") ? $template['Repository'] : $template['Repository'].":latest";
-					$tmpRepo = strpos($tmpRepo,"/") ? $tmpRepo : "library/$tmpRepo";
+					/* Detect image tag presence by checking for `:` AFTER the last `/`
+					   so registry-port colons (eg. `registry:5000/ns/app`) aren't
+					   misread as tags. Mirrors PreviousAppsHelpers::stripImageTag. */
+					$lastSlash = strrpos($template['Repository'], "/");
+					$hasTag = $lastSlash !== false
+						? strpos($template['Repository'], ":", $lastSlash) !== false
+						: strpos($template['Repository'], ":") !== false;
+					$tmpRepo = $hasTag ? $template['Repository'] : "{$template['Repository']}:latest";
+					$tmpRepo = strpos($tmpRepo, "/") !== false ? $tmpRepo : "library/$tmpRepo";
 					if ( ($dockerUpdateStatus[$tmpRepo]['status'] ?? "") == "false") {
 						$template['UpdateAvailable'] = true;
 						$actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"updateDocker('$name');"];
@@ -639,8 +646,13 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 
 	if (caIsDockerRunning()) {
 		foreach ($info as $testDocker) {
-			$tmpRepo = strpos($template['Repository'], ":") ? $template['Repository'] : "{$template['Repository']}:latest";
-			$tmpRepo = strpos($tmpRepo, "/") ? $tmpRepo : "library/$tmpRepo";
+			/* Tag-vs-port colon disambiguation — see comment in caGenerateActionsContext. */
+			$lastSlash = strrpos($template['Repository'], "/");
+			$hasTag = $lastSlash !== false
+				? strpos($template['Repository'], ":", $lastSlash) !== false
+				: strpos($template['Repository'], ":") !== false;
+			$tmpRepo = $hasTag ? $template['Repository'] : "{$template['Repository']}:latest";
+			$tmpRepo = strpos($tmpRepo, "/") !== false ? $tmpRepo : "library/$tmpRepo";
 			if ((($tmpRepo == $testDocker['Image'] && $template['Name'] == $testDocker['Name']) || "{$tmpRepo}:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name'])) {
 				$selected = true;
 				$name = $testDocker['Name'];
@@ -658,8 +670,13 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 				}
 			}
 
-			$tmpRepo = strpos($template['Repository'], ":") ? $template['Repository'] : "{$template['Repository']}:latest";
-			$tmpRepo = strpos($tmpRepo, "/") ? $tmpRepo : "library/$tmpRepo";
+			/* Tag-vs-port colon disambiguation — see comment in caGenerateActionsContext. */
+			$lastSlash = strrpos($template['Repository'], "/");
+			$hasTag = $lastSlash !== false
+				? strpos($template['Repository'], ":", $lastSlash) !== false
+				: strpos($template['Repository'], ":") !== false;
+			$tmpRepo = $hasTag ? $template['Repository'] : "{$template['Repository']}:latest";
+			$tmpRepo = strpos($tmpRepo, "/") !== false ? $tmpRepo : "library/$tmpRepo";
 
 			if (isset($dockerUpdateStatus[$tmpRepo]) && $dockerUpdateStatus[$tmpRepo]['status'] == "false") {
 				$template['UpdateAvailable'] = true;

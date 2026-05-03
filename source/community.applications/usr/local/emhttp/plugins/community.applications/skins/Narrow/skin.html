@@ -20,8 +20,10 @@
 <script>
 
 $(function() {
-	// Add the HTML classes to the html element
-	$("html").addClass("<?=$htmlClasses?>");
+	// Add the HTML classes to the html element. json_encode escapes any quotes
+	// so this is safe to drop into a JS string literal even if $htmlClasses is
+	// ever sourced from anything beyond the static set in skin.php.
+	$("html").addClass(<?= json_encode($htmlClasses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
 
 	// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
 	<? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
@@ -362,7 +364,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a onclick='event.stopPropagation();showModeration("Repository","<?tr("Repositories");?>");' class='popUpLink'><?tr("Repositories");?></a>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Repository","<?tr("Repositories");?>");'><?tr("Repositories");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='repositories'></span>
@@ -370,7 +372,7 @@ $(function() {
 					</tr>
 					<tr data-stat-row='private'>
 						<td class='ca_table'>
-							<a class='popUpLink' data-category='PRIVATE' onclick='showSpecialCategory(this);'><?tr("Private Docker Applications");?></a>
+							<span class='popUpLink' role='button' tabindex='0' data-category='PRIVATE' onclick='showSpecialCategory(this);'><?tr("Private Docker Applications");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='private'></span>
@@ -378,7 +380,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' onclick='event.stopPropagation();showModeration("Invalid","<?tr("Invalid Templates");?>");'><?tr("Invalid Templates");?></a>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Invalid","<?tr("Invalid Templates");?>");'><?tr("Invalid Templates");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='invalidXML'></span>
@@ -386,7 +388,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' onclick='event.stopPropagation();showModeration("Fixed","<?tr("Template Errors");?>");'><?tr("Template Errors");?></a>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Fixed","<?tr("Template Errors");?>");'><?tr("Template Errors");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='caFixed'></span>
@@ -394,7 +396,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' data-category='BLACKLIST' onclick='showSpecialCategory(this);'><?tr("Blacklisted Apps");?></a>
+							<span class='popUpLink' role='button' tabindex='0' data-category='BLACKLIST' onclick='showSpecialCategory(this);'><?tr("Blacklisted Apps");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='blacklist'></span>
@@ -402,7 +404,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' data-category='INCOMPATIBLE' onclick='showSpecialCategory(this);'><?tr("Incompatible Applications");?></a>
+							<span class='popUpLink' role='button' tabindex='0' data-category='INCOMPATIBLE' onclick='showSpecialCategory(this);'><?tr("Incompatible Applications");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='totalIncompatible'></span>
@@ -410,7 +412,7 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' data-category='DEPRECATED' onclick='showSpecialCategory(this);'><?tr("Deprecated Applications");?></a>
+							<span class='popUpLink' role='button' tabindex='0' data-category='DEPRECATED' onclick='showSpecialCategory(this);'><?tr("Deprecated Applications");?></span>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='totalDeprecated'></span>
@@ -418,14 +420,14 @@ $(function() {
 					</tr>
 					<tr>
 						<td class='ca_table'>
-							<a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank'> <?tr("Backup Server");?></a>
+							<a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank' rel='noopener noreferrer'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank' rel='noopener noreferrer'> <?tr("Backup Server");?></a>
 						</td>
 					</tr>
 					</tbody>
 				</table>
 			</div>
 			<div class='ca_center'>
-				<a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank'><?tr("Application Policy");?></a>
+				<a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank' rel='noopener noreferrer'><?tr("Application Policy");?></a>
 			</div>
 		</div>
 	</div>

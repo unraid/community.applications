@@ -161,7 +161,7 @@ class PreviousAppsHelpers {
 
 				if ( $tmpRepo && (($dockerUpdateStatus[$tmpRepo]['status'] ?? null) == "false") ) {
 					$template['actionCentre'] = true;
-					$template['updateAvailable'] = true;
+					$template['UpdateAvailable'] = true;
 					$updateCount++;
 				}
 
