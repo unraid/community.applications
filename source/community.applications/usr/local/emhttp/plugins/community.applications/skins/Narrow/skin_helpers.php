@@ -796,10 +796,12 @@ function caProcessPluginTemplate(array $template): array {
 			$requiresText = "AnythingHere";
 			$updateFlag = true;
 		}
+		/* No inner Compatible gate — if we're past the outer hideIncompatible
+		   filter the user wants to install (or reinstall) regardless. The
+		   $isDeprecated query string already carries the &incompatible flag
+		   so the install handler can warn appropriately. */
 		if (! ($template['UninstallOnly'] ?? false)) {
-			if ($template['Compatible']) {
-				$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','$requiresText');"];
-			}
+			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}$isDeprecated','$updateFlag','$requiresText');"];
 		}
 		if ($template['InstallPath']) {
 			if (! empty($actionsContext)) {
@@ -1449,8 +1451,11 @@ function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string
 
 	if (count($actionsContext) === 1 && ($actionsContext[0]['text'] ?? "") === tr("Install")) {
 		$dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
+		/* htmlspecialchars + ENT_QUOTES so apostrophes inside the JS body don't
+		   collide with the surrounding onclick='...' delimiters. */
+		$safeAction = htmlspecialchars($actionsContext[0]['action'], ENT_QUOTES);
 
-		return "<div class='caButton actionsButton' data-pluginURL='{$pluginUrl}' data-languagePack='{$languagePack}' onclick={$actionsContext[0]['action']}>{$dispText}</div>";
+		return "<div class='caButton actionsButton' data-pluginURL='{$pluginUrl}' data-languagePack='{$languagePack}' onclick='{$safeAction}'>{$dispText}</div>";
 	}
 
 	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;

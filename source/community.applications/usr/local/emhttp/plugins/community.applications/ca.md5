@@ -11,7 +11,7 @@ dc5ee49892cce8dbdf94187f39ecf94c  ./include/paths.php
 16e18d0276e4a60ae27af20e5683f554  ./include/get_content_helpers.php
 e43ab27bd51896cc260f9430c1f94945  ./include/helpers.php
 8c3fd8620b6121b2b8c701a700ec1a08  ./include/exec.php
-aad3b22a081796a085c6d95aac175e2f  ./include/previous_apps_helpers.php
+7985338c96d52740c4a6641327bc42ce  ./include/previous_apps_helpers.php
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 66361adff468f8cff0588f0a39a08458  ./javascript/statistics.js
 cb18b0f14ad17d795adc2793a8ff0477  ./javascript/helpers.js
@@ -41,4 +41,4 @@ d5d2c43d4e108a33db4819c88595c601  ./skins/Narrow/styles/community.applications.c
 128d9dd0143b023b5036f06711f55bcb  ./skins/Narrow/themes/white.css
 8ffa584139208c53a26e3a9ad5c88101  ./skins/Narrow/skin.php
 f7cc1fc85baa4ca84dc77e8d72b050dc  ./skins/Narrow/skin.html
-ddc620b6036e9130ab72ed11757eec71  ./skins/Narrow/skin_helpers.php
+76bfc959cf1c0f7f65ac4eaf94b10ce8  ./skins/Narrow/skin_helpers.php

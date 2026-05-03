@@ -159,7 +159,8 @@ class PreviousAppsHelpers {
 					$tmpRepo = "library/$tmpRepo";
 				}
 
-				if ( $tmpRepo && (($dockerUpdateStatus[$tmpRepo]['status'] ?? null) == "false") ) {
+				$status = $dockerUpdateStatus[$tmpRepo]['status'] ?? null;
+				if ( $tmpRepo && ($status === "false" || $status === false) ) {
 					$template['actionCentre'] = true;
 					$template['UpdateAvailable'] = true;
 					$updateCount++;
@@ -300,7 +301,10 @@ class PreviousAppsHelpers {
 
 				$installedVersion = ca_plugin("version","/var/log/plugins/$filename");
 				$pluginUpdated = false;
-				if ( ( strcmp($installedVersion,$template['pluginVersion']) < 0 || ($template['UpdateAvailable'] ?? null) ) ) {
+				$templatePluginVersion = $template['pluginVersion'] ?? null;
+				$hasNewVersion = ($templatePluginVersion !== null)
+					&& (strcmp($installedVersion, (string)$templatePluginVersion) < 0);
+				if ( $hasNewVersion || ($template['UpdateAvailable'] ?? null) ) {
 					$template['actionCentre'] = true;
 					$template['UpdateAvailable'] = true;
 					$pluginUpdated = true;
@@ -393,7 +397,7 @@ class PreviousAppsHelpers {
 					continue;
 				}
 
-				if ( $template['Blacklist'] || ( ($GLOBALS['caSettings']['hideIncompatible'] == "true") && ( ! $template['Compatible'] ) ) ) {
+				if ( ($template['Blacklist'] ?? false) || ( ($GLOBALS['caSettings']['hideIncompatible'] == "true") && ! ($template['Compatible'] ?? false) ) ) {
 					continue;
 				}
 
@@ -408,11 +412,14 @@ class PreviousAppsHelpers {
 
 				$template['Removable'] = true;
 				$template['InstallPath'] = $oldplug;
-				if ( isset($alreadySeen[$oldPlugURL]) ) {
+				/* Dedup key normalized the same way the comparison above is so case/
+				   whitespace variants of the same URL aren't treated as distinct. */
+				$oldPlugURLKey = strtolower(trim($oldPlugURL));
+				if ( isset($alreadySeen[$oldPlugURLKey]) ) {
 					continue;
 				}
 
-				$alreadySeen[$oldPlugURL] = true;
+				$alreadySeen[$oldPlugURLKey] = true;
 				$displayed[] = $template;
 				break;
 			}
