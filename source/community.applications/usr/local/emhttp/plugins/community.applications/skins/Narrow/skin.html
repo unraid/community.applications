@@ -74,7 +74,6 @@ $(function() {
 		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
 		<div class='ca_displayCount hideWithMenu' aria-live='polite'></div>
 	</div>
-	<div id="caSearchModalBackdrop" class="caSearchModalBackdrop ca_hide" role="presentation" aria-hidden="true"></div>
 </div>
 
 <!-- Status Bar.   This gets moved to the body -->
@@ -85,7 +84,6 @@ $(function() {
 
 <!-- Main Display Area -->
 <div class='ca_display_area'>
-	<div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
 
 	<div class='mainArea menuAdjust'>
 
@@ -167,8 +165,12 @@ $(function() {
 		</div>
 	</div>
 <!-- Sidebar for the application description.   This gets moved to the body -->
+<!-- Single modal scrim — backs the sidenav, search modal, and mobile menu.
+     Visibility, z-index, and click-dispatch are all state-driven (see CSS
+     and the .ca_modal_overlay click handler in clickHandlers.js). -->
+<div class='ca_modal_overlay' role='presentation' aria-hidden='true'></div>
+
 <div class='sidebar' role='modal'>
-	<div class='sidebarClose'></div>
 	<div class='popupCloseArea'>
 		<div class='popupCloseAreaButtons'>
 			<span class='popUpClose caButton'><?tr("CLOSE");?></span>

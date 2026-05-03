@@ -82,11 +82,13 @@ body:has(.sidenavShow) {
 .ca_move_to_end::before {
 	content: "\f0ab"; /* fa-arrow-circle-down */
 }
+/*
 /* Dim all page content except the visible sidebar and its children */
-body:has(.sidenavShow) > :not(.sidebar, .sweet-alert, .dropdown-menu, #ca_fixed_scroll_root) {
-	opacity: 0.5;
+/*body:has(.sidenavShow) > :not(.sidebar, .ca_modal_overlay, .ca_sweetalert_open, .dropdown-menu, #ca_fixed_scroll_root) {
+    opacity: 0.5; 
 	transition: opacity 250ms ease-in-out;
-}
+}*/
+
 /* Two copies of the scroll controls live in the markup: one at body level for
    the main view, one inside .sidenav for sidebar mode. Hide the body-level
    pair while the sidebar is showing so only the in-sidebar pair is active.
@@ -101,12 +103,14 @@ body:has(.mfp-wrap) > .ca_move_to_end {
 	display: none !important;
 }
 
-body:has(.sidenavShow) :is(#menu, .upgrade_notice, #footer),
-body:has(.sweet-alert.showSweetAlert) :is(#menu, .upgrade_notice, #footer) {
+/* Restore opacity for Unraid chrome elements that the line-86 dim rule would
+   otherwise dial down — the .ca_modal_overlay's backdrop-filter handles the
+   visual blur/dim now, so we just want these visible at full opacity. */
+body:has(.sidenavShow) :is(#header, #menu, .upgrade_notice, #footer),
+body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 	opacity: 1;
-	filter: grayscale(30%) brightness(50%);
 }
-.showSweetAlert.visible {
+.ca_sweetalert_open {
 	opacity: revert !important;
 }
 
@@ -887,66 +891,20 @@ body,
 
 	/* 2.7) Sidebar Navigation */
 	.sidebar {
-		/* Layout */
-		top: 0;
+		/* Match .sidenav's footprint exactly so the area to the *left* of the
+		   visible sidenav stays uncovered — clicks there land on the
+		   .ca_modal_overlay (z-index 999) and trigger close, instead of being
+		   eaten by an invisible viewport-wide .sidebar. */
+		position: fixed;
+		top: 4rem;
 		right: 0;
 		bottom: 1.6rem;
-		width: 100%;
-		height: 100vh;
-		margin-bottom: 10px;
-		/* Visual */
+		width: 90%;
+		max-width: 70rem;
 		background-color: transparent;
-		position: fixed;
 		z-index: 1000;
 	}
 
-	.mobileOverlay {
-		position: absolute;
-		top: 0;
-		right: 0;
-		bottom: 1.6rem;
-		width: 100%;
-		height: 200vh;
-		margin-bottom: 10px;
-		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
-		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
-		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
-		opacity: 0;
-		pointer-events: none;
-		transition:
-			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
-		z-index: 2;
-	}
-	.mobileOverlay.menuShowing {
-		display: inline-block;
-		opacity: 1;
-		pointer-events: auto;
-	}
-	.mobileOverlay.menuHidden {
-		display: none;
-	}
-	.sidebarClose {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100vh;
-		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
-		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
-		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
-		opacity: 0;
-		pointer-events: none;
-		transition:
-			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
-	}
-	body:has(.sidenavShow) .sidebarClose {
-		opacity: 1;
-		pointer-events: auto;
-	}
 
 	.sidenav {
 		/* Layout */
@@ -1331,6 +1289,44 @@ body,
 	.credits {
 		margin-left: 10%;
 		margin-right: 10%;
+		position: relative;
+		z-index: 1;
+	}
+	/* Dim FA glyph painted behind the sidenav credits view as a watermark.
+	   Lives on body::after rather than .sidenav::after because .sidenav has
+	   transform:translateX(...) for its slide animation, which creates a
+	   containing block — `position: fixed` inside .sidenav would anchor to
+	   .sidenav and scroll with #sidenavContent. body has no transform, so
+	   fixed anchors to the viewport (which is what we want) and the
+	   geometry mirrors .sidenav's own layout block. */
+	/* Always-rendered so the show/hide can transition (pseudo-elements gated by
+	   :has() flip in/out of existence and can't animate). Default state mirrors
+	   .sidebar .sidenav: off-screen-right + opacity 0. */
+	body::after {
+		content: "\f0c0";
+		font-family: fontAwesome;
+		position: fixed;
+		top: 4rem;
+		right: 0;
+		bottom: 1.6rem;
+		width: 90%;
+		max-width: 70rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: min(50vw, 50vh);
+		line-height: 1;
+		color: currentColor;
+		opacity: 0;
+		transform: translateX(100%);
+		pointer-events: none;
+		user-select: none;
+		z-index: 1000;
+		transition: transform 500ms ease, opacity 500ms ease;
+	}
+	body:has(.sidenavShow :is(.credits, .caChanges))::after {
+		opacity: 0.1;
+		transform: translateX(0);
 	}
 
 	.ca_credit {
@@ -2285,6 +2281,13 @@ input[type="button"] {
 		position: sticky;
 		z-index: 6;
 	}
+	/* When the search modal is open, raise the holder's stacking context above
+	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
+	   inside is composited as part of the holder's context (z-index 6) and ends
+	   up *behind* the overlay — getting blurred along with the rest of the page. */
+	body.ca_searchModalOpen .searchAreaHolder {
+		z-index: 1000;
+	}
 	.searchArea {
 		padding-left: var(--search-area-left);
 		background-color: var(--ca-legacy-background-color);
@@ -2337,40 +2340,46 @@ input[type="button"] {
 		flex: 0 0 auto;
 		align-self: center;
 	}
-	/* #caSearchModalBackdrop keeps display:block (not .ca_hide’s none) so opacity can fade. */
-	#caSearchModalBackdrop {
-		display: block !important;
-	}
-	.caSearchModalBackdrop {
+	/* ──────────────────────────────────────────────────────────────────────
+	   .ca_modal_overlay — single scrim element backing the sidenav, search
+	   modal, and mobile menu. Show-state and z-index are driven by which
+	   modal is open. Click-dispatch lives in the .ca_modal_overlay handler
+	   in clickHandlers.js. SweetAlert keeps its own .sweet-overlay; we just
+	   harmonize the visuals so the two scrims look identical when both are
+	   ever active simultaneously.
+	   ──────────────────────────────────────────────────────────────────── */
+	.ca_modal_overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 1050;
-		/* Light dim + blur (shared with .sweet-overlay, .sidebarClose — see --ca-scrim-*) */
-		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25));
-		backdrop-filter: blur(var(--ca-scrim-blur, 12px));
-		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px));
-		opacity: 0;
-		pointer-events: none;
-		transition:
-			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out),
-			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out);
+		z-index: 999;            /* sidebar = 1000, search modal = 1060, mobile menu raised to 1000 below */
 	}
-	body.ca_searchModalOpen .caSearchModalBackdrop:not(.ca_hide) {
+	body:has(.sidenavShow) .ca_modal_overlay,
+	body.ca_searchModalOpen .ca_modal_overlay,
+	body:has(.mobileMenu.menuShowing) .ca_modal_overlay {
 		opacity: 1;
 		pointer-events: auto;
+	}
+	/* Pop the mobile menu above the scrim (default z-index 5 from responsive
+	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
+	body:has(.mobileMenu.menuShowing) .mobileMenu {
+		z-index: 1000;
 	}
 
 	/* While a SweetAlert is on screen the overlay must remain visible — other CA
 	   layers (sidebar dim, search-modal backdrop, magnific) can otherwise either
 	   fade or be display:none'd via their own scoped rules and leave the swal
 	   sitting on a non-scrim'd page. */
-	body:has(.sweet-alert.showSweetAlert) .sweet-overlay {
+	body:has(.ca_sweetalert_open) .sweet-overlay {
 		display: block !important;
 	}
 
-	/* SweetAlert (swal) sets inline background/opacity on the overlay; match CA scrim + transition. */
-	.sweet-overlay {
+	/* Unified scrim visuals: our .ca_modal_overlay + SweetAlert's .sweet-overlay
+	   + MagnificPopup's .mfp-bg (we don't own the latter two). !important is
+	   required for the third-party overlays (their libs set inline/own bg and
+	   opacity) and harmless for .ca_modal_overlay. */
+	.ca_modal_overlay,
+	.sweet-overlay,
+	.mfp-bg {
 		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
 		background-color: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
 		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
@@ -2380,6 +2389,11 @@ input[type="button"] {
 			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
 			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important;
 	}
+	/* .ca_modal_overlay starts hidden; per-state rules above flip these on. */
+	.ca_modal_overlay {
+		opacity: 0;
+		pointer-events: none;
+	}
 	body.ca_searchModalOpen #searchFilter {
 		position: fixed;
 		top: var(--ca-search-modal-top, 6rem);
@@ -2388,7 +2402,7 @@ input[type="button"] {
 		max-width: 100vw;
 		box-sizing: border-box;
 		transform: none;
-		z-index: 1060;
+		z-index: 1000;           /* match .sidebar so backdrop-filter doesn't blur the popup itself */
 		margin: 0;
 		padding: 0.9rem 1.1rem 0.6rem 1.1rem;
 		border-radius: 0.45rem;
@@ -2613,7 +2627,7 @@ input[type="button"] {
 		cursor: auto;
 	}
 	/* Hide the page spinner while a SweetAlert popup is open. */
-	body:has(.sweet-alert.showSweetAlert) div.spinner {
+	body:has(.ca_sweetalert_open) div.spinner {
 		display: none !important;
 	}
 
@@ -2892,6 +2906,8 @@ input[type="button"] {
 
 	/* Magnific Popup
 	-------------------------------------------------------------------------- */
+	/* Background, opacity, and backdrop-filter come from the unified scrim
+	   visuals block — keep only positioning/sizing/z-index here. */
 	.mfp-bg {
 		top: 0;
 		left: 0;
@@ -2900,8 +2916,6 @@ input[type="button"] {
 		z-index: 1042;
 		overflow: hidden;
 		position: fixed;
-		background: var(--ca-dark-bg-color);
-		opacity: 0.8;
 	}
 
 	.mfp-wrap {
@@ -3342,15 +3356,18 @@ input[type="button"] {
 	}
 
 	/* Animation styles */
+	/* mfp-bg appears/disappears immediately so it doesn't fade in over an
+	   already-visible .ca_modal_overlay (sidebar etc. open when image clicked).
+	   The popup content (.mfp-content) still uses the fade transition below. */
 	.mfp-fade.mfp-bg {
 		opacity: 0;
-		-webkit-transition: all 0.5s ease-out;
-		-moz-transition: all 0.5s ease-out;
-		transition: all 0.5s ease-out;
+		-webkit-transition: none !important;
+		-moz-transition: none !important;
+		transition: none !important;
 	}
 
 	.mfp-fade.mfp-bg.mfp-ready {
-		opacity: 0.8;
+		opacity: 1;     /* match .ca_modal_overlay — scrim color already has alpha baked in via --ca-scrim-background */
 	}
 
 	.mfp-fade.mfp-bg.mfp-removing {

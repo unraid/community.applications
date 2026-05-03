@@ -1407,7 +1407,7 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 	if (count($supportContext) === 1) {
 		$context = $supportContext[0];
 
-		if ($context['text'] ?? "" === tr("Support Forum")) {
+		if ( ($context['text'] ?? "") === tr("Support Forum")) {
 			$context['text'] = tr("Support");
 		}
 

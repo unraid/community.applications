@@ -16,11 +16,6 @@
 	contain: strict;
 }
 
-@media (min-width: 769px) {
-	.mobileOverlay {
-		display: none !important;
-	}
-}
 @media (max-width: 1024px) {
 	.searchAreaHolder {
 		height:4rem;

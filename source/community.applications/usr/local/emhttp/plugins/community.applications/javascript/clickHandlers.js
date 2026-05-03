@@ -572,6 +572,8 @@ function caInitializeClickHandlers() {
 				html: true,
 				type: "warning",
 				showCancelButton: true,
+				allowOutsideClick: true,
+
 				showConfirmButton: true,
 				cancelButtonText: tr("Cancel"),
 				confirmButtonText: tr("OK")
@@ -595,7 +597,33 @@ function caInitializeClickHandlers() {
 	});
 
 	$(".showMenuButton").on("click", function() { showMenu(); });
-	$(".closeMenuButton,.mobileOverlay").on("click", function() { closeMenu(); });
+	$(".closeMenuButton").on("click", function() { closeMenu(); });
+
+	/* Single click handler for the unified .ca_modal_overlay scrim. Dispatches
+	   to the close action for whichever modal is currently open. Priority:
+	   search modal > sidenav (sidebar) > mobile menu — only one of these is
+	   ever open at a time in practice, but the order codifies the rule. */
+	$(".ca_modal_overlay").on("click", function() {
+		if ($("body").hasClass("ca_searchModalOpen")) {
+			caCloseSearchModal({ discardDraft: true });
+			return;
+		}
+		if ($(".sidenav").hasClass("sidenavShow")) {
+			/* Same close-cascade the old .sidebarClose handler used. */
+			if ($(".moderationContainer").length) {
+				showStatistics();
+			} else if ( ! $(".popUpBack").hasClass("ca_hide")) {
+				$(".popUpBack").click();
+			} else {
+				closeSidebar();
+			}
+			return;
+		}
+		if ($(".mobileMenu").hasClass("menuShowing")) {
+			closeMenu();
+			return;
+		}
+	});
 
 	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */
 	if (!window.__caMobileLayoutMenuSync) {
@@ -635,13 +663,6 @@ function caInitializeClickHandlers() {
 			caMqFallback();
 		}
 	}
-	$(".sidebarClose").on("click", function() {
-		if ($(".moderationContainer").length)
-			showStatistics();
-		else if ( ! $(".popUpBack").hasClass("ca_hide"))
-			$(".popUpBack").click();
-		else closeSidebar();
-	});
 	$(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
 		data.actions = true;
 	});
@@ -1204,10 +1225,6 @@ function caInitializeEventHandlers() {
 		}, 150);
 	});
 
-	$("#caSearchModalBackdrop").on("click", function() {
-		caCloseSearchModal({ discardDraft: true });
-	});
-
 	$("#mobileMenu").on("mousedown", function() {
 		caRestoreCommittedSearchIfDrafted();
 	});
@@ -1249,7 +1266,7 @@ function caInitializeEventHandlers() {
 					closeSidebar();
 					return;
 				}
-				if ($(".mobileOverlay").is(":visible")) {
+				if ($(".mobileMenu").hasClass("menuShowing")) {
 					e.preventDefault();
 					e.stopPropagation();
 					closeMenu();

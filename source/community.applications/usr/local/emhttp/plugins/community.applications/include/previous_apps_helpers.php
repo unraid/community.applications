@@ -293,7 +293,7 @@ class PreviousAppsHelpers {
 			$template['InstallPath'] = "/var/log/plugins/$filename";
 			$template['Uninstall'] = true;
 
-			if ( $isActionCentre && $template['PluginURL'] && $template['Name'] !== "Community Applications" ) {
+			if ( $isActionCentre && $template['PluginURL'] && ($template['Name'] ?? "") !== "Community Applications" ) {
 				if ( strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$filename"))) !== strtolower(trim($template['PluginURL'])) ) {
 					continue;
 				}
@@ -402,7 +402,7 @@ class PreviousAppsHelpers {
 					continue;
 				}
 
-				if ( strtolower(trim($template['PluginURL'])) != strtolower(trim($oldPlugURL)) ) {
+				if ( strtolower(trim($template['PluginURL']??"")) != strtolower(trim($oldPlugURL)) ) {
 					continue;
 				}
 

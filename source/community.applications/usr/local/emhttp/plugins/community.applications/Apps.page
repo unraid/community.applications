@@ -224,6 +224,8 @@ data.firstInDom = 0; // index within cardCache of the first card currently in th
    that same tab, which is exactly what we need so the server-side cache files
    (displayed.{id}.json, etc.) line up with this tab's view. */
 (function() {
+	swal.setDefaults({ customClass: "ca_sweetalert_open" });
+
 	var key = "ca_tabId";
 	var id = "";
 	try { id = sessionStorage.getItem(key) || ""; } catch (e) {}

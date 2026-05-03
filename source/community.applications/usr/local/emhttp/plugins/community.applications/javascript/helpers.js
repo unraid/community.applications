@@ -183,7 +183,6 @@ function caOpenSearchModal(options) {
 	caRestoreCommittedSearchTermIntoBoxIfEmpty();
 	$("body").addClass("ca_searchModalOpen");
 	caInitSearchModalSuggestionInputMode();
-	$("#caSearchModalBackdrop").removeClass("ca_hide");
 	$("#searchFilter").removeClass("ca_searchInputCollapsed");
 	caUpdateSearchModalLayout();
 	$(window).on("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
@@ -411,7 +410,6 @@ function caCloseSearchModal(options) {
 	}
 
 	$("body").removeClass("ca_searchModalOpen ca_suggestionMouseUsed ca_awesomplete_open");
-	$("#caSearchModalBackdrop").addClass("ca_hide");
 	if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 		try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 	}
@@ -626,7 +624,7 @@ function post(options,callback) {
 	}
 	if ( ! options.noSpinner ) {
 		if ( postCount == 0) {
-			if ( ! $(".sweet-overlay").is(":visible") ) {
+			if ( ! $(".ca_sweetalert_open").length ) {
 				mySpinner();
 			}
 
@@ -1029,7 +1027,7 @@ function caInitGlobalSearchHotkeyOverride() {
 
 			/* Swallow without opening CA search if the sidebar or a SweetAlert overlay is showing. */
 			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
-			if ($(".sweet-overlay").is(":visible")) return;
+			if ($(".ca_sweetalert_open").length) return;
 
 			/* Only open CA search when it's actually present on the page. */
 			if (!$("#searchBox").length || typeof caOpenSearchModal !== "function") return;

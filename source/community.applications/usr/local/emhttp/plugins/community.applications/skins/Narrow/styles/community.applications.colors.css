@@ -38,7 +38,7 @@
 	--ca-white-overlay: rgba(0, 0, 0, 1);
 	--ca-white-overlay-light: rgba(0, 0, 0, 0.1);
 
-	/* Full-screen scrim (search modal backdrop, SweetAlert .sweet-overlay, .sidebarClose) */
+	/* Full-screen scrim (.ca_modal_overlay + SweetAlert's .sweet-overlay) */
 	--ca-scrim-transition-duration: 0.5s;
 	--ca-scrim-transition-ease: ease-in-out;
 
