@@ -599,11 +599,34 @@ function caInitializeClickHandlers() {
 	$(".showMenuButton").on("click", function() { showMenu(); });
 	$(".closeMenuButton").on("click", function() { closeMenu(); });
 
+	/* Try to click the nchan swal's own "Done" button so the lib's close path
+	   runs (cleans up the SSE subscription, etc.) instead of leaving an
+	   orphaned half-open swal. Only fires if showSweetAlert.nchan is present
+	   AND the Done button (and its container) is visible AND not disabled —
+	   avoids closing the swal mid-progress when the lib intentionally hides/
+	   disables Done while work is in flight. Returns true iff a click fired. */
+	function caTryClickNchanDone() {
+		if ( ! $(".sweet-alert.showSweetAlert.nchan").length) return false;
+		var $container = $(".sa-confirm-button-container:visible").first();
+		if ( ! $container.length) return false;
+		var $doneBtn = $container.find("button:visible:not(:disabled)").filter(function() {
+			return $(this).html() === tr("Done");
+		}).first();
+		if ( ! $doneBtn.length) return false;
+		$doneBtn.trigger("click");
+		return true;
+	}
+
 	/* Single click handler for the unified .ca_modal_overlay scrim. Dispatches
 	   to the close action for whichever modal is currently open. Priority:
-	   search modal > sidenav (sidebar) > mobile menu — only one of these is
-	   ever open at a time in practice, but the order codifies the rule. */
+	   nchan swal > search modal > sidenav (sidebar) > mobile menu — only one
+	   of these is ever open at a time in practice, but the order codifies the
+	   rule. */
 	$(".ca_modal_overlay").on("click", function() {
+		if ($(".sweet-alert.showSweetAlert.nchan").length) {
+			caTryClickNchanDone();
+			return;
+		}
 		if ($("body").hasClass("ca_searchModalOpen")) {
 			caCloseSearchModal({ discardDraft: true });
 			return;
@@ -623,6 +646,13 @@ function caInitializeClickHandlers() {
 			closeMenu();
 			return;
 		}
+	});
+
+	/* SweetAlert paints its own .sweet-overlay backdrop on top of our scrim. A
+	   click on it should also trigger the nchan Done close path — body-level
+	   delegation since the lib can recreate .sweet-overlay across showings. */
+	$("body").on("click", ".sweet-overlay", function() {
+		caTryClickNchanDone();
 	});
 
 	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */

@@ -114,7 +114,13 @@ body:has(.sidenavShow) :is(#header, #menu, .upgrade_notice, #footer),
 body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 	opacity: 1;
 }
-.ca_sweetalert_open {
+/* SweetAlert v1's JS animation can leave the .sweet-alert element pinned at
+   `style="opacity: -0.2"` (or other bogus mid-animation values) — most visible
+   on the .nchan log popup, which routes its customClass through the
+   `data-custom-class` attribute instead of as a real class. Force opacity back
+   to its rendered default whenever the swal is in its `showSweetAlert.visible`
+   state (covers both .ca_sweetalert_open instances and .nchan flavored swals). */
+.sweet-alert.showSweetAlert.visible {
 	opacity: revert !important;
 }
 
@@ -811,6 +817,14 @@ body,
 	/* While the mobile menu is open, do not show JS horizontal overlay scrollbars at all. */
 	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_indicator,
 	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_thumb {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* When an nchan swal (with our scrim above it) is open, kill the JS overlay
+	   scrollbars too — they otherwise float over the dimmed home page. */
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_hscroll_indicator,
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_vscroll_indicator {
 		display: none !important;
 		opacity: 0 !important;
 		pointer-events: none !important;
@@ -2430,7 +2444,8 @@ input[type="button"] {
 	}
 	body:has(.sidenavShow) .ca_modal_overlay,
 	body.ca_searchModalOpen .ca_modal_overlay,
-	body:has(.mobileMenu.menuShowing) .ca_modal_overlay {
+	body:has(.mobileMenu.menuShowing) .ca_modal_overlay,
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_modal_overlay {
 		opacity: 1;
 		pointer-events: auto;
 	}

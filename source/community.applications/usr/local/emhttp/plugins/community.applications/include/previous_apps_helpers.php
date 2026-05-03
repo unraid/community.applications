@@ -161,8 +161,10 @@ class PreviousAppsHelpers {
 
 			if ( $isActionCentre ) {
 				/* "Already tagged" means a colon AFTER the last slash — `registry:5000/repo`
-				   has a port, not a tag, and still needs `:latest` appended. */
-				$repoStr = $template['Repository'];
+				   has a port, not a tag, and still needs `:latest` appended.
+				   Use $catalogRepo (saved before the running-image overwrite above)
+				   so the dockerUpdateStatus key matches what the catalog produced. */
+				$repoStr = $catalogRepo ?? $template['Repository'];
 				$lastSlash = strrpos($repoStr, "/");
 				$colonAfterPath = $lastSlash !== false ? strpos($repoStr, ":", $lastSlash) : strpos($repoStr, ":");
 				$tmpRepo = $colonAfterPath !== false ? $repoStr : $repoStr.":latest";
@@ -265,7 +267,10 @@ class PreviousAppsHelpers {
 
 			if ( ! $foundflag ) {
 				foreach ($templates as $appTemplate) {
-					if ( ! startsWith($appTemplate['Repository'],$testRepo) ) {
+					/* Match the catalog repo (sans tag) against $testRepo exactly —
+					   prefix matching previously let `space/foo` match against
+					   `space/foobar` and copy the wrong template's metadata. */
+					if ( self::stripImageTag($appTemplate['Repository'] ?? "") !== $testRepo ) {
 						continue;
 					}
 
@@ -308,8 +313,8 @@ class PreviousAppsHelpers {
 			$template['InstallPath'] = "/var/log/plugins/$filename";
 			$template['Uninstall'] = true;
 
-			if ( $isActionCentre && $template['PluginURL'] && ($template['Name'] ?? "") !== "Community Applications" ) {
-				if ( strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$filename"))) !== strtolower(trim($template['PluginURL'])) ) {
+			if ( $isActionCentre && ($template['PluginURL'] ?? "") && ($template['Name'] ?? "") !== "Community Applications" ) {
+				if ( strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$filename"))) !== strtolower(trim($template['PluginURL'] ?? "")) ) {
 					continue;
 				}
 
@@ -403,7 +408,12 @@ class PreviousAppsHelpers {
 
 		foreach ($allPlugs as $oldplug) {
 			foreach ($templates as $template) {
-				if ( basename($oldplug) != basename($template['Repository']) ) {
+				/* Skip non-plugin templates and guard against missing Repository
+				   so basename() doesn't throw a notice on custom/local XML. */
+				if ( ! ($template['Plugin'] ?? false) ) {
+					continue;
+				}
+				if ( basename($oldplug) != basename($template['Repository'] ?? "") ) {
 					continue;
 				}
 

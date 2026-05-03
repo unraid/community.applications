@@ -805,11 +805,19 @@ function caProcessPluginTemplate(array $template): array {
 			$requiresText = "AnythingHere";
 			$updateFlag = true;
 		}
-		/* No inner Compatible gate — if we're past the outer hideIncompatible
-		   filter the user wants to install (or reinstall) regardless. The
-		   $installFlags query string already carries any &deprecated/&incompatible
-		   markers so the install handler can warn appropriately. */
-		if (! ($template['UninstallOnly'] ?? false)) {
+		/* Reinstalls (existing $InstallPath) always allowed — that's how the
+		   user removes a deprecated/incompatible plugin they already have.
+		   Fresh installs respect the hideIncompatible / hideDeprecated user
+		   settings: if either is on AND the template is incompatible /
+		   deprecated, no install button. */
+		$canInstall = ! ($template['UninstallOnly'] ?? false) && (
+			! empty($template['InstallPath'])
+			|| (
+				( ($template['Compatible'] ?? false) || (($GLOBALS['caSettings']['hideIncompatible'] ?? "true") !== "true") )
+				&& ( ! ($template['Deprecated'] ?? false) || (($GLOBALS['caSettings']['hideDeprecated'] ?? "true") !== "true") )
+			)
+		);
+		if ($canInstall) {
 			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}{$installFlags}','$updateFlag','$requiresText');"];
 		}
 		if ($template['InstallPath']) {

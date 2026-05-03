@@ -814,6 +814,20 @@ function cssVar(varName) {
 	return window.getComputedStyle(document.documentElement).getPropertyValue(varName);
 }
 
+/**
+ * True when the unified .ca_modal_overlay scrim is currently up — i.e. the
+ * sidebar, mobile menu, search modal, or an nchan-flavored swal is showing.
+ * Use from any handler that needs to bail out while a CA modal is active
+ * instead of repeating the trigger-class union in each handler.
+ *
+ * Excludes MagnificPopup, which paints its own .mfp-bg scrim — callers that
+ * also need to gate on mfp should add a separate `$(".mfp-bg").length` check.
+ */
+function caIsModalOverlayUp() {
+	var $overlay = $(".ca_modal_overlay");
+	return $overlay.length > 0 && $overlay.css("pointer-events") === "auto";
+}
+
 // Watch for class changes on an element
 $.fn.onClassChange = function(cb) {
 	return $(this).each((_, el) => {
@@ -1025,13 +1039,13 @@ function caInitGlobalSearchHotkeyOverride() {
 			if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
 			if (typeof e.stopPropagation === "function") e.stopPropagation();
 
-			/* Swallow without opening CA search whenever the .ca_modal_overlay
-			   is up — sidebar, sweetalert, mobile menu, or MagnificPopup.
-			   The .ca_searchModalOpen case is handled below as a refocus. */
-			if ($(".sidenavShow, .sidebarShow, .sidebarshow").length) return;
-			if ($(".ca_sweetalert_open").length) return;
-			if ($(".mobileMenu.menuShowing").length) return;
+			/* Swallow whenever a CA modal scrim is up. ca_searchModalOpen is
+			   exempted so it falls through to the refocus path below.
+			   MagnificPopup (.mfp-bg) and SweetAlert (.showSweetAlert) paint
+			   their own scrims — separate checks. */
+			if (caIsModalOverlayUp() && !$("body").hasClass("ca_searchModalOpen")) return;
 			if ($(".mfp-bg").length) return;
+			if ($(".showSweetAlert").length) return;
 
 			/* Only open CA search when it's actually present on the page. */
 			if (!$("#searchBox").length || typeof caOpenSearchModal !== "function") return;
