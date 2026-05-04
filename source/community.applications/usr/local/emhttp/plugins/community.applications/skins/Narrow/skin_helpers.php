@@ -241,6 +241,9 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 	}
 	if ($GLOBALS['caSettings']['dev'] == "yes") {
 		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Application Template")];
+		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
+			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("PluginURL")];
+		}
 	}
 
 	return $supportContext;
@@ -439,7 +442,18 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 			if (checkInstalledPlugin($template)) {
 				$template['Installed'] = true;
 				$template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
-				if ($template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName"))) {
+				/* Ordered comparison — only treat installed < feed/tmp as an
+				   update. The previous `!=` form would also fire when the
+				   installed plugin was *newer* than the feed/tmp copy and
+				   surface a bogus Update action. Matches the strcmp(...) < 0
+				   form used by caProcessPluginTemplate(). */
+				$tmpPluginVersion = is_file("/tmp/plugins/$pluginName")
+					? ca_plugin("version", "/tmp/plugins/$pluginName")
+					: false;
+				if (
+					strcmp($template['installedVersion'], $template['pluginVersion']) < 0 ||
+					($tmpPluginVersion && strcmp($template['installedVersion'], $tmpPluginVersion) < 0)
+				) {
 					if (is_file(CA_PATHS['pluginTempDownload'])) {
 						@copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
 						$template['UpdateAvailable'] = true;
@@ -451,7 +465,13 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 
 				$pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
 				if ($pluginSettings) {
-					$actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
+					/* For CA itself, open the in-sidebar settings view rather than
+					   navigating away to /Apps/ca_settings — keeps the user in
+					   context and matches the "click Settings in the menu" flow. */
+					$settingsAction = ($pluginName == "community.applications.plg")
+						? "showSettings();"
+						: "openNewWindow('/Apps/$pluginSettings');";
+					$actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>$settingsAction];
 				}
 				if ($pluginName != "community.applications.plg") {
 					if (!empty($actionsContext)) {
@@ -462,17 +482,27 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 			} elseif (!$template['Blacklist']) {
 				if (($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false)) {
 					if (!$template['Deprecated'] || $GLOBALS['caSettings']['hideDeprecated'] !== "true" || ($template['Deprecated'] && $template['InstallPath'])) {
-						if (($template['RequiresFile'] && is_file($template['RequiresFile'])) || !$template['RequiresFile']) {
-							$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
-							/* Build install URL flags additively. The previous form overwrote
-							   the deprecated flag with the incompatible one (and inverted the
-							   compatibility polarity), so deprecated+incompatible plugins lost
-							   their deprecated marker and compatible plugins were mislabeled. */
-							$installFlags = "";
-							if ( ! empty($template['Deprecated']) )      $installFlags .= "&deprecated";
-							if ( empty($template['Compatible']) )        $installFlags .= "&incompatible";
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}{$installFlags}');"];
+						/* Always render the install action and pass updateFlag /
+						   requiresText through to installPlugin() — matches the
+						   behaviour in caProcessPluginTemplate() so the same plugin
+						   isn't installable from the card but hidden in the sidebar.
+						   When RequiresFile is declared but the file doesn't exist,
+						   pass the markers so the install handler can warn. */
+						$updateFlag = false;
+						$requiresText = "";
+						if (!empty($template['RequiresFile']) && !is_file($template['RequiresFile'])) {
+							$requiresText = "AnythingHere";
+							$updateFlag = true;
 						}
+						$buttonTitle = $template['InstallPath'] ? tr("Reinstall") : tr("Install");
+						/* Build install URL flags additively. The previous form overwrote
+						   the deprecated flag with the incompatible one (and inverted the
+						   compatibility polarity), so deprecated+incompatible plugins lost
+						   their deprecated marker and compatible plugins were mislabeled. */
+						$installFlags = "";
+						if ( ! empty($template['Deprecated']) )      $installFlags .= "&deprecated";
+						if ( empty($template['Compatible']) )        $installFlags .= "&incompatible";
+						$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}{$installFlags}','$updateFlag','$requiresText');"];
 					}
 				}
 				if ($template['InstallPath']) {
