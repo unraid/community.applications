@@ -11,7 +11,13 @@
 
 ###############################################################
 # Populate $GLOBALS['templates'] if it's not already populated #
-###############################################################
+/**
+ * Ensure global templates are loaded from the community templates info file or set to an empty array.
+ *
+ * If the community templates info file exists and $GLOBALS['templates'] is not already set,
+ * loads its contents via readJsonFile into $GLOBALS['templates']. If the file is absent,
+ * initializes $GLOBALS['templates'] to an empty array.
+ */
 function getGlobals() {
   global $caPaths;
 
@@ -26,7 +32,16 @@ function getGlobals() {
 
 ########################################
 # Sanitize output from plugin function #
-########################################
+/**
+ * Retrieve a plugin operation result or a specific attribute from a plugin's XML, using a per-plugin attribute cache when appropriate.
+ *
+ * When $method matches a known plugin operation (e.g., "install", "update"), the function clears the attribute cache and returns the plugin operation output (HTML entities and tags removed). Otherwise the function treats $method as an XML attribute name: it will load a serialized attribute cache if available, read and cache attributes from the provided plugin XML file when necessary, persist the cache, and return the requested attribute value.
+ *
+ * @param string $method The plugin operation name or the XML attribute name to retrieve.
+ * @param string $plugin_file Optional path to the plugin XML file; when omitted the function delegates to the plugin operation.
+ * @param bool $dontCache If true, bypass cached attribute loading and always call the plugin operation directly.
+ * @return string|false The requested attribute value or the stripped plugin output when calling an operation; `false` if the requested attribute is not present.
+ */
 function ca_plugin($method, $plugin_file = '',$dontCache = false) {
   global $caPaths;
   static $attributeCache = [];
@@ -71,7 +86,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
       } else {
         unset($attributeCache[$plugin_file]);
       }
-      file_put_contents($caPaths['pluginAttributesCache'], serialize($attributeCache));  
+      file_put_contents_atomic($caPaths['pluginAttributesCache'], serialize($attributeCache));  
     
       // return the cached result if it exists.  If it doesn't return false;;
       return $attributeCache[$plugin_file]['@attributes'][$method]??false;
@@ -85,7 +100,11 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 }
 ############################
 # Drop the attribute cache #
-############################
+/**
+ * Remove the serialized plugin attributes cache file.
+ *
+ * Deletes the cache file pointed to by $caPaths['pluginAttributesCache'] and records a debug message.
+ */
 function dropAttributeCache() {
   global $caPaths;
 
@@ -126,9 +145,16 @@ function randomFile() {
 ##################################################################
 # 7 Functions to avoid typing the same lines over and over again #
 ##################################################################
-// This function reads either a serialized or JSON file
+/**
+ * Read a file containing either PHP-serialized data or JSON and return it as an array.
+ *
+ * Attempts to unserialize the file first; if that fails it will decode the file as JSON.
+ *
+ * @param string $filename Path to the file to read.
+ * @return array Parsed data from the file, or an empty array if the file is missing or parsing fails.
+ */
 function readJsonFile($filename) {
-  debug( ($GLOBALS['action']?? "Unknown") . " - Read Serialized file $filename");
+  debug("CA Read Serialized file $filename");
 
   if ( ! is_file($filename) ) {
     debug("$filename not found");
@@ -150,16 +176,17 @@ function readJsonFile($filename) {
   return $json;
 }
 
-// This function writes a serialized file of an array.  If the filename is $caPaths['community-templates-info'], then it will also write a JSON file to $caPaths['community-templates-info-old']
+/**
+ * Writes a serialized PHP representation of an array to disk and, when writing the main community templates file, also emits a filtered JSON copy used by older tooling.
+ *
+ * @param string $filename Full path of the file to write the serialized data to.
+ * @param array $jsonArray Array of template data to serialize and persist. If `$filename` equals `$caPaths['community-templates-info']`, a secondary JSON file containing only `PluginURL` and `Support` for entries that have `Plugin` will be written to `$caPaths['community-templates-info-old']`.
+ */
 function writeJsonFile($filename,$jsonArray) {
   global $caPaths;
 
-  debug("{$_POST['action']} - Write JSON File $filename");
-  if ( $caPaths['humanReadable'] ) {
-    $result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-  } else {
-    $result = ca_file_put_contents($filename,serialize($jsonArray));
-  }
+  debug("Write JSON File $filename");
+  $result = ca_file_put_contents($filename,serialize($jsonArray));
 
   // The plugin script needs a template.json in JSON format to update support URLs on plugins
   // If we're writing $template, then save templates.json but filtered only for plugins to save space
@@ -174,6 +201,17 @@ function writeJsonFile($filename,$jsonArray) {
   debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 
+/**
+ * Atomically writes data to a file by writing to a temporary file and renaming it into place.
+ *
+ * On success returns the number of bytes written; on failure logs a debug message and sets
+ * $GLOBALS['script'] to an alert string referencing the target filename.
+ *
+ * @param string $filename Destination filename.
+ * @param string $data Data to write.
+ * @param int $flags Optional flags passed through to file_put_contents.
+ * @return int|false The number of bytes written on success, `false` on failure.
+ */
 function ca_file_put_contents($filename,$data,$flags=0) {
   $result = @file_put_contents($filename."~",$data,$flags);
   if ( $result === strlen($data) ) {
@@ -188,6 +226,17 @@ function ca_file_put_contents($filename,$data,$flags=0) {
   return ($result === strlen($data)) ? strlen($data) : false;
 }
 
+/**
+ * Downloads content from a URL, optionally saving it to a file.
+ *
+ * Attempts to fetch the given URL and returns the response body. When $path is provided the downloaded content is written to that file. The function will apply proxy settings from /boot/config/plugins/community.applications/proxy.cfg when no HTTP proxy environment variable is set, retry with "deflate" encoding on cURL errno 23, and, if the URL uses the configured plugin proxy and a proxy error occurs, retry the download directly (without the proxy prefix).
+ *
+ * @param string $url The URL to download.
+ * @param string $path Optional filesystem path to save the downloaded content; when set the function writes the response to this file.
+ * @param bool $bg Unused parameter (kept for signature compatibility).
+ * @param int $timeout Timeout in seconds for both connection and transfer; a value of 0 disables setting cURL timeouts.
+ * @return string|false The downloaded response body on success, or `false` on failure. When $path is set the file is written on success; the file is removed if the download fails.
+ */
 function download_url($url, $path = "", $bg = false, $timeout = 45) {
   global $caPaths;
 
@@ -255,6 +304,15 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   return $out ?: false;
 }
 
+/**
+ * Download JSON from a URL, decode it to an associative array, and optionally persist it to a file.
+ *
+ * @param string $url The URL to download.
+ * @param string $path Optional filesystem path to save the decoded data (written using writeJsonFile()).
+ * @param bool $bg If true, allow background/download behavior passed through to download_url().
+ * @param int $timeout Network timeout in seconds passed to download_url().
+ * @return array|null|false The decoded JSON as an associative array, `null` if the JSON cannot be decoded, or `false` if the download failed.
+ */
 function download_json($url,$path="",$bg=false,$timeout=45) {
   // download the URL, but don't sae it yet
   $result = download_url($url,"",$bg,$timeout);
@@ -270,6 +328,13 @@ function download_json($url,$path="",$bg=false,$timeout=45) {
   return $ret;
 }
 
+/**
+ * Get a POST parameter by name, URL-decode it, and return a fallback when missing.
+ *
+ * @param string $setting The POST field name to retrieve.
+ * @param mixed $default The value to return when the POST field is not set.
+ * @return mixed The URL-decoded POST value for $setting, or $default when not present.
+ */
 function getPost($setting,$default) {
   return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
 }
@@ -393,7 +458,16 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 }
 ########################################################
 # Fix common problems (maintainer errors) in templates #
-########################################################
+/**
+ * Normalize and sanitize a template array to ensure required defaults and consistent fields.
+ *
+ * Ensures `MinVer`, `Date`, and `BrandNewApp` are set with sensible defaults; converts `Deprecated`
+ * and `Blacklist` to booleans, applies `DeprecatedMaxVer` gating against the system unRAID version,
+ * and clears config description entries that begin with container-specific prefixes.
+ *
+ * @param array $template Template data to normalize.
+ * @return array The normalized template array.
+ */
 function fixTemplates($template) {
   global $caSettings;
 
@@ -516,7 +590,22 @@ function removeXMLtags(&$template) {
 }
 ###############################################
 # Function to read a template XML to an array #
-###############################################
+/**
+ * Load an XML template file into an associative array and normalize its expected template fields.
+ *
+ * Reads the XML file, converts it to an array representation, sanitizes text fields, ensures required
+ * template keys exist, and augments the array with convenience fields such as Path, Author, DockerHubName,
+ * Base, SortAuthor, and SortName.
+ *
+ * When $generic is true, returns the augmented array without performing template-specific statistics updates.
+ * When $stats is true, increments global $statistics counts for plugin or docker templates and adjusts
+ * author/repository fields for plugin templates.
+ *
+ * @param string $xmlfile Path to the XML file to read.
+ * @param bool $generic If true, return the normalized array without performing template-specific statistics updates.
+ * @param bool $stats If true, update the global $statistics counters and adjust plugin-specific fields.
+ * @return array|false The normalized template array on success, or false if the file is missing or cannot be parsed.
+ */
 function readXmlFile($xmlfile,$generic=false,$stats=true) {
   global $statistics;
 
@@ -562,7 +651,14 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 # Function To Merge Moderation into templates array               #
 # (Because moderation can be updated when templates are not )     #
 # If appfeed is updated, this is done when creating the templates #
-###################################################################
+/**
+ * Apply moderation rules to all loaded templates and persist the results.
+ *
+ * Adjusts template fields (e.g., `Compatible`, `Featured`, `UninstallOnly`, `Deprecated`, `ModeratorComment`)
+ * based on each template's metadata and current CA/unRAID settings, then writes the moderated template list
+ * to the community templates info file, replaces `$GLOBALS['templates']` with the moderated list, and
+ * updates plugin duplicate tracking.
+ */
 function moderateTemplates() {
   global $caPaths,$caSettings;
 
@@ -615,7 +711,12 @@ function filterMatch($filter,$searchArray,$exact=true) {
 }
 ##########################################################
 # Used to figure out which plugins have duplicated names #
-##########################################################
+/**
+ * Identify plugins that appear in more than one template and save the duplicate list to the plugin dupes cache.
+ *
+ * Scans loaded templates for entries with a `Plugin` field, groups them by the basename of their `Repository`,
+ * and writes an object mapping each duplicated plugin basename to `1` into the file at `$caPaths['pluginDupes']`.
+ */
 function pluginDupe() {
   global $caPaths;
 
@@ -657,7 +758,11 @@ function alphaNumeric($string) {
 }
 ##################################################################
 # mobile browser detection from http://detectmobilebrowsers.com/ #
-##################################################################
+/**
+ * Detects whether the current request originates from a mobile device based on the HTTP User-Agent header.
+ *
+ * @return bool `true` if the User-Agent indicates a mobile device, `false` otherwise.
+ */
 function isMobile() {
   $useragent=$_SERVER['HTTP_USER_AGENT'];
   return (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i',$useragent)||preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i',substr($useragent,0,4)));
@@ -751,7 +856,13 @@ function fixDescription($Description) {
 }
 ############################
 # displays the branch tags #
-############################
+/**
+ * Builds an HTML table of branch install links and descriptions for a given template.
+ *
+ * @param string|int $leadTemplate The template key/index in $GLOBALS['templates'] to render branches for.
+ * @param string $rename If equal to "true", uses the "second" install link type; otherwise uses "default".
+ * @return string An HTML string containing a table of branch install links and descriptions, or a translated error message when branch data is not an array.
+ */
 function formatTags($leadTemplate,$rename="false") {
   getGlobals();
   
@@ -768,9 +879,6 @@ function formatTags($leadTemplate,$rename="false") {
 
     $o = "<table>";
     $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$template['Path']}'>Default</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$template['Path']}'>".tr("Install Using The Template's Default Tag")." (<span class='ca_bold'>:$defaultTag</span>)</td></tr>";
-    if ( ($template['DefaultTagDescription']??null) && ! is_array($template['DefaultTagDescription']) ) {
-      $o .= "<tr><td></td><td></td><td>{$template['DefaultTagDescription']}</td></tr>";
-    }
     foreach ($childTemplates as $child) {
       $o .= "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td><a class='xmlInstall ca_normal' data-type='$type' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchName']}</a></td><td class='xmlInstall ca_normal' data-type='default' data-xml='{$file[$child]['Path']}'>{$file[$child]['BranchDescription']}</td></tr>";
     }
@@ -780,7 +888,16 @@ function formatTags($leadTemplate,$rename="false") {
 }
 ###########################
 # handles the POST return #
-###########################
+/**
+ * Outputs a response for POST actions, encoding arrays as JSON and printing other values directly.
+ *
+ * When given an array, attaches $GLOBALS['script'] (if set) under the `globalScript` key,
+ * sends a `Content-Type: application/json; charset=utf-8` header, and echoes the JSON-encoded array.
+ * For non-array values, echoes the value unchanged. Always flushes output and records debug entries
+ * about the POST action and current memory usage.
+ *
+ * @param mixed $retArray The response payload; an associative array will be returned as JSON (with `globalScript` merged when present), any other value will be echoed directly.
+ */
 function postReturn($retArray) {
   if (is_array($retArray)) {
     if ( isset($GLOBALS['script']) )
@@ -816,7 +933,17 @@ if ( ! function_exists("tr") ) {
 }
 #############################
 # Check for language update #
-#############################
+/**
+ * Determines whether an update to the template's language pack is available.
+ *
+ * Checks that the template specifies a language pack and that an installed language XML exists,
+ * then compares the template's language pack version and any available OS dynamix update version
+ * against the installed language version.
+ *
+ * @param array $template Template data; expected keys: `LanguageURL`, `LanguagePack`, and `Version`.
+ * @return bool `true` if the template's language pack version is newer than the installed language version
+ *              or if an OS dynamix update version is newer; `false` otherwise.
+ */
 function languageCheck($template) {
   global $caPaths;
 
@@ -883,7 +1010,13 @@ function getAllInfo($force=false) {
 }
 #######################
 # Logs the debug info #
-#######################
+/**
+ * Append a timestamped debug message to the CA log file, creating the file and adding initial diagnostic information if it does not exist.
+ *
+ * When the log file is absent this function creates it and records initial diagnostics (CA version, unRAID version, MD5 check output, language, settings and PHP error display state) before appending the provided message.
+ *
+ * @param string $str The debug message to append to the log.
+ */
 function debug($str) {
   global $caSettings, $caPaths;
 
@@ -909,7 +1042,16 @@ function debug($str) {
 }
 ########################################
 # Gets the default ports in a template #
-########################################
+/**
+ * Build a JSON array of host ports that a template exposes when using bridge networking.
+ *
+ * Accepts a template array and inspects its `Network` and `Config` entries; when `Network` equals
+ * "bridge" this returns a JSON-encoded list of port values taken from `Config` entries whose
+ * `Type` attribute is `"Port"`. Non-array inputs or non-bridge templates yield an empty JSON array.
+ *
+ * @param array $template Template data; expected keys include `Network` and `Config` (with port entries under `Config` items having `@attributes["Type"] === "Port"` and either `value` or `@attributes["Default"]`).
+ * @return string JSON-encoded array of ports (may be an empty JSON array "[]").
+ */
 function portsUsed($template) {
   if ( ! is_array($template) ) {
     return json_encode([]);
@@ -974,7 +1116,11 @@ function isTailScaleInstalled() {
 ###########################################
 # Checks server date against CA's version #
 ###########################################
-# only a quick check if date on server is 30 days before CA's version.  Not 100% accurate to determine if date & time on server is incorrect
+/**
+ * Checks whether the server date is within 30 days of the Community Applications plugin version date.
+ *
+ * @return bool `true` if the server date is within 30 days of the plugin version date or if the plugin version cannot be determined; `false` if the server date is more than 30 days before the plugin version date.
+ */
 
 function checkServerDate() {
   $currentDate = strtotime(date("Y-m-d"));
@@ -992,7 +1138,15 @@ function checkServerDate() {
 
 ##################################
 # Get youtube thumbnail from URL #
-##################################
+/**
+ * Derives a YouTube thumbnail URL from a YouTube video link.
+ *
+ * Supports short youtu.be links and standard youtube.com/watch?v= URLs; returns the original
+ * input when the URL format is not recognized.
+ *
+ * @param string $url The YouTube video URL (or any URL).
+ * @return string The corresponding YouTube thumbnail URL when recognized, or the original URL otherwise.
+ */
 function getYoutubeThumbnail($url) {
   // Handle youtu.be short URLs
   if (preg_match('/https:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
@@ -1011,7 +1165,12 @@ function getYoutubeThumbnail($url) {
 
 ##################################################################################
 # Adds in all the various missing entries from the templates for PHP8 compliance #
-##################################################################################
+/**
+ * Ensure a template array contains all required template keys by adding any missing keys with null values.
+ *
+ * @param mixed $o The template array to augment; if not an array it is returned unchanged.
+ * @return mixed The augmented array containing all required keys when input is an array, otherwise the original value.
+ */
 function addMissingVars($o) {
   if (!is_array($o)) {
     return $o;

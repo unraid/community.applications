@@ -7,7 +7,16 @@
 #                                      #
 # Licenced under GPLv2                 #
 #                                      #
-########################################
+/**
+ * Render the community applications listing for a specified page.
+ *
+ * Determines the current set of displayed community templates and returns the HTML fragment for the requested page; when no community applications are available, returns a "No Matching Applications Found" message and a small script that hides multi-install UI and sort icons.
+ *
+ * @param int $pageNumber Page number to render (1-based).
+ * @param mixed $selectedApps Optional map/array of selected apps used to mark multi-select checkboxes; pass false when none.
+ * @param bool $startup Optional flag indicating startup rendering behaviour.
+ * @return string HTML fragment containing the rendered application cards for the requested page or a "No Matching Applications Found" block with UI-adjustment script.
+ */
 
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
   global $caPaths;
@@ -29,6 +38,19 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false) {
   return $display;
 }
 
+/**
+ * Render a page of application cards and corresponding client-side JS for the Community Applications UI.
+ *
+ * Processes the provided template list for the requested page: prepares template metadata, determines
+ * install/update/installed states (Docker, plugins, language packs), builds per-template action/support
+ * contexts, and returns the composed HTML card markup plus pagination and small initialization scripts.
+ *
+ * @param array $file List of template arrays to display (each template follows the Community Applications template schema).
+ * @param int $pageNumber Page index (1-based) to render from the provided list.
+ * @param array|false $selectedApps Optional map of selected apps; expected keys are 'docker' and 'plugin' containing arrays of selected identifiers.
+ * @param bool $startup Unused in rendering but kept for signature compatibility.
+ * @return string HTML and inline JavaScript for the requested page of application cards and initialization (pagination, Docker warning, popups).
+ */
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false) {
   global $caPaths, $caSettings;
 
@@ -418,6 +440,15 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false)
   return "$displayHeader$ct";
 }
 
+/**
+ * Builds the pagination HTML and accompanying inline JavaScript used for page navigation, swipe controls, and max-per-page UI visibility.
+ *
+ * @param int $pageNumber The current page number (1-based).
+ * @param int $totalApps Total number of items to paginate.
+ * @param bool $dockerSearch When true, use docker-search pagination rules (forces max-per-page to 25 and hides the max-per-page selector).
+ * @param bool $displayCount When true, include a "Displaying X - Y (of Z)" summary above the page controls.
+ * @return string|null The composed HTML and inline JavaScript for the navigation controls, or null when pagination is disabled (e.g., maxPerPage < 0).
+ */
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
   global $caSettings;
 
@@ -492,7 +523,32 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
 ######################################
 # Generate the display for the popup #
-######################################
+/**
+ * Build the popup HTML and related metadata for a template identified by its install path.
+ *
+ * Loads template data (preferring recent displayed search results), augments it with
+ * repository/profile info, computes install/update/support/action contexts, prepares
+ * chart/trend data, and renders the popup body.
+ *
+ * Side effects:
+ * - May download temporary language or plugin files into the CA temp folder.
+ * - May output a JSON error string and return early when the requested template path cannot be found.
+ * - Removes the temporary plugin download file before returning.
+ *
+ * @param string $appNumber The template install path (Path/InstallPath) used to locate the template.
+ * @return array{
+ *   description:string,            // HTML produced by displayPopup($template)
+ *   trendData:array|null,          // template 'trends' array or null
+ *   trendLabel:string,             // labels for trend chart (dates) or empty string
+ *   downloadtrend:array|int|string,// computed download trend values (or empty)
+ *   downloadLabel:string,          // labels for download trend chart or empty string
+ *   totaldown:array|int|string,    // cumulative download values (or empty)
+ *   totaldownLabel:string,         // label for total downloads or empty string
+ *   supportContext:array,          // support links context array
+ *   actionsContext:array,          // actions context array for popup buttons
+ *   ID:int|false                   // template ID or false when not present
+ * }
+ */
 function getPopupDescriptionSkin($appNumber) {
   global $caSettings, $caPaths, $language, $DockerClient;
 
@@ -917,7 +973,16 @@ function getPopupDescriptionSkin($appNumber) {
 
 #####################################
 # Generate the display for the repo #
-#####################################
+/**
+ * Build the HTML content for a repository information popup and return it.
+ *
+ * Generates a repository popup containing icon, name, profile actions (see all apps, favourite),
+ * repository description, donate area, photo/video thumbnails, social and support links,
+ * and a statistics table (counts for Docker apps, plugins, languages, total apps, and download metrics when available).
+ *
+ * @param string $repository Repository key/name to render the popup for.
+ * @return array{description: string} An array with a single `description` key whose value is the rendered HTML string for the popup.
+ */
 function getRepoDescriptionSkin($repository) {
   global $caSettings, $caPaths;
 
@@ -1074,7 +1139,16 @@ function dockerNavigate($num_pages, $pageNumber) {
 
 ##############################################################
 # function that actually displays the results from dockerHub #
-##############################################################
+/**
+ * Render Docker Hub search result cards for a given page and append pagination.
+ *
+ * Loads stored Docker Hub search results, converts each result into a display card,
+ * augments results with local template metadata when a matching template exists,
+ * and includes install or "Show Template" actions according to current settings.
+ *
+ * @param int $pageNumber Page number to render (1-based).
+ * @return string HTML containing the rendered search result cards and pagination controls.
+ */
 function displaySearchResults($pageNumber) {
   global $caPaths, $caSettings;
 
@@ -1121,7 +1195,19 @@ function displaySearchResults($pageNumber) {
 }
 ###########################
 # Generate the app's card #
-###########################
+/**
+ * Render a single application/repository card as an HTML string.
+ *
+ * Accepts an associative template describing a Docker app, plugin, language pack, or repository and returns
+ * the fully composed card HTML used in list and search views.
+ *
+ * The provided template array must contain the fields used for display and behavior (for example: Name,
+ * RepoName, Repository, Icon, IconFA, Description/Overview, Plugin, Language, DockerHub, RepositoryTemplate,
+ * Actions/Support contexts, Installed/UpdateAvailable flags, Category, Author, Pinned, RecommendedDate, etc.).
+ *
+ * @param array $template Associative array describing the item to render (template or repository metadata).
+ * @return string The rendered HTML for the card (single-line string, ready for insertion into the page).
+ */
 function displayCard($template) {
   global $caPaths;
 
@@ -1463,6 +1549,25 @@ function displayCard($template) {
   return str_replace(["\t","\n"],"",$cardFinish);
 }
 
+/**
+ * Build the HTML markup for an application's detail popup from a template array.
+ *
+ * Constructs the popup content (icon, metadata, actions/support buttons, description,
+ * requirements, moderator notes, spotlight, media, details table, maintainer info,
+ * donate area, trends/changelog, and moderation notes) using values from the provided
+ * template and global settings.
+ *
+ * @param array $template Associative array representing an application template; expected keys include (but are not limited to)
+ *                        `ID`, `Name`, `Author`, `Repo`, `Repository`, `RepoShort`, `Private`, `Language`, `LanguagePack`,
+ *                        `display_icon`, `display_ovr`, `Requires`, `RequiresFile`, `ModeratorComment`, `CAComment`,
+ *                        `Deprecated`, `Compatible`, `UnknownCompatible`, `UninstallOnly`, `Featured`, `RecommendedReason`,
+ *                        `RecommendedDate`, `RecommendedWho`, `Screenshot`, `Photo`, `Video`, `Plugin`, `Category`, `FirstSeen`,
+ *                        `downloads`, `stars`, `LastUpdate`, `installedVersion`, `pluginVersion`, `MinVer`, `MaxVer`,
+ *                        `Licence`/`License`, `ProfileIcon`, `Repository`, `pinnedClass`, `pinnedTitle`, `pinnedAlt`, `pinned`,
+ *                        `actionsContext`, `supportContext`, `DonateLink`, `DonateText`, `trends`, `downloadtrend`, `display_changes`,
+ *                        `display_changelogMessage`, and other display-related fields used by the popup renderer.
+ * @return string The complete HTML string for the popup modal.
+ */
 function displayPopup($template) {
   global $caSettings, $caPaths;
 

@@ -37,6 +37,11 @@ String.prototype.basename = function() {
   return this.split('/').reverse()[0];
 }
 
+/**
+ * Remove HTML tags from a string.
+ * @param {string} str - The input string; if falsy, an empty string is returned.
+ * @returns {string} The input with all `<...>` tag substrings removed.
+ */
 function stripTags(str) {
   if ( ! str )
     return "";
@@ -45,6 +50,11 @@ function stripTags(str) {
 }
 
 var spinnerTimer = null;
+/**
+ * Schedules the global spinner to be shown after 250 milliseconds if a show is not already pending.
+ *
+ * If a spinner display is already pending, this function does nothing.
+ */
 function mySpinner() {
   if ( ! spinnerTimer ) {
     spinnerTimer = setTimeout(function() {
@@ -54,6 +64,12 @@ function mySpinner() {
   }
 }
 
+/**
+ * Stops and hides any active loading spinner and clears related timeout state.
+ *
+ * Clears the global spinner timer and other loading-related timeouts, hides
+ * spinner UI elements, and clears the long-loading message container.
+ */
 function myCloseSpinner() {
   clearTimeout(spinnerTimer);
   spinnerTimer = null;
@@ -84,10 +100,19 @@ function installSort(a,b) {
   }
 }
 
+/**
+ * Reloads the current page.
+ */
 function reloadPage() {
   location.reload();
 }
 
+/**
+ * Check whether an element's content overflows its box in the specified direction.
+ * @param {Element} el - The DOM element to check for overflow.
+ * @param {boolean} [type=false] - If true, check horizontal overflow; if false, check vertical overflow.
+ * @returns {boolean} `true` if the element's content overflows in the chosen direction, `false` otherwise.
+ */
 function isOverflown(el,type=false){
   return false;
   // Optimized to minimize forced reflows by using the most efficient DOM properties
@@ -103,11 +128,19 @@ function isOverflown(el,type=false){
 }
 
 
+/**
+ * Disable the search input and remove focus from it.
+ *
+ * Disables the element with id `searchBox` and blurs it to clear keyboard/focus.
+ */
 function disableSearch() {
   $("#searchBox").prop("disabled",true);
   $("#searchBox").blur();
 }
 
+/**
+ * Enables the search input control so it can receive user input.
+ */
 function enableSearch() {
   $("#searchBox").prop("disabled",false);
 }
@@ -358,12 +391,22 @@ $.fn.onVisibilityHidden = function(callback) {
   });
 };
 
-// Save the state of CA if GUI Search takes us away from the page
+/**
+ * Persist the Community Applications UI state before GUI Search navigates away.
+ *
+ * Stores the current UI state so it can be restored when returning to the page.
+ */
 function guiSearchOnUnload() {
   saveState();
 }
 
-// Dims the display area
+/**
+ * Toggle a dim overlay on the UI header, menu, and main display area.
+ * When enabling, adds the "dim" class (with a 250ms transition) to #header and #menu and to
+ * .mainArea if the mobile menu is visible, otherwise to .ca_display_area. When disabling,
+ * removes the "dim" class (with a 250ms transition) from header, menu and both display areas.
+ * @param {boolean} dim - `true` to apply the dim overlay, `false` to remove it.
+ */
 function dimScreen(dim) {
   if ( dim ) {
     $("#header, #menu").addClass("dim",250);
@@ -377,6 +420,12 @@ function dimScreen(dim) {
   }
 }
 
+/**
+ * Sets up automatic UI dimming when SweetAlert modals are shown or hidden.
+ *
+ * Waits until a `.sweet-alert` element exists, then attaches a class-change observer that calls
+ * `dimScreen(true)` when the modal gains the `showSweetAlert` class and `dimScreen(false)` when it does not.
+ */
 function setupSwalDim() {
   if ( $(".sweet-alert").length == 0 ) {
     setTimeout(function() {

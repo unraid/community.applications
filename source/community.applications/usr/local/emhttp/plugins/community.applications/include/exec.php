@@ -221,7 +221,22 @@ switch ($_POST['action']) {
     postReturn(["error"=>"Unknown post action ".htmlspecialchars($_POST['action'])]);
     break;
 }
-#  DownloadApplicationFeed MUST BE CALLED prior to DownloadCommunityTemplates in order for private repositories to be merged correctly.
+/**
+ * Downloads the Community Applications feed, normalizes each entry and writes local template, category and repository files.
+ *
+ * Processes the remote (or local) application feed into the plugin's internal structures: validates and filters entries, assigns IDs,
+ * computes metadata (categories, author, sort fields, trends), expands branches into separate templates, and writes:
+ * - community-templates-info (templates)
+ * - categoryList
+ * - repositoryList
+ * - extraBlacklist / extraDeprecated
+ * - invalidXML list (when present)
+ *
+ * Side effects: creates the community templates directory, removes temporary files, updates $GLOBALS['templates'], calls updatePluginSupport(),
+ * and touches the haveTemplates marker. On download failure it writes an appFeedDownloadError marker and returns false.
+ *
+ * @return bool `true` on successful processing and write of feed-derived files, `false` if the feed download or parsing failed.
+ */
 
 function DownloadApplicationFeed() {
   global $caPaths;
@@ -382,10 +397,7 @@ function DownloadApplicationFeed() {
           continue;
         $subBranch = $o;
         $masterRepository = explode(":",$subBranch['Repository']);
-        if ( ! ($branch['Tag']??null) ) {
-          continue;
-        }
-        if ( (!isset($masterRepository[1]) && ($branch['Tag']??null) == "latest" ) || (isset($masterRepository[1]) && ($branch['Tag']??null) == $masterRepository[1]) ) {
+        if ( (!isset($masterRepository[1]) && $branch['Tag'] == "latest" ) || (isset($masterRepository[1]) && $branch['Tag'] == $masterRepository[1]) ) {
         //debug("Default tag is latest, but branch is also latest.  Skipping {$o['RepoName']} {$subBranch['Repository']} {$branch['Tag']}");
         continue;
         }
@@ -450,6 +462,15 @@ function DownloadApplicationFeed() {
   return true;
 }
 
+/**
+ * Synchronizes installed plugin files' `support` attribute with the matching template entries.
+ *
+ * Scans /boot/config/plugins/*.plg, matches each plugin to a template by `PluginURL` (tries raw.github.com → raw.githubusercontent.com fallback),
+ * and updates the plugin file's `support` attribute when it differs from the template's `Support` value. Writes changes back to the plugin file
+ * and clears the attribute cache at the end.
+ *
+ * @param array $templates Array of template records; each record should include `PluginURL` and `Support` keys used for matching and update.
+ */
 function updatePluginSupport($templates) {
   $plugins = glob("/boot/config/plugins/*.plg");
 
@@ -484,6 +505,13 @@ function updatePluginSupport($templates) {
   dropAttributeCache();
 }
 
+/**
+ * Load global templates, merge converted private templates (if present), and persist the resulting templates list.
+ *
+ * If a converted-templates directory exists, reads each private XML, normalizes fields (marks as private, sets ID, displayable, date, compatibility, descriptions, and card description), applies template fixes, appends them to the public templates list, writes the combined list to the community templates info file, and updates $GLOBALS['templates'].
+ *
+ * @return false If the global templates list is empty and no processing is performed; otherwise returns void.
+ */
 function getConvertedTemplates() {
   global $caPaths;
 
@@ -531,7 +559,21 @@ function getConvertedTemplates() {
 
 #############################
 # Selects an app of the day #
-#############################
+/**
+ * Selects a list of template IDs to show on the home/startup screen according to the configured startup mode.
+ *
+ * Uses the current startup configuration to pick up to the POST-specified maxHomeApps (default 10) templates from the provided templates list. Selection modes include:
+ * - "random": a daily cached random selection of displayable templates.
+ * - "onlynew": newest templates by FirstSeen.
+ * - "topperforming": high trending templates with sufficient download counts, avoiding duplicate repositories.
+ * - "topPlugins": most-downloaded templates that include plugins.
+ * - "trending": templates with the largest recent trend increases.
+ * - "spotlight": templates explicitly recommended (by RecommendedDate).
+ * - "featured": templates marked as featured, excluding already-installed items and handling plugin update conditions.
+ *
+ * @param array $file Array of template arrays to select from; each template must include identifying keys such as 'ID', 'Repository', and any fields used by selection filters.
+ * @return array An array of selected template IDs (empty array if none match).
+ */
 function appOfDay($file) {
   global $caPaths,$caSettings,$sortOrder,$dynamixSettings;
 
@@ -715,7 +757,16 @@ function checkRandomApp($test) {
 }
 ##############################################################
 # Gets the repositories that are listed on any given display #
-##############################################################
+/**
+ * Assemble and persist the list of repositories to display in the Community Applications UI.
+ *
+ * Reads repository metadata and the currently selected template set, filters out templates
+ * that are blacklisted, deprecated (when hideDeprecated is enabled), or incompatible
+ * (when hideIncompatible is enabled), groups templates by repository (separating repositories
+ * that include `bio` metadata), preserves the configured favourite repository at the front,
+ * ensures each repository entry is marked as a repository template and enriched with missing
+ * variables, sorts the resulting list, and writes it to the repositoriesDisplayed cache file.
+ */
 function displayRepositories() {
   global $caPaths, $caSettings;
 
@@ -774,7 +825,16 @@ function displayRepositories() {
 
 ######################################################################################
 # get_content - get the results from templates according to categories, filters, etc #
-######################################################################################
+/**
+ * Builds the applications listing HTML and updates related cache files based on POST input.
+ *
+ * Processes POST parameters such as `filter`, `category`, `newApp`, `mobileDevice`, `maxHomeApps`
+ * and `startupDisplay`, refreshes global templates, and composes the community applications view.
+ * Handles special category modes (PRIVATE, DEPRECATED, BLACKLIST, INCOMPATIBLE, repos), the
+ * home/startup aggregated sections, normal category filtering, and prioritized search result
+ * bins. Writes/clears various cache files (displayed/search results/startup markers), may load
+ * converted private templates, and returns the final display payload via postReturn().
+ */
 function get_content() {
   global $caPaths, $caSettings;
 
@@ -1058,19 +1118,14 @@ function get_content() {
           }
         }
       }
-      if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
+      if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null,$template['ExtraSearchTerms']??null]) ) {
         if ( $template['RepoName'] == ($caSettings['favourite']??null) ) {
           $searchResults['nameHit'][] = $template;
         } else {
-          $searchResults['anyHit'][] = $template;   
+          $searchResults['anyHit'][] = $template;
         }
-        continue;
       } 
-      if ( filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
-        debug("extraHit: ".$template['Name']);
-        $searchResults['extraHit'][] = $template;
-        continue;
-      }
+      
     } else {
       $display[] = $template;
     }
@@ -1137,7 +1192,16 @@ function get_content() {
 
 ########################################################
 # force_update -> forces an update of the applications #
-########################################################
+/**
+ * Refreshes the Community Applications feed, updates local templates and caches, and prepares client-side UI script updates.
+ *
+ * Performs a feed timestamp check, forces a full feed download when required, converts private templates, runs moderation,
+ * and generates a script containing UI update instructions (for example, statistics tooltip and deprecation banner).
+ *
+ * @return array An associative array with keys:
+ *               - `status`: `"ok"` when the update process completed and UI script is provided.
+ *               - `script`: A JavaScript string to apply UI updates (title/tooltips and optional warning banner).
+ */
 function force_update() {
   global $caPaths, $caSettings;
 
@@ -1255,7 +1319,15 @@ function dismiss_plugin_warning() {
 
 ###############################################################
 # Displays the list of installed or previously installed apps #
-###############################################################
+/**
+ * Build the list of previously installed or removable applications and optionally evaluate action-centre state.
+ *
+ * When $enableActionCentre is true, inspects installed containers, plugins, and language packs and returns whether any items require action-centre attention.
+ * When $enableActionCentre is false, computes the displayed list (filtered by POST parameters), writes the displayed results to the community displayed cache, and returns the operation status via postReturn.
+ *
+ * @param bool $enableActionCentre If true, run in action-centre mode (returns boolean). If false, produce displayed list and reply via postReturn.
+ * @return bool|null When $enableActionCentre is true, returns `true` if any displayed items exist for the action centre, `false` otherwise. When $enableActionCentre is false, the function does not return a value (it sends a response via postReturn).
+ */
 function previous_apps($enableActionCentre=false) {
   global $caPaths, $caSettings;
 
@@ -1589,7 +1661,13 @@ function updatePLGstatus() {
 
 #######################
 # Uninstalls a docker #
-#######################
+/**
+ * Uninstalls a Docker container and its image described by the provided application XML.
+ *
+ * Reads the POST field `application` (path to an XML file), extracts the container Name,
+ * stops the running container if necessary, removes the container and its image, prunes
+ * unused Docker volumes, and returns an "Uninstalled" status via postReturn.
+ */
 function uninstall_docker() {
   global $DockerClient;
 
@@ -1642,7 +1720,14 @@ function areAppsPinned() {
 
 ####################################
 # Displays the pinned applications #
-####################################
+/**
+ * Builds the list of pinned applications from the user's pinned map and updates the displayed cache.
+ *
+ * Reads the pinned map, clears related search/display caches, selects matching templates by repository and sort name
+ * while respecting blacklist and compatibility settings, sorts the matched templates, writes the result to the
+ * community-templates-displayed cache with a pinnedFlag, and signals the client to disable the pinned menu when no
+ * results were found (response sent via postReturn).
+ */
 function pinnedApps() {
   global $caPaths, $caSettings;
 
@@ -1707,7 +1792,11 @@ function displayTags() {
 
 ###########################################
 # Displays The Statistics For The Appfeed #
-###########################################
+/**
+ * Build statistics for templates and repositories and send an HTML summary via postReturn.
+ *
+ * Generates counts for docker/plugin/templates, repositories, invalid templates, deprecated/incompatible/private templates, moderation entries and related metrics, updates relevant cache files, and returns the rendered HTML snippet under the `'statistics'` key by calling `postReturn`.
+ */
 function statistics() {
   global $caPaths, $caSettings;
 
@@ -1914,7 +2003,13 @@ function statistics() {
 
 ####################################################
 # Creates the entries for autocomplete on searches #
-####################################################
+/**
+ * Builds and posts a deduplicated autocomplete list of category labels, template names, languages, repositories, authors, and extra search terms.
+ *
+ * The function waits for the global templates to be available, gathers translated category names and per-template tokens, and excludes templates that are blacklisted or (when configured) deprecated or incompatible unless marked featured.
+ *
+ * @return array Posts JSON with key `autocomplete` containing a numerically indexed array of unique autocomplete strings. 
+ */
 function populateAutoComplete() {
   global $caPaths, $caSettings;
 
@@ -1979,7 +2074,14 @@ function caChangeLog() {
 
 ###############################
 # Populates the category list #
-###############################
+/**
+ * Builds an HTML nested category menu from the stored category list and returns it via postReturn.
+ *
+ * Reads the category list JSON, adds a "Language" category, translates category and subcategory descriptions,
+ * sorts categories by description (ascending), and generates an unordered list of category menu items.
+ * If any private templates are present, a "Private Apps" entry is appended. The resulting HTML is returned
+ * through postReturn(['categories' => $html]).
+ */
 function get_categories() {
   global $caPaths, $sortOrder;
 
@@ -2049,7 +2151,29 @@ function getRepoDescription() {
 
 ###########################################
 # Creates the XML for a container install #
-###########################################
+/**
+ * Generate and write a Docker template XML file for the specified template path.
+ *
+ * If the POST `xml` value references a template path (not an absolute /boot/ file), the function
+ * locates the template in the current templates list, applies environment-specific adjustments,
+ * and writes a generated XML file to the requested location. Observable adjustments include:
+ * - restoring original overview/description and selecting a theme-specific icon when available;
+ * - normalizing network mode to an available interface when the template requires a non-host/bridge mode;
+ * - rewriting volume HostDir and config/default paths to use the first available disk or cache pool when
+ *   referenced disks/pools are not present on the system;
+ * - replacing CA default appdata paths with the Docker app config path from Docker settings;
+ * - resolving case-only directory name mismatches on the filesystem for default/value paths;
+ * - ensuring the template Name does not collide with installed containers (appending "-1" as needed);
+ * - adding a TailScale fallback state directory Config entry when TailScale is installed and applicable.
+ *
+ * Errors are returned via the postReturn mechanism when the `xml` POST parameter is missing,
+ * when templates are not loaded, or when no matching template path is found.
+ *
+ * Side effects:
+ * - downloads repository assets for the template,
+ * - creates directories as needed and writes the generated XML file,
+ * - returns status via postReturn (e.g., `["status"=>"ok","cache"=>...]` or error objects).
+ */
 function createXML() {
   global $caPaths, $caSettings;
 
@@ -2459,7 +2583,17 @@ function convert_docker() {
 
 #########################################################
 # search_dockerhub - returns the results from dockerHub #
-#########################################################
+/**
+ * Searches Docker Hub for the POSTed filter string and returns rendered search results.
+ *
+ * Reads POST parameters `filter` and `page`, queries Docker Hub's search API, converts results
+ * into the internal dockerSearchResults page structure, writes that JSON to the path defined by
+ * $caPaths['dockerSearchResults'], touches $caPaths['dockerSearchActive'] to indicate an active
+ * search, and sends a response via postReturn containing the HTML produced by displaySearchResults().
+ *
+ * If no matches are found, removes any existing search result markers, returns a "No Matching
+ * Applications Found On Docker Hub" message and a script to hide the Docker search UI.
+ */
 function search_dockerhub() {
   global $caPaths;
 
@@ -2518,7 +2652,19 @@ function search_dockerhub() {
 }
 ##############################################
 # Gets the last update issued to a container #
-##############################################
+/**
+ * Get the last Docker Hub update date for the template identified by its ID.
+ *
+ * Looks up the template by ID, skips templates that are plugins or language packs,
+ * and queries Docker Hub for the repository's `last_updated` timestamp when the
+ * template's tag is `latest`. Returns a human-readable date string translated
+ * via `tr()` when available, `"Unknown"` when the template or timestamp cannot
+ * be determined, or `null` when the function intentionally does not produce a date
+ * (for plugin/language templates or when the registry response lacks the field).
+ *
+ * @param int|string $ID Template ID to query.
+ * @return string|null A translated date like `"M j, Y"`, the string `"Unknown"`, or `null`.
+ */
 function getLastUpdate($ID) {
   getGlobals();
 
@@ -2588,7 +2734,14 @@ function changeMaxPerPage() {
 ################################################################
 # Enables if necessary the action centre                       #
 # Basically a duplicate of action centre code in previous apps #
-################################################################
+/**
+ * Determines whether the Action Centre should be enabled and signals the result.
+ *
+ * Waits for any running update process and for templates to be available, then builds the list
+ * of installed items requiring attention and signals if Action Centre should be shown.
+ *
+ * @return string `"action"` if Action Centre should be enabled, `"noaction"` otherwise.
+ */
 function enableActionCentre() {
   global $caPaths;
 
