@@ -1,18 +1,20 @@
-/*
-########################################
-#                                      #
-# Community Applications               #
-# Copyright 2020-2026, Lime Technology #
-# Copyright 2015-2026, Andrew Zawadzki #
-#                                      #
-# Licensed under GPL-2.0-or-later      #
-#                                      #
-########################################
-
-SPDX-License-Identifier: GPL-2.0-or-later
-*/
+/**
+ * Wire up all global UI click, mousedown, scroll, wheel, and related event handlers used by Community Applications.
+ *
+ * Sets up the fixed custom scroll overlays with draggable thumbs and wheel forwarding, the legacy external-link guard and its allowlist prompt, unified modal scrim and SweetAlert click handling, mobile-layout menu synchronization, search-modal input/button behavior and Awesomplete support, sidebar/menu/navigation/pagination/repo-related delegated handlers, multi-install/pagination/sorting controls, debug/download actions, and other application-wide delegated click/mousedown handlers.
+ */
 
 function caInitializeClickHandlers() {
+	/**
+	 * Creates and manages fixed horizontal and vertical overlay scroll indicators with draggable thumbs for selected scrollable panes.
+	 *
+	 * Attaches persistent overlay elements and event handlers for elements matching ".menuItems, .ca_homeTemplates, .mainArea, .sidenav", keeping indicator size and position in sync with each target's geometry and scroll state. Handles:
+	 * - showing/hiding indicators based on hover, scrolling, dragging, and layout intersection with the main area;
+	 * - draggable thumb interactions and track clicks to control scrollLeft/scrollTop;
+	 * - forwarding wheel/trackpad gestures from overlays into the appropriate scroll target or nearest vertical scroll ancestor;
+	 * - an always-on, read-only progress mapping for the mainArea vertical bar when template data is available;
+	 * - automatic attachment/detachment of overlays for matching elements and debounced refreshes driven by resize, scroll, and DOM mutations.
+	 */
 	function caInitFirefoxFixedHorizontalOverlay() {
 		var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav";
 		var overlays = new Map();
@@ -599,12 +601,12 @@ function caInitializeClickHandlers() {
 	$(".showMenuButton").on("click", function() { showMenu(); });
 	$(".closeMenuButton").on("click", function() { closeMenu(); });
 
-	/* Try to click the nchan swal's own "Done" button so the lib's close path
-	   runs (cleans up the SSE subscription, etc.) instead of leaving an
-	   orphaned half-open swal. Only fires if showSweetAlert.nchan is present
-	   AND the Done button (and its container) is visible AND not disabled —
-	   avoids closing the swal mid-progress when the lib intentionally hides/
-	   disables Done while work is in flight. Returns true iff a click fired. */
+	/**
+	 * Attempts to click the visible "Done" button of an active nchan SweetAlert to trigger its close/cleanup path.
+	 *
+	 * Only clicks when an nchan SweetAlert is present and the Done button (and its container) are visible and enabled.
+	 * @returns {boolean} `true` if a click was dispatched to the Done button, `false` otherwise.
+	 */
 	function caTryClickNchanDone() {
 		if ( ! $(".sweet-alert.showSweetAlert.nchan").length) return false;
 		var $container = $(".sa-confirm-button-container:visible").first();
@@ -1000,9 +1002,11 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
 }
 
-/* EXIT button on the "Updating Applications" swal: close the swal, briefly show
-   a bottom-banner notice that the download continues in the background, then
-   navigate to the previous page. */
+/**
+ * Exit the "Updating Applications" flow, show a banner that the download will continue in the background, and navigate back after a short delay.
+ *
+ * Sets `data.quittingUpdate = true`, closes the SweetAlert if present, hides spinners, replaces the bottom-banner message with "The download will continue in the background", makes the banner visible, then calls `history.back()` after 5 seconds and clears `data.quittingUpdate`.
+ */
 function caQuitUpdate() {
 	data.quittingUpdate = true;
 	try { if (typeof swal !== "undefined") swal.close(); } catch (err) { /* no-op */ }
@@ -1022,9 +1026,17 @@ function caQuitUpdate() {
 }
 
 /**
- * For flex-wrapped suggestions in the search modal: map arrow keys to 2D movement
- * (left/right within a row, up/down to the nearest item in the adjacent row).
- * Registered in capture phase so Awesomplete's linear list navigation does not run.
+ * Build a 2D grid representation of flex-wrapped Awesomplete suggestion items for arrow-key navigation.
+ *
+ * @param {HTMLUListElement} ul - The Awesomplete suggestion list (<ul>) whose child <li> items will be measured and grouped into rows.
+ * @returns {Array<Object>} An array of row objects sorted top-to-bottom. Each row has:
+ *   - `y` {number}: the measured top coordinate of the row,
+ *   - `items` {Array<Object>}: items sorted left-to-right; each item contains:
+ *       - `el` {HTMLElement} - the original <li> element,
+ *       - `index` {number} - the item's index in the original list,
+ *       - `left` {number} - the item's left coordinate,
+ *       - `right` {number} - the item's right coordinate,
+ *       - `center` {number} - the item's horizontal center coordinate.
  */
 function caBuildAwesompleteGridRows(ul) {
 	var items = Array.prototype.slice.call(ul.querySelectorAll("li"));
@@ -1055,6 +1067,12 @@ function caBuildAwesompleteGridRows(ul) {
 	rowBuckets.sort(function(a, c) { return a.y - c.y; });
 	return rowBuckets;
 }
+/**
+ * Locate the row and column position of a suggestion by its original list index.
+ * @param {Array} rows - Grid rows as produced by caBuildAwesompleteGridRows; each row has an `items` array containing objects with an `index` matching the original list index.
+ * @param {number} listIndex - The original index of the suggestion to find.
+ * @returns {{ri: number, ci: number, item: object}|null} An object with `ri` (row index), `ci` (column index), and `item` (the matched item object) when found, or `null` if not found.
+ */
 function caAwesompleteGridFindPos(rows, listIndex) {
 	for (var ri = 0; ri < rows.length; ri++) {
 		for (var ci = 0; ci < rows[ri].items.length; ci++) {
@@ -1065,6 +1083,14 @@ function caAwesompleteGridFindPos(rows, listIndex) {
 	}
 	return null;
 }
+/**
+ * Selects the item in a row whose horizontal center is closest to a given x coordinate.
+ * 
+ * Chooses the item with the smallest absolute distance between its `center` and `centerX`. If two items are effectively tied (within 0.5px), the item with the smaller `left` is chosen.
+ * @param {{items: Array<{index: number, left: number, center: number}>}} row - Row object containing an array of items with `index`, `left`, and `center` properties.
+ * @param {number} centerX - The x coordinate (in pixels) to compare against item centers.
+ * @returns {number} The original list `index` of the closest item.
+ */
 function caAwesompleteGridClosestInRow(row, centerX) {
 	var bestI = 0, bestD = Infinity;
 	for (var i = 0; i < row.items.length; i++) {
@@ -1079,6 +1105,17 @@ function caAwesompleteGridClosestInRow(row, centerX) {
 	}
 	return row.items[bestI].index;
 }
+/**
+ * Remaps arrow keys to 2D grid navigation for the Awesomplete suggestion list in the search modal.
+ *
+ * When the search modal is open and Awesomplete is showing, this handler:
+ * - Maps Left/Right to move to the adjacent suggestion in the same visual row.
+ * - Maps Up/Down to move to the closest suggestion in the previous/next visual row.
+ * - If no suggestion is currently active, Up/Down activate the last/first suggestion while Left/Right are left for the input caret.
+ * The handler prevents default browser behavior and scrolls the active suggestion into view when it performs a navigation action.
+ *
+ * @param {KeyboardEvent} e - The keydown event to handle; ignored when composing, when the modal/Awesomplete list is not open, or when the key is not an arrow key.
+ */
 function caSearchModalAwesompleteGridKeydown(e) {
 	if (!e || e.isComposing === true) return;
 	var kc = e.keyCode;
@@ -1132,6 +1169,10 @@ function caSearchModalAwesompleteGridKeydown(e) {
 		caScrollSearchModalAwesompleteToActive(ac);
 	}
 }
+/**
+ * Scrolls the currently active Awesomplete suggestion into view.
+ * @param {Object} ac - The Awesomplete instance containing `ul` and `index` for its suggestion list.
+ */
 function caScrollSearchModalAwesompleteToActive(ac) {
 	if (typeof ac === "undefined" || !ac || ac.index < 0) return;
 	setTimeout(function() {
@@ -1140,6 +1181,18 @@ function caScrollSearchModalAwesompleteToActive(ac) {
 	}, 0);
 }
 
+/**
+ * Installs global UI and keyboard event handlers used by the search modal, scroll panes, error reporting, and common keyboard shortcuts.
+ *
+ * Sets up:
+ * - Awesomplete grid-navigation keydown capture for the search box.
+ * - Cmd/Ctrl+Shift+D debug shortcut.
+ * - Focus-on-hover behavior for scrollable panes so arrow/Page/Home/End keys operate on the hovered pane.
+ * - IMG load fallbacks for spotlight and generic icons and global JavaScript error reporting to the backend.
+ * - Search-box input/focus/mousedown handling, search-filter focusout dismissal, and mobile-menu mousedown restoration.
+ * - Enter key behavior on the search box to run searches and handle default-sort fallback.
+ * - Escape key handling to close the sidebar, mobile menu, or search modal (or clear the focused search box).
+ */
 function caInitializeEventHandlers() {
 	var elSearch = document.getElementById("searchBox");
 	if (elSearch) {
@@ -1306,6 +1359,16 @@ function caInitializeEventHandlers() {
 	});
 }
 
+/**
+ * Record the initial serialized settings state and bind submit handling for the sidebar settings form.
+ *
+ * Stores the provided serialized form state on the settings form so callers (for example, closeSidebar)
+ * can detect dirty fields and auto-submit when the panel is dismissed. Also attaches a namespaced
+ * submit handler that prevents double-submission, displays saving/status banners, and triggers a
+ * page reload after the save completes (waiting for a progress iframe load when present).
+ *
+ * @param {string} initialFormState - The serialized initial state of the settings form (e.g., querystring or JSON) to persist on the form for dirty-state detection.
+ */
 function caBindSettingsFormHandlers(initialFormState) {
 	var $sidenav = $("#sidenavContent");
 	var $form = $sidenav.find(".ca_settingsForm");

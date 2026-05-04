@@ -1,6 +1,14 @@
 <?php
 
 class ForceUpdateHelpers {
+	/**
+	 * Reset template cache and the in-memory templates state.
+	 *
+	 * Deletes the on-disk templates cache at CA_PATHS['tempFiles'], clears $GLOBALS['templates'],
+	 * and, if requested, ensures the CA_PATHS['templates-community'] directory exists (created recursively with 0777 permissions).
+	 *
+	 * @param bool $ensureTemplatesDirectory If true, create CA_PATHS['templates-community'] if it does not exist.
+	 */
 	public static function resetTemplatesCache(bool $ensureTemplatesDirectory = false): void {
 		exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
 
@@ -11,6 +19,14 @@ class ForceUpdateHelpers {
 		$GLOBALS['templates'] = [];
 	}
 
+	/**
+	 * Retrieves the latest update metadata from the application feed.
+	 *
+	 * Attempts to download and validate metadata from the primary feed and falls back to a backup feed if necessary.
+	 * Ensures the returned array always contains a `last_updated_timestamp` key (set to `INF` when no valid timestamp is available).
+	 *
+	 * @return array The parsed metadata array from the feed, or an empty array if no valid metadata could be obtained. The array will include a `last_updated_timestamp` value. 
+	 */
 	public static function fetchLatestUpdateMetadata(): array {
 		@unlink(CA_PATHS['lastUpdated']);
 
@@ -35,15 +51,42 @@ class ForceUpdateHelpers {
 		return $latestUpdate;
 	}
 
+	/**
+	 * Determine whether templates should be refreshed by comparing recorded update timestamps.
+	 *
+	 * @param array $latestUpdate Latest update metadata; may include a `last_updated_timestamp` key.
+	 * @param array $lastUpdatedOld Previously recorded update metadata; may include a `last_updated_timestamp` key.
+	 * @return bool `true` if the `last_updated_timestamp` values differ, `false` otherwise.
+	 */
 	public static function shouldRefreshTemplates(array $latestUpdate, array $lastUpdatedOld): bool {
 		return ($latestUpdate['last_updated_timestamp'] ?? 0) != ($lastUpdatedOld['last_updated_timestamp'] ?? 0);
 	}
 
+	/**
+	 * Checks whether community templates are available locally.
+	 *
+	 * Returns `true` only when the community templates marker file exists and the in-memory templates list contains entries.
+	 *
+	 * @return bool `true` if the community templates marker file exists and the in-memory templates list is not empty, `false` otherwise.
+	 */
 	public static function templatesAvailable(): bool {
 		clearstatcache();
 		return file_exists(CA_PATHS['community-templates-info']) && !empty($GLOBALS['templates']);
 	}
 
+	/**
+	 * Build a UI response describing a failed application-feed download and perform related cleanup.
+	 *
+	 * The returned array contains a JavaScript snippet to hide feed-only UI and an HTML payload explaining
+	 * the failure (including server date/DNS guidance and the last recorded JSON error message).
+	 *
+	 * Side effects: deletes CA_PATHS['appFeedDownloadError'] and CA_PATHS['community-templates-info'] (errors suppressed)
+	 * and clears $GLOBALS['templates'].
+	 *
+	 * @return array{script: string, data: string} An associative array with:
+	 *   - `script`: JS to run on the client (hides feed-only elements).
+	 *   - `data`: HTML to display to the user describing the failure and the last JSON error message.
+	 */
 	public static function buildDownloadFailureResponse(): array {
 		$response = ['script' => "$('.onlyShowWithFeed').hide();"];
 
@@ -78,6 +121,15 @@ class ForceUpdateHelpers {
 		return $response;
 	}
 
+	/**
+	 * Build a JavaScript snippet that updates the UI with the last feed update time and, if needed, adds a deprecation banner.
+	 *
+	 * The returned script sets the title attribute of elements matching `.showStatistics` to the formatted
+	 * "last updated" timestamp read from the previous feed metadata. If the installed OS version is lower
+	 * than the Community Applications plugin's `MinVer`, the script also calls `addBannerWarning` with a deprecation message.
+	 *
+	 * @return string JavaScript code that updates the feed timestamp tooltip and conditionally inserts a deprecation banner.
+	 */
 	public static function buildUpdateScript(): string {
 		$appFeedTime = readJsonFile(CA_PATHS['lastUpdated-old']);
 		$timestamp = $appFeedTime['last_updated_timestamp'] ?? 0;
@@ -103,6 +155,12 @@ class ForceUpdateHelpers {
 		return $script;
 	}
 
+	/ **
+	 * Determines whether the provided update metadata contains a valid `last_updated_timestamp`.
+	 *
+	 * @param mixed $metadata The metadata payload to validate; expected to be an array containing a `last_updated_timestamp` entry.
+	 * @return bool `true` if `$metadata` is an array and contains a non-empty `last_updated_timestamp`, `false` otherwise.
+	 */
 	private static function isValidUpdateMetadata($metadata): bool {
 		return is_array($metadata) && !empty($metadata['last_updated_timestamp']);
 	}

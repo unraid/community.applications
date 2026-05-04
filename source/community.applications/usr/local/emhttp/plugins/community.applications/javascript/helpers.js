@@ -1,16 +1,8 @@
-/*
-########################################
-#                                      #
-# Community Applications               #
-# Copyright 2020-2026, Lime Technology #
-# Copyright 2015-2026, Andrew Zawadzki #
-#                                      #
-# Licensed under GPL-2.0-or-later      #
-#                                      #
-########################################
-
-SPDX-License-Identifier: GPL-2.0-or-later
-*/
+/**
+ * Validate and parse a value as a URL.
+ * @param {string} url - The input to parse as a URL.
+ * @returns {URL|false} The parsed `URL` object when `url` is a valid URL, `false` otherwise.
+ */
 
 function isValidURL(url) {
 	try {
@@ -39,6 +31,11 @@ String.prototype.basename = function() {
 	return this.split('/').reverse()[0];
 }
 
+/**
+ * Remove HTML/XML tags from a string.
+ * @param {string} str - The input string that may contain markup.
+ * @returns {string} The input with all `<...>` tag sequences removed; returns an empty string when `str` is falsy.
+ */
 function stripTags(str) {
 	if ( ! str )
 		return "";
@@ -47,6 +44,13 @@ function stripTags(str) {
 }
 
 var spinnerTimer = null;
+/**
+ * Schedules the global loading spinner to appear after a short delay.
+ *
+ * If a spinner show is already pending, this call is a no-op. When the delay
+ * elapses the function makes visible the elements matching `div.spinner` and
+ * `.spinnerBackground` and clears the pending timer.
+ */
 function mySpinner() {
 	if ( ! spinnerTimer ) {
 		spinnerTimer = setTimeout(function() {
@@ -56,6 +60,13 @@ function mySpinner() {
 	}
 }
 
+/**
+ * Stops and hides the global loading spinner.
+ *
+ * Clears any scheduled spinner timer, resets the shared `spinnerTimer` handle,
+ * hides spinner UI elements (`div.spinner` and `.spinnerBackground`), and
+ * clears the `.long-loading` container's HTML.
+ */
 function myCloseSpinner() {
 	clearTimeout(spinnerTimer);
 	spinnerTimer = null;
@@ -64,10 +75,20 @@ function myCloseSpinner() {
 	$(".long-loading").html("");
 }
 
+/**
+ * Clear the current category selection.
+ *
+ * Resets data.selected_category to an empty string to restore the default (no-category) state.
+ */
 function enableButtons() {
 	data.selected_category = "";
 }
 
+/**
+ * Reloads display data for pages 1 through the current page, rebuilds the visible card list, and restores the previous scroll position.
+ *
+ * Clears incremental-load/search state, requests enough items to cover pages 1..currentpage, updates data.currentpage and data.maxPerPage to their saved values, replaces the displayed content with the fetched data, and restores the .mainArea scrollTop so the user's viewport remains at the same content position.
+ */
 function refreshDisplay() {
 	/* changeSortOrder() refetches a SINGLE page (data.currentpage), which is
 	   fine for sort-button clicks (user expects to land back at the top) but
@@ -107,10 +128,22 @@ function refreshDisplay() {
 	});
 }
 
+/**
+ * Produce the plural form of a word by appending "s" when the quantity is 0 or greater than 1.
+ * @param {string} string - The singular word to pluralize.
+ * @param {number} count - The quantity determining plurality.
+ * @returns {string} The pluralized word when `count` is 0 or greater than 1, otherwise the original word.
+ */
 function makePlural(string,count) {
 	return ( (count > 1) || (count == 0) ) ? string + "s" : string;
 }
 
+/**
+ * Compare two tuple-like arrays by their first element for use with Array.prototype.sort.
+ * @param {Array} a - First array/tuple whose element at index 0 will be compared.
+ * @param {Array} b - Second array/tuple whose element at index 0 will be compared.
+ * @returns {number} `-1` if `a[0] < b[0]`, `0` if `a[0] === b[0]`, `1` otherwise.
+ */
 function installSort(a,b) {
 	if (a[0] === b[0]) {
 		return 0;
@@ -119,10 +152,19 @@ function installSort(a,b) {
 	}
 }
 
+/**
+ * Reloads the current document.
+ */
 function reloadPage() {
 	location.reload();
 }
 
+/**
+ * Checks whether an element's content overflows its bounds.
+ * @param {Element} el - The element to test for overflow.
+ * @param {boolean} [type=false] - When truthy, test horizontal overflow; otherwise test vertical overflow.
+ * @returns {boolean} `true` if the element's content overflows in the checked direction, `false` otherwise.
+ */
 function isOverflown(el,type=false){
 	// Optimized to minimize forced reflows by using the most efficient DOM properties
 	// offsetWidth/offsetHeight are generally faster than clientWidth/clientHeight
@@ -135,16 +177,31 @@ function isOverflown(el,type=false){
 }
 
 
+/**
+ * Disable the search input control (#searchBox) and remove focus from it.
+ */
 function disableSearch() {
 	$("#searchBox").prop("disabled",true);
 	$("#searchBox").blur();
 }
 
+/**
+ * Enables the main search input element.
+ *
+ * Re-enables the #searchBox input so users can type into it.
+ */
 function enableSearch() {
 	$("#searchBox").prop("disabled",false);
 }
 
-/** Align search modal to .mainArea (fixed coords from getBoundingClientRect). */
+/**
+ * Aligns the CA search modal to the visible .mainArea by computing fixed top/left/width values.
+ *
+ * When the modal is open and .mainArea exists, computes coordinates from the element's
+ * getBoundingClientRect() and the root font size, then sets the CSS variables
+ * `--ca-search-modal-top`, `--ca-search-modal-left`, and `--ca-search-modal-width` on the
+ * document root.
+ */
 function caUpdateSearchModalLayout() {
 	if (!$("body").hasClass("ca_searchModalOpen")) return;
 	var $main = $(".mainArea");
@@ -161,8 +218,8 @@ function caUpdateSearchModalLayout() {
 }
 
 /**
- * If the field is empty but a search is still active (e.g. user backspaced in the modal and closed it),
- * put data.committedSearchFilter back in the input so the bar/modal show the current query.
+ * Restore the committed search term into #searchBox when the input is empty and a committed term exists.
+ * @returns {boolean} `true` if the committed term was restored into #searchBox, `false` otherwise.
  */
 function caRestoreCommittedSearchTermIntoBoxIfEmpty() {
 	var d = typeof data !== "undefined" && data ? data : null;
@@ -175,8 +232,14 @@ function caRestoreCommittedSearchTermIntoBoxIfEmpty() {
 }
 
 /**
- * Filled overlay + fixed panel (same #searchBox + Awesomplete).
- * @param {object} [options] noRefocus: if true, do not move focus to #searchBox (e.g. focus handler already has it).
+ * Open the CA search modal and prepare the shared search input, its suggestion handling, and layout.
+ *
+ * Restores a committed search term into the input if needed, initializes suggestion input mode, updates
+ * modal layout and window resize/orientation handlers, optionally focuses #searchBox, triggers Awesomplete
+ * evaluation/kick routines, and ensures the suggestions dropdown is opened or closed based on the input length.
+ *
+ * @param {Object} [options] - Optional flags controlling open behavior.
+ * @param {boolean} [options.noRefocus] - If true, do not move focus to #searchBox after opening.
  */
 function caOpenSearchModal(options) {
 	options = options || {};
@@ -219,7 +282,13 @@ function caOpenSearchModal(options) {
 	});
 }
 
-/** Run Awesomplete's internal evaluate (jQuery .trigger("input") does not always fire native listeners). */
+/**
+ * Force Awesomplete to re-evaluate the current #searchBox value.
+ *
+ * If the global `searchBoxAwesomplete` instance exposes an `evaluate()` method it is invoked.
+ * Otherwise a native `"input"` event is dispatched on the `#searchBox` element (attempts `InputEvent` then falls back to `Event`).
+ * The function does nothing if the search box element or the Awesomplete instance is not present.
+ */
 function caRunSearchBoxAwesompleteEvaluate() {
 	var el = document.getElementById("searchBox");
 	if (!el || typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
@@ -237,10 +306,9 @@ function caRunSearchBoxAwesompleteEvaluate() {
 }
 
 /**
- * Re-run suggestions when the search modal is shown.
- * - If the field meets minChars, run evaluate() so the list (re)populates from the current term.
- * - If the field is empty/below minChars, run evaluate() anyway so Awesomplete drops any cached
- *   `<li>` items from a prior search and then close the dropdown.
+ * Refreshes the Awesomplete suggestion list for the search modal and closes the dropdown when input is below the minimum character threshold.
+ *
+ * Safely no-ops if the Awesomplete instance or search box is unavailable. Always triggers evaluation so any stale list items are cleared; if the current input length is less than Awesomplete's `minChars`, attempts to close the dropdown.
  */
 function caKickSearchModalAwesomplete() {
 	if (typeof searchBoxAwesomplete === "undefined" || !searchBoxAwesomplete) return;
@@ -255,9 +323,13 @@ function caKickSearchModalAwesomplete() {
 }
 
 /**
- * Search suggestions: once the user uses the mouse to hover a suggestion, do not keep
- * the keyboard-selected suggestion "hovered" when the mouse leaves. Require another
- * ArrowUp/ArrowDown keypress to re-enable the keyboard hover state.
+ * Initialize suggestion input mode so a mouse-hovered suggestion suppresses keyboard selection until arrow keys are used.
+ *
+ * Registers handlers that:
+ * - mark the suggestion input as "mouse used" on suggestion mouseenter and keep the search input focused,
+ * - clear the "mouse used" state on ArrowUp/ArrowDown so keyboard navigation resumes,
+ * - in capture phase, force-focus the search input on Arrow keys while the modal is open,
+ * - prevent Enter from accepting a hidden keyboard-selected suggestion when the mouse was used and no suggestion is hovered.
  */
 function caInitSearchModalSuggestionInputMode() {
 	if (window.ca_searchModalSuggestionInputModeInit) return;
@@ -337,9 +409,11 @@ function caInitSearchModalSuggestionInputMode() {
 }
 
 /**
- * If the field has any text (committed search or draft), focus/mousedown reopens the search modal
- * so Awesomplete uses the in-modal chip layout. (mousedown runs when the input is already focused.)
- * Empty field: opening the modal is done via the search icon or by focusing #searchBox (e.g. Tab).
+ * Reopens the CA search modal when the search box contains text so in-modal suggestions use the chip layout.
+ *
+ * If the search box is empty, attempts to restore a committed search term before deciding. When a term exists,
+ * opens the modal without moving focus and repeatedly triggers Awesomplete evaluation (and optional population)
+ * until suggestion data becomes available.
  */
 function caReopenSearchModalIfNeeded() {
 	if ($("body").hasClass("ca_searchModalOpen")) return;
@@ -380,6 +454,18 @@ function caReopenSearchModalIfNeeded() {
 	});
 }
 
+/**
+ * Closes the CA search modal and optionally discards the current draft in the input.
+ *
+ * When `options.discardDraft` is true, the input is restored to the committed search term
+ * if one exists and there is an active search context; otherwise the input is cleared.
+ * The function also removes modal state/classes, unregisters modal layout listeners,
+ * closes the Awesomplete dropdown if present, blurs the search input, and updates the
+ * search filter collapsed state.
+ *
+ * @param {Object} [options] - Optional flags controlling close behavior.
+ * @param {boolean} [options.discardDraft=false] - If true, discard the current draft per the rules above.
+ */
 function caCloseSearchModal(options) {
 	options = options || {};
 	$(window).off("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
@@ -420,7 +506,11 @@ function caCloseSearchModal(options) {
 	caSyncSearchFilterCollapsed();
 }
 
-/** Modal: show X when there is text to clear or an active search/docker context to exit. */
+/**
+ * Show or hide the search-modal clear ("X") button based on the current input or an active search context.
+ *
+ * Reads the trimmed value of `#searchBox` and `data.committedSearchFilter`; if the input has text, or if the input is empty but a committed search exists while a search/docker context is active (`data.searchActive || data.searchFlag || data.docker`), the clear button is shown. Otherwise the clear button is hidden by toggling the `.ca_hide` class on `.searchModalClearBtn`.
+ */
 function caSyncSearchModalClearButton() {
 	var $x = $(".searchModalClearBtn");
 	if (!$x.length) return;
@@ -439,7 +529,11 @@ function caSyncSearchModalClearButton() {
 	}
 }
 
-/** Toolbar: icon-only row; full input only while the search modal is open. */
+/**
+ * Toggle the search filter bar between collapsed (icon-only) and expanded states based on whether the CA search modal is open.
+ *
+ * Also updates the modal clear button visibility after adjusting the collapsed state.
+ */
 function caSyncSearchFilterCollapsed() {
 	var $f = $("#searchFilter");
 	if (!$f.length) return;
@@ -452,15 +546,30 @@ function caSyncSearchFilterCollapsed() {
 }
 
 
+/**
+ * Checks whether a value represents a truthy token: "true", "1", or "on".
+ * @param {any} str - Value to test; converted to string before matching.
+ * @returns {boolean} `true` if `str` (after trimming) equals `true`, `1`, or `on` (case-insensitive), `false` otherwise.
+ */
 function evaluateBoolean(str) {
 	var regex=/^\s*(true|1|on)\s*$/i
 	return regex.test(str);
 }
 
+/**
+ * Determine whether the browser has cookies enabled.
+ * @returns {boolean} `true` if cookies are enabled, `false` otherwise.
+ */
 function cookiesEnabled() {
 	return evaluateBoolean(navigator.cookieEnabled);
 }
 
+/**
+ * Scrolls the document and the primary content scroller to the top.
+ *
+ * Ensures both the page (html/body) and the CA main content element `.mainArea`
+ * have their scroll position set to the top so view state is consistent.
+ */
 function scrollToTop() {
 	$('html,body').animate({scrollTop:0},0);
 	/* CA's actual scroller is .mainArea, not the document. Resetting only
@@ -471,12 +580,25 @@ function scrollToTop() {
 	if (ma) ma.scrollTop = 0;
 }
 
+/**
+ * Clear the home section subtitle and hide its element.
+ *
+ * Locates the element with id "ca_homeSectionSubtitle"; if found, removes its contents and adds the "ca_hide" class.
+ */
 function caClearHomeSectionSubtitle() {
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
 	$el.empty().addClass("ca_hide");
 }
 
+/**
+ * Update the home section subtitle element with the provided text.
+ *
+ * Trims the input; if the result is empty, clears and hides the subtitle. If a non-empty string is provided,
+ * sets it as the subtitle text and makes the element visible. No action is taken if the subtitle element is absent.
+ *
+ * @param {string} text - Text to display in the home section subtitle; may include surrounding whitespace.
+ */
 function caSetHomeSectionSubtitle(text) {
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
@@ -488,7 +610,9 @@ function caSetHomeSectionSubtitle(text) {
 	$el.text(t).removeClass("ca_hide");
 }
 
-/** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */
+/**
+ * Update the Home subtitle to show the last committed search term (the value saved on submit), hiding the subtitle when no committed term exists.
+ */
 function caSyncHomeSearchSubtitle() {
 	var $el = $("#ca_homeSearchSubtitle");
 	if ($el.length && typeof data !== "undefined" && data) {
@@ -527,7 +651,13 @@ function caSyncHomeMenuLabel() {
 	});
 }
 
-/** If the box was edited (e.g. backspaced) but not submitted, put the last committed search back. Called from the nav menu (#mobileMenu) or page change (changePage / dockerSearch). */
+/**
+ * Restore the last committed search term into the search box when the user has an unsaved draft.
+ *
+ * If a committed search term exists on the global `data` object and it differs from the current
+ * value of `#searchBox`, this function overwrites the box with the committed term and updates
+ * the search filter collapsed state.
+ */
 function caRestoreCommittedSearchIfDrafted() {
 	if (typeof data === "undefined" || !data) return;
 	var c = $.trim(String(data.committedSearchFilter || ""));
@@ -538,16 +668,32 @@ function caRestoreCommittedSearchIfDrafted() {
 	caSyncSearchFilterCollapsed();
 }
 
+/**
+ * Translate a message key or literal into the current locale.
+ * @param {string} string - The message key or text to translate.
+ * @returns {string} The translated string for the current locale.
+ */
 function tr(string) {
  return _(string);
 }
 
+/**
+ * Shows the full-page reload blocker overlay.
+ *
+ * Removes the `ca_hide` class from the element with id `caViewportBlocker` to reveal the overlay.
+ * If the element is missing or an error occurs, the function fails silently.
+ */
 function caBlockViewportForReload() {
 	try {
 		$("#caViewportBlocker").removeClass("ca_hide");
 	} catch(e) {}
 }
 
+/**
+ * Shows a fatal reload banner (or alert) instructing the user to click or press a key to reload the page, and registers a one-time capture-phase handler to perform the reload.
+ * @param {string} message - Custom message to show; when empty or omitted a default "Click anywhere to reload the page." message is used.
+ * @param {*} _unusedDelay - Present for API compatibility but ignored.
+ */
 function caShowFatalReloadBanner(message, _unusedDelay) {
 	try {
 		if (window.ca_reloadPending) return;
@@ -595,6 +741,15 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 	}
 }
 
+/**
+ * Performs a POST request while suppressing the global spinner.
+ *
+ * If the first argument is a function it is treated as the callback and `options` will be an empty object.
+ * This function sets `options.noSpinner = true` and delegates to `post`.
+ *
+ * @param {Object|Function} [options] - Request options object to send to the server, or the callback if omitted.
+ * @param {Function} [callback] - Callback invoked with the server result.
+ */
 function postNoSpin(options,callback) {
 	var msg = "No Spin Post: ";
 	console.log(msg+JSON.stringify(options));
@@ -606,6 +761,14 @@ function postNoSpin(options,callback) {
 	post(options,callback);
 }
 
+/**
+ * Send a POST request to the server, manage global spinner state, execute any scripts returned by the server, and invoke a callback with the result.
+ *
+ * The function stamps a per-tab `tabId` onto `options` when available, increments/decrements a global `postCount` to drive spinner visibility (unless `options.noSpinner`), evaluates `result.script` and `result.globalScript` if present, and shows an error dialog on request failure (suppressed when `data.quittingUpdate` is true).
+ *
+ * @param {Object} [options] - Request payload and flags. Common keys: `action` (server action), `noSpinner` (boolean to suppress spinner), and optional `tabId` (automatically added when available).
+ * @param {Function} [callback] - Called with the parsed server response object when the request succeeds.
+ */
 function post(options,callback) {
 	if ( typeof options === "function" ) {
 		callback = options;
@@ -702,6 +865,10 @@ function post(options,callback) {
 	});
 }
 
+/**
+ * Updates the SweetAlert update area with a status message and, if a spinner is visible, also updates the long-loading display.
+ * @param {string} message - Text or HTML to display in the `.updateContent-swal` element (and in `.long-loading` when a visible `.spinner` exists).
+ */
 function slowPost(message) {
 	$(".updateContent-swal").html(message);
 	// this isn't working quite right
@@ -710,6 +877,18 @@ function slowPost(message) {
 	}
 }
 
+/**
+ * Show a SweetAlert modal with the given title and HTML content and disable search input while open.
+ *
+ * @param {string} description - Modal title text.
+ * @param {string} textdescription - Modal body content; interpreted as HTML.
+ * @param {string} textimage - Accepted parameter for an image reference (currently unused by this implementation).
+ * @param {string|number} imagesize - Accepted image size; if passed as empty string it defaults to "80" (currently not applied to the modal).
+ * @param {boolean} outsideClick - Whether clicking outside or pressing Escape closes the modal.
+ * @param {boolean} showCancel - Whether to display a Cancel button.
+ * @param {boolean} showConfirm - Whether to display a Confirm button.
+ * @param {string} alertType - SweetAlert `type` value (e.g., "warning", "error", "success", "info").
+ */
 function myAlert(description,textdescription,textimage,imagesize, outsideClick, showCancel, showConfirm, alertType) {
 	if ( !outsideClick ) outsideClick = false;
 	if ( !showCancel )   showCancel = false;
@@ -783,6 +962,21 @@ jQuery.fn.getWidth = function(everything=true) {
 	return parseInt(width) + parseInt(paddingLeft) + parseInt(paddingRight) + parseInt(marginLeft) + parseInt(marginRight);
 }
 
+/**
+ * Attaches a contextual menu to an element based on a descriptor array.
+ *
+ * Each menu item may include:
+ * - `text` (string): label (will be translated via `tr()` before use).
+ * - `divider` (boolean): when true, inserts a divider.
+ * - `link` (string): when present, renders an external link opened in a new tab.
+ * - `action` (string): when present, evaluated as code when the item is activated.
+ * - `icon` (string): optional icon identifier included with the item.
+ *
+ * Only non-empty option lists are attached via `context.attach`.
+ *
+ * @param {Array<Object>} menu - Array of menu item descriptors.
+ * @param {Element|jQuery} el - Target DOM element (or jQuery-wrapped element) to attach the context menu to.
+ */
 function setupContext(menu,el) {
 	if ( ! menu ) return;
 	var opts = [];
@@ -809,19 +1003,23 @@ function setupContext(menu,el) {
 	}
 }
 
-// Get a CSS variable value from the document root
+/**
+ * Retrieve the computed value of a CSS custom property from the document root.
+ * @param {string} varName - The CSS variable name, including the leading `--` (e.g. `--my-color`).
+ * @returns {string} The computed value of the CSS variable as returned by getComputedStyle.
+ */
 function cssVar(varName) {
 	return window.getComputedStyle(document.documentElement).getPropertyValue(varName);
 }
 
 /**
- * True when the unified .ca_modal_overlay scrim is currently up — i.e. the
- * sidebar, mobile menu, search modal, or an nchan-flavored swal is showing.
- * Use from any handler that needs to bail out while a CA modal is active
- * instead of repeating the trigger-class union in each handler.
+ * Determine whether the CA modal overlay scrim is currently visible and interactive.
  *
- * Excludes MagnificPopup, which paints its own .mfp-bg scrim — callers that
- * also need to gate on mfp should add a separate `$(".mfp-bg").length` check.
+ * Checks for a `.ca_modal_overlay` element that is present and has `pointer-events: auto`.
+ * This excludes MagnificPopup scrims (`.mfp-bg`); callers that must also consider MagnificPopup
+ * should check for `.mfp-bg` separately.
+ *
+ * @returns {boolean} `true` if the CA modal overlay scrim exists and accepts pointer events, `false` otherwise.
  */
 function caIsModalOverlayUp() {
 	var $overlay = $(".ca_modal_overlay");
@@ -867,11 +1065,24 @@ $.fn.onVisibilityHidden = function(callback) {
 	});
 };
 
-// Save the state of CA if GUI Search takes us away from the page
+/**
+ * Save CA UI state when the Unraid GUI search causes navigation away from the page.
+ */
 function guiSearchOnUnload() {
 	saveState();
 }
 
+/**
+ * Builds pagination HTML for the given navigation state using the #caPageNavigationTemplate.
+ *
+ * @param {Object} nav - Pagination options and state.
+ * @param {number|string} [nav.pageNumber] - Current page index (1-based). Non-numeric values default to 1.
+ * @param {number|string} [nav.totalApps] - Total number of items across pages. Non-numeric values default to 0.
+ * @param {number|string} [nav.maxPerPage] - Items per page. Non-numeric or values <1 default to 1.
+ * @param {string} [nav.pageFunction] - Name of the client-side page handler; "dockerSearch" selects that handler, any other value selects "changePage".
+ * @param {number|string} [nav.maxMiddlePages] - Maximum number of contiguous middle page links to display; non-numeric values default to 3.
+ * @returns {string} HTML string containing the rendered pagination controls, or an empty string if the #caPageNavigationTemplate is not present.
+ */
 function caBuildPageNavigationHtml(nav) {
 	var pageNumber = parseInt(nav.pageNumber, 10) || 1;
 	var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
@@ -969,6 +1180,18 @@ function caBuildPageNavigationHtml(nav) {
 	return $("<div>").append($nav).html();
 }
 
+/**
+ * Render pagination controls into the element with the given ID and update pagination state.
+ *
+ * Updates global pagination state fields on `data` (`currentpage`, `prevpage`, `nextpage`, `totalApps`), and replaces the target element's HTML with the pagination built by `caBuildPageNavigationHtml`. If the target element does not exist, or if there is only one page (or a small Docker search result set), the target is cleared and hidden.
+ *
+ * @param {string} targetId - ID of the container element to render pagination into (without `#`).
+ * @param {Object} [navigationData] - Pagination parameters.
+ * @param {number} [navigationData.totalApps] - Total number of items available.
+ * @param {number} [navigationData.maxPerPage] - Maximum items per page (used to compute total pages).
+ * @param {number} [navigationData.pageNumber] - Desired current page (will be clamped into the valid range).
+ * @param {boolean} [navigationData.dockerSearch] - When true, apply Docker-specific suppression rules for small result sets.
+ */
 function caRenderPageNavigation(targetId, navigationData) {
 	var $target = $("#" + targetId);
 	if (!$target.length) return;
@@ -997,7 +1220,12 @@ function caRenderPageNavigation(targetId, navigationData) {
 	$target.find(".caPageNavLink,.caPageNavSelected").fitText(true);
 }
 
-/** Sum of offsetTop along offsetParent from el up to ancestor (layout; stable when inner scroll moves getBoundingClientRect). */
+/**
+ * Compute the vertical offset of an element relative to a given ancestor by summing offsetTop through the offsetParent chain.
+ * @param {HTMLElement} el - The descendant element whose offset is measured.
+ * @param {HTMLElement} ancestor - The ancestor element to measure against.
+ * @returns {number|null} The distance in pixels from the ancestor's top to the element's top, or `null` if `ancestor` is not found in the chain.
+ */
 function caOffsetTopWithinAncestor(el, ancestor) {
 	var y = 0;
 	var n = el;
@@ -1008,14 +1236,21 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 	return n === ancestor ? y : null;
 }
 
+/**
+ * Provide the configured number of items to request per page for pagination.
+ *
+ * @returns {number} The number of items fetched per request (12).
+ */
 function getMaxPerPage() {
 	/* Pagination is now infinite-scroll: always fetch 12 per request. */
 	return 12;
 }
 
 /**
- * Override Unraid GUI search hotkey (Cmd/Ctrl+K) while CA is present,
- * so it opens CA search modal instead of Dynamix GUI search.
+ * Install a one-time global capture-phase handler for Cmd/Ctrl+K that opens or focuses the CA search modal.
+ *
+ * The function is idempotent and attaches a native keydown listener which prevents the default Dynamix GUI search
+ * behavior and, when the CA search UI is available, either focuses the search input or opens the CA search modal.
  */
 function caInitGlobalSearchHotkeyOverride() {
 	if (window.ca_globalSearchHotkeyOverrideInit) return;

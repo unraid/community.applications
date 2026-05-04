@@ -54,12 +54,26 @@ if ( caIsDockerRunning() ) {
 	$DockerClient = new DockerClient();
 }
 
+/**
+ * Outputs a debug message when debugging is enabled.
+ *
+ * @param string $message The message to echo when debug mode is active.
+ */
 function debug1($message) {
 	global $debugging;
 
 	if ($debugging) echo $message;
 }
 
+/**
+ * Update the global condition tracker based on a condition's truthiness.
+ *
+ * If the provided value is truthy, a "Passed" debug message is emitted.
+ * If the value is falsy, the global `$conditionsMet` is set to `false` and a
+ * "Failed" debug message is emitted.
+ *
+ * @param mixed $value Value to evaluate for truthiness.
+ */
 function conditionsMet($value) {
 	global $conditionsMet;
 
