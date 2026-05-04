@@ -112,6 +112,9 @@ switch ($_POST['action']) {
 	case 'showModeration':
 		showModeration();
 		break;
+	case 'saveIgnoredRepos':
+		saveIgnoredRepos();
+		break;
 	case 'populateAutoComplete':
 		populateAutoComplete();
 		break;
@@ -243,11 +246,21 @@ function DownloadApplicationFeed() {
 	$lastUpdated['last_updated_timestamp'] = $ApplicationFeed['last_updated_timestamp'];
 	writeJsonFile(CA_PATHS['lastUpdated-old'],$lastUpdated);
 
+	/* User-curated ignore list (set in the moderation Repository view) — any
+	   template whose Repo/RepoName matches gets stamped hideFromCA so the
+	   block right below drops it from the feed. */
+	$ignoredRepos = readJsonFile(CA_PATHS['ignoredRepos'], []);
+	$ignoredRepos = is_array($ignoredRepos) ? array_flip(array_filter($ignoredRepos, "is_string")) : [];
+
 	$invalidXML = [];
 	foreach ($ApplicationFeed['applist'] as $o) {
 		if ( (! isset($o['Repository']) ) && (! isset($o['Plugin']) ) && (!isset($o['Language']) )){
 			$invalidXML[] = $o;
 			continue;
+		}
+		$repoName = $o['Repo'] ?? null;
+		if ( $repoName && isset($ignoredRepos[$repoName]) ) {
+			$o['hideFromCA'] = true;
 		}
 		if ( $o['hideFromCA'] ?? false )
 			continue;
@@ -463,7 +476,9 @@ function showModeration() {
 			usort($repos, function($a, $b) {
 				return strnatcasecmp($a['name'], $b['name']);
 			});
-			postReturn(["moderationType" => $script, "data" => ["repositories" => $repos]]);
+			$ignored = readJsonFile(CA_PATHS['ignoredRepos'], []);
+			$ignored = is_array($ignored) ? array_values(array_filter($ignored, "is_string")) : [];
+			postReturn(["moderationType" => $script, "data" => ["repositories" => $repos, "ignored" => $ignored]]);
 			return;
 
 		case "Invalid":
@@ -593,6 +608,52 @@ function showModeration() {
 			]);
 			return;
 	}
+}
+
+############################################################################
+# Persist the moderation Repository view's user-toggled ignore list to the #
+# flash drive. Posted as JSON via POST['ignored']; written verbatim to     #
+# CA_PATHS['ignoredRepos']. Read by DownloadApplicationFeed() to stamp     #
+# hideFromCA on matching templates.                                        #
+############################################################################
+function saveIgnoredRepos() {
+	$raw = getPost("ignored", "[]");
+	$decoded = json_decode($raw, true);
+	if ( ! is_array($decoded) ) {
+		$decoded = [];
+	}
+	/* Normalize to a unique, sorted, string-only list — defensive against the
+	   client posting duplicates / non-strings. */
+	$decoded = array_values(array_unique(array_filter($decoded, "is_string")));
+	sort($decoded, SORT_NATURAL | SORT_FLAG_CASE);
+
+	/* Compare against the on-disk version so we only invalidate caches when
+	   the list actually changed (a normal close-without-toggling shouldn't
+	   nuke /tmp/$CA or kick the user back to home). */
+	$existing = readJsonFile(CA_PATHS['ignoredRepos'], []);
+	$existing = is_array($existing) ? array_values(array_filter($existing, "is_string")) : [];
+	sort($existing, SORT_NATURAL | SORT_FLAG_CASE);
+
+	if ( $existing === $decoded ) {
+		postReturn(["ok" => true, "changed" => false, "count" => count($decoded)]);
+		return;
+	}
+
+	/* Empty list → unlink the file rather than persisting `[]` so we don't
+	   leave an empty marker on the flash. Otherwise write the new list. */
+	if ( empty($decoded) ) {
+		if ( file_exists(CA_PATHS['ignoredRepos']) ) {
+			@unlink(CA_PATHS['ignoredRepos']);
+		}
+	} else {
+		writeJsonFile(CA_PATHS['ignoredRepos'], $decoded);
+	}
+	/* Wipe the working temp tree so the next page load re-downloads the
+	   feed and re-runs DownloadApplicationFeed() with the new ignore list
+	   in effect. dirname() gives the parent of tempFiles ('/tmp/$CA'), which
+	   is the entire CA temp area. */
+	exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
+	postReturn(["ok" => true, "changed" => true, "count" => count($decoded), "restart" => true]);
 }
 
 function updatePluginSupport($templates) {

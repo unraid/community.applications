@@ -1130,6 +1130,31 @@ body,
 		margin-bottom: .75rem;
 	}
 
+	/* +/- toggle in the moderation Repository view: strike-through the repo
+	   name when its row is in the ignored set. Persistence is handled in JS
+	   on transition to showStatistics(). */
+	.caModerationRepoTable tr.caRepoIgnored .caRepoName {
+		text-decoration: line-through;
+		opacity: 0.6;
+	}
+	.caRepoIgnoreCell {
+		width: 2rem;
+		text-align: center;
+	}
+	.caRepoIgnoreToggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		font-size: 1.6rem;
+		font-weight: 700;
+		user-select: none;
+	}
+	.caRepoIgnoreToggle:hover {
+		color: var(--unraid-66-color);
+	}
+
 	.caModerationFixedToggle {
 		display: inline-flex;
 		align-items: center;

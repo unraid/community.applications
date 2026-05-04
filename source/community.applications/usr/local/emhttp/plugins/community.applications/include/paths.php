@@ -48,6 +48,11 @@ if (!empty($_POST['tabId']) && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $_POST['tab
 define("CA_PATHS",[
 	'tempFiles'                           => "/tmp/$CA/tempFiles",
 	'flashDrive'                          => "/boot/config/plugins/$CA",
+	/* User-curated list of repository names to hide from CA. Touched only by
+	   the moderation Repository view (toggle UI) and consumed by
+	   DownloadApplicationFeed() — entries here are stamped hideFromCA on the
+	   processed template so the rest of the pipeline drops them. */
+	'ignoredRepos'                        => "/boot/config/plugins/$CA/ignoredRepos.json",
 	'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
 	'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",
 	'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",

@@ -246,7 +246,6 @@ var postCount = 0;
 var cookieWarning = false;
 var dockerWarningAdded = false;
 var restoreStateMenu = false;
-var actionCentreRestoreState = false;
 var repoBanner = false;
 var repoBannerTimer = false;
 var resizeTimer;
@@ -378,6 +377,10 @@ $(function(){
 	if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
 	if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
 	if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
+	<? if ( is_file(CA_PATHS['ignoredRepos']) ): ?>
+		var ca_ignoredRepos = addBannerWarning("<?tr("One or more repositories are being ignored per user settings");?>", false, true);
+		setTimeout(function() { removeBannerWarning(ca_ignoredRepos); }, 5000);
+	<? endif; ?>
 	if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
 	if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
 	<?if ( CA_PATHS['localONLY'] == true ):?>
@@ -465,7 +468,6 @@ $(function(){
 			<? if ( $dockerSearchActive ):?>
 				dockerSearch(data.currentpage);
 			<? else:?>
-				actionCentreRestoreState = true;
 				/* If the user was past page 1 when they left, fetch every card from
 				   page 1 through their saved page in one bulk request so they can
 				   freely scroll back to earlier results, then snap the viewport to
@@ -518,9 +520,6 @@ $(function(){
 				}
 			});
 		}
-		if ( <?=$ca_apps_referrer?> )
-			actionCentreRestoreState = true;
-
 		setupActionCentre();
 		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
 		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
@@ -2865,17 +2864,9 @@ function getSortOpts() {
 
 function setupActionCentre() {
 	// set up action centre - run in background without tying anything up
-	var acBanner = false;
 	$.post(execURL,{action:'enableActionCentre'},function(ret) {
 		if ( ret.status == "action" ) {
 			if ( !$(".actionCentre").is(":visible") ) {
-				// Don't show banner for action centre if menu isn't visibile (Covers hamburger on mobile if scrolled down)
-				if ( ! actionCentreRestoreState && $(".menuItems").is(":visible") ) {
-					acBanner = addBannerWarning("<?tr("Action Centre Enabled");?>",false,true);
-					setTimeout(function() {
-						removeBannerWarning(acBanner);
-					},10000);
-				}
 				$(".actionCentre").show();
 			}
 		} else

@@ -18,6 +18,19 @@ function showModeration(script, title) {
 	post({ action: "showModeration", script: script }, function(result) {
 		if (result && result.data) {
 			$("#sidenavContent").html("<div class='moderationContainer'>" + renderModerationContent(script, result.data) + "</div>");
+			/* For the Repository view: once the table is rendered with rows
+			   pre-marked from the on-disk ignored list, immediately POST that
+			   same list back so the server can prune any stale entries that
+			   no longer correspond to a real repo. The server's diff check
+			   is the gate — if nothing actually changed, no write happens. */
+			if (script === "Repository") {
+				const initial = caCollectIgnoredRepos();
+				if (initial !== null) {
+					post({ action: "saveIgnoredRepos", ignored: JSON.stringify(initial) }, function(res) {
+						if (res && res.changed) window.caRepoIgnoreDirty = true;
+					});
+				}
+			}
 		} else {
 			$("#sidenavContent").html("<div class='notice warning'>" + tr("Unable to load moderation data") + "</div>");
 		}
@@ -64,20 +77,84 @@ function renderModerationContent(script, payload) {
 
 function renderModerationRepositories(payload) {
 	const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
+	/* Initial ignored set — server reads CA_PATHS['ignoredRepos']; rows that
+	   are already in the set render with strike-through + minus icon. */
+	const ignoredInitial = Array.isArray(payload.ignored) ? payload.ignored : [];
 	const $shell = caCloneTemplate("caModerationShellTemplate");
 	const $body = $shell.find(".caModerationBody");
 	const $tableWrap = caCloneTemplate("caModerationRepositoryTableTemplate");
 	const $table = $tableWrap.find(".caModerationRepoTable");
+	$table.attr("data-ignored-initial", JSON.stringify(ignoredInitial));
+	const ignoredSet = ignoredInitial.reduce(function(acc, n) { acc[n] = true; return acc; }, {});
 	repos.forEach(function(repo) {
 		const name = repo.name || "";
 		const url = repo.url || "";
-		const $row = $("<tr></tr>");
-		$row.append($("<td></td>").append($("<span class='ca_bold'></span>").text(name)));
-		$row.append($("<td></td>").append($("<a class='popUpLink' target='_blank'></a>").attr("href", url).text(url)));
+		const isIgnored = !!ignoredSet[name];
+		/* First-party Unraid repos can't be ignored — skip the +/- cell so
+		   the user can't toggle them (and the row is never in the posted
+		   ignore list either). Match `github.com/unraid/` in the URL. */
+		const isProtected = /github\.com\/unraid\//i.test(url);
+		const $row = $("<tr></tr>").attr("data-repo-name", name);
+		if (!isProtected && isIgnored) $row.addClass("caRepoIgnored");
+		const $toggleCell = $("<td class='caRepoIgnoreCell'></td>");
+		if (!isProtected) {
+			const $toggle = $("<span class='caRepoIgnoreToggle ca_href' role='button' tabindex='0'></span>")
+				.text(isIgnored ? "+" : "−");          /* + when hidden, − when active */
+			$toggleCell.append($toggle);
+		}
+		$row.append($toggleCell);
+		$row.append($("<td></td>").append($("<span class='caRepoName ca_bold'></span>").text(name)));
+		$row.append($("<td></td>").append($("<a class='popUpLink' target='_blank' rel='noopener noreferrer'></a>").attr("href", url).text(url)));
 		$table.append($row);
 	});
 	$body.append($tableWrap);
 	return $("<div></div>").append($shell).html();
+}
+
+/* Click handler for the +/- icon — toggles the row's ignored state and
+   immediately persists the full current selection to the flash drive. The
+   server is authoritative on whether the file actually changed; if it did,
+   /tmp/$CA gets wiped so the next feed-driven render reflects the new list,
+   and we set a session-scoped dirty flag so showStatistics() (or any other
+   exit path) knows to trigger a Home reload. Body-delegated so it works
+   against the cloned alt-view markup that lives under #sidenavContent. */
+window.caRepoIgnoreDirty = false;
+$(function() {
+	$("body").on("click keydown", ".caRepoIgnoreToggle", function(e) {
+		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+		e.preventDefault();
+		const $row = $(this).closest("tr[data-repo-name]");
+		const willIgnore = !$row.hasClass("caRepoIgnored");
+		$row.toggleClass("caRepoIgnored", willIgnore);
+		$(this).text(willIgnore ? "+" : "−");
+		const current = caCollectIgnoredRepos();
+		if (current === null) return;
+		post({ action: "saveIgnoredRepos", ignored: JSON.stringify(current) }, function(result) {
+			if (result && result.changed) window.caRepoIgnoreDirty = true;
+		});
+	});
+});
+
+/* Collect the current ignore set from the live moderation table. Returns
+   null if the table isn't currently rendered. */
+function caCollectIgnoredRepos() {
+	const $table = $(".caModerationRepoTable");
+	if (!$table.length) return null;
+	const ignored = [];
+	$table.find("tr.caRepoIgnored[data-repo-name]").each(function() {
+		ignored.push($(this).attr("data-repo-name") || "");
+	});
+	return ignored.filter(Boolean).sort();
+}
+
+/* Called on transitions out of the Repository view (showStatistics() and
+   the .ca_modal_overlay close path). If any earlier toggle actually
+   changed the on-disk list, click Home so the page restarts against the
+   freshly-wiped /tmp tree. */
+function caRestartIfRepoIgnoreDirty() {
+	if (!window.caRepoIgnoreDirty) return;
+	window.caRepoIgnoreDirty = false;
+	try { $(".startupButton").first().trigger("click"); } catch (e) { /* no-op */ }
 }
 
 function renderModerationInvalid(payload) {
@@ -269,6 +346,9 @@ function caScrollModerationSection(selector) {
 }
 
 function showStatistics() {
+	/* If the user's repo-ignore toggles actually changed the on-disk list
+	   during this session, restart via Home so the rebuilt feed is used. */
+	caRestartIfRepoIgnoreDirty();
 	post({ action: "statistics" }, function(result) {
 		const stats = result.statistics || {};
 		const unknownLabel = tr("unknown");
