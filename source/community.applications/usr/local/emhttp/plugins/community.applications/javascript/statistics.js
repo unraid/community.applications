@@ -13,7 +13,7 @@ SPDX-License-Identifier: GPL-2.0-or-later
 */
 
 function showModeration(script, title) {
-	$("#sidenavContent").html("<div class='moderationContainer'><div>");
+	$("#sidenavContent").html("<div class='moderationContainer'></div>");
 	$(".moderationContainer").html($("#sidebarLoading").html());
 	post({ action: "showModeration", script: script }, function(result) {
 		if (result && result.data) {
@@ -350,7 +350,7 @@ function showStatistics() {
 	   during this session, restart via Home so the rebuilt feed is used. */
 	caRestartIfRepoIgnoreDirty();
 	post({ action: "statistics" }, function(result) {
-		const stats = result.statistics || {};
+		const stats = (result && result.statistics) || {};
 		const unknownLabel = tr("unknown");
 		const primaryServerLabel = tr("Primary Server");
 		const safeValue = (value, fallback = "0") => {
