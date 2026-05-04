@@ -18,6 +18,13 @@ Code="f0db"
 
 SPDX-License-Identifier: GPL-2.0-or-later
 */
+
+/**
+ * Main Unraid Apps page: Community Applications UI shell and server-side includes.
+ *
+ * Defines the Apps menu entry, loads translations, Dynamix/Docker integration, and
+ * client scripts for browsing/installing templates.
+ */
 if (false) {
 	// IDE-only hint for static analyzers; never executed at runtime.
 	require_once __DIR__ . "/include/_ide_stubs.php";
@@ -162,6 +169,13 @@ $classList[] = "Theme--fontSize".intval($fontSize);
 
 $htmlClasses = implode(" ",$classList);
 
+/**
+ * Escape and translate a string for output in this page (early bootstrap before JS).
+ *
+ * @param string $string
+ * @param bool $ret When true return string; else echo
+ * @return string|void
+ */
 function tr($string,$ret=false) {
 	$string = str_replace(['"',"'"],["&#34;","&#39;"],_($string));
 	if ( $ret )
@@ -252,6 +266,37 @@ var resizeTimer;
 var portsInUse = [];
 var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var ca_done_override = false;
+
+/* MagnificPopup iframe URL patterns for the media gallery. The lib's defaults
+   only match `youtube.com/watch?v=...` (so `youtu.be/...` short links never
+   get rewritten to the embed URL with autoplay). Override to handle both
+   forms and add `mute=1` so the autoplay rule isn't blocked by the browser. */
+var caMfpIframePatterns = {
+	youtube: {
+		index: "youtube.com/",
+		id: function(url) {
+			var m = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
+			return m ? m[1] : url;
+		},
+		src: "//www.youtube.com/embed/%id%?autoplay=1&mute=1&playsinline=1"
+	},
+	youtubeShort: {
+		index: "youtu.be/",
+		id: function(url) {
+			var m = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
+			return m ? m[1] : url;
+		},
+		src: "//www.youtube.com/embed/%id%?autoplay=1&mute=1&playsinline=1"
+	},
+	vimeo: {
+		index: "vimeo.com/",
+		id: function(url) {
+			var m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+			return m ? m[1] : url;
+		},
+		src: "//player.vimeo.com/video/%id%?autoplay=1&muted=1"
+	}
+};
 
 // handle 3rd party links on older versions of OS
 <?php
@@ -528,15 +573,32 @@ $(function(){
 	<?endif;?>
 });
 
+/**
+ * Hide sort controls (flows such as startup views where the user should not change sort).
+ */
 function disableSort() {
 	hideSortIcons();
 }
+/**
+ * Hide the sort-by control row (`#sortIconArea`).
+ */
 function hideSortIcons() {
 	$("#sortIconArea").hide();
 }
+/**
+ * Show the sort-by control row (`#sortIconArea`).
+ */
 function showSortIcons() {
 	$("#sortIconArea").show();
 }
+/**
+ * Queue a plugin operation through Unraid `openPlugin`, rewriting `plugin install` to `downloadPlugin`, and dismiss CA alerts first.
+ *
+ * @param {string} cmd Full command (`plugin install` / `plugin update` / `multiplugin` / etc.)
+ * @param {string} title Dialog title passed to `openPlugin`
+ * @param {string} plg Plugin identifier argument for `openPlugin`
+ * @param {string} func Global callback name when the operation finishes (e.g. `refresh`, `actionCentre`)
+ */
 function ca_openPlugin(cmd,title,plg,func) {
 	if ( cmd.startsWith("plugin install") ) {
 		cmd = "downloadPlugin "+cmd;
@@ -548,6 +610,12 @@ function ca_openPlugin(cmd,title,plg,func) {
 	},250);
 }
 
+/**
+ * Refresh templates and redraw the store: reset search UI, apply startup category from cookie or clicked button, POST `force_update` (or `force_update_skip`), then reload listing or restore an in-progress search.
+ *
+ * @param {HTMLElement} [button] Optional menu item whose `data-category` becomes the active startup screen
+ * @param {boolean} [skipAppfeed=true] When true, use `force_update_skip` to avoid blocking on full appfeed work
+ */
 function updateContent(button,skipAppfeed=true) {
 	clearSearchBox();
 	clearCategory();
@@ -588,6 +656,11 @@ function updateContent(button,skipAppfeed=true) {
 	});
 }
 
+/**
+ * Enter a spotlight / startup category from the left menu: ensure a real sort is selected, then delegate to {@link showSpecials}.
+ *
+ * @param {HTMLElement} button Menu row with `data-category`
+ */
 function showSpecialCategory(button) {
 	closeSidebar();
 	clearSearchBox();
@@ -608,6 +681,11 @@ function showSpecialCategory(button) {
 	}
 }
 
+/**
+ * Show startup-style storefront content: clear normal selection, set App Store section, grey out repository-aware menu.
+ *
+ * @param {HTMLElement} button Passed through to {@link changeCategory}
+ */
 function showSpecials(button) {
 	showSortIcons();
 	$(".caMenuItem").removeClass("selectedMenu");
@@ -619,6 +697,12 @@ function showSpecials(button) {
 	//$(".category").append(" - <?tr("Installs not allowed from this page");?>");
 }
 
+/**
+ * Load templates for a sidebar category via {@link getContent}.
+ *
+ * @param {HTMLElement} button Menu item (`data-category`, label text)
+ * @param {*} subSwitch Legacy argument (unused)
+ */
 function changeCategory(button,subSwitch) {
 	var description = $(button).text();
 	var category = $(button).attr("data-category");
@@ -627,6 +711,12 @@ function changeCategory(button,subSwitch) {
 	getContent(false,category,description,false);
 }
 
+/**
+ * Fetch a page of cards from the server (`display_content`), optionally appending for infinite scroll.
+ *
+ * @param {number|string} pageNumber 1-based page index
+ * @param {boolean} [append] When true, append HTML/cards to the current grid
+ */
 function changePage(pageNumber, append) {
 	pageNumber = parseInt(pageNumber, 10) || 1;
 	var doAppend = !!append;
@@ -641,6 +731,11 @@ function changePage(pageNumber, append) {
 	});
 }
 
+/**
+ * Close SweetAlert and spinner chrome and call {@link enableSearch}.
+ *
+ * @param {boolean} [force=false] When true, `swal.close` bypasses some guard paths (legacy)
+ */
 function myCloseAlert(force=false) {
 
 	swal.close();
@@ -648,12 +743,23 @@ function myCloseAlert(force=false) {
 	enableSearch();
 }
 
+/**
+ * Close any modal, collapse the sidebar, and run {@link doSearch} with `newSearch`.
+ *
+ * @param {string} newSearch Committed search string
+ */
 function doSidebarSearch(newSearch) {
 	swal.close();
 	closeSidebar();
 	doSearch(false,newSearch);
 }
 
+/**
+ * Run template search (or navigate home when cleared): manages `searchActive`, Docker vs template toggles, commits filter, POSTs `get_content`.
+ *
+ * @param {*} button Legacy; often `false` means “use current `#searchBox` value”
+ * @param {string|false} [newSearch] When a string, pre-fills the search box before filtering
+ */
 function doSearch(button,newSearch) {
 	if ( data.searchInProgress )
 		return;
@@ -774,6 +880,13 @@ function doSearch(button,newSearch) {
 	});
 }
 
+/**
+ * Re-render the card grid with the active sort. For Previous / Installed / Action Centre, loads all rows up front (`maxPerPage` 99999, `data.allLoaded`).
+ *
+ * @param {HTMLElement} [button] Optional element that triggered the resort
+ * @param {string} [buttonClass] Legacy class hint
+ * @param {boolean|string} [previousApps] Truthy enables “load everything” mode for multi-select lists
+ */
 function changeSortOrder(button,buttonClass,previousApps) {
 	var pageNumber = data.currentpage;
 	var selected = data.selected;
@@ -802,6 +915,15 @@ function changeSortOrder(button,buttonClass,previousApps) {
 	});
 }
 
+/**
+ * Fetch a category or home page from the server (`get_content`): resets pagination, adjusts labels for repository view, wires max rows on home.
+ *
+ * @param {boolean} init Legacy init flag (unused in current flow)
+ * @param {string} category Menu key, `INITIALIZE`, `NONE`, or empty for All/New
+ * @param {string} description Human-readable title for the category row
+ * @param {string} newApp Spotlight / new-app hint passed to PHP
+ * @param {string} startupDisplay Startup screen cookie / default view key
+ */
 function getContent(init,category,description,newApp,startupDisplay) {
 	data.currentpage = 1;
 	var initialize;
@@ -851,6 +973,9 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	}
 }
 
+/**
+ * Trigger background statistics/template fetch: starts the optional nchan feed when configured, then `postNoSpin` `downloadStatistics`.
+ */
 function downloadStatistics() {
 	try {
 		if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
@@ -862,6 +987,11 @@ function downloadStatistics() {
 	postNoSpin({action:'downloadStatistics'});
 }
 
+/**
+ * Load search suggestions into Awesomplete and bind `awesomplete-selectcomplete` to {@link awesompleteSearch}.
+ *
+ * @param {function} [after] Optional callback after the list is installed
+ */
 function populateAutoComplete(after) {
 	postNoSpin({action:'populateAutoComplete'},function(result) {
 		searchBoxAwesomplete.list = result.autocomplete;
@@ -877,6 +1007,9 @@ function populateAutoComplete(after) {
 	});
 }
 
+/**
+ * Awesomplete pick handler: if no real sort is active, reset to default sort server-side, then {@link doSearch}.
+ */
 function awesompleteSearch() {
 	// this is the check sort order function
 	var sortButton = false;
@@ -896,6 +1029,12 @@ function awesompleteSearch() {
 	}
 }
 
+/**
+ * Persist CA state with {@link saveState}, open `newURL`, and warn if the browser blocks pop-ups.
+ *
+ * @param {string} newURL Destination URL
+ * @param {string} [target='_self'] `window.open` target name
+ */
 function openNewWindow(newURL,target='_self') {
 	saveState();
 	var popUp = window.open(newURL,target);
@@ -907,6 +1046,9 @@ function openNewWindow(newURL,target='_self') {
 	}
 }
 
+/**
+ * Clear `#searchBox`, re-enable all category rows, reset search/docker flags, and sync collapsed search / Home menu labels.
+ */
 function clearSearchBox() {
 	$(".categoryMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
 	$("#searchBox").val("");
@@ -924,6 +1066,12 @@ function clearSearchBox() {
 	if (typeof caSyncHomeMenuLabel === "function") caSyncHomeMenuLabel();
 }
 
+/**
+ * Close the description sidebar: optionally preserve cookies, tear down context menus, submit dirty settings forms, and animate `sidenav` closed.
+ *
+ * @param {boolean} [cookie=false] When false, clear `sidebarAppPath` / `sidebarAppName` cookies
+ * @param {boolean} [visible=false] Legacy visibility hint (unused)
+ */
 function closeSidebar(cookie=false,visible=false) {
 	if ( ! cookie ) {
 		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
@@ -948,6 +1096,13 @@ function closeSidebar(cookie=false,visible=false) {
 	enableSearch();
 }
 
+/**
+ * Confirm no other plugin operation is running, check optional upgrade requirements, then {@link actuallyInstallPlugin}.
+ *
+ * @param {string} pluginURL URL or path passed to `checkPluginInProgress`
+ * @param {boolean} [update=false] Upgrade vs fresh install
+ * @param {string} [requires=''] Dependency string for upgrade checks
+ */
 function installPlugin(pluginURL,update=false,requires="") {
 	post({action:"checkPluginInProgress",pluginPath:pluginURL},function(data) {
 		if (data.inProgress) {
@@ -989,6 +1144,12 @@ function installPlugin(pluginURL,update=false,requires="") {
 	});
 }
 
+/**
+ * Close sidebar, hide matching pending-action rows, pick post-install callback (`actionCentre` vs sidebar refresh), {@link ca_openPlugin}.
+ *
+ * @param {string} pluginURL Resolved install/update URL (proxied for new installs)
+ * @param {boolean} [update=false]
+ */
 function actuallyInstallPlugin(pluginURL,update=false) {
 	var type = update ? "update" : "install";
 	if ( ! update ) {
@@ -1012,6 +1173,11 @@ function actuallyInstallPlugin(pluginURL,update=false) {
 	ca_openPlugin('plugin '+type+' '+pluginURL,title,'',postFunction);
 }
 
+/**
+ * Hide Action Centre rows for a plugin whose install is now underway (match full URL or basename).
+ *
+ * @param {string} pluginURL
+ */
 function hidePluginPending(pluginURL) {
 	if ( pluginURL.includes("/") ) {
 		$(".actionsButton").each(function() {
@@ -1028,6 +1194,11 @@ function hidePluginPending(pluginURL) {
 	}
 }
 
+/**
+ * Hide Action Centre rows for a language pack about to be installed/updated/removed.
+ *
+ * @param {string} language Pack id or filename (`lang-` prefix / `.xml` stripped)
+ */
 function hideLanguagePending(language) {
 	language = language.replace("lang-","");
 	language = language.replace(".xml","");
@@ -1041,6 +1212,9 @@ function hideLanguagePending(language) {
 	});
 }
 
+/**
+ * After plugin install flows: reload the page when PHP reports startup, otherwise refresh the grid and reopen any saved sidebar app.
+ */
 function OpenSidebarAndRefreshDisplay() {
 	post({action:"onStartupScreen"},function(result) {
 		if (result.status) {
@@ -1064,6 +1238,13 @@ function OpenSidebarAndRefreshDisplay() {
 	});
 }
 
+/**
+ * Show Installed Apps, Previous Apps (multi-select), or Action Centre prep: clear search, enforce default sort when needed, then {@link getPrevApps}.
+ *
+ * @param {boolean|string} installed `true` installed only, `false` previous list, `"action"` action-centre mode
+ * @param {boolean} [dontClear=false] Keep prior multi-select state when true
+ * @param {string} [filter=''] Server filter for previous-apps section
+ */
 function previousApps(installed,dontClear=false,filter="") {
 	clearCategory();
 	setPageOne();
@@ -1097,6 +1278,9 @@ function previousApps(installed,dontClear=false,filter="") {
 	}
 }
 
+/**
+ * Load the Action Centre template list (same sort gating as {@link previousApps}).
+ */
 function actionCentre() {
 	clearCategory();
 	setPageOne();
@@ -1123,6 +1307,13 @@ function actionCentre() {
 	}
 }
 
+/**
+ * POST `previous_apps` and re-sort the grid for Installed / Previous / Action lists.
+ *
+ * @param {boolean|string} installed Mode flag (see {@link previousApps})
+ * @param {string} filter Passed through to PHP
+ * @param {boolean} dontClear When false, clears multi-select for previous/action views
+ */
 function getPrevApps(installed,filter,dontClear) {
 	data.maxPerPage = getMaxPerPage();
 	post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
@@ -1155,6 +1346,12 @@ function getPrevApps(installed,filter,dontClear) {
 	});
 }
 
+/**
+ * Confirm removal of a template from the “previously installed” list (`remove_application`).
+ *
+ * @param {string} application Server template identifier
+ * @param {string} humanName Checkbox / display name
+ */
 function removeApp(application, humanName) {
 	closeSidebar();
 	disableSearch();
@@ -1185,6 +1382,12 @@ function removeApp(application, humanName) {
 	});
 }
 
+/**
+ * Confirm and uninstall a plugin application (`plugin remove` via {@link ca_openPlugin}).
+ *
+ * @param {string} application Plugin path
+ * @param {string} humanName Display name
+ */
 function uninstallApp(application,humanName) {
 	closeSidebar();
 	post({action:"checkPluginInProgress",pluginPath:application},function(data) {
@@ -1226,6 +1429,9 @@ function uninstallApp(application,humanName) {
 	});
 }
 
+/**
+ * Re-enable search, re-click the current menu, and refresh Action Centre after plugin removal.
+ */
 function postUninstallPlugin() {
 	enableSearch();
 	$(".selectedMenu").trigger("click");
@@ -1233,6 +1439,12 @@ function postUninstallPlugin() {
 	refreshDisplay();
 }
 
+/**
+ * Confirm and remove a Docker template (`uninstall_docker`), refreshing Action Centre or current view when done.
+ *
+ * @param {string} application Container/template key for the server action
+ * @param {string} humanName Shown in confirmation and progress
+ */
 function uninstallDocker(application,humanName) {
 	closeSidebar();
 	disableSearch();
@@ -1276,6 +1488,9 @@ function uninstallDocker(application,humanName) {
 	});
 }
 
+/**
+ * Navigate back to the main App Store home: reset next/prev page tokens, run init + {@link updateContent}, clear category/docker search state.
+ */
 function appStore() {
 	data.nextpage = 0;
 	data.prevpage = 0;
@@ -1285,12 +1500,18 @@ function appStore() {
 	data.docker = "";
 }
 
+/**
+ * Set global `data.section` to App Store and hide multi-install chrome (baseline state before loading listings).
+ */
 function initializeAppStore() {
 	data.section = "AppStore";
 	data.selected_category = "";
 	$(".multi_installDiv").hide();
 }
 
+/**
+ * After a PLG status change, ask PHP to refresh PLG metadata then re-request the current results page.
+ */
 function checkPLGupdate() {
 	var filename = data.plgfilename;
 	post({action:'updatePLGstatus',filename:filename},function(result) {
@@ -1299,6 +1520,13 @@ function checkPLGupdate() {
 	});
 }
 
+/**
+ * Toggle pinned state for a template, swap button labels, animate the pinned card, POST `pinApp`, refresh pinned-menu enabled state.
+ *
+ * @param {HTMLElement} button Pin control
+ * @param {string} repository Repository portion of `data-pindata`
+ * @param {string} name Application name portion
+ */
 function pinApp(button,repository,name) {
 	$(button).toggleClass("pinned unpinned");
 	var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application");?>" : "<?tr("Click to unpin this application");?>";
@@ -1321,15 +1549,24 @@ function pinApp(button,repository,name) {
 	});
 }
 
+/**
+ * Reset pagination to the first page before category or list switches.
+ */
 function setPageOne() {
 	data.currentpage = 1;
 }
 
+/**
+ * Clear the persisted category title cookie (UI category line is driven elsewhere).
+ */
 function clearCategory() {
  // $(".category").html("&nbsp;");
 	$.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
 }
 
+/**
+ * Show pinned templates: ensure sort, then {@link pins}.
+ */
 function pinnedApps() {
 	var sortButton = false;
 	$(".sortIcons").each(function() {
@@ -1348,6 +1585,9 @@ function pinnedApps() {
 	}
 }
 
+/**
+ * Load the pinned-apps grid (`pinnedApps` POST) and refresh the display; hides docker/template search and multi-install.
+ */
 function pins() {
 	setPageOne();
 	data.docker = "";
@@ -1362,6 +1602,13 @@ function pins() {
 	});
 }
 
+/**
+ * Open branch/rename flows for a template: checks host port conflicts, optionally asks to auto-adjust, then `displayTags` in a SweetAlert chooser.
+ *
+ * @param {string} leadTemplate Primary template identifier for `displayTags`
+ * @param {boolean} [rename=false] Rename-vs-install mode for PHP
+ * @param {string} [ports=''] JSON array of template ports (string) to cross-check against `portsInUse`
+ */
 function displayTags(leadTemplate,rename=false,ports="") {
 	event.stopPropagation();
 	closeSidebar();
@@ -1441,11 +1688,19 @@ function displayTags(leadTemplate,rename=false,ports="") {
 	}
 }
 
+/**
+ * Check every `.ca_multiselect` on Previous/Action views and sync {@link getSelectedApps}.
+ */
 function selectAllPrevious() {
 	$(".ca_multiselect").prop("checked",true);
 	getSelectedApps();
 }
 
+/**
+ * Merge checkbox state into `data.selected` JSON (plugin, docker, language, deletePaths) and return the parsed object.
+ *
+ * @returns {object} Selected ids grouped by type
+ */
 function getSelectedApps() {
 	if ( data.selected ) {
 		try {
@@ -1512,6 +1767,9 @@ function getSelectedApps() {
 	return selected;
 }
 
+/**
+ * Enable/disable multi-install controls from {@link getSelectedApps} counts and update button labels.
+ */
 function enableMultiInstall() {
 	var selected = getSelectedApps();
 	var count = selected.plugin.length + selected.docker.length + selected.language.length;
@@ -1530,6 +1788,9 @@ function enableMultiInstall() {
 	getSelectedApps();
 }
 
+/**
+ * Uncheck all `.ca_multiselect` rows and clear `data.selected`.
+ */
 function clearMultiInstall() {
 	data.selected = "";
 	$(".ca_multiselect").each(function() {
@@ -1540,6 +1801,9 @@ function clearMultiInstall() {
 }
 
 
+/**
+ * Confirm bulk removal of checked templates from the previous-apps list (`remove_multiApplications`).
+ */
 function deleteMulti() {
 	var selected = getSelectedApps();
 	swal({
@@ -1565,6 +1829,9 @@ function deleteMulti() {
 		}
 	});
 }
+/**
+ * Bulk-update checked plugins, Docker containers, and language packs (Docker first when mixed; may chain plugin pass via cookies).
+ */
 function updateMulti() {
 	var docker = new Array();
 	var pluginArray = new Array();
@@ -1642,6 +1909,9 @@ function updateMulti() {
 	});
 }
 
+/**
+ * Second phase of {@link updateMulti}: run queued `multiplugin update` after Docker finishes (reads `pluginVar` cookie).
+ */
 function installMultiPluginUpdatesAfterDocker() {
 	var plugin = $.cookie("pluginVar");
 	var pluginCount = $.cookie("pluginCountVar");
@@ -1653,6 +1923,9 @@ function installMultiPluginUpdatesAfterDocker() {
 	},1000);
 }
 
+/**
+ * Bulk-install checked plugins and/or Docker templates (cookies coordinate plugin install after Docker when both selected).
+ */
 function installMulti() {
 	var docker = new Array();
 	var pluginArray = new Array();
@@ -1732,6 +2005,9 @@ function installMulti() {
 	});
 }
 
+/**
+ * Hard reload after multi-Docker install completes (Unraid leaves the page in an indeterminate state).
+ */
 function postMultiDockerInstall() {
 	window.location.reload();
 }
@@ -1784,6 +2060,11 @@ function caUpdateDisplayCount() {
 	$el.text(tr("Displaying") + " " + first + " - " + last + " " + tr("of") + " " + total).show();
 }
 
+/**
+ * Replace `#templates_content` with a fresh `.ca_templatesDisplay` wrapper built from structured PHP payload (`header`, `cards`, trailing `scripts`).
+ *
+ * @param {object} content `{ header, cards[], scripts }`
+ */
 function caRenderStructuredFresh(content) {
 	var html = "<div class='ca_templatesDisplay'>" +
 		(content.header || "") +
@@ -1792,6 +2073,12 @@ function caRenderStructuredFresh(content) {
 		"</div>";
 	$("#templates_content").html(html);
 }
+/**
+ * Paint server HTML or structured card payloads: maintains `data.cardCache` for virtualization, runs fitText, translation banner, and scroll affordances.
+ *
+ * @param {string|object} content HTML string or `{ cards, header, scripts, pageNumber, maxPerPage }`
+ * @param {boolean} [append] Infinite-scroll append vs full replace
+ */
 function updateDisplay(content, append) {
 	var isStructured = content && typeof content === "object" && $.isArray(content.cards);
 
@@ -1872,6 +2159,13 @@ window.onbeforeunload = function() {
 	}
 	saveState(false);
 }
+/**
+ * Serialize lightweight CA navigation state to cookies for GUI-search / cross-page restore (skips large `cardCache` fields; legacy path short-circuits when `legacy` is true).
+ *
+ * When `legacy` is false: persists trimmed `data`, search flags, multi-install visibility, active menu, filter text, and category name.
+ *
+ * @param {boolean} [legacy=true] Original early-return gate (Dynamix compatibility)
+ */
 function saveState(legacy=true) {
 	if (legacy) {
 		return;
@@ -1911,6 +2205,9 @@ function saveState(legacy=true) {
 	$.cookie("ca_categoryName",$(".categoryMenuName").html(),{path:"/;SameSite=Lax"});
 }
 
+/**
+ * Rehydrate cookies into `data`, search box, and menu; fetch sort order, autocomplete, and clear multi-select before the user continues.
+ */
 function restoreState() {
 	console.log("Restore State");
 	$.removeCookie("ca_languageSwitch",{path:'/'});
@@ -1970,10 +2267,16 @@ function restoreState() {
 
 
 
+/**
+ * Open the Credits panel in the alternate (sidenav) view via jQuery helper.
+ */
 function showCredits() {
 	$("#caCredits").showAlternateView();
 }
 
+/**
+ * Open Settings in the alternate view and bind unsaved-change handlers on `.ca_settingsForm`.
+ */
 function showSettings() {
 	const $content = $(".settingsContainer");
 	$content.showAlternateView();
@@ -1983,10 +2286,16 @@ function showSettings() {
 	caBindSettingsFormHandlers(initialFormState);
 }
 
+/**
+ * Expand mobile / hamburger chrome (`menuShowing` on `.menuAdjust`, `.hideWithMenu`, `.mobileMenu`).
+ */
 function showMenu() {
 	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuShowing").removeClass("menuHidden");
 }
 
+/**
+ * Collapse mobile menu when the close control is in the expanded state.
+ */
 function closeMenu() {
 	if ( ! $(".closeMenuButton").hasClass("menuShowing") ) {
 		return;
@@ -1994,6 +2303,9 @@ function closeMenu() {
 	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuHidden").removeClass("menuShowing");
 }
 
+/**
+ * Fetch rendered changelog HTML (`caChangeLog`) and show it in the alternate view.
+ */
 function caChangeLog() {
 	post({action:'caChangeLog'},function(result) {
 		$(".caChanges").html(result.changelog);
@@ -2001,6 +2313,11 @@ function caChangeLog() {
 	});
 }
 
+/**
+ * Show or clear the banner + menu disable state when Docker is unavailable (`enableDisable`: 1 service off, 2 start failure, 3 array stopped).
+ *
+ * @param {number|false|null} enableDisable Reason code from PHP, or falsey to remove warning
+ */
 function addDockerWarning(enableDisable) {
 	if (enableDisable) {
 		switch (enableDisable) {
@@ -2031,6 +2348,9 @@ function addDockerWarning(enableDisable) {
 }
 
 
+/**
+ * Fetch favourite repository name from PHP and enable/disable `.favouriteRepo` menu + `data-repository`.
+ */
 function setFavRepoSearch() {
 	post({action:'getFavourite'},function(result) {
 		if (result.favourite) {
@@ -2042,6 +2362,9 @@ function setFavRepoSearch() {
 	});
 }
 
+/**
+ * Repaint category HTML from server, re-enable standard menu rows, sync favourite + pinned states, restore menu selection from cookies when applicable.
+ */
 function getCategories() {
 	post({action:'get_categories'},function(result) {
 		$("#category_list").html(result.categories);
@@ -2114,6 +2437,11 @@ function feedWarning(currentServer) {
 }
 
 
+/**
+ * Switch UI language: stash prior locale in cookie, POST `switchLanguage`, set `ca_languageSwitch`, reload.
+ *
+ * @param {string} language Target locale id (`en_US` clears override)
+ */
 function CAswitchLanguage(language) {
 	if ( language == "en_US" || ! language)
 		var oldlanguage = '<?=$locale?>';
@@ -2130,12 +2458,23 @@ function CAswitchLanguage(language) {
 	});
 }
 
+/**
+ * Install a language pack via {@link ca_openPlugin} (`postLanguageRefresh` on success).
+ *
+ * @param {string} languageURL Pack URL/path for `language install`
+ * @param {string} language Pack id for pending-row hiding
+ */
 function installLanguage(languageURL,language) {
 	hideLanguagePending(language);
 	disableSearch();
 	ca_openPlugin('language install '+languageURL,"<?tr('Install Language Pack');?>",'','postLanguageRefresh');
 }
 
+/**
+ * Update an installed language pack (cookie stores id for `postUpdateLanguage`).
+ *
+ * @param {string} language Pack basename/id
+ */
 function updateLanguage(language) {
 	hideLanguagePending(language);
 	disableSearch();
@@ -2143,6 +2482,9 @@ function updateLanguage(language) {
 	ca_openPlugin('language update '+language,"<?tr('Update Language Pack');?>",'','postUpdateLanguage');
 }
 
+/**
+ * After language update: full reload if the active UI locale changed, else refresh Action Centre or sidebar + grid.
+ */
 function postUpdateLanguage() {
 	var languageUpdate = $.cookie("updateLanguage");
 	var currentLanguage = "<?=$_SESSION['locale']?>";
@@ -2160,12 +2502,20 @@ function postUpdateLanguage() {
 		}
 	}
 }
+/**
+ * Remove a language pack (`language remove` via {@link ca_openPlugin}).
+ *
+ * @param {string} language Pack id
+ */
 function removeLanguage(language) {
 	hideLanguagePending(language);
 	closeSidebar();
 	ca_openPlugin('language remove '+language,"<?tr('Remove Language Pack');?>",'','postLanguageRemove');
 }
 
+/**
+ * Reopen saved sidebar app (if any) and {@link refreshDisplay} after language install.
+ */
 function postLanguageRefresh() {
 	var apppath = $.cookie("sidebarAppPath");
 	var appname = $.cookie("sidebarAppName");
@@ -2175,10 +2525,18 @@ function postLanguageRefresh() {
 	refreshDisplay();
 }
 
+/**
+ * Simulate a menu click to repaint the current section after language removal.
+ */
 function postLanguageRemove() {
 	$(".selectedMenu").trigger("click");
 }
 
+/**
+ * Issue `openDocker` `update_container` for one container; Action Centre uses a different completion callback than the main store.
+ *
+ * @param {string} container Container id/path token understood by `openDocker`
+ */
 function updateDocker(container) {
 	closeSidebar();
 	$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
@@ -2190,6 +2548,9 @@ function updateDocker(container) {
 	openDocker('update_container '+container,'<?tr('Update Application');?>','',postFunction);
 }
 
+/**
+ * Refresh `title` tooltips on `.ca_fav` favourite/non-favourite icons from server-side repository naming.
+ */
 function setToolTipForFavourite() {
 	$(".ca_fav").each(function(){
 		if ( $(this).hasClass("ca_favouriteRepo") ) {
@@ -2202,6 +2563,11 @@ function setToolTipForFavourite() {
 	});
 }
 
+/**
+ * Toggle favourite repository for a repo card: POST `toggleFavourite`, show transient banner, repaint backgrounds, {@link setFavRepoSearch}.
+ *
+ * @param {HTMLElement} button `.ca_fav` control with `data-repository`
+ */
 function setFavourite(button) {
 	$(button).toggleClass("fav nonfav");
 	var repo = $(button).data("repository");
@@ -2231,6 +2597,13 @@ function setFavourite(button) {
 	});
 }
 
+/**
+ * Run host port conflict checks, optionally ask to auto-adjust, then {@link installXML} to build XML and open Add Container.
+ *
+ * @param {string} xml Template path/key for `createXML`
+ * @param {string} type Template type slot (`default` / `second` / …)
+ * @param {string} [ports=''] JSON list of ports (string) used for conflict detection
+ */
 function popupInstallXML(xml,type,ports="") {
 	event.stopPropagation();
 	saveState();
@@ -2279,6 +2652,13 @@ function popupInstallXML(xml,type,ports="") {
 		installXML(xml,type,false);
 	}
 }
+/**
+ * Ask PHP to materialize a Docker XML template (`createXML`), then open `/Apps/AddContainer` with the returned template handle.
+ *
+ * @param {string} xml
+ * @param {string} type
+ * @param {boolean} adjustPorts When true, server should remap conflicting host ports
+ */
 function installXML(xml,type,adjustPorts) {
 	post({action:'createXML',xml:xml,type:type,adjustPorts:!!adjustPorts},function(result){
 		if ( result.status == "ok" ) {
@@ -2290,6 +2670,11 @@ function installXML(xml,type,adjustPorts) {
 	});
 }
 
+/**
+ * Build Chart.js line charts inside the sidebar for trend, monthly downloads, and total downloads when canvas ids exist.
+ *
+ * @param {object} descData Trend/download datasets and labels from `getPopupDescription`
+ */
 function popUpChart(descData) {
 	if ( $("#trendChart").length ) {
 		var fontSize = 14;
@@ -2471,6 +2856,11 @@ function popUpChart(descData) {
 		});
 	}
 }
+/**
+ * Show the sliding sidebar pane: inject optional HTML, reveal `.sidebar`, hide back affordance, {@link slideInSidebar}.
+ *
+ * @param {string} [content=''] Optional HTML for `#sidenavContent`
+ */
 function showAlternateView(content="") {
 	if ( content ) {
 		$("#sidenavContent").html(content);
@@ -2484,6 +2874,12 @@ function showAlternateView(content="") {
 	$(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
 }
 
+/**
+ * Load app popup HTML via `getPopupDescription`, wire MagnificPopup galleries, context menus, charts, and async readme/change sections.
+ *
+ * @param {string} apppath Template path key
+ * @param {string} appname Human-readable application name
+ */
 function showSidebarApp(apppath,appname) {
 	mySpinner();
 	disableSearch();
@@ -2503,18 +2899,24 @@ function showSidebarApp(apppath,appname) {
 			caInitSidebarReadmore();
 			caLoadSidebarReadmeSections();
 			caLoadSidebarTemplateChanges();
-			$('.screenshot').magnificPopup({
-				closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
-				closeOnContentClick: true,
-				type:'image',
+			/* Bind to the .caMediaGallery wrapper with delegate so all photos +
+			   videos inside are a single MFP gallery — MFP picks `image` vs
+			   `iframe` per item from the per-element `mfp-<type>` class. The
+			   carats / arrow keys / click-to-next now work because gallery
+			   options are in object form (the boolean `gallery: true` form
+			   never enabled the module — `r.enabled` was undefined). */
+			$('.caMediaGallery').magnificPopup({
+				delegate: '.screenshot',
+				closeMarkup: "<span class='mfp-close magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+				/* Gallery mode: don't close on content click — gallery's own
+				   navigateByImgClick handles image clicks (advances to next).
+				   Otherwise the click both advances AND closes. */
+				closeOnContentClick: false,
 				removalDelay: 100,
 				mainClass: 'mfp-fade',
-				gallery: true,
-				zoom: {
-					enabled: true,
-					duration: 500,
-					easing: 'ease-in-out'
-				},
+				gallery: { enabled: true, navigateByImgClick: true, preload: [0,1] },
+				zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
+				iframe: { patterns: caMfpIframePatterns },
 				callbacks: {
 					beforeOpen: function() {
 						closeSidebar();
@@ -2523,6 +2925,16 @@ function showSidebarApp(apppath,appname) {
 						showSidebarApp(data.sidebarapppath,data.sidebarappname);
 					}
 				}
+			});
+			/* Stragglers — .screenshot elements that aren't part of a gallery
+			   (eg. the popup app icon) get a plain single-item popup. */
+			$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
+				type:'image',
+				closeMarkup: "<span class='mfp-close magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+				closeOnContentClick: true,
+				removalDelay: 100,
+				mainClass: 'mfp-fade',
+				zoom: { enabled: true, duration: 500, easing: 'ease-in-out' }
 			});
 			slideInSidebar();
 
@@ -2559,6 +2971,9 @@ function showSidebarApp(apppath,appname) {
 		})
 }
 
+/**
+ * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar (`getReadmeSection` POST per section).
+ */
 function caLoadSidebarReadmeSections() {
 	var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
 	if (!$sections.length) return;
@@ -2591,6 +3006,9 @@ function caLoadSidebarReadmeSections() {
 	});
 }
 
+/**
+ * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the sidebar (`getTemplateChanges`).
+ */
 function caLoadSidebarTemplateChanges() {
 	var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
 	if (!$sections.length) return;
@@ -2621,6 +3039,11 @@ function caLoadSidebarTemplateChanges() {
 	});
 }
 
+/**
+ * Initialize jQuery readmore.js on `.popup_readmore` nodes (optional scoped root); inserts inline “show less” control for readme sections.
+ *
+ * @param {jQuery|HTMLElement|undefined} [$scope] When set, only initializes within this subtree
+ */
 function caInitSidebarReadmore($scope) {
 	var $targets = $scope ? $scope : $('.popup_readmore');
 	$targets.each(function() {
@@ -2643,9 +3066,17 @@ function caInitSidebarReadmore($scope) {
 	});
 }
 
+/**
+ * Apply CSS classes that slide the sidebar into view (`sidenavShow` / `sidenavHide`).
+ */
 function slideInSidebar() {
 	$(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
 }
+/**
+ * Open sidebar with repository metadata (`getRepoDescription`): restores cookies when opened from a card vs nested navigation; sets up same media popup pattern as {@link showSidebarApp}.
+ *
+ * @param {string} repository Repository handle from PHP
+ */
 function showRepoPopup(repository) {
 	if ( !repository ) return;
 	data.repository = repository;
@@ -2692,17 +3123,18 @@ function showRepoPopup(repository) {
 			$(".popUpBack").removeClass("ca_hide");
 		}
 
-		$('.screenshot').magnificPopup({
-			type:'image',
-			closeMarkup: "<span class='magnificPopup caButton'>"+tr("CLOSE")+"</span>",
-			closeOnContentClick: true,
+		/* Same gallery + delegate setup as the app popup, but with the repo-
+		   popup callbacks for sidebar restore. Items pick image/iframe type
+		   from their own `mfp-image`/`mfp-iframe` class. */
+		$('.caMediaGallery').magnificPopup({
+			delegate: '.screenshot',
+			closeMarkup: "<span class='mfp-close magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+			closeOnContentClick: false,    /* gallery's navigateByImgClick handles image clicks */
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
-			zoom: {
-				enabled: true,
-				duration: 500,
-				easing: 'ease-in-out'
-			},
+			gallery: { enabled: true, navigateByImgClick: true, preload: [0,1] },
+			zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
+			iframe: { patterns: caMfpIframePatterns },
 			callbacks: {
 				beforeOpen: function() {
 					closeSidebar();
@@ -2716,9 +3148,20 @@ function showRepoPopup(repository) {
 				}
 			}
 		});
+		$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
+			type:'image',
+			closeMarkup: "<span class='mfp-close magnificPopup caButton'>"+tr("CLOSE")+"</span>",
+			closeOnContentClick: true,
+			removalDelay: 100,
+			mainClass: 'mfp-fade',
+			zoom: { enabled: true, duration: 500, easing: 'ease-in-out' }
+		});
 	});
 }
 
+/**
+ * Ensure a non-startup sort icon is enabled; if none, reset to server default (`defaultSortOrder` POST).
+ */
 function checkSortOrder() {
 	var sortButton = false;
 	$(".sortIcons").each(function() {
@@ -2734,6 +3177,9 @@ function checkSortOrder() {
 	}
 }
 
+/**
+ * Enter Docker Hub search mode: disable non-docker categories, hide sort icons, clear section labels, {@link dockerSearch} page 1.
+ */
 function initDockerSearch() {
 	caClearHomeSectionSubtitle();
 	data.docker = "searching docker";
@@ -2748,6 +3194,12 @@ function initDockerSearch() {
 	dockerSearch(1);
 }
 
+/**
+ * Query Docker Hub via PHP (`search_dockerhub`) and paint results (supports append for infinite scroll).
+ *
+ * @param {number|string} pageNumber Hub search page index
+ * @param {boolean} [append] Append cards vs replace
+ */
 function dockerSearch(pageNumber, append) {
 	var doAppend = !!append;
 	caRestoreCommittedSearchIfDrafted();
@@ -2770,6 +3222,12 @@ function dockerSearch(pageNumber, append) {
 	});
 }
 
+/**
+ * Convert a Docker Hub image to a CA XML template: optionally run test container (`dockerConvert.php`) or POST `convert_docker` and open Add Container.
+ *
+ * @param {string} repo Docker repository string
+ * @param {string} descB64 Base64-encoded description from the card (wire format for PHP)
+ */
 function dockerConvert(repo, descB64) {
 	/* descB64 is the card's Description as it was rendered, base64-encoded by
 	   the server so it survives passing through an onclick attribute string.
@@ -2804,6 +3262,9 @@ function dockerConvert(repo, descB64) {
 }
 
 var caSortMenuObserver = null;
+/**
+ * Subscribe to DOM mutations on `#sortIconOptions` so the sort dropdown label stays in sync (`caRefreshSortMenu`).
+ */
 function caInitializeSortMenu() {
 	caRefreshSortMenu();
 	if (caSortMenuObserver) {
@@ -2823,6 +3284,9 @@ function caInitializeSortMenu() {
 	});
 }
 
+/**
+ * Update `#sortByButton` label from the active `.sortIcons.enabledIcon` and rebuild its context-menu entries from {@link getSortOpts}.
+ */
 function caRefreshSortMenu() {
 	if (!$("#sortByButton").length) {
 		return;
@@ -2844,6 +3308,11 @@ function caRefreshSortMenu() {
 	context.attach("#sortByButton", getSortOpts());
 }
 
+/**
+ * Build context-menu descriptor objects for each `.sortIcons` row (checkmark + click triggers native sort icon).
+ *
+ * @returns {Array<object>} Items for `context.attach`
+ */
 function getSortOpts() {
 	var sortOpts = [];
 	$(".sortIcons").each(function() {
@@ -2862,6 +3331,9 @@ function getSortOpts() {
 	return sortOpts;
 }
 
+/**
+ * Background poll: POST `enableActionCentre` to toggle visibility of Action Centre menu entry.
+ */
 function setupActionCentre() {
 	// set up action centre - run in background without tying anything up
 	$.post(execURL,{action:'enableActionCentre'},function(ret) {
@@ -2874,6 +3346,9 @@ function setupActionCentre() {
 	});
 }
 
+/**
+ * Refresh Action Centre visibility then trigger the selected menu (typically after a bulk check-for-updates completes).
+ */
 function postCheckForUpdates() {
 	setupActionCentre();
 	$(".selectedMenu").click();
@@ -2896,11 +3371,21 @@ function caVirtSpacer() {
 	$first.before($spacer);
 	return $spacer;
 }
+/**
+ * Pixel height of the virtualization top spacer (0 when absent).
+ *
+ * @returns {number}
+ */
 function caVirtSpacerHeight() {
 	var $s = $("#templates_content .ca_virtTopSpacer").first();
 	if (!$s.length) return 0;
 	return parseFloat($s[0].style.height) || 0;
 }
+/**
+ * Grow or shrink `#templates_content .ca_virtTopSpacer` height by `deltaPx` (clamped at 0).
+ *
+ * @param {number} deltaPx Pixel delta (positive adds scroll range for evicted rows)
+ */
 function caVirtAdjustSpacer(deltaPx) {
 	var $s = caVirtSpacer();
 	if (!$s.length) return;
@@ -2908,6 +3393,12 @@ function caVirtAdjustSpacer(deltaPx) {
 	var next = Math.max(0, current + deltaPx);
 	$s.css("height", next + "px");
 }
+/**
+ * Count how many `.ca_holder` cards share the first row’s `offsetTop` (cards per row for float layout).
+ *
+ * @param {jQuery} $cards Card collection
+ * @returns {number}
+ */
 function caVirtCardsPerRow($cards) {
 	if (!$cards.length) return 0;
 	var firstTop = $cards[0].offsetTop;
@@ -2916,10 +3407,20 @@ function caVirtCardsPerRow($cards) {
 	}
 	return $cards.length;
 }
+/**
+ * Vertical distance between the first card in row 0 and the first card in row 1.
+ *
+ * @param {jQuery} $cards Card collection
+ * @param {number} perRow From {@link caVirtCardsPerRow}
+ * @returns {number}
+ */
 function caVirtRowHeight($cards, perRow) {
 	if (perRow < 1 || $cards.length <= perRow) return 0;
 	return $cards[perRow].offsetTop - $cards[0].offsetTop;
 }
+/**
+ * Evict off-screen card rows into a top spacer or restore from `data.cardCache` on upward scroll; may trigger `changePage(1)` on large jumps.
+ */
 function caVirtUpdate() {
 	var mainArea = $(".mainArea")[0];
 	if (!mainArea) return;

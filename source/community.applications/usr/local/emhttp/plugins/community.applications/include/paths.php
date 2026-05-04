@@ -11,6 +11,13 @@
 #                                      #
 ########################################
 
+/**
+ * Path constants, URLs, and temp locations for Community Applications.
+ *
+ * Defines CA_PATHS (feeds, caches, moderation files, Docker-related paths) and
+ * optional per-browser-tab cache suffixes from POSTed tabId.
+ */
+
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 
@@ -59,8 +66,8 @@ define("CA_PATHS",[
 	'community-templates-info'            => "$tempFiles/templates_new.json",
 	'community-templates-info-full'       => "$tempFiles/templates_new_full.json", /* json file containing all of the templates */
 	'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
-	'haveTemplates'												=> "/tmp/ca_haveTemplates",
-	'gettingTemplates'										=> "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
+	'haveTemplates'                       => "/tmp/ca_haveTemplates{$caTabSuffix}",
+	'gettingTemplates'                    => "/tmp/ca_gettingTemplates{$caTabSuffix}", /* flag to indicate that the templates are being downloaded */
 	'community-templates-displayed'       => "$tempFiles/displayed{$caTabSuffix}.json",        /* json file containing all of the templates currently displayed (per-tab) */
 	'community-templates-allSearchResults'=> "$tempFiles/allSearchResults{$caTabSuffix}.json", /* per-tab */
 	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults{$caTabSuffix}.json", /* per-tab */
@@ -128,7 +135,7 @@ define("CA_PATHS",[
 	'pluginAttributesCache'               => "$tempFiles/pluginAttributesCache",
 	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
 	'downloadLocksDir'                    => "$tempFiles/locks",
-	'SpotlightIcon-backup'								=> "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png",
+	'SpotlightIcon-backup'                => "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png",
 	'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png"
 ]);
 ?>

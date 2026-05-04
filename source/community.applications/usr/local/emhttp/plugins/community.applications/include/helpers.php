@@ -11,11 +11,19 @@
 #                                      #
 ########################################
 
+/**
+ * Shared helper routines for Community Applications (PHP).
+ *
+ * Template/feed JSON I/O, dockerman and plugin utilities, search and display
+ * logic, moderation, statistics, translations wrappers, and UI-oriented helpers
+ * used by exec.php, skins, and CLI scripts.
+ */
+
 require_once __DIR__ . "/paths.php";
 
-###############################################################
-# Populate $GLOBALS['templates'] if it's not already populated #
-###############################################################
+/**
+ * Populate $GLOBALS['templates'] if it's not already populated
+ */
 function getGlobals() {
 	clearstatcache();
 	if ( is_file(CA_PATHS['community-templates-info']) ) {
@@ -28,17 +36,17 @@ function getGlobals() {
 	getSettings();
 }
 
-##########################################################
-# Get the full global templates array from the JSON file #
-##########################################################
+/**
+ * Get the full global templates array from the JSON file
+ */
 function getFullGlobals() {
 	$GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info-full']);
 	getSettings();
 }
 
-##########################################
-# Gets CA's settings and auxiliary stuff #
-##########################################
+/**
+ * Gets CA's settings and auxiliary stuff
+ */
 function getSettings() {
 
 	$dynamixSettings = parse_plugin_cfg("dynamix");
@@ -60,9 +68,9 @@ function getSettings() {
 		$GLOBALS['caSettings']['dockerSearch'] = "no";
 	}
 }
-#####################################################
-# Write the global templates array to the JSON file #
-#####################################################
+/**
+ * Write the global templates array to the JSON file
+ */
 function writeGlobals($templates) {
 	if ( ! is_array($templates) || empty($templates) ) {
 		@unlink(CA_PATHS['community-templates-info']);
@@ -76,6 +84,13 @@ function writeGlobals($templates) {
 	$GLOBALS['templates'] = $smallTemplates;
 }
 
+/**
+ * Copy template rows while stripping bulky keys for the slim on-disk cache.
+ *
+ * @param array $source
+ * @param array<int,string> $keysToRemove
+ * @return array
+ */
 function duplicateArrayWithoutKeys($source, $keysToRemove = []): array {
 	$copy = [];
 	foreach ($source as $index => $item) {
@@ -96,9 +111,9 @@ function duplicateArrayWithoutKeys($source, $keysToRemove = []): array {
 	}
 	return $copy;
 }
-########################################
-# Sanitize output from plugin function #
-########################################
+/**
+ * Sanitize output from plugin function
+ */
 function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 	static $attributeCache = [];
 	static $PLUGIN_METHODS = ['dump', 'changes', 'alert', 'validate', 'check', 'checkall', 'update', 'remove', 'install', 'attributes'];
@@ -154,23 +169,23 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 		return strip_tags(html_entity_decode(@plugin($method,$plugin_file)));
 	}
 }
-############################
-# Drop the attribute cache #
-############################
+/**
+ * Drop the attribute cache
+ */
 function dropAttributeCache() {
 
 	debug("Dropping attribute cache");
 	@unlink(CA_PATHS['pluginAttributesCache']);
 }
-##################################################################################################################
-# Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag #
-##################################################################################################################
+/**
+ * Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag
+ */
 function arrayEntriesToObject($sourceArray,$defaultFlag=true) {
 	return is_array($sourceArray) ? array_fill_keys($sourceArray,$defaultFlag) : [];
 }
-###########################################################################
-# Helper function to determine if a plugin has an update available or not #
-###########################################################################
+/**
+ * Helper function to determine if a plugin has an update available or not
+ */
 function checkPluginUpdate($filename) {
 
 	$filename = basename($filename);
@@ -184,17 +199,20 @@ function checkPluginUpdate($filename) {
 	}
 	return false;
 }
-###################################################################################
-# returns a random file name (/tmp/community.applications/tempFiles/34234234.tmp) #
-###################################################################################
+/**
+ * returns a random file name (/tmp/community.applications/tempFiles/34234234.tmp)
+ */
 function randomFile() {
 
 	return tempnam(CA_PATHS['tempFiles'],"CA-Temp-");
 }
-##################################################################
-# 7 Functions to avoid typing the same lines over and over again #
-##################################################################
-// This function reads either a serialized or JSON file
+/**
+ * Read a JSON or PHP-serialized file; falls back from unserialize to json_decode.
+ *
+ * @param string $filename
+ * @param array $default
+ * @return mixed
+ */
 function readJsonFile($filename, $default = []) {
 	debug( ($GLOBALS['action']?? "Unknown") . " - Read Serialized file $filename");
 
@@ -218,6 +236,11 @@ function readJsonFile($filename, $default = []) {
 	return $json;
 }
 
+/**
+ * Return whether the Docker daemon appears to be running (cached).
+ *
+ * @return bool
+ */
 function caIsDockerRunning() {
 	static $dockerRunning = null;
 
@@ -242,7 +265,15 @@ function caIsDockerRunning() {
 	return $dockerRunning = true;
 }
 
-// This function writes a serialized file of an array.  If the filename is CA_PATHS['community-templates-info'], then it will also write a JSON file to CA_PATHS['community-templates-info-old']
+/**
+ * Persist an array to disk as PHP serialize (or pretty JSON when humanReadable).
+ *
+ * When writing the main templates file, also updates templates-old JSON for plugin support scripts.
+ *
+ * @param string $filename
+ * @param array $jsonArray
+ * @return void
+ */
 function writeJsonFile($filename,$jsonArray) {
 	debug(($_POST['action']??'Unknown')." - Write JSON File $filename");
 	if ( CA_PATHS['humanReadable'] ) {
@@ -264,6 +295,14 @@ function writeJsonFile($filename,$jsonArray) {
 	debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 
+/**
+ * Atomic file write via temp file rename; sets $GLOBALS['script'] alert on failure.
+ *
+ * @param string $filename
+ * @param string $data
+ * @param int $flags
+ * @return int|false Bytes written or false
+ */
 function ca_file_put_contents($filename,$data,$flags=0) {
 	$result = @file_put_contents($filename."~",$data,$flags);
 	if ( $result === strlen($data) ) {
@@ -278,6 +317,14 @@ function ca_file_put_contents($filename,$data,$flags=0) {
 	return ($result === strlen($data)) ? strlen($data) : false;
 }
 
+/**
+ * Download a URL with cURL; optional proxy, progress publish, and flock when caching to $path.
+ *
+ * @param string $url
+ * @param string $path If non-empty, response body is written here
+ * @param int $timeout Seconds; 0 uses libcurl default
+ * @return string|false Response body or false on failure
+ */
 function download_url($url, $path = "", $timeout = 0) {
 	static $proxycfg = null;
 
@@ -396,6 +443,12 @@ function download_url($url, $path = "", $timeout = 0) {
 	}
 }
 
+/**
+ * Format a byte count as a short human-readable string (B through EB).
+ *
+ * @param int|float|string $bytes
+ * @return string
+ */
 function MakeReadable($bytes) {
 	if (!is_numeric($bytes) || $bytes < 0) {
 		return "";
@@ -413,6 +466,13 @@ function MakeReadable($bytes) {
 
 	return round($bytes / pow(1024, $i), $precision[$i]).$units[$i];
 }
+
+/**
+ * cURL progress callback: publishes download progress to the UI channel.
+ *
+ * @param resource $ch
+ * @return int
+ */
 function testProgress($ch,$download_total,$download_current,$upload_total,$upload_current) {
 	$testProgress = curl_getinfo($ch);
 
@@ -424,6 +484,13 @@ function testProgress($ch,$download_total,$download_current,$upload_total,$uploa
 	}
 }
 
+/**
+ * Publish to nchan: uses publish_noDupe when available.
+ *
+ * @param string $endpoint
+ * @param string $message
+ * @return void
+ */
 function ca_publish($endpoint,$message) {
 	if ( ! function_exists("publish_noDupe") ) {
 		publish($endpoint,$message);
@@ -431,6 +498,15 @@ function ca_publish($endpoint,$message) {
 		publish_noDupe($endpoint,$message);
 	}
 }
+
+/**
+ * Fetch JSON from URL, decode to array, optionally write via writeJsonFile.
+ *
+ * @param string $url
+ * @param string $path Optional path for decoded array
+ * @param int $timeout
+ * @return array|false
+ */
 function download_json($url,$path="",$timeout=0) {
 	// download the URL, but don't sae it yet
 	$result = download_url($url,"",$timeout);
@@ -446,13 +522,31 @@ function download_json($url,$path="",$timeout=0) {
 	return $ret;
 }
 
+/**
+ * @param string $setting POST key
+ * @param mixed $default
+ * @return mixed
+ */
 function getPost($setting,$default) {
 	return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
 }
+
+/**
+ * Raw POST value for an array-shaped field (no urldecode).
+ *
+ * @param string $setting POST key
+ * @return mixed
+ */
 function getPostArray($setting) {
 	return $_POST[$setting];
 }
 
+/**
+ * Return var_dump output as a string (for logging/debug).
+ *
+ * @param mixed $mixed
+ * @return string
+ */
 function var_dump_ret($mixed = null) {
 	ob_start();
 	var_dump($mixed);
@@ -460,9 +554,9 @@ function var_dump_ret($mixed = null) {
 	ob_end_clean();
 	return $content;
 }
-##############################################
-# Determine if $haystack begins with $needle #
-##############################################
+/**
+ * Determine if $haystack begins with $needle
+ */
 function startsWith($haystack, $needle) {
 	if ( is_array($needle) ) {
 		foreach ($needle as $need) {
@@ -474,9 +568,9 @@ function startsWith($haystack, $needle) {
 	if ( !is_string($haystack) || ! is_string($needle) ) return false;
 	return $needle === "" || strripos($haystack, $needle, -strlen($haystack)) !== FALSE;
 }
-#############################################
-# Determine if $string ends with $endstring #
-#############################################
+/**
+ * Determine if $string ends with $endstring
+ */
 function endsWith($string, $endString) {
 	if ( is_array($endString) ) {
 		foreach ($endString as $end) {
@@ -491,23 +585,23 @@ function endsWith($string, $endString) {
 	}
 	return (substr($string, -$len) === $endString);
 }
-###########################################
-# Replace the first occurance in a string #
-###########################################
+/**
+ * Replace the first occurance in a string
+ */
 function first_str_replace($haystack, $needle, $replace) {
 	$pos = strpos($haystack, $needle);
 	return ($pos !== false) ? substr_replace($haystack, $replace, $pos, strlen($needle)) : $haystack;
 }
-##########################################
-# Replace the last occurance in a string #
-##########################################
+/**
+ * Replace the last occurance in a string
+ */
 function last_str_replace($haystack, $needle, $replace) {
 	$pos = strrpos($haystack, $needle);
 	return ($pos !== false) ? substr_replace($haystack, $replace, $pos, strlen($needle)) : $haystack;
 }
-#######################
-# Custom sort routine #
-#######################
+/**
+ * Custom sort routine
+ */
 function mySort($a, $b) {
 	global $sortOrder;
 
@@ -535,6 +629,13 @@ function mySort($a, $b) {
 	else return 0;
 }
 
+/**
+ * Sort comparator: favourite repository first (RepoName).
+ *
+ * @param array<string,mixed> $a
+ * @param array<string,mixed> $b
+ * @return int
+ */
 function repositorySort($a,$b) {
 
 	if ( $a['RepoName'] == $GLOBALS['caSettings']['favourite'] ) return -1;
@@ -542,17 +643,22 @@ function repositorySort($a,$b) {
 	return 0;
 }
 
+/**
+ * Sort comparator: favourite repository first (Repo field).
+ *
+ * @param array<string,mixed> $a
+ * @param array<string,mixed> $b
+ * @return int
+ */
 function favouriteSort($a,$b) {
 
 	if ( $a['Repo'] == $GLOBALS['caSettings']['favourite'] ) return -1;
 	if ( $b['Repo'] == $GLOBALS['caSettings']['favourite'] ) return 1;
 	return 0;
 }
-###############################################
-# Search array for a particular key and value #
-# returns the index number of the array       #
-# return value === false if not found         #
-###############################################
+/**
+ * Search array for a particular key and value returns the index number of the array return value === false if not found
+ */
 function searchArray($array,$key,$value,$startingIndex=0) {
 	if (is_array($array) && count($array) ) {
 		foreach ($array as $i => $item) {
@@ -566,9 +672,9 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 	}
 	return false;
 }
-########################################################
-# Fix common problems (maintainer errors) in templates #
-########################################################
+/**
+ * Fix common problems (maintainer errors) in templates
+ */
 function fixTemplates($template) {
 
 	if ( ! $template['MinVer'] ) $template['MinVer'] = ($template['Plugin']??false) ? "6.1" : "6.0";
@@ -605,9 +711,9 @@ function fixTemplates($template) {
 	}
 	return $template;
 }
-###############################################
-# Function used to create XML's from appFeeds #
-###############################################
+/**
+ * Function used to create XML's from appFeeds
+ */
 function makeXML($template) {
 	# ensure its a v2 template if the Config entries exist
 	if ( isset($template['Config']) && ! isset($template['@attributes']) )
@@ -632,9 +738,9 @@ function makeXML($template) {
 	$xml = $Array2XML->createXML("Container",$template);
 	return $xml->saveXML();
 }
-#################################################################################
-# Function to fix differing schema in the appfeed vs what Array2XML class wants #
-#################################################################################
+/**
+ * Function to fix differing schema in the appfeed vs what Array2XML class wants
+ */
 function fixAttributes(&$template,$attribute) {
 	if ( ! isset($template[$attribute]) ) return;
 	if ( ! is_array($template[$attribute]) ) return;
@@ -653,10 +759,9 @@ function fixAttributes(&$template,$attribute) {
 		$template[$attribute] = $tempArray2;
 	}
 }
-#################################################################
-# checks the Min/Max version of an app against unRaid's version #
-# Returns: TRUE if it's valid to run, FALSE if not              #
-#################################################################
+/**
+ * checks the Min/Max version of an app against unRaid's version Returns: TRUE if it's valid to run, FALSE if not
+ */
 function versionCheck($template) {
 
 	if ( $template['IncompatibleVersion']??null ) {
@@ -674,6 +779,13 @@ function versionCheck($template) {
 	if ( ($template['MaxVer']??null) && ( version_compare($template['MaxVer'],$GLOBALS['caSettings']['unRaidVersion']) < 0 ) ) return false;
 	return true;
 }
+
+/**
+ * Recursively strip risky XML-like markup from template string fields (in place).
+ *
+ * @param array<string,mixed> $template
+ * @return void
+ */
 function removeXMLtags(&$template) {
 	foreach ($template as $key => &$element) {
 		if ( is_array($element) ) {
@@ -688,9 +800,9 @@ function removeXMLtags(&$template) {
 		}
 	}
 }
-###############################################
-# Function to read a template XML to an array #
-###############################################
+/**
+ * Function to read a template XML to an array
+ */
 function readXmlFile($xmlfile,$generic=false,$stats=true) {
 	global $statistics;
 
@@ -732,11 +844,9 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 	}
 	return $o;
 }
-###################################################################
-# Function To Merge Moderation into templates array               #
-# (Because moderation can be updated when templates are not )     #
-# If appfeed is updated, this is done when creating the templates #
-###################################################################
+/**
+ * Function To Merge Moderation into templates array (Because moderation can be updated when templates are not ) If appfeed is updated, this is done when creating the templates
+ */
 function moderateTemplates() {
 
 	$templates = &$GLOBALS['templates'];
@@ -760,9 +870,9 @@ function moderateTemplates() {
 	$GLOBALS['templates'] = $o;
 
 }
-#######################################################
-# Function to check for a valid URL                   #
-#######################################################
+/**
+ * Function to check for a valid URL
+ */
 function validURL($URL) {
 	/* filter_var alone accepts ftp:/file:/etc., so additionally require an
 	   http(s) scheme — every place this is called is rendering a clickable
@@ -801,12 +911,10 @@ function validURL($URL) {
 	return true;
 }
 
-##################################################################
-# Test whether a host string resolves to a private or loopback   #
-# address. Used by the README/changelog sanitizers, which need a #
-# stricter policy than validURL — every link/image must point to #
-# the public internet, not LAN hosts, link-local, ULA, etc.      #
-##################################################################
+/**
+ * Test whether a host string resolves to a private or loopback address. Used by the README/changelog sanitizers, which need a stricter policy than validURL — every link/image must point to the public internet, not LAN hosts, link-local, ULA, etc.
+ * @return bool
+ */
 function caIsPrivateOrLoopbackHost(string $host): bool {
 	$host = strtolower(trim($host));
 	if ($host === "") return true;
@@ -861,11 +969,10 @@ function caIsPrivateOrLoopbackHost(string $host): bool {
 	return false;
 }
 
-##################################################################
-# Stricter sibling of validURL: requires http(s) and a publicly  #
-# routable host. Used in README/changelog sanitization where any #
-# pointer at a LAN host is considered hostile.                   #
-##################################################################
+/**
+ * Stricter sibling of validURL: requires http(s) and a publicly routable host. Used in README/changelog sanitization where any pointer at a LAN host is considered hostile.
+ * @return bool
+ */
 function caIsPublicHttpUrl(string $url): bool {
 	if (!filter_var($url, FILTER_VALIDATE_URL)) return false;
 	if (!preg_match('/^https?:\/\//i', $url)) return false;
@@ -874,9 +981,9 @@ function caIsPublicHttpUrl(string $url): bool {
 	return !caIsPrivateOrLoopbackHost($host);
 }
 
-#######################################################
-# Function used to determine if a search term matches #
-#######################################################
+/**
+ * Function used to determine if a search term matches
+ */
 function filterMatch($filter,$searchArray,$exact=true) {
 	$filterwords = explode(" ",$filter);
 	$foundword = null;
@@ -892,9 +999,9 @@ function filterMatch($filter,$searchArray,$exact=true) {
 	}
 	return $exact ? ($foundword == count($filterwords)) : ($foundword > 0);
 }
-##########################################################
-# Used to figure out which plugins have duplicated names #
-##########################################################
+/**
+ * Used to figure out which plugins have duplicated names
+ */
 function pluginDupe() {
 
 	$pluginList = [];
@@ -912,9 +1019,9 @@ function pluginDupe() {
 	}
 	writeJsonFile(CA_PATHS['pluginDupes'],$dupeList);
 }
-###################################
-# Checks if a plugin is installed #
-###################################
+/**
+ * Checks if a plugin is installed
+ */
 function checkInstalledPlugin($template) {
 
 	$pluginName = basename($template['PluginURL']);
@@ -924,16 +1031,16 @@ function checkInstalledPlugin($template) {
 	return strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$pluginName"))) == strtolower(trim($template['PluginURL']));
 }
 
-###########################################################
-# Returns a string with only alphanumeric characters only #
-###########################################################
+/**
+ * Returns a string with only alphanumeric characters only
+ */
 function alphaNumeric($string) {
 	return preg_replace("/[^a-zA-Z0-9]+/", "", $string);
 }
 
-################################################
-# Returns the author from the Repository entry #
-################################################
+/**
+ * Returns the author from the Repository entry
+ */
 function getAuthor($template) {
 	if ( isset($template['PluginURL']) ) return $template['PluginAuthor'];
 
@@ -945,9 +1052,9 @@ function getAuthor($template) {
 
 	return strip_tags(explode(":",$repoEntry[count($repoEntry)-2])[0]);
 }
-############################
-# Trims the category lists #
-############################
+/**
+ * Trims the category lists
+ */
 function categoryList($cat,$popUp = false) {
 	$cat = str_replace([":,",": "," "],",",$cat);
 	$cat = rtrim($cat,": ");
@@ -963,9 +1070,9 @@ function categoryList($cat,$popUp = false) {
 	}
 	return rtrim(implode(", ",$categoryList),", ");
 }
-##################################
-# Trims the language author list #
-##################################
+/**
+ * Trims the language author list
+ */
 function languageAuthorList($authors) {
 	$newAuthor = "";
 	$allAuthors = explode(",",$authors);
@@ -979,9 +1086,9 @@ function languageAuthorList($authors) {
 	}
 	return $authors;
 }
-#####################################
-# Gets a rounded off download count #
-#####################################
+/**
+ * Gets a rounded off download count
+ */
 function getDownloads($downloads,$lowFlag=false) {
 	$downloadCount = ["10000000000","5000000000","1000000000","500000000","100000000","50000000","25000000","10000000","5000000","2500000","1000000","500000","250000","100000","50000","25000","10000","5000","1000","500","100"];
 	foreach ($downloadCount as $downloadtmp) {
@@ -991,17 +1098,17 @@ function getDownloads($downloads,$lowFlag=false) {
 	}
 	return ($lowFlag) ? $downloads : "";
 }
-#####################
-# Stops a container #
-#####################
+/**
+ * Stops a container
+ */
 function myStopContainer($id) {
 	global $DockerClient;
 
 	$DockerClient->stopContainer($id);
 }
-#####################################
-# Fix Descriptions on previous apps #
-#####################################
+/**
+ * Fix Descriptions on previous apps
+ */
 function fixDescription($Description) {
 	if ( !is_string($Description) ) {
 		return "";
@@ -1035,9 +1142,9 @@ function fixDescription($Description) {
 
 	return trim(strip_tags($Description));
 }
-############################
-# displays the branch tags #
-############################
+/**
+ * displays the branch tags
+ */
 function formatTags($leadTemplate,$rename="false") {
 
 	$templates = &$GLOBALS['templates'];
@@ -1100,9 +1207,9 @@ function formatTags($leadTemplate,$rename="false") {
 
 	return "<table>" . implode("", $rows) . "</table>";
 }
-###########################
-# handles the POST return #
-###########################
+/**
+ * handles the POST return
+ */
 function postReturn($retArray) {
 	if (is_array($retArray)) {
 		if ( isset($GLOBALS['script']) )
@@ -1136,9 +1243,9 @@ if ( ! function_exists("tr") ) {
 		return $translated;
 	}
 }
-#############################
-# Check for language update #
-#############################
+/**
+ * Check for language update
+ */
 function languageCheck($template) {
 
 	if ( ! $template['LanguageURL'] ) return false;
@@ -1160,9 +1267,9 @@ function languageCheck($template) {
 	if ( !$xmlFile['Version'] ) return false;
 	return (strcmp($template['Version'],$xmlFile['Version']) > 0) || (strcmp($OSupdates['Version'],$xmlFile['Version']) > 0);
 }
-######################
-# Writes an ini file #
-######################
+/**
+ * Writes an ini file
+ */
 function write_ini_file($file,$array) {
 	$res = [];
 	foreach($array as $key => $val) {
@@ -1176,9 +1283,9 @@ function write_ini_file($file,$array) {
 	}
 	ca_file_put_contents($file,implode("\r\n", $res),LOCK_EX);
 }
-###################################################
-# Gets all the information about what's installed #
-###################################################
+/**
+ * Gets all the information about what's installed
+ */
 function getAllInfo($force=false) {
 	global $DockerTemplates, $DockerClient;
 
@@ -1203,9 +1310,9 @@ function getAllInfo($force=false) {
 	return $containers;
 }
 
-#######################
-# Logs the debug info #
-#######################
+/**
+ * Logs the debug info
+ */
 function debug($str) {
 
 	if ( ! is_file(CA_PATHS['logging']) ) {
@@ -1231,9 +1338,9 @@ function debug($str) {
 	}
 	@file_put_contents(CA_PATHS['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
 }
-########################################
-# Gets the default ports in a template #
-########################################
+/**
+ * Gets the default ports in a template
+ */
 function portsUsed($template) {
 
 	if ( ! is_array($template) || ! isset($template['Config']) ) {
@@ -1256,12 +1363,9 @@ function portsUsed($template) {
 	return json_encode($portsUsed,JSON_NUMERIC_CHECK);
 }
 
-###########################################################################
-# Walk a template's Config Port entries and bump any host port that's      #
-# already in use (by the system or by an earlier port within this same     #
-# template) to the next free port. Edits $template in place. No-op for     #
-# non-bridge networks since host ports don't apply there.                  #
-###########################################################################
+/**
+ * Walk a template's Config Port entries and bump any host port that's already in use (by the system or by an earlier port within this same template) to the next free port. Edits $template in place. No-op for non-bridge networks since host ports don't apply there.
+ */
 function adjustTemplatePorts(array &$template, array $portsInUse): void {
 	if (!isset($template['Config'])) return;
 	if (($template['Network'] ?? "") !== "bridge") return;
@@ -1296,9 +1400,9 @@ function adjustTemplatePorts(array &$template, array $portsInUse): void {
 	unset($config);
 }
 
-########################
-# Get the ports in use #
-########################
+/**
+ * Get the ports in use
+ */
 function getPortsInUse() {
 	global $var;
 
@@ -1322,25 +1426,42 @@ function getPortsInUse() {
 	return $portsInUse;
 }
 
+/**
+ * explode() padded to $count parts (missing segments become empty strings).
+ *
+ * @param string $split
+ * @param string $text
+ * @param int $count
+ * @return array{0?:string,1?:string}
+ */
 function ca_explode($split,$text,$count=2) {
 	return array_pad(explode($split,$text,$count),$count,'');
 }
+
+/**
+ * Strip IPv6 brackets from address strings for comparisons.
+ *
+ * @param string $ip
+ * @return string
+ */
 function plain($ip) {
 	return str_replace(['[',']'],'',$ip);
 }
 
-###################################################
-# Tests whether the tailscale plugin is installed #
-###################################################
+/**
+ * Tests whether the tailscale plugin is installed
+ */
 function isTailScaleInstalled() {
 	return is_file("/var/log/plugins/tailscale-preview.plg") || is_file("/var/log/plugins/tailscale.plg");
 }
 
-###########################################
-# Checks server date against CA's version #
-###########################################
-# only a quick check if date on server is 30 days before CA's version.  Not 100% accurate to determine if date & time on server is incorrect
-
+/**
+ * Heuristic: false if system date is more than ~30 days before the CA plugin release date.
+ *
+ * Used when diagnosing failed feed downloads (often bad clock).
+ *
+ * @return bool
+ */
 function checkServerDate() {
 	$currentDate = strtotime(date("Y-m-d"));
 	$caVersion = preg_replace("/[^0-9.]/","",plugin("version","/var/log/plugins/community.applications.plg"));
@@ -1355,9 +1476,9 @@ function checkServerDate() {
 		return true;
 }
 
-##################################
-# Get youtube thumbnail from URL #
-##################################
+/**
+ * Get youtube thumbnail from URL
+ */
 function getYoutubeThumbnail($url) {
 	// Handle youtu.be short URLs
 	if (preg_match('/https:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
@@ -1374,9 +1495,9 @@ function getYoutubeThumbnail($url) {
 }
 
 
-##################################################################################
-# Adds in all the various missing entries from the templates for PHP8 compliance #
-##################################################################################
+/**
+ * Adds in all the various missing entries from the templates for PHP8 compliance
+ */
 function addMissingVars($o) {
 	if (!is_array($o)) {
 		return $o;

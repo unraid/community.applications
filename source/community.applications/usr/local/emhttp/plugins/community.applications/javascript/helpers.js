@@ -12,6 +12,16 @@
 SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/**
+ * @file Shared browser helpers for the Community Applications UI (utilities, spinners, DOM sync).
+ */
+
+/**
+ * Parse `url` with the URL API; returns a `URL` instance or `false` if invalid.
+ *
+ * @param {string} url
+ * @returns {URL|false}
+ */
 function isValidURL(url) {
 	try {
 		var ret = new URL(url);
@@ -39,6 +49,12 @@ String.prototype.basename = function() {
 	return this.split('/').reverse()[0];
 }
 
+/**
+ * Strip HTML tags from a string (regex-based).
+ *
+ * @param {string} str
+ * @returns {string}
+ */
 function stripTags(str) {
 	if ( ! str )
 		return "";
@@ -47,6 +63,10 @@ function stripTags(str) {
 }
 
 var spinnerTimer = null;
+
+/**
+ * Show the global spinner overlay after a short delay (avoids flicker on fast responses).
+ */
 function mySpinner() {
 	if ( ! spinnerTimer ) {
 		spinnerTimer = setTimeout(function() {
@@ -56,18 +76,27 @@ function mySpinner() {
 	}
 }
 
+/**
+ * Cancel pending spinner delay and hide overlay.
+ */
 function myCloseSpinner() {
 	clearTimeout(spinnerTimer);
 	spinnerTimer = null;
 
 	$("div.spinner,.spinnerBackground").hide();
-	$(".long-loading").html("");
 }
 
+/**
+ * Reset navigation state after multi-select flows (clears selected category on `data`).
+ */
 function enableButtons() {
 	data.selected_category = "";
 }
 
+/**
+ * After container install/uninstall at deep scroll: refetch pages 1..current and restore `.mainArea` scrollTop.
+ * For page 1 delegates to `changeSortOrder` only.
+ */
 function refreshDisplay() {
 	/* changeSortOrder() refetches a SINGLE page (data.currentpage), which is
 	   fine for sort-button clicks (user expects to land back at the top) but
@@ -107,10 +136,24 @@ function refreshDisplay() {
 	});
 }
 
+/**
+ * Append trailing `s` when count is 0 or greater than 1 (English plural helper).
+ *
+ * @param {string} string
+ * @param {number} count
+ * @returns {string}
+ */
 function makePlural(string,count) {
 	return ( (count > 1) || (count == 0) ) ? string + "s" : string;
 }
 
+/**
+ * Sort comparator for `[folder, app]` pairs (multi-install list) by folder name then app id.
+ *
+ * @param {Array} a
+ * @param {Array} b
+ * @returns {number}
+ */
 function installSort(a,b) {
 	if (a[0] === b[0]) {
 		return 0;
@@ -119,10 +162,20 @@ function installSort(a,b) {
 	}
 }
 
+/**
+ * Full page reload.
+ */
 function reloadPage() {
 	location.reload();
 }
 
+/**
+ * Whether `el` overflows horizontally (`type` truthy) or vertically (default).
+ *
+ * @param {HTMLElement} el
+ * @param {boolean} [type] true = horizontal
+ * @returns {boolean}
+ */
 function isOverflown(el,type=false){
 	// Optimized to minimize forced reflows by using the most efficient DOM properties
 	// offsetWidth/offsetHeight are generally faster than clientWidth/clientHeight
@@ -135,11 +188,17 @@ function isOverflown(el,type=false){
 }
 
 
+/**
+ * Disable the main search input (during alerts).
+ */
 function disableSearch() {
 	$("#searchBox").prop("disabled",true);
 	$("#searchBox").blur();
 }
 
+/**
+ * Re-enable the search input after `disableSearch()`.
+ */
 function enableSearch() {
 	$("#searchBox").prop("disabled",false);
 }
@@ -380,6 +439,11 @@ function caReopenSearchModalIfNeeded() {
 	});
 }
 
+/**
+ * Tear down the search modal: CSS vars, body classes, Awesomplete, optional draft discard.
+ *
+ * @param {object} [options] discardDraft: restore committed term or clear when abandoning modal
+ */
 function caCloseSearchModal(options) {
 	options = options || {};
 	$(window).off("resize.caSearchModal orientationchange.caSearchModal", caUpdateSearchModalLayout);
@@ -452,15 +516,27 @@ function caSyncSearchFilterCollapsed() {
 }
 
 
+/**
+ * True if string matches common truthy tokens (true, 1, on).
+ *
+ * @param {string} str
+ * @returns {boolean}
+ */
 function evaluateBoolean(str) {
 	var regex=/^\s*(true|1|on)\s*$/i
 	return regex.test(str);
 }
 
+/**
+ * Whether the browser reports cookies enabled (via `evaluateBoolean` on `navigator.cookieEnabled`).
+ */
 function cookiesEnabled() {
 	return evaluateBoolean(navigator.cookieEnabled);
 }
 
+/**
+ * Scroll document and `.mainArea` to top (category switches rely on main pane reset).
+ */
 function scrollToTop() {
 	$('html,body').animate({scrollTop:0},0);
 	/* CA's actual scroller is .mainArea, not the document. Resetting only
@@ -471,12 +547,20 @@ function scrollToTop() {
 	if (ma) ma.scrollTop = 0;
 }
 
+/**
+ * Clear optional subtitle under the Home section header.
+ */
 function caClearHomeSectionSubtitle() {
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
 	$el.empty().addClass("ca_hide");
 }
 
+/**
+ * Set or clear `#ca_homeSectionSubtitle` (empty text hides).
+ *
+ * @param {string} text Plain text
+ */
 function caSetHomeSectionSubtitle(text) {
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
@@ -538,16 +622,31 @@ function caRestoreCommittedSearchIfDrafted() {
 	caSyncSearchFilterCollapsed();
 }
 
+/**
+ * Translate via Dynamix `_()` — thin wrapper for consistency in CA JS.
+ *
+ * @param {string} string
+ * @returns {string}
+ */
 function tr(string) {
  return _(string);
 }
 
+/**
+ * Show full-screen blocker element before a hard reload/navigation.
+ */
 function caBlockViewportForReload() {
 	try {
 		$("#caViewportBlocker").removeClass("ca_hide");
 	} catch(e) {}
 }
 
+/**
+ * Non-auto-reloading fatal banner: user must click or keypress to trigger Home or `location.reload()`.
+ *
+ * @param {string} [message] Banner text (translated default when empty)
+ * @param {*} _unusedDelay Reserved
+ */
 function caShowFatalReloadBanner(message, _unusedDelay) {
 	try {
 		if (window.ca_reloadPending) return;
@@ -595,6 +694,12 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 	}
 }
 
+/**
+ * Same as {@link post} but forces `noSpinner` (logging prefix "No Spin Post").
+ *
+ * @param {object|function} options POST payload or callback when first arg is the callback
+ * @param {function} [callback]
+ */
 function postNoSpin(options,callback) {
 	var msg = "No Spin Post: ";
 	console.log(msg+JSON.stringify(options));
@@ -606,6 +711,12 @@ function postNoSpin(options,callback) {
 	post(options,callback);
 }
 
+/**
+ * AJAX POST to Community Applications `execURL` with spinner refcount, `tabId` stamp, and script eval.
+ *
+ * @param {object} [options] action and POST fields; `noSpinner` skips overlay; `tabId` optional override
+ * @param {function} [callback] Receives parsed JSON response
+ */
 function post(options,callback) {
 	if ( typeof options === "function" ) {
 		callback = options;
@@ -702,6 +813,11 @@ function post(options,callback) {
 	});
 }
 
+/**
+ * Push status HTML into the updating-content swal when spinner visible.
+ *
+ * @param {string} message HTML/text
+ */
 function slowPost(message) {
 	$(".updateContent-swal").html(message);
 	// this isn't working quite right
@@ -710,6 +826,18 @@ function slowPost(message) {
 	}
 }
 
+/**
+ * SweetAlert wrapper with search disabled for the duration; mirrors older CA alert API.
+ *
+ * @param {string} description Title
+ * @param {string} textdescription Body HTML
+ * @param {string} textimage Unused image slot
+ * @param {string} imagesize Default "80"
+ * @param {boolean} outsideClick Allow dismiss by backdrop
+ * @param {boolean} showCancel
+ * @param {boolean} showConfirm
+ * @param {string} alertType SweetAlert type
+ */
 function myAlert(description,textdescription,textimage,imagesize, outsideClick, showCancel, showConfirm, alertType) {
 	if ( !outsideClick ) outsideClick = false;
 	if ( !showCancel )   showCancel = false;
@@ -783,6 +911,12 @@ jQuery.fn.getWidth = function(everything=true) {
 	return parseInt(width) + parseInt(paddingLeft) + parseInt(paddingRight) + parseInt(marginLeft) + parseInt(marginRight);
 }
 
+/**
+ * Attach context-menu items (text, divider, external link, or `eval` action) to `el` via `context.attach`.
+ *
+ * @param {Array<object>} menu Awesomplete/context menu descriptor rows
+ * @param {string|JQuery} el Selector or element the menu binds to
+ */
 function setupContext(menu,el) {
 	if ( ! menu ) return;
 	var opts = [];
@@ -872,6 +1006,12 @@ function guiSearchOnUnload() {
 	saveState();
 }
 
+/**
+ * Build paginator HTML from `#caPageNavigationTemplate` (prev/next, ellipsis, current page).
+ *
+ * @param {object} nav `pageNumber`, `totalApps`, `maxPerPage`, `pageFunction` (`changePage` or `dockerSearch`), `maxMiddlePages`
+ * @returns {string} Outer HTML or empty string if template missing
+ */
 function caBuildPageNavigationHtml(nav) {
 	var pageNumber = parseInt(nav.pageNumber, 10) || 1;
 	var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
@@ -969,6 +1109,12 @@ function caBuildPageNavigationHtml(nav) {
 	return $("<div>").append($nav).html();
 }
 
+/**
+ * Inject built navigation into `#targetId`, update `data.*` pagination fields, run fitText.
+ *
+ * @param {string} targetId Element id (no leading #)
+ * @param {object} navigationData Same shape as `nav` for {@link caBuildPageNavigationHtml}
+ */
 function caRenderPageNavigation(targetId, navigationData) {
 	var $target = $("#" + targetId);
 	if (!$target.length) return;
@@ -1008,6 +1154,11 @@ function caOffsetTopWithinAncestor(el, ancestor) {
 	return n === ancestor ? y : null;
 }
 
+/**
+ * Cards per request for infinite-scroll / pagination (fixed batch size).
+ *
+ * @returns {number}
+ */
 function getMaxPerPage() {
 	/* Pagination is now infinite-scroll: always fetch 12 per request. */
 	return 12;

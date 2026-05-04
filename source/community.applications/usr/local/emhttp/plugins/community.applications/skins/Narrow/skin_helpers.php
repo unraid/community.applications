@@ -11,9 +11,16 @@
 #                                      #
 ########################################
 
-############################################################################
-# function #  Convert CA markup tokens into clickable sidebar search links #
-############################################################################
+/**
+ * Narrow skin helper functions (markup, formatting, and UI tokens).
+ *
+ * Sidebar search link injection, templates/snippets for cards and dialogs, and
+ * related rendering utilities used by skin.php and the Apps frontend.
+ */
+
+/**
+ * function # Convert CA markup tokens into clickable sidebar search links
+ */
 function caApplySidebarSearchLinks($text) {
 	if (!is_string($text) || trim($text) === "") {
 		return $text;
@@ -42,6 +49,12 @@ function caApplySidebarSearchLinks($text) {
 	return $text;
 }
 
+/**
+ * Build sanitized overview HTML for a template card (markdown, limited tags).
+ *
+ * @param array<string,mixed> $template
+ * @return string
+ */
 function caFormatOverview(array $template) {
 	$overview = $template['Overview'] ?? "";
 	if ($overview) {
@@ -60,6 +73,12 @@ function caFormatOverview(array $template) {
 	return strip_tags($ovr,"<br>");
 }
 
+/**
+ * Populate lazy-load markers and metadata for template/plugin changelogs (mutates $template).
+ *
+ * @param array<string,mixed> $template
+ * @return void
+ */
 function caFormatTemplateChanges(array &$template) {
 	// For plugins, always lazy-fetch from the .plg (ignore any embedded Changes field).
 	if (!empty($template['Plugin'])) {
@@ -103,9 +122,9 @@ function caFormatTemplateChanges(array &$template) {
 	$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-cachekey='{$cacheKey}' data-changes-url='{$safeUrl}' data-changes-type='{$type}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
 }
 
-################################################################################
-# Collect docker state used by popups (running containers and update metadata) #
-################################################################################
+/**
+ * Collect docker state used by popups (running containers and update metadata)
+ */
 function caInitializeDockerState($DockerClient) {
 	$info = [];
 
@@ -125,9 +144,9 @@ function caInitializeDockerState($DockerClient) {
 	return [$info, $dockerRunning, $dockerUpdateStatus];
 }
 
-####################################################################################
-# Locate a template entry based on an app identifier within the displayed listings #
-####################################################################################
+/**
+ * Locate a template entry based on an app identifier within the displayed listings
+ */
 function caLocateTemplate(array $displayed, $appNumber) {
 	$community = $displayed['community'] ?? [];
 	$index = searchArray($community,"InstallPath",$appNumber);
@@ -154,9 +173,9 @@ function caLocateTemplate(array $displayed, $appNumber) {
 	return [null, false];
 }
 
-##########################################################################
-# Determine selection status and identifiers for docker/plugin templates #
-##########################################################################
+/**
+ * Determine selection status and identifiers for docker/plugin templates
+ */
 function caResolveSelectionState(array &$template, array $dockerRunning) {
 	$selected = null;
 	$name = null;
@@ -182,9 +201,9 @@ function caResolveSelectionState(array &$template, array $dockerRunning) {
 	return [$selected, $name, $pluginName];
 }
 
-######################################################################
-# Normalize and format the Additional Requirements field for display #
-######################################################################
+/**
+ * Normalize and format the Additional Requirements field for display
+ */
 function caNormalizeRequiresField($requires) {
 	if (!$requires) {
 		return $requires;
@@ -195,9 +214,9 @@ function caNormalizeRequiresField($requires) {
 	return caApplySidebarSearchLinks($requires);
 }
 
-##################################################################
-# Build the Support button context for a template card or popup  #
-##################################################################
+/**
+ * Build the Support button context for a template card or popup
+ */
 function caBuildSupportContext(array $template, array $allRepositories) {
 	$supportContext = [];
 	if ($template['Project']) {
@@ -227,9 +246,9 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 	return $supportContext;
 }
 
-##############################################################################
-# Prepare trend data/markup for templates with download and usage statistics #
-##############################################################################
+/**
+ * Prepare trend data/markup for templates with download and usage statistics
+ */
 function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 		$chartLabel = "";
 		$downloadLabel = "";
@@ -302,9 +321,9 @@ function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 		];
 	}
 
-#########################################################################
-# Resolve pinned/unpinned state for templates based on user preferences #
-#########################################################################
+/**
+ * Resolve pinned/unpinned state for templates based on user preferences
+ */
 function caResolvePinnedState(array &$template, array $pinnedApps) {
 		if ($pinnedApps["{$template['Repository']}&{$template['SortName']}"] ?? false) {
 			$template['pinned'] = tr("Unpin App");
@@ -319,9 +338,9 @@ function caResolvePinnedState(array &$template, array $pinnedApps) {
 		}
 	}
 
-############################################################################
-# Retrieve language pack metadata and load translation files when required #
-############################################################################
+/**
+ * Retrieve language pack metadata and load translation files when required
+ */
 function caPrepareLanguagePack(array &$template, array &$language) {
 		if (!$template['Language']) {
 			return null;
@@ -340,9 +359,9 @@ function caPrepareLanguagePack(array &$template, array &$language) {
 		return $countryCode;
 	}
 
-#######################################################################
-# Build the context menu for template actions (install/update/manage) #
-#######################################################################
+/**
+ * Build the context menu for template actions (install/update/manage)
+ */
 function caBuildActionsContext(array &$template, array $info, array $dockerUpdateStatus, $selected, $name, $pluginName) {
 		$actionsContext = [];
 
@@ -471,9 +490,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 		return $actionsContext;
 	}
 
-##############################################################################
-# Build action contexts for language pack templates within the card renderer #
-##############################################################################
+/**
+ * Build action contexts for language pack templates within the card renderer
+ */
 function caBuildLanguageActions(array &$template, ?string $countryCode, array $actionsContext) {
 		if (!$template['Language']) {
 			return $actionsContext;
@@ -524,9 +543,9 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 
 
 
-########################################################################
-# Assemble docker-related context (warnings, info caches) for listings #
-########################################################################
+/**
+ * Assemble docker-related context (warnings, info caches) for listings
+ */
 function caDockerContext(): array {
 	if ( caIsDockerRunning() ) {
 		$info = getAllInfo();
@@ -571,9 +590,9 @@ function caDockerContext(): array {
 	];
 }
 
-#####################################################################
-# Normalize the structure of the multi-select payload used in CA UI #
-#####################################################################
+/**
+ * Normalize the structure of the multi-select payload used in CA UI
+ */
 function caNormalizeSelectedApps($selectedApps): array {
 	if (! $selectedApps) {
 		$selectedApps = [];
@@ -587,9 +606,9 @@ function caNormalizeSelectedApps($selectedApps): array {
 	return [$selectedApps, $checkedOffApps];
 }
 
-###################################################################
-# Slice the current page worth of templates from the full listing #
-###################################################################
+/**
+ * Slice the current page worth of templates from the full listing
+ */
 function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
 	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
 	$startingApp = ($pageNumber - 1) * $maxPerPage + 1;
@@ -610,9 +629,9 @@ function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
 	return $displayedTemplates;
 }
 
-#############################################################################
-# Apply moderation overrides (blacklist/deprecation comments) to a template #
-#############################################################################
+/**
+ * Apply moderation overrides (blacklist/deprecation comments) to a template
+ */
 function caApplyModerationOverrides(array $template, array $extraBlacklist, array $extraDeprecated): array {
 	if (! $template['RepositoryTemplate']) {
 		if (! $template['Blacklist'] && isset($extraBlacklist[$template['Repository']])) {
@@ -629,12 +648,9 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
 	return $template;
 }
 
-##########################################################################
-# Apply search-link transforms to moderator/CA comments + requires for   #
-# the sidebar render. The install actions no longer carry a separate     #
-# comment payload — the sidebar always shows these blocks before the     #
-# install button, so a second confirm-swal would be redundant.           #
-##########################################################################
+/**
+ * Apply search-link transforms to moderator/CA comments + requires for the sidebar render. The install actions no longer carry a separate comment payload — the sidebar always shows these blocks before the install button, so a second confirm-swal would be redundant.
+ */
 function caPrepareTemplateComments(array $template): array {
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment'] ?? "");
 	$template['CAComment'] = caApplySidebarSearchLinks($template['CAComment'] ?? "");
@@ -647,9 +663,9 @@ function caPrepareTemplateComments(array $template): array {
 	return $template;
 }
 
-#############################################################################
-# Build action contexts and flags for docker templates when rendering cards #
-#############################################################################
+/**
+ * Build action contexts and flags for docker templates when rendering cards
+ */
 function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus): array {
 	$actionsContext = [];
 	$selected = false;
@@ -754,9 +770,9 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 	return [$template, $actionsContext];
 }
 
-#############################################################################
-# Build action contexts and state for plugin templates when rendering cards #
-#############################################################################
+/**
+ * Build action contexts and state for plugin templates when rendering cards
+ */
 function caProcessPluginTemplate(array $template): array {
 	$actionsContext = [];
 	$pluginName = basename($template['PluginURL']);
@@ -842,8 +858,13 @@ function caProcessPluginTemplate(array $template): array {
 	return [$template, $actionsContext];
 }
 
-##############################################################################
-##############################################################################
+/**
+ * Add install/update/switch actions for language-pack templates.
+ *
+ * @param array<string,mixed> $template
+ * @param array<int,array<string,mixed>> $actionsContext
+ * @return array{0: array<string,mixed>, 1: array<int,array<string,mixed>>}
+ */
 function caProcessLanguageTemplate(array $template, array $actionsContext): array {
 	$countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
 	$dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'], true);
@@ -887,6 +908,15 @@ function caProcessLanguageTemplate(array $template, array $actionsContext): arra
 	return [$template, $actionsContext];
 }
 
+/**
+ * Paginator markup for app lists or Docker Hub search results.
+ *
+ * @param int $pageNumber
+ * @param int $totalApps
+ * @param bool $dockerSearch When true, uses dockerSearch page size and handler
+ * @param bool $displayCount
+ * @return string HTML
+ */
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
 
 	$pageFunction = $dockerSearch ? "dockerSearch" : "changePage";
@@ -917,9 +947,9 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 }
 
 
-######################################################################
-# Summarize repository statistics (counts/downloads) for repo popups #
-######################################################################
+/**
+ * Summarize repository statistics (counts/downloads) for repo popups
+ */
 function caSummarizeRepositoryTemplates(array $templates, string $repository): array {
 	$totals = [
 		'apps' => 0,
@@ -974,9 +1004,9 @@ function caSummarizeRepositoryTemplates(array $templates, string $repository): a
 	return $totals;
 }
 
-##################################################################
-# Build the donation section for repository popups               #
-##################################################################
+/**
+ * Build the donation section for repository popups
+ */
 function caBuildRepoDonationSection(array $repo): string {
 	$donateLink = $repo['DonateLink'] ?? "";
 	if (empty($donateLink) || !validURL($donateLink)) {
@@ -995,9 +1025,9 @@ function caBuildRepoDonationSection(array $repo): string {
 	";
 }
 
-##################################################################
-# Build the media (photos/videos) section for repository popups  #
-##################################################################
+/**
+ * Build the media (photos/videos) section for repository popups
+ */
 function caBuildRepoMediaSection(array $repo): string {
 	$hasPhoto = !empty($repo['Photo']);
 	$hasVideo = !empty($repo['Video']);
@@ -1006,7 +1036,7 @@ function caBuildRepoMediaSection(array $repo): string {
 		return "";
 	}
 
-	$mediaHtml = "<div>";
+	$mediaHtml = "<div class='caMediaGallery'>";
 
 	if ($hasPhoto) {
 		$photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
@@ -1018,7 +1048,7 @@ function caBuildRepoMediaSection(array $repo): string {
 			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
 			/* span (not <a>) so the legacy external-link click handler doesn't
 			   intercept this — magnific reads data-mfp-src for the source. */
-			$mediaHtml .= "<span class='screenshot' data-mfp-src='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></span>";
+			$mediaHtml .= "<span class='screenshot mfp-image' data-mfp-src='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></span>";
 		}
 	}
 
@@ -1040,9 +1070,9 @@ function caBuildRepoMediaSection(array $repo): string {
 	return $mediaHtml;
 }
 
-##################################################################
-# Build social/project link buttons for repository popups        #
-##################################################################
+/**
+ * Build social/project link buttons for repository popups
+ */
 function caBuildRepoLinkSection(array $repo): string {
 	$definitions = [
 		'WebPage' => ['class' => 'ca_webpage', 'label' => "Web Page"],
@@ -1067,9 +1097,9 @@ function caBuildRepoLinkSection(array $repo): string {
 	return "<div class='repoLinkArea'>{$links}</div>";
 }
 
-##################################################################
-# Build the statistics table shown within repository popups      #
-##################################################################
+/**
+ * Build the statistics table shown within repository popups
+ */
 function caBuildRepoStatsSection(array $repo, array $totals): string {
 	$rows = [];
 
@@ -1106,16 +1136,16 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 	";
 }
 
-##################################################################
-# Render pagination controls for Docker Hub search results       #
-##################################################################
+/**
+ * Render pagination controls for Docker Hub search results
+ */
 function dockerNavigate($num_pages, $pageNumber) {
 	return getPageNavigation($pageNumber,$num_pages * 25, true);
 }
 
-#################################################################################
-# Attempt to find a template matching a repository name (with :latest fallback) #
-#################################################################################
+/**
+ * Attempt to find a template matching a repository name (with :latest fallback)
+ */
 function findTemplateMatch(array $templates, string $repository) {
 	$templateIndex = searchArray($templates, "Repository", $repository);
 
@@ -1126,9 +1156,9 @@ function findTemplateMatch(array $templates, string $repository) {
 	return $templateIndex;
 }
 
-##################################################################
-# Enrich a Docker Hub search result with CA metadata/actions     #
-##################################################################
+/**
+ * Enrich a Docker Hub search result with CA metadata/actions
+ */
 function buildDockerHubResult(array $result, array $templates, bool $installsDisabled): array {
 	$result['Icon'] = $result['Icon'] ?? "/plugins/dynamix.docker.manager/images/question.png";
 	$result['Category'] = $result['Category'] ?? "Docker&nbsp;Hub&nbsp;Search";
@@ -1166,9 +1196,9 @@ function buildDockerHubResult(array $result, array $templates, bool $installsDis
 	return $result;
 }
 
-##################################################################
-# Resolve the CA app type class/title for a template card        #
-##################################################################
+/**
+ * Resolve the CA app type class/title for a template card
+ */
 function caResolveAppType(array $template): array {
 	$repositoryTemplate = !empty($template['RepositoryTemplate']);
 	$category = $template['Category'] ?? "";
@@ -1206,9 +1236,9 @@ function caResolveAppType(array $template): array {
 	return [$appType, $typeTitle];
 }
 
-#######################################################################
-# Normalize category labels used in cards (strip additional metadata) #
-#######################################################################
+/**
+ * Normalize category labels used in cards (strip additional metadata)
+ */
 function caNormalizeCategory(?string $category): string {
 	if (!$category) {
 		return "";
@@ -1220,9 +1250,9 @@ function caNormalizeCategory(?string $category): string {
 	return $category;
 }
 
-##################################################################
-# Determine the author/maintainer label for a template card      #
-##################################################################
+/**
+ * Determine the author/maintainer label for a template card
+ */
 function caResolveAuthor(array $template, string $repoName): string {
 	if (!empty($template['DockerHub'])) {
 		return $template['Author'] ?? "";
@@ -1249,9 +1279,9 @@ function caResolveAuthor(array $template, string $repoName): string {
 	return $author;
 }
 
-##################################################################
-# Build support button context for template cards (non-repo)     #
-##################################################################
+/**
+ * Build support button context for template cards (non-repo)
+ */
 function caBuildSupportContextForApplication(array $template): array {
 	$context = [];
 	if (!empty($template['Project'])) {
@@ -1274,9 +1304,9 @@ function caBuildSupportContextForApplication(array $template): array {
 	return $context;
 }
 
-######################################################################
-# Build an inline ReadMe section placeholder for GitHub README links #
-######################################################################
+/**
+ * Build an inline ReadMe section placeholder for GitHub README links
+ */
 function caBuildReadmeSectionDiv(array $template): string {
 	$readmeUrl = trim($template['ReadMe'] ?? "");
 	if ($readmeUrl === "") {
@@ -1317,9 +1347,9 @@ function caBuildReadmeSectionDiv(array $template): string {
 	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-cachekey='{$cacheKey}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>".tr("Loading README...")."</div></div>";
 }
 
-#######################################################################
-# Build repository card overrides/context when rendering repo entries #
-#######################################################################
+/**
+ * Build repository card overrides/context when rendering repo entries
+ */
 function caBuildRepositoryContext(array $template, string $repoName, string $author): array {
 	$supportContext = [];
 
@@ -1388,9 +1418,9 @@ function caBuildRepositoryContext(array $template, string $repoName, string $aut
 	];
 }
 
-########################################################################
-# Build the base card container, actions, and navigation footer markup #
-########################################################################
+/**
+ * Build the base card container, actions, and navigation footer markup
+ */
 function caBuildBottomLineSection(
 	array $template,
 	string $cardClass,
@@ -1426,9 +1456,9 @@ function caBuildBottomLineSection(
 	return [$cardStart, $card, $backgroundClickable];
 }
 
-##############################################################################
-# Render the Support button(s) for a template card depending on context size #
-##############################################################################
+/**
+ * Render the Support button(s) for a template card depending on context size
+ */
 function caRenderSupportButtons(array $supportContext, string $name, string $id): string {
 	$supportContext = array_values(array_filter($supportContext, static function ($context) {
 		if (!is_array($context)) {
@@ -1469,9 +1499,9 @@ function caRenderSupportButtons(array $supportContext, string $name, string $id)
 		";
 }
 
-##################################################################
-# Render the Actions button/menu for a template card             #
-##################################################################
+/**
+ * Render the Actions button/menu for a template card
+ */
 function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string $languagePack, string $name, string $id): string {
 	if (empty($actionsContext)) {
 		return "";
@@ -1491,9 +1521,9 @@ function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string
 	return "<div class='caButton actionsButton actionsButtonContext' data-pluginURL='{$pluginUrl}' data-languagePack='{$languagePack}' id='actions{$sanitizedName}' data-context='".json_encode($actionsContext, JSON_HEX_QUOT | JSON_HEX_APOS)."'>".tr("Actions")."</div>";
 }
 
-###################################################################
-# Render the favourite indicator span used on template/repo cards #
-###################################################################
+/**
+ * Render the favourite indicator span used on template/repo cards
+ */
 function caRenderFavouriteSpan(array $template, string $repoName, bool $repositoryTemplate): string {
 	$repositoryAttr = str_replace("'", "", $repoName);
 
@@ -1505,9 +1535,9 @@ function caRenderFavouriteSpan(array $template, string $repoName, bool $reposito
 	return "<span class='favCardBackground favCardBackgroundHide' data-repository='{$repositoryAttr}'></span>";
 }
 
-##################################################################
-# Render the pinned indicator span for template cards            #
-##################################################################
+/**
+ * Render the pinned indicator span for template cards
+ */
 function caRenderPinnedSpan(array $template): string {
 	$repository = $template['Repository'] ?? "";
 	$pindata = (strpos($repository, "/") !== false) ? $repository : "library/{$repository}";
@@ -1517,9 +1547,9 @@ function caRenderPinnedSpan(array $template): string {
 	return "<span class='pinnedCard' title='".htmlentities(tr("This application is pinned for later viewing"))."' data-pindata='{$pindata}{$sortName}' style='{$pinStyle}'></span>";
 }
 
-##############################################################################
-# Resolve the multi-select checkbox type (docker/plugin/language) for a card #
-##############################################################################
+/**
+ * Resolve the multi-select checkbox type (docker/plugin/language) for a card
+ */
 function caResolveCheckboxType(string $appType): string {
 	switch ($appType) {
 		case "appDocker":
@@ -1534,9 +1564,9 @@ function caResolveCheckboxType(string $appType): string {
 	}
 }
 
-#######################################################################
-# Render the multi-select checkbox used for bulk install/update flows #
-#######################################################################
+/**
+ * Render the multi-select checkbox used for bulk install/update flows
+ */
 function caRenderCheckbox(array $template, string $previousAppName, string $name, string $type): string {
 	$checked = $template['checked'] ?? "";
 
@@ -1551,9 +1581,9 @@ function caRenderCheckbox(array $template, string $previousAppName, string $name
 	return "";
 }
 
-##################################################################
-# Render the icon (image/font-awesome) for a template card       #
-##################################################################
+/**
+ * Render the icon (image/font-awesome) for a template card
+ */
 function caBuildIconMarkup(array $template, bool $dockerHub): string {
 	$imageNoClick = $dockerHub ? "noClick" : ($template['imageNoClick'] ?? "");
 
@@ -1576,9 +1606,9 @@ function caBuildIconMarkup(array $template, bool $dockerHub): string {
 	return "<i class='ca_appPopup {$displayIconClass} displayIcon {$imageNoClick}'></i>";
 }
 
-#######################################################################
-# Build the header section (name/author/category) for a template card #
-#######################################################################
+/**
+ * Build the header section (name/author/category) for a template card
+ */
 function caBuildApplicationHeader(array $template, string $name, string $author, string $category, bool $official): string {
 	$header = "
 		<div class='ca_applicationName ellipsis'>{$name}
@@ -1614,9 +1644,9 @@ function caBuildApplicationHeader(array $template, string $name, string $author,
 	return $header;
 }
 
-#####################################################################
-# Normalize overview/description copy for display in template cards #
-#####################################################################
+/**
+ * Normalize overview/description copy for display in template cards
+ */
 function caNormalizeOverview(array $template, string $name): string {
 	$overview = $template['Overview'] ?: ($template['Description'] ?: ($template['Bio']??"") ?: "");
 
@@ -1644,9 +1674,9 @@ function caNormalizeOverview(array $template, string $name): string {
 	return $overview;
 }
 
-###############################################################################
-# Build the status flag/banner (installed, updated, etc.) for a template card #
-###############################################################################
+/**
+ * Build the status flag/banner (installed, updated, etc.) for a template card
+ */
 function caBuildCardFlag(array $template, string $flagTextStart, string $flagTextEnd): string {
 	if (!empty($template['UpdateAvailable'])) {
 		return "

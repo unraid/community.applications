@@ -12,6 +12,14 @@
 SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/**
+ * @file Wires click handlers, scrollbars, and interactive UI behavior for Community Applications.
+ */
+
+/**
+ * Register delegated `body`/`document` handlers for CA (cards, plugins, moderation, sorting, etc.).
+ * Call once after DOM ready.
+ */
 function caInitializeClickHandlers() {
 	function caInitFirefoxFixedHorizontalOverlay() {
 		var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav";
@@ -655,6 +663,15 @@ function caInitializeClickHandlers() {
 		caTryClickNchanDone();
 	});
 
+	/* MagnificPopup arrows have the .mfp-prevent-close class so the lib's own
+	   _checkIfClose() should swallow their bubble — but in mixed-type galleries
+	   (image + iframe) we've seen the close fire anyway. Belt-and-suspenders:
+	   stop the click from bubbling past the arrow so the wrap-level close
+	   handler never runs. The arrow's own click still navigates first. */
+	$("body").on("click", ".mfp-arrow", function(e) {
+		e.stopPropagation();
+	});
+
 	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */
 	if (!window.__caMobileLayoutMenuSync) {
 		window.__caMobileLayoutMenuSync = true;
@@ -1000,9 +1017,10 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
 }
 
-/* EXIT button on the "Updating Applications" swal: close the swal, briefly show
-   a bottom-banner notice that the download continues in the background, then
-   navigate to the previous page. */
+/**
+ * Dismiss the "Updating Applications" SweetAlert, show a short banner, then history.back().
+ * Sets `data.quittingUpdate` so aborted POSTs do not show the generic connection error.
+ */
 function caQuitUpdate() {
 	data.quittingUpdate = true;
 	try { if (typeof swal !== "undefined") swal.close(); } catch (err) { /* no-op */ }
@@ -1055,6 +1073,14 @@ function caBuildAwesompleteGridRows(ul) {
 	rowBuckets.sort(function(a, c) { return a.y - c.y; });
 	return rowBuckets;
 }
+
+/**
+ * Map a flat Awesomplete list index to row/column coordinates in the flex grid.
+ *
+ * @param {Array<{y: number, items: Array}>} rows From {@link caBuildAwesompleteGridRows}
+ * @param {number} listIndex Awesomplete active index
+ * @returns {{ri: number, ci: number, item: object}|null}
+ */
 function caAwesompleteGridFindPos(rows, listIndex) {
 	for (var ri = 0; ri < rows.length; ri++) {
 		for (var ci = 0; ci < rows[ri].items.length; ci++) {
@@ -1065,6 +1091,14 @@ function caAwesompleteGridFindPos(rows, listIndex) {
 	}
 	return null;
 }
+
+/**
+ * Pick the suggestion in `row` whose center X is nearest to `centerX` (for vertical moves).
+ *
+ * @param {{items: Array<{index: number, center: number, left: number}>}} row One row from grid rows
+ * @param {number} centerX Horizontal center of the current item
+ * @returns {number} List index to pass to Awesomplete.goto
+ */
 function caAwesompleteGridClosestInRow(row, centerX) {
 	var bestI = 0, bestD = Infinity;
 	for (var i = 0; i < row.items.length; i++) {
@@ -1079,6 +1113,12 @@ function caAwesompleteGridClosestInRow(row, centerX) {
 	}
 	return row.items[bestI].index;
 }
+
+/**
+ * Arrow-key handler (capture): navigate Awesomplete suggestions in a 2D grid while the search modal is open.
+ *
+ * @param {KeyboardEvent} e
+ */
 function caSearchModalAwesompleteGridKeydown(e) {
 	if (!e || e.isComposing === true) return;
 	var kc = e.keyCode;
@@ -1132,6 +1172,12 @@ function caSearchModalAwesompleteGridKeydown(e) {
 		caScrollSearchModalAwesompleteToActive(ac);
 	}
 }
+
+/**
+ * Scroll the active `<li>` into view inside the Awesomplete list (after programmatic index changes).
+ *
+ * @param {object} ac Awesomplete instance bound to #searchBox
+ */
 function caScrollSearchModalAwesompleteToActive(ac) {
 	if (typeof ac === "undefined" || !ac || ac.index < 0) return;
 	setTimeout(function() {
@@ -1140,6 +1186,9 @@ function caScrollSearchModalAwesompleteToActive(ac) {
 	}, 0);
 }
 
+/**
+ * Global behaviors used outside click-only paths: grid keydown, hover-to-focus scroll panes, search box, ESC, errors.
+ */
 function caInitializeEventHandlers() {
 	var elSearch = document.getElementById("searchBox");
 	if (elSearch) {
@@ -1306,6 +1355,11 @@ function caInitializeEventHandlers() {
 	});
 }
 
+/**
+ * Wire CA settings form in the sidebar: dirty detection, submit, and unsaved-warning on close.
+ *
+ * @param {string} initialFormState Serialized form state for dirty comparison
+ */
 function caBindSettingsFormHandlers(initialFormState) {
 	var $sidenav = $("#sidenavContent");
 	var $form = $sidenav.find(".ca_settingsForm");

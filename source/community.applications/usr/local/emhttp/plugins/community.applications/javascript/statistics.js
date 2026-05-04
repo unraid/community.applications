@@ -12,6 +12,16 @@
 SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+/**
+ * @file Moderation/repository display, charts, and auxiliary statistics UI for Community Applications.
+ */
+
+/**
+ * Load a moderation/statistics script into the sidebar via POST `showModeration`.
+ *
+ * @param {string} script Which dataset to render (e.g. "Repository", "Invalid", "Fixed")
+ * @param {string} title Window/sidebar title (unused in some paths)
+ */
 function showModeration(script, title) {
 	$("#sidenavContent").html("<div class='moderationContainer'></div>");
 	$(".moderationContainer").html($("#sidebarLoading").html());
@@ -37,6 +47,12 @@ function showModeration(script, title) {
 	});
 }
 
+/**
+ * Escape text for safe HTML insertion.
+ *
+ * @param {string|undefined|null} value
+ * @returns {string}
+ */
 function caEscapeHtml(value) {
 	if (value === undefined || value === null) return "";
 	return String(value)
@@ -47,6 +63,12 @@ function caEscapeHtml(value) {
 		.replace(/'/g, "&#39;");
 }
 
+/**
+ * Render a JSON value as display HTML (arrays JSON-stringified, booleans translated).
+ *
+ * @param {*} value
+ * @returns {string}
+ */
 function caValueToHtml(value) {
 	if (value === undefined || value === null) return "";
 	if (Array.isArray(value)) {
@@ -58,10 +80,23 @@ function caValueToHtml(value) {
 	return caEscapeHtml(String(value)).replace(/\n/g, "<br>");
 }
 
+/**
+ * Return a deep clone of the first child of a hidden template `#id` (for moderation shells).
+ *
+ * @param {string} id Element id
+ * @returns {jQuery}
+ */
 function caCloneTemplate(id) {
 	return $("#" + id).children().first().clone();
 }
 
+/**
+ * Dispatch to the renderer for the selected moderation view.
+ *
+ * @param {string} script View name
+ * @param {object} payload Server JSON
+ * @returns {string} HTML snippet
+ */
 function renderModerationContent(script, payload) {
 	switch (script) {
 		case "Repository":
@@ -75,6 +110,14 @@ function renderModerationContent(script, payload) {
 	}
 }
 
+/**
+ * Build the repository moderation table (ignore toggles, links, initial ignored set).
+ *
+ * @param {object} payload
+ * @param {Array<{name: string, url: string}>} [payload.repositories]
+ * @param {string[]} [payload.ignored]
+ * @returns {string} HTML
+ */
 function renderModerationRepositories(payload) {
 	const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
 	/* Initial ignored set — server reads CA_PATHS['ignoredRepos']; rows that
@@ -157,6 +200,12 @@ function caRestartIfRepoIgnoreDirty() {
 	try { $(".startupButton").first().trigger("click"); } catch (e) { /* no-op */ }
 }
 
+/**
+ * Render "Invalid templates" list with rule details from payload.items.
+ *
+ * @param {object} payload
+ * @returns {string} HTML
+ */
 function renderModerationInvalid(payload) {
 	const items = Array.isArray(payload.items) ? payload.items : [];
 	const $shell = caCloneTemplate("caModerationShellTemplate");
@@ -191,6 +240,12 @@ function renderModerationInvalid(payload) {
 	return $("<div></div>").append($shell).html();
 }
 
+/**
+ * Render auto-fixed templates report (per-repo expandable sections, dupes, duplicate repo names).
+ *
+ * @param {object} payload
+ * @returns {string} HTML
+ */
 function renderModerationFixed(payload) {
 	const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
 	const pluginDupes = Array.isArray(payload.pluginDupes) ? payload.pluginDupes : [];
@@ -282,6 +337,12 @@ function renderModerationFixed(payload) {
 	return $("<div></div>").append($shell).html();
 }
 
+/**
+ * Toggle visibility of one repository's fix-detail block and refresh the global expand/collapse control.
+ *
+ * @param {string} id DOM id of `.ca_fixedDetails`
+ * @param {HTMLElement|null} button Toggle button (icon swap)
+ */
 function caToggleFixedDetails(id, button) {
 	var $section = $("#" + id);
 	if (!$section.length) return;
@@ -291,6 +352,11 @@ function caToggleFixedDetails(id, button) {
 	caSyncFixedToggleAllState();
 }
 
+/**
+ * Expand or collapse every `.ca_fixedDetails` block in the Fixed moderation view.
+ *
+ * @param {boolean} showAll True to show all details
+ */
 function caSetAllFixedDetails(showAll) {
 	var $root = $("#sidenavContent .moderationContainer").first();
 	if (!$root.length) return;
@@ -303,11 +369,19 @@ function caSetAllFixedDetails(showAll) {
 	}
 }
 
+/**
+ * Click handler target: flip between show-all and hide-all for fixed-template rows.
+ *
+ * @param {HTMLElement} button `.caFixedToggleAll` element
+ */
 function caToggleAllFixedDetails(button) {
 	var showAll = !(button && button.dataset && button.dataset.showAll === "1");
 	caSetAllFixedDetails(showAll);
 }
 
+/**
+ * Update the "Show All / Hide All" button label/state from current expanded sections.
+ */
 function caSyncFixedToggleAllState() {
 	var $root = $("#sidenavContent .moderationContainer").first();
 	if (!$root.length) return;
@@ -321,6 +395,11 @@ function caSyncFixedToggleAllState() {
 	$allButton.text(anyExpanded ? tr("Hide All") : tr("Show All"));
 }
 
+/**
+ * Jump to a repository block in the Fixed view from the `<select>` jump control.
+ *
+ * @param {HTMLSelectElement} select
+ */
 function caJumpToFixedRepository(select) {
 	if (!select || !select.value) return;
 	var $row = $("#" + select.value);
@@ -335,6 +414,11 @@ function caJumpToFixedRepository(select) {
 	$row[0].scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/**
+ * Smooth-scroll the moderation container so `selector` is visible inside `.sidenav`.
+ *
+ * @param {string} selector CSS selector relative to `.moderationContainer`
+ */
 function caScrollModerationSection(selector) {
 	if (!selector) return;
 	var $container = $("#sidenavContent .moderationContainer");
@@ -345,6 +429,9 @@ function caScrollModerationSection(selector) {
 	$sidenav.stop(true).animate({ scrollTop: nextTop }, 250);
 }
 
+/**
+ * Fetch and display CA usage statistics / charts in the sidebar (and handle repo-ignore reload).
+ */
 function showStatistics() {
 	/* If the user's repo-ignore toggles actually changed the on-disk list
 	   during this session, restart via Home so the rebuilt feed is used. */

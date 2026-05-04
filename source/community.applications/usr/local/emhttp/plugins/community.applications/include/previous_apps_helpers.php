@@ -1,11 +1,16 @@
 <?php
 
+/**
+ * Helpers for the "Previously Installed" / installed-apps views in Community Applications.
+ *
+ * Resolves installed Docker templates, filters, update status, and clears
+ * related per-tab caches when the user changes installed-app filters.
+ */
 class PreviousAppsHelpers {
-	/* Strip a docker image tag without breaking registry ports.
-	   `registry:5000/ns/app:latest` → `registry:5000/ns/app`
-	   `library/foo:latest`           → `library/foo`
-	   `library/foo`                  → `library/foo`
-	   The port colon comes BEFORE the last slash; the tag colon comes AFTER. */
+	/**
+	 * Strip a Docker image tag without breaking registry ports
+	 * (`registry:5000/ns/app:latest` to `registry:5000/ns/app`; tag colon is after last `/`).
+	 */
 	private static function stripImageTag(string $repository): string {
 		$lastSlash = strrpos($repository, "/");
 		$lastColon = strrpos($repository, ":");
@@ -14,6 +19,9 @@ class PreviousAppsHelpers {
 		return substr($repository, 0, $lastColon);
 	}
 
+	/**
+	 * Remove per-tab JSON caches used when switching Previous Apps filters.
+	 */
 	public static function clearPreviousAppsCaches() {
 		$paths = [
 			'community-templates-allSearchResults',
@@ -30,6 +38,12 @@ class PreviousAppsHelpers {
 		}
 	}
 
+	/**
+	 * Build installed/filter tuple from POST or Action Centre mode; clears caches when using POST filters.
+	 *
+	 * @param bool $enableActionCentre When true, force installed=action with empty filter
+	 * @return array{installed: string, filter: string}
+	 */
 	public static function resolvePreviousAppsContext($enableActionCentre) {
 		if ( $enableActionCentre ) {
 			return ['installed' => "action", 'filter' => ""];
@@ -42,6 +56,12 @@ class PreviousAppsHelpers {
 		return ['installed' => $installed, 'filter' => $filter];
 	}
 
+	/**
+	 * Load Unraid docker update-status JSON, or empty array when Docker is off or file is unusable.
+	 *
+	 * @param bool $dockerRunning From caIsDockerRunning()
+	 * @return array<string, mixed>
+	 */
 	public static function loadDockerUpdateStatus($dockerRunning) {
 		if ( ! $dockerRunning ) {
 			return [];
@@ -54,6 +74,20 @@ class PreviousAppsHelpers {
 		return is_array($status) ? $status : [];
 	}
 
+	/**
+	 * Build the Docker section of Previous Apps (installed vs legacy) from user templates XML.
+	 *
+	 * @param bool $dockerRunning
+	 * @param string $installed POST filter: "true", "action", etc.
+	 * @param string $filter "docker" or empty for docker section
+	 * @param array<int, array<string, mixed>> $info Running containers from getAllInfo()/Docker
+	 * @param int $updateCount Incremented when Action Centre marks updates
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param array<string, mixed> $extraBlacklist Moderation map
+	 * @param array<string, mixed> $extraDeprecated Moderation map
+	 * @param array<string, mixed> $dockerUpdateStatus Per-repo update flags from Unraid
+	 * @return list<array<string, mixed>>
+	 */
 	public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
 		if ( ! $dockerRunning ) {
 			return [];
@@ -73,6 +107,15 @@ class PreviousAppsHelpers {
 		return self::collectLegacyDockerApplications($allFiles, $info, $templates);
 	}
 
+	/**
+	 * Build the plugins (and language packs) section for Previous Apps.
+	 *
+	 * @param string $installed Same semantics as Docker branch ("true", "action", …)
+	 * @param string $filter Must be empty or "plugins" to return rows
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param int $updateCount Action Centre counter (by ref)
+	 * @return list<array<string, mixed>>
+	 */
 	public static function collectPluginApplications($installed, $filter, $templates, &$updateCount) {
 		if ( $filter && $filter !== "plugins" ) {
 			return [];
@@ -87,6 +130,19 @@ class PreviousAppsHelpers {
 		return self::collectLegacyPluginApplications($templates);
 	}
 
+	/**
+	 * Map running containers to feed templates for "installed" Previous Apps, including Action Centre updates.
+	 *
+	 * @param list<string> $allFiles Paths to user template XML under dockerMan templates-user
+	 * @param array<int, array<string, mixed>> $info Running containers from DockerTemplates/getAllInfo
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param array<string, mixed> $dockerUpdateStatus Unraid dockerMan update JSON
+	 * @param array<string, mixed> $extraBlacklist Moderation overrides by repo
+	 * @param array<string, mixed> $extraDeprecated Moderation overrides by repo
+	 * @param bool $isActionCentre Whether to emit action-centre-only rows
+	 * @param int $updateCount Incremented when updates are flagged
+	 * @return list<array<string, mixed>>
+	 */
 	private static function collectInstalledDockerApplications($allFiles, $info, $templates, $dockerUpdateStatus, $extraBlacklist, $extraDeprecated, $isActionCentre, &$updateCount) {
 		$displayed = [];
 
@@ -210,6 +266,12 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Previous Apps "not running" path: user XML merged with feed metadata, excluding running containers.
+	 *
+	 * @param list<string> $allFiles
+	 * @return list<array<string, mixed>>
+	 */
 	private static function collectLegacyDockerApplications($allFiles, $info, $templates) {
 		$displayed = [];
 
@@ -299,6 +361,12 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Installed .plg entries from the feed plus nested language-pack rows for Action Centre.
+	 *
+	 * @param int $updateCount
+	 * @return list<array<string, mixed>>
+	 */
 	private static function collectInstalledPluginApplications($templates, $isActionCentre, &$updateCount) {
 		$displayed = [];
 
@@ -367,6 +435,12 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Language packs detected from boot config lang-*.xml with optional update badges for Action Centre.
+	 *
+	 * @param int $updateCount
+	 * @return list<array<string, mixed>>
+	 */
 	private static function collectInstalledLanguagePacks($templates, $isActionCentre, &$updateCount) {
 		$displayed = [];
 		/* Source the user's installed language *plugins* from the boot config
@@ -413,6 +487,11 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Plugins moved to plugins-error / plugins-removed still listed for reinstall/removal in Previous Apps.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
 	private static function collectLegacyPluginApplications($templates) {
 		$displayed = [];
 		$alreadySeen = [];
@@ -438,7 +517,7 @@ class PreviousAppsHelpers {
 				if ( ! ($template['Plugin'] ?? false) ) {
 					continue;
 				}
-				$pluginRef = $template['PluginURL'] ?? $template['Repository'] ?? "";
+				$pluginRef = trim($template['PluginURL'] ?? $template['Repository'] ?? "");
 				if ( basename($oldplug) != basename($pluginRef) ) {
 					continue;
 				}
@@ -456,7 +535,11 @@ class PreviousAppsHelpers {
 					continue;
 				}
 
-				if ( strtolower(trim($template['PluginURL']??"")) != strtolower(trim($oldPlugURL)) ) {
+				/* Use $pluginRef (which already falls back to Repository) for the
+				   exact-match too — otherwise legacy templates that only set
+				   Repository pass the basename prefilter above and then always
+				   fail this comparison, never showing up in Previous Apps. */
+				if ( strtolower($pluginRef) != strtolower(trim($oldPlugURL)) ) {
 					continue;
 				}
 

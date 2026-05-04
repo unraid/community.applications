@@ -11,6 +11,13 @@
 #                                      #
 ########################################
 
+/**
+ * HTTP entry point for Community Applications AJAX/actions from the Apps UI.
+ *
+ * Loads Unraid/Docker integration, routes POST action to handlers (content,
+ * installs, pinning, moderation, etc.), and returns HTML/JSON for the frontend.
+ */
+
 ini_set('memory_limit','256M');  // REQUIRED LINE
 ini_set('display_errors', 'Off'); // All display errors wind up breaking CA
 if (false) {
@@ -214,8 +221,11 @@ switch ($_POST['action']) {
 		postReturn(["error"=>"Unknown post action ".htmlspecialchars($_POST['action'])]);
 		break;
 }
-#  DownloadApplicationFeed MUST BE CALLED prior to DownloadCommunityTemplates in order for private repositories to be merged correctly.
-
+/**
+ * Download and merge the application feed into local template caches.
+ *
+ * DownloadApplicationFeed() must run before community template merge so private repos apply correctly.
+ */
 function DownloadApplicationFeed() {
 	exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
 	@mkdir(CA_PATHS['tempFiles'],0777,true);
@@ -452,9 +462,9 @@ function DownloadApplicationFeed() {
 	return true;
 }
 
-########################################################
-# Return moderation/statistics details for sidebar popups
-########################################################
+/**
+ * Return moderation/statistics details for sidebar popups
+ */
 function showModeration() {
 	$script = getPost("script", "");
 	$allowedScripts = ["Repository", "Invalid", "Fixed"];
@@ -610,12 +620,9 @@ function showModeration() {
 	}
 }
 
-############################################################################
-# Persist the moderation Repository view's user-toggled ignore list to the #
-# flash drive. Posted as JSON via POST['ignored']; written verbatim to     #
-# CA_PATHS['ignoredRepos']. Read by DownloadApplicationFeed() to stamp     #
-# hideFromCA on matching templates.                                        #
-############################################################################
+/**
+ * Persist the moderation Repository view's user-toggled ignore list to the flash drive. Posted as JSON via POST['ignored']; written verbatim to CA_PATHS['ignoredRepos']. Read by DownloadApplicationFeed() to stamp hideFromCA on matching templates.
+ */
 function saveIgnoredRepos() {
 	$raw = getPost("ignored", "[]");
 	$decoded = json_decode($raw, true);
@@ -656,6 +663,12 @@ function saveIgnoredRepos() {
 	postReturn(["ok" => true, "changed" => true, "count" => count($decoded), "restart" => true]);
 }
 
+/**
+ * Sync Support URLs in the template list from installed plugin .plg files.
+ *
+ * @param array<int,array<string,mixed>> $templates
+ * @return void
+ */
 function updatePluginSupport($templates) {
 	$plugins = glob("/boot/config/plugins/*.plg");
 
@@ -732,9 +745,9 @@ function updatePluginSupport($templates) {
 //   $GLOBALS['templates'] = $myTemplates;
 // }
 
-#######################################
-# Builds and returns debugging zip URL #
-#######################################
+/**
+ * Builds and returns debugging zip URL
+ */
 function downloadDebugging() {
 	global $docroot;
 
@@ -751,9 +764,9 @@ function downloadDebugging() {
 	postReturn(["zip" => "/$file"]);
 }
 
-#############################
-# Selects an app of the day #
-#############################
+/**
+ * Selects an app of the day
+ */
 function appOfDay($file) {
 	global $sortOrder,$dynamixSettings;
 
@@ -920,9 +933,9 @@ function appOfDay($file) {
 	return $appOfDay ?: [];
 }
 
-#####################################################
-# Checks selected app for eligibility as app of day #
-#####################################################
+/**
+ * Checks selected app for eligibility as app of day
+ */
 function checkRandomApp($test) {
 
 	if ( $test['Name'] == "Community Applications" )  return false;
@@ -934,9 +947,9 @@ function checkRandomApp($test) {
 
 	return true;
 }
-##############################################################
-# Gets the repositories that are listed on any given display #
-##############################################################
+/**
+ * Gets the repositories that are listed on any given display
+ */
 function displayRepositories() {
 
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
@@ -1006,9 +1019,9 @@ function displayRepositories() {
 
 
 
-######################################################################################
-# get_content - get the results from templates according to categories, filters, etc #
-######################################################################################
+/**
+ * get_content - get the results from templates according to categories, filters, etc
+ */
 function get_content() {
 
 	require_once __DIR__ . '/get_content_helpers.php';
@@ -1135,6 +1148,12 @@ function get_content() {
 
 	postReturn($o);
 }
+
+/**
+ * Complete a pending force-update if templates are ready; otherwise run force_update.
+ *
+ * @return void
+ */
 function force_update_skip() {
 	clearstatcache();
 	if ( ! is_file(CA_PATHS['gettingTemplates']) && is_file(CA_PATHS['community-templates-info']) ) {
@@ -1143,9 +1162,9 @@ function force_update_skip() {
 	}
 	force_update();
 }
-########################################################
-# force_update -> forces an update of the applications #
-########################################################
+/**
+ * force_update -> forces an update of the applications
+ */
 function force_update() {
 
 	require_once __DIR__ . '/force_update_helpers.php';
@@ -1197,9 +1216,9 @@ function force_update() {
 
 
 
-####################################################################################
-# display_content - displays the templates according to view mode, sort order, etc #
-####################################################################################
+/**
+ * display_content - displays the templates according to view mode, sort order, etc
+ */
 function display_content() {
 
 
@@ -1222,18 +1241,18 @@ function display_content() {
 	postReturn($o);
 }
 
-#####################################################################
-# dismiss_warning - dismisses the warning from appearing at startup #
-#####################################################################
+/**
+ * dismiss_warning - dismisses the warning from appearing at startup
+ */
 function dismiss_warning() {
 
 	ca_file_put_contents(CA_PATHS['warningAccepted'],"warning dismissed");
 	postReturn(['status'=>"warning dismissed"]);
 }
 
-###############################################################
-# Displays the list of installed or previously installed apps #
-###############################################################
+/**
+ * Displays the list of installed or previously installed apps
+ */
 function previous_apps($enableActionCentre=false) {
 
 	require_once __DIR__ . '/previous_apps_helpers.php';
@@ -1281,9 +1300,9 @@ function previous_apps($enableActionCentre=false) {
 	}
 }
 
-####################################################################################
-# Removes an app from the previously installed list (ie: deletes the user template #
-####################################################################################
+/**
+ * Removes an app from the previously installed list (ie: deletes the user template
+ */
 function remove_application() {
 	$application = realpath(getPost("application",""));
 	if ( ! (strpos($application,"/boot/config") === false) ) {
@@ -1293,9 +1312,9 @@ function remove_application() {
 	postReturn(['status'=>"ok"]);
 }
 
-###################################################################################
-# Checks for an update still available (to update display) after update installed #
-###################################################################################
+/**
+ * Checks for an update still available (to update display) after update installed
+ */
 function updatePLGstatus() {
 
 	$filename = getPost("filename","");
@@ -1313,9 +1332,9 @@ function updatePLGstatus() {
 	postReturn(['status'=>"ok"]);
 }
 
-#######################
-# Uninstalls a docker #
-#######################
+/**
+ * Uninstalls a docker
+ */
 function uninstall_docker() {
 	global $DockerClient;
 
@@ -1339,9 +1358,9 @@ function uninstall_docker() {
 	postReturn(['status'=>"Uninstalled"]);
 }
 
-##################################################
-# Pins / Unpins an application for later viewing #
-##################################################
+/**
+ * Pins / Unpins an application for later viewing
+ */
 function pinApp() {
 
 	$repository = getPost("repository","oops");
@@ -1356,17 +1375,17 @@ function pinApp() {
 	postReturn(['status' => in_array(true,$pinnedApps)]);
 }
 
-######################################
-# Gets if any apps are pinned or not #
-######################################
+/**
+ * Gets if any apps are pinned or not
+ */
 function areAppsPinned() {
 
 	postReturn(['status' => in_array(true,readJsonFile(CA_PATHS['pinnedV2']))]);
 }
 
-####################################
-# Displays the pinned applications #
-####################################
+/**
+ * Displays the pinned applications
+ */
 function pinnedApps() {
 
 	require_once __DIR__ . '/pinned_apps_helpers.php';
@@ -1412,18 +1431,18 @@ function pinnedApps() {
 	postReturn(["status" => "ok", "script" => $script ?? ""]);
 }
 
-################################################
-# Displays the possible branch tags for an app #
-################################################
+/**
+ * Displays the possible branch tags for an app
+ */
 function displayTags() {
 	$leadTemplate = getPost("leadTemplate","oops");
 	$rename = getPost("rename","false");
 	postReturn(['tags'=>formatTags($leadTemplate,$rename)]);
 }
 
-###########################################
-# Displays The Statistics For The Appfeed #
-###########################################
+/**
+ * Displays The Statistics For The Appfeed
+ */
 function statistics() {
 
 	if ( ! is_file(CA_PATHS['statistics']) )
@@ -1500,9 +1519,9 @@ function statistics() {
 	postReturn(['statistics'=>$statistics]);
 }
 
-####################################################
-# Creates the entries for autocomplete on searches #
-####################################################
+/**
+ * Creates the entries for autocomplete on searches
+ */
 function populateAutoComplete() {
 
 	require_once __DIR__ . '/populate_autocomplete_helpers.php';
@@ -1515,16 +1534,16 @@ function populateAutoComplete() {
 	postReturn(['autocomplete'=>PopulateAutoCompleteHelpers::finalizeSuggestions($autoComplete)]);
 }
 
-##########################
-# Displays the changelog #
-##########################
+/**
+ * Displays the changelog
+ */
 function caChangeLog() {
 	postReturn(["changelog"=>Markdown(ca_plugin("changes","/var/log/plugins/community.applications.plg"))."<br><br>"]);
 }
 
-###############################
-# Populates the category list #
-###############################
+/**
+ * Populates the category list
+ */
 function get_categories() {
 	global $sortOrder;
 
@@ -1574,25 +1593,25 @@ function get_categories() {
 	postReturn(["categories"=>$cat]);
 }
 
-##############################
-# Get the html for the popup #
-##############################
+/**
+ * Get the html for the popup
+ */
 function getPopupDescription() {
 	$appNumber = getPost("appPath","");
 	postReturn(getPopupDescriptionSkin($appNumber));
 }
 
-#################################
-# Get the html for a repo popup #
-#################################
+/**
+ * Get the html for a repo popup
+ */
 function getRepoDescription() {
 	$repository = html_entity_decode(getPost("repository",""),ENT_QUOTES);
 	postReturn(getRepoDescriptionSkin($repository));
 }
 
-########################################################
-# Fetch + sanitize rendered README for sidebar injection #
-########################################################
+/**
+ * Fetch + sanitize rendered README for sidebar injection
+ */
 function getReadmeSection() {
 	$readmeId = trim((string)getPost("readmeId", ""));
 	$cacheKey = trim((string)getPost("cacheKey", ""));
@@ -1612,9 +1631,9 @@ function getReadmeSection() {
 	]);
 }
 
-###############################################################
-# Fetch + sanitize rendered template/plugin changes on demand  #
-###############################################################
+/**
+ * Fetch + sanitize rendered template/plugin changes on demand
+ */
 function getTemplateChanges() {
 	$changesId = trim((string)getPost("changesId", ""));
 	$cacheKey = trim((string)getPost("cacheKey", ""));
@@ -1631,6 +1650,14 @@ function getTemplateChanges() {
 	]);
 }
 
+/**
+ * Fetch changelog/markdown for a template or plugin URL and return sanitized HTML.
+ *
+ * @param string $url
+ * @param string $cacheKey Unused (kept for API compatibility)
+ * @param string $type "plugin" or "xml" (container template)
+ * @return string HTML fragment or empty string on failure
+ */
 function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", string $type = ""): string {
 	if ($url === "") return "";
 
@@ -1822,6 +1849,13 @@ function caFetchReadmeContents(string $url): string {
 	return $buf;
 }
 
+/**
+ * Fetch README.md from raw.githubusercontent.com and return HTML via markdown().
+ *
+ * @param string $url
+ * @param string $cacheKey Unused (kept for API compatibility)
+ * @return string
+ */
 function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 	if ($url === "") return "";
 	$parts = @parse_url($url);
@@ -1908,9 +1942,9 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 	return (string)$readmeContents;
 }
 
-###########################################
-# Creates the XML for a container install #
-###########################################
+/**
+ * Creates the XML for a container install
+ */
 function createXML() {
 
 	getFullGlobals();
@@ -2119,9 +2153,9 @@ function createXML() {
 	postReturn(["status"=>"ok","cache"=>$cacheVolume ?? ""]);
 }
 
-########################
-# Switch to a language #
-########################
+/**
+ * Switch to a language
+ */
 function switchLanguage() {
 
 	$language = getPost("language","");
@@ -2138,9 +2172,9 @@ function switchLanguage() {
 	postReturn(["status"=> "ok"]);
 }
 
-#######################################################
-# Delete multiple checked off apps from previous apps #
-#######################################################
+/**
+ * Delete multiple checked off apps from previous apps
+ */
 function remove_multiApplications() {
 	$apps = getPostArray("apps");
 	if ( ! count($apps) ) {
@@ -2161,9 +2195,9 @@ function remove_multiApplications() {
 		postReturn(["status"=>"ok"]);
 }
 
-############################################
-# Get's the categories present on a search #
-############################################
+/**
+ * Get's the categories present on a search
+ */
 function getCategoriesPresent() {
 
 	if ( is_file(CA_PATHS['community-templates-allSearchResults']) )
@@ -2189,9 +2223,9 @@ function getCategoriesPresent() {
 	postReturn(array_values(array_unique($categories)));
 }
 
-##################################
-# Set's the favourite repository #
-##################################
+/**
+ * Set's the favourite repository
+ */
 function toggleFavourite() {
 
 	$repository = html_entity_decode(getPost("repository",""),ENT_QUOTES);
@@ -2203,16 +2237,16 @@ function toggleFavourite() {
 	postReturn(['status'=>"ok",'fav'=>$repository]);
 }
 
-####################################
-# Returns the favourite repository #
-####################################
+/**
+ * Returns the favourite repository
+ */
 function getFavourite() {
 
 	postReturn(["favourite"=>$GLOBALS['caSettings']['favourite']]);
 }
-##########################
-# Changes the sort order #
-##########################
+/**
+ * Changes the sort order
+ */
 function changeSortOrder() {
 	global $sortOrder;
 
@@ -2254,18 +2288,18 @@ function changeSortOrder() {
 	}
 	postReturn(['status'=>"ok"]);
 }
-############################################
-# Gets the sort order when restoring state #
-############################################
+/**
+ * Gets the sort order when restoring state
+ */
 function getSortOrder() {
 	global $sortOrder;
 
 	postReturn(["sortBy"=>$sortOrder['sortBy'],"sortDir"=>$sortOrder['sortDir']]);
 }
 
-############################################################
-# Reset the sort order to default when reloading Apps page #
-############################################################
+/**
+ * Reset the sort order to default when reloading Apps page
+ */
 function defaultSortOrder() {
 	global $sortOrder;
 
@@ -2275,17 +2309,17 @@ function defaultSortOrder() {
 	postReturn(['status'=>"ok"]);
 }
 
-###################################################################
-# Checks whether we're on the startup screen when restoring state #
-###################################################################
+/**
+ * Checks whether we're on the startup screen when restoring state
+ */
 function onStartupScreen() {
 
 	postReturn(['status'=>is_file(CA_PATHS['startupDisplayed'])]);
 }
 
-#######################################################################
-# convert_docker - called when system adds a container from dockerHub #
-#######################################################################
+/**
+ * convert_docker - called when system adds a container from dockerHub
+ */
 function convert_docker() {
 	global $dockerManPaths;
 
@@ -2356,11 +2390,17 @@ function caFindDockerHubResultByRepo(string $repo): ?array {
 	return null;
 }
 
+/**
+ * Last path segment of a Docker repo string (image name without registry prefix handling).
+ */
 function caDockerNameFromRepo(string $repo): string {
 	$parts = explode('/', $repo);
 	return (string)end($parts);
 }
 
+/**
+ * Public Docker Hub URL for a namespace/image repository string.
+ */
 function caDockerHubUrlFromRepo(string $repo): string {
 	if (strpos($repo, '/') === false || strpos($repo, 'library/') === 0) {
 		$name = caDockerNameFromRepo($repo);
@@ -2369,9 +2409,9 @@ function caDockerHubUrlFromRepo(string $repo): string {
 	return "https://hub.docker.com/r/{$repo}/";
 }
 
-#########################################################
-# search_dockerhub - returns the results from dockerHub #
-#########################################################
+/**
+ * search_dockerhub - returns the results from dockerHub
+ */
 function search_dockerhub() {
 
 	$filter     = getPost("filter","");
@@ -2427,9 +2467,9 @@ function search_dockerhub() {
 	writeJsonFile(CA_PATHS['dockerSearchResults'],$dockerFile);
 	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);
 }
-##############################################
-# Gets the last update issued to a container #
-##############################################
+/**
+ * Gets the last update issued to a container
+ */
 function getLastUpdate($ID) {
 
 	$count = 0;
@@ -2480,19 +2520,18 @@ function getLastUpdate($ID) {
 
 	return $lastUpdated;
 }
-######################################
-# Changes the max per page displayed #
-######################################
+/**
+ * Changes the max per page displayed
+ */
 function changeMax($max) {
 	if ( $max !== $GLOBALS['caSettings']['maxPerPage'] ) {
 		$GLOBALS['caSettings']['maxPerPage'] = $max;
 		write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
 	}
 }
-################################################################
-# Enables if necessary the action centre                       #
-# Basically a duplicate of action centre code in previous apps #
-################################################################
+/**
+ * Enables if necessary the action centre Basically a duplicate of action centre code in previous apps
+ */
 function enableActionCentre() {
 
 # wait til check for updates is finished
@@ -2652,9 +2691,9 @@ function enableActionCentre() {
 	}
 }
 
-###################################################
-# Checks the requirements being met on an upgrade #
-###################################################
+/**
+ * Checks the requirements being met on an upgrade
+ */
 function checkRequirements() {
 	$requiresFile = getPost("requires","");
 	if (! $requiresFile || ($requiresFile && is_file($requiresFile) ) ) {
@@ -2664,9 +2703,9 @@ function checkRequirements() {
 	}
 }
 
-########################################################
-# Saves the list of plugins which are pending installs #
-########################################################
+/**
+ * Saves the list of plugins which are pending installs
+ */
 function saveMultiPluginPending() {
 
 	$plugin = getPost("plugin","");
@@ -2682,22 +2721,18 @@ function saveMultiPluginPending() {
 	postReturn(['status'=>'ok']);
 }
 
-##############################################
-# Downloads the stats file in the background #
-##############################################
+/**
+ * Downloads the stats file in the background
+ */
 function downloadStatistics() {
 
 	if ( ! is_file(CA_PATHS['statistics']) )
 		download_json(CA_PATHS['statisticsURL'],CA_PATHS['statistics']);
 }
 
-###########################################################################
-# Checks to see if THIS plugin's install/update is already in progress    #
-# by looking for its basename inside CA_PATHS['pluginPending']. The caller #
-# passes whatever it has (a .plg URL, /var/log/plugins/foo.plg path, etc); #
-# basename normalizes them all to "foo.plg". If no path is provided the   #
-# answer is "not in progress" (we can't lock against an unknown).         #
-###########################################################################
+/**
+ * Checks to see if THIS plugin's install/update is already in progress by looking for its basename inside CA_PATHS['pluginPending']. The caller passes whatever it has (a .plg URL, /var/log/plugins/foo.plg path, etc); basename normalizes them all to "foo.plg". If no path is provided the answer is "not in progress" (we can't lock against an unknown).
+ */
 function checkPluginInProgress() {
 
 	$pluginPath = trim((string)getPost("pluginPath",""));
@@ -2719,21 +2754,28 @@ function checkPluginInProgress() {
 	postReturn(['inProgress' => is_file($flag) ? "$flag" : ""]);
 }
 
+/**
+ * AJAX noop: reserved hook for "network already exists" handling.
+ *
+ * @return void
+ */
 function networkAlreadyCreated() {
 }
 
-#######################################
-# Clears the startup displayed flag   #
-# in case of weird error              #
-#######################################
+/**
+ * Clears the startup displayed flag in case of weird error
+ */
 function clearStartUpDisplayed() {
 
 	@unlink(CA_PATHS['startupDisplayed']);
 	postReturn(['done']);
 }
 
-# Logs Javascript errors being caught #
-#######################################
+/**
+ * Log client-side JavaScript errors posted from the browser (no-op return path).
+ *
+ * @return void
+ */
 function javascriptError() {
 	return;
 

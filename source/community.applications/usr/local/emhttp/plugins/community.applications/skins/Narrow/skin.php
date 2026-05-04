@@ -11,11 +11,17 @@
 #                                      #
 ########################################
 
+/**
+ * Narrow skin: PHP-rendered fragments and helpers for the Community Applications UI.
+ *
+ * Popup/action menus, support links, and other server-generated markup used by Apps.page.
+ */
+
 require_once __DIR__.'/skin_helpers.php';
 
-##########################################################
-# Remove orphan and duplicate dividers from action arrays #
-##########################################################
+/**
+ * Remove orphan and duplicate dividers from action arrays
+ */
 function caCompactPopupActionContext(array $actionsContext): array {
 	$compacted = [];
 	foreach ($actionsContext as $context) {
@@ -34,9 +40,9 @@ function caCompactPopupActionContext(array $actionsContext): array {
 	return array_values($compacted);
 }
 
-##############################################################
-# Keep only valid support entries for popup button rendering #
-##############################################################
+/**
+ * Keep only valid support entries for popup button rendering
+ */
 function caNormalizePopupSupportContext(array $supportContext): array {
 	return array_values(array_filter($supportContext, static function ($context) {
 		if (!is_array($context)) {
@@ -48,9 +54,9 @@ function caNormalizePopupSupportContext(array $supportContext): array {
 	}));
 }
 
-###############################################################################
-# Remove popup shortcut actions from context and expose preferred quick action #
-###############################################################################
+/**
+ * Remove popup shortcut actions from context and expose preferred quick action
+ */
 function caNormalizePopupActions(array $actionsContext): array {
 	$popupShortcutContext = [];
 	$popupUninstallAction = null;
@@ -84,9 +90,9 @@ function caNormalizePopupActions(array $actionsContext): array {
 	return [$filteredContext, $popupShortcut, $popupUninstallAction];
 }
 
-######################################
-# Generate the display for the popup #
-######################################
+/**
+ * Generate the display for the popup
+ */
 function displayPopup($template) {
 
 	$template = is_array($template) ? $template : [];
@@ -296,7 +302,7 @@ function displayPopup($template) {
 			}
 		}
 		if ($mediaSections) {
-			$mediaBlock = "<div>".implode("", $mediaSections)."</div>";
+			$mediaBlock = "<div class='caMediaGallery'>".implode("", $mediaSections)."</div>";
 		}
 	}
 
@@ -507,6 +513,15 @@ function displayPopup($template) {
 	return ob_get_clean();
 }
 
+/**
+ * Render the main apps grid: loads the active displayed-templates cache and delegates to my_display_apps.
+ *
+ * @param int $pageNumber
+ * @param mixed $selectedApps
+ * @param bool $startup
+ * @param bool $returnArray When true, return HTML string only (no echo path)
+ * @return array|string|void
+ */
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
 
 	$filesToCheck = [
@@ -547,6 +562,16 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
 	return $emptyHtml;
 }
 
+/**
+ * Core card renderer: paginates $file templates, builds card HTML, navigation, and scripts.
+ *
+ * @param array<int,array<string,mixed>> $file Displayed templates list
+ * @param int $pageNumber
+ * @param mixed $selectedApps
+ * @param bool $startup
+ * @param bool $returnArray
+ * @return array|string|void
+ */
 function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
 
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
@@ -703,9 +728,9 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	return "$displayHeader$ct";
 }
 
-######################################
-# Generate the display for the popup #
-######################################
+/**
+ * Generate the display for the popup
+ */
 function getPopupDescriptionSkin($appNumber) {
 	global $language, $DockerClient;
 
@@ -834,9 +859,9 @@ function getPopupDescriptionSkin($appNumber) {
 	];
 }
 
-#####################################
-# Generate the display for the repo #
-#####################################
+/**
+ * Generate the display for the repo
+ */
 function getRepoDescriptionSkin($repository) {
 
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
@@ -890,9 +915,9 @@ function getRepoDescriptionSkin($repository) {
 	return ["description"=>$popup];
 }
 
-##############################################################
-# function that actually displays the results from dockerHub #
-##############################################################
+/**
+ * function that actually displays the results from dockerHub
+ */
 function displaySearchResults($pageNumber, $returnArray=false) {
 
 	$searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
@@ -925,9 +950,9 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 	return "<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
 }
 
-###########################
-# Generate the app's card #
-###########################
+/**
+ * Generate the app's card
+ */
 function displayCard($template) {
 
 	if (!is_array($template)) {
