@@ -1,16 +1,15 @@
-/*
-########################################
-#                                      #
-# Community Applications               #
-# Copyright 2020-2026, Lime Technology #
-# Copyright 2015-2026, Andrew Zawadzki #
-#                                      #
-# Licensed under GPL-2.0-or-later      #
-#                                      #
-########################################
-
-SPDX-License-Identifier: GPL-2.0-or-later
-*/
+/**
+ * Render the moderation pane for the given script and load its data from the server.
+ *
+ * Replaces the sidebar content with a moderation container, shows a loading state, requests moderation data,
+ * and injects the rendered moderation HTML when data is returned. For the "Repository" script, collects the
+ * currently ignored repositories and posts them back to the server so the server can prune stale entries;
+ * if the server reports changes, sets `window.caRepoIgnoreDirty = true`. If the request fails or returns no data,
+ * shows a warning notice in the sidebar.
+ *
+ * @param {string} script - The moderation view to load (e.g., "Repository", "Invalid", "Fixed").
+ * @param {string} [title] - Optional title for the moderation pane (not required by all scripts).
+ */
 
 function showModeration(script, title) {
 	$("#sidenavContent").html("<div class='moderationContainer'></div>");
@@ -37,6 +36,15 @@ function showModeration(script, title) {
 	});
 }
 
+/**
+ * Produce an HTML-escaped string safe for insertion into HTML.
+ *
+ * Converts `undefined` and `null` to an empty string, otherwise returns the input
+ * coerced to string with the characters `&`, `<`, `>`, `"`, and `'` replaced by
+ * their corresponding HTML entities.
+ * @param {*} value - The value to escape; may be any type (including null/undefined).
+ * @returns {string} The escaped string suitable for HTML contexts.
+ */
 function caEscapeHtml(value) {
 	if (value === undefined || value === null) return "";
 	return String(value)
@@ -47,6 +55,11 @@ function caEscapeHtml(value) {
 		.replace(/'/g, "&#39;");
 }
 
+/**
+ * Convert a value into HTML-safe content suitable for insertion into the UI.
+ * @param {*} value - The value to format; may be a string, boolean, array, null, or undefined.
+ * @returns {string} A string containing HTML-safe content: empty for `null`/`undefined`; localized `"Yes"`/`"No"` for booleans; escaped JSON for arrays; otherwise the escaped string with line breaks replaced by `<br>`.
+ */
 function caValueToHtml(value) {
 	if (value === undefined || value === null) return "";
 	if (Array.isArray(value)) {
@@ -58,10 +71,21 @@ function caValueToHtml(value) {
 	return caEscapeHtml(String(value)).replace(/\n/g, "<br>");
 }
 
+/**
+ * Clone the first child element of the DOM node with the given id.
+ * @param {string} id - The id of the container element (without a leading `#`).
+ * @return {jQuery} A cloned jQuery element of the container's first child.
+ */
 function caCloneTemplate(id) {
 	return $("#" + id).children().first().clone();
 }
 
+/**
+ * Selects the appropriate moderation renderer for the given script type and returns its HTML.
+ * @param {string} script - One of "Repository", "Invalid", or "Fixed" indicating which moderation view to render.
+ * @param {Object} payload - Data object passed to the chosen renderer; structure depends on `script`.
+ * @returns {string} The rendered HTML for the requested moderation content, or a warning notice HTML if `script` is unrecognized.
+ */
 function renderModerationContent(script, payload) {
 	switch (script) {
 		case "Repository":
@@ -75,6 +99,14 @@ function renderModerationContent(script, payload) {
 	}
 }
 
+/**
+ * Build the "Repositories" moderation section HTML from server payload.
+ *
+ * @param {Object} payload - Data from the server for repository moderation.
+ * @param {Array<Object>} [payload.repositories] - List of repository objects; each may contain `name` and `url`.
+ * @param {Array<string>} [payload.ignored] - List of repository names that should be initially marked ignored.
+ * @return {string} The rendered HTML for the repositories moderation table. The output includes per-repository rows with an ignore toggle (except for protected Unraid first-party repos), rows marked `caRepoIgnored` for initially ignored entries, and a `data-ignored-initial` attribute on the table containing the JSON-encoded initial ignored list.
+ */
 function renderModerationRepositories(payload) {
 	const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
 	/* Initial ignored set — server reads CA_PATHS['ignoredRepos']; rows that
@@ -135,8 +167,11 @@ $(function() {
 	});
 });
 
-/* Collect the current ignore set from the live moderation table. Returns
-   null if the table isn't currently rendered. */
+/**
+ * Collects the repository names currently marked as ignored in the moderation table.
+ *
+ * @returns {string[]|null} Sorted array of ignored repository names, or `null` if the moderation table is not present.
+ */
 function caCollectIgnoredRepos() {
 	const $table = $(".caModerationRepoTable");
 	if (!$table.length) return null;
@@ -147,16 +182,36 @@ function caCollectIgnoredRepos() {
 	return ignored.filter(Boolean).sort();
 }
 
-/* Called on transitions out of the Repository view (showStatistics() and
-   the .ca_modal_overlay close path). If any earlier toggle actually
-   changed the on-disk list, click Home so the page restarts against the
-   freshly-wiped /tmp tree. */
+/**
+ * Trigger a Home restart when the repository ignore list has been modified.
+ *
+ * If the session-level dirty flag `window.caRepoIgnoreDirty` is set, this clears
+ * the flag and attempts to activate the first `.startupButton` to restart the
+ * page so the UI reloads against the updated on-disk state. Any errors during
+ * the attempt are ignored.
+ */
 function caRestartIfRepoIgnoreDirty() {
 	if (!window.caRepoIgnoreDirty) return;
 	window.caRepoIgnoreDirty = false;
 	try { $(".startupButton").first().trigger("click"); } catch (e) { /* no-op */ }
 }
 
+/**
+ * Render the "Invalid templates" moderation section as an HTML string.
+ *
+ * Renders a list of invalid template items (or a "No invalid templates found" message when empty)
+ * into the moderation shell and returns the resulting HTML.
+ *
+ * @param {Object} payload - Data used to build the section.
+ * @param {Array<Object>} [payload.items] - Array of invalid items. Each item may include:
+ *   - {string} [title] - Item title.
+ *   - {Array<Object>} [details] - Detail entries for the item; each detail may include:
+ *       - {string} [label] - Optional bold label for the detail.
+ *       - {*} [value] - Detail value; converted to safe HTML by caValueToHtml.
+ *       - {boolean} [isSubRule] - When true, renders the detail with sub-rule styling.
+ * @param {string} [payload.intro] - Intro text shown above the items.
+ * @returns {string} The rendered HTML for the invalid templates moderation section.
+ */
 function renderModerationInvalid(payload) {
 	const items = Array.isArray(payload.items) ? payload.items : [];
 	const $shell = caCloneTemplate("caModerationShellTemplate");
@@ -191,6 +246,25 @@ function renderModerationInvalid(payload) {
 	return $("<div></div>").append($shell).html();
 }
 
+/**
+ * Render the "Fixed" moderation view and return its HTML.
+ *
+ * Builds the fixed-templates section including a jump/select for repositories, per-repository
+ * fixed-item lists with expand/collapse controls, and optional plugin-duplicate and
+ * duplicate-repository subsections. If no fixed data is provided, the output contains a
+ * centered "No templates were automatically fixed" message.
+ *
+ * @param {Object} payload - Data used to populate the fixed view.
+ * @param {Array<Object>} [payload.repositories] - Repository entries; each may include `name`, `fixCount`, and `items` (array of entries with `name` and `errors`).
+ * @param {Array<Object>} [payload.pluginDupes] - Plugin-duplicate entries; each may include `filename` and `entries` (array of strings).
+ * @param {Array<string>} [payload.duplicateRepos] - Lines describing duplicate repositories.
+ * @param {string} [payload.intro] - Introductory HTML/text for the fixed section.
+ * @param {string} [payload.notes] - Additional notes to display.
+ * @param {string} [payload.helpUrl] - URL used for the help link (fallbacks to "#").
+ * @param {string} [payload.pluginDupesTitle] - Title for the plugin-duplicates subsection.
+ * @param {string} [payload.duplicateReposTitle] - Title for the duplicate-repositories subsection.
+ * @returns {string} The rendered HTML for the fixed moderation content.
+ */
 function renderModerationFixed(payload) {
 	const repos = Array.isArray(payload.repositories) ? payload.repositories : [];
 	const pluginDupes = Array.isArray(payload.pluginDupes) ? payload.pluginDupes : [];
@@ -282,6 +356,12 @@ function renderModerationFixed(payload) {
 	return $("<div></div>").append($shell).html();
 }
 
+/**
+ * Toggle visibility of a fixed-repository details section in the moderation view.
+ *
+ * @param {string} id - ID of the details container to toggle (without the leading `#`).
+ * @param {Element|jQuery} [button] - Optional toggle button element; its icon will be updated to indicate expanded/collapsed state.
+ */
 function caToggleFixedDetails(id, button) {
 	var $section = $("#" + id);
 	if (!$section.length) return;
@@ -291,6 +371,11 @@ function caToggleFixedDetails(id, button) {
 	caSyncFixedToggleAllState();
 }
 
+/**
+ * Show or hide all fixed-entry detail sections within the moderation sidebar.
+ *
+ * @param {boolean} showAll - If true, expand all fixed details and set the master toggle to "Hide All"; if false, collapse all details and set the master toggle to "Show All".
+ */
 function caSetAllFixedDetails(showAll) {
 	var $root = $("#sidenavContent .moderationContainer").first();
 	if (!$root.length) return;
@@ -303,11 +388,26 @@ function caSetAllFixedDetails(showAll) {
 	}
 }
 
+/**
+ * Toggle the visibility of all fixed-details sections in the moderation view.
+ *
+ * Determines the intended "show all" state from the provided toggle control's
+ * `data-show-all` attribute and applies that state to all fixed-detail sections.
+ *
+ * @param {HTMLElement} button - The toggle control element whose `dataset.showAll`
+ *   value (`"1"` or other) indicates the current "show all" state; may be null or undefined.
+ */
 function caToggleAllFixedDetails(button) {
 	var showAll = !(button && button.dataset && button.dataset.showAll === "1");
 	caSetAllFixedDetails(showAll);
 }
 
+/**
+ * Update the "Show All" control to match the current expanded/collapsed state of fixed-detail sections.
+ *
+ * Sets the `.caFixedToggleAll` button's `data-show-all` attribute and visible text to "Hide All" when any
+ * `.ca_fixedDetails` element is visible, or "Show All" when all are hidden.
+ */
 function caSyncFixedToggleAllState() {
 	var $root = $("#sidenavContent .moderationContainer").first();
 	if (!$root.length) return;
@@ -321,6 +421,16 @@ function caSyncFixedToggleAllState() {
 	$allButton.text(anyExpanded ? tr("Hide All") : tr("Show All"));
 }
 
+/**
+ * Scrolls to the fixed-repository section identified by the select's value and ensures its details are visible.
+ *
+ * If the selected value matches an element id, the function expands that repository's details (if hidden),
+ * updates the repository toggle icon to indicate expanded state, synchronizes the global show/hide-all control,
+ * and scrolls the repository row into view with smooth behavior. If `select` is invalid or the target element
+ * cannot be found, the function returns without action.
+ *
+ * @param {HTMLSelectElement|HTMLElement} select - The select element whose current `value` is the id of the target repository row.
+ */
 function caJumpToFixedRepository(select) {
 	if (!select || !select.value) return;
 	var $row = $("#" + select.value);
@@ -335,6 +445,14 @@ function caJumpToFixedRepository(select) {
 	$row[0].scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+/**
+ * Scrolls the moderation sidebar so the first element matching `selector` is near the top.
+ *
+ * Smoothly animates the sidenav's scrollTop to position the target inside `#sidenavContent .moderationContainer`
+ * with a 16px top offset over 250ms. If `selector` is falsy or no matching target/sidenav is found, the function does nothing.
+ *
+ * @param {string|Element|jQuery} selector - A CSS selector, DOM element, or jQuery object identifying the target inside the moderation container.
+ */
 function caScrollModerationSection(selector) {
 	if (!selector) return;
 	var $container = $("#sidenavContent .moderationContainer");
@@ -345,6 +463,14 @@ function caScrollModerationSection(selector) {
 	$sidenav.stop(true).animate({ scrollTop: nextTop }, 250);
 }
 
+/**
+ * Fetches server statistics and populates the statistics view in the sidebar.
+ *
+ * Performs a restart-check for pending repository-ignore changes, requests statistics
+ * from the server, and updates the #caStatisticsTemplate elements (text, HTML, and href
+ * placeholders). Shows or hides the private-stats row based on the returned value
+ * and invokes the template's alternate view display when complete.
+ */
 function showStatistics() {
 	/* If the user's repo-ignore toggles actually changed the on-disk list
 	   during this session, restart via Home so the rebuilt feed is used. */

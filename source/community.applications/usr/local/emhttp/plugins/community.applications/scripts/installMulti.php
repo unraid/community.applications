@@ -27,6 +27,15 @@ require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 
 $unRaidVersion = parse_ini_file(CA_PATHS['unRaidVersion']);
 
+/**
+ * Translate a string and escape single and double quotes for safe HTML output.
+ *
+ * If a global translation function `_` exists, the input is translated and both single (`'`) and double (`"`) quotes are replaced with HTML entities. When `$ret` is true the processed string is returned; otherwise it is echoed.
+ *
+ * @param string $string The text to translate and escape.
+ * @param bool $ret If true, return the processed string; if false, echo it.
+ * @return string The translated and escaped string when `$ret` is true.
+ */
 function tr($string,$ret=true) {
 	if ( function_exists("_") )
 		$string =  str_replace('"',"&#34;",str_replace("'","&#39;",_($string)));
@@ -36,6 +45,13 @@ function tr($string,$ret=true) {
 		echo $string;
 }
 
+/**
+ * Check whether a string starts with a given substring (case-insensitive).
+ *
+ * @param string $haystack The string to test.
+ * @param string $needle The prefix to check for.
+ * @return bool `true` if `$haystack` starts with `$needle` (case-insensitive), `false` otherwise.
+ */
 function startsWith($haystack, $needle) {
 	return $needle === "" || strripos($haystack, $needle, -strlen($haystack)) !== FALSE;
 }

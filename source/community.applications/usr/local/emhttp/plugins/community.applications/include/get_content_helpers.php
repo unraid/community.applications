@@ -1,5 +1,11 @@
 <?php
 class GetContentHelpers {
+	/**
+	 * Normalize a requested maximum number of home applications.
+	 *
+	 * @param int $maxHomeApps The requested maximum number of home apps.
+	 * @return int Normalized maximum: `4` when `$maxHomeApps` is `0`, `2` when `$maxHomeApps` is less than `3`, otherwise the original `$maxHomeApps`.
+	 */
 	public static function normalizeMaxHomeApps($maxHomeApps) {
 		if ($maxHomeApps == 0) {
 			return 4;
@@ -12,6 +18,20 @@ class GetContentHelpers {
 		return $maxHomeApps;
 	}
 
+	/**
+	 * Build context describing how community templates should be filtered and displayed for a given category.
+	 *
+	 * @param string $category Category identifier (e.g. "PRIVATE", "DEPRECATED", "BLACKLIST", "INCOMPATIBLE", "repos", or an empty string).
+	 * @return array Associative context with the following keys:
+	 *               - `categoryString` (string|false): category token used for regex matching, or false when disabled.
+	 *               - `categoryRegex` (string|false): case-insensitive regex string to match the category, or false when not applicable.
+	 *               - `displayBlacklisted` (bool): allow displaying blacklisted templates.
+	 *               - `displayDeprecated` (bool): allow displaying deprecated templates.
+	 *               - `displayIncompatible` (bool): allow displaying incompatible templates.
+	 *               - `displayPrivates` (bool): allow displaying private templates.
+	 *               - `noInstallComment` (string): localized HTML message explaining install restrictions when relevant.
+	 *               - `action` (string|null): special action identifier (set to 'repos' for the "repos" category), or null otherwise.
+	 */
 	public static function resolveCategoryContext($category) {
 		$context = [
 			'categoryString'      => $category,
@@ -59,6 +79,15 @@ class GetContentHelpers {
 		return $context;
 	}
 
+	/**
+	 * Prepare and output home startup sections of community applications based on available templates and the requested home-app limit.
+	 *
+	 * Builds several predefined startup sections (e.g., featured, recently added, trending, random), selects up to a normalized number of apps per section, marks selected items (e.g., `NewApp`, `homeScreen`), assembles the HTML display payload, writes startup/display JSON files, and posts the resulting payload for rendering. If no templates are available for a startup section, writes an error payload and returns early.
+	 *
+	 * @param array &$file Array of available templates, keyed by template identifier; entries for selected items will be mutated (fields like `NewApp` and `homeScreen` are set).
+	 * @param int $maxHomeApps Requested maximum number of apps to show on the home screen (will be normalized).
+	 * @return bool `true` if the display payload was processed and posted, `false` if `$file` contains 200 or fewer items (no startup display performed).
+	 */
 	public static function handleHomeStartupDisplay(array &$file, $maxHomeApps) {
 
 	 // getConvertedTemplates();  // Only scan for private XMLs when going HOME
@@ -204,6 +233,17 @@ class GetContentHelpers {
 		return true;
 	}
 
+	/**
+	 * Apply category-specific display rules and optionally append the template to the display list.
+	 *
+	 * Evaluates flags for showing blacklisted, incompatible, or deprecated templates; when a flag is active
+	 * and the template matches that category, the template is appended to `$display`.
+	 *
+	 * @param array $template Template data array (expected keys include 'Blacklist', 'Compatible', 'Deprecated', 'BranchID').
+	 * @param array &$display Reference to the array collecting templates to display; may be modified by this function.
+	 * @param array $flags Associative flags controlling special displays (expects boolean-like keys: 'displayBlacklisted', 'displayIncompatible', 'displayDeprecated').
+	 * @return bool `true` if one of the special display flags was processed (regardless of whether the template was added), `false` if no special display flag applied.
+	 */
 	public static function handleSpecialTemplateDisplays($template, &$display, $flags) {
 		if ($flags['displayBlacklisted']) {
 			if ($template['Blacklist']) {
@@ -234,6 +274,16 @@ class GetContentHelpers {
 		return false;
 	}
 
+	/**
+	 * Determines whether a template should be excluded from display based on global settings and provided flags.
+	 *
+	 * Evaluates template metadata (deprecated, displayable, compatible, blacklist, featured, private) together
+	 * with global hide settings and the provided display flags to decide exclusion.
+	 *
+	 * @param array $template Template metadata used to evaluate display eligibility.
+	 * @param array $flags Flags controlling category visibility (e.g., `displayDeprecated`, `displayIncompatible`, `displayPrivates`).
+	 * @return bool `true` if the template should be skipped (excluded) from display, `false` otherwise.
+	 */
 	public static function shouldSkipTemplate($template, $flags) {
 		if ( ($GLOBALS['caSettings']['hideDeprecated'] == "true") && ($template['Deprecated'] && ! $flags['displayDeprecated']) ) return true;
 		if ( $flags['displayDeprecated'] && ! $template['Deprecated'] ) return true;
@@ -245,6 +295,19 @@ class GetContentHelpers {
 		return false;
 	}
 
+	/**
+	 * Classifies a template into search-result buckets based on a textual filter.
+	 *
+	 * Builds a translated categories string from the template's `Category` field, then tests the provided
+	 * `$filter` against multiple template fields and places the template into one appropriate bucket
+	 * within `$searchResults` (for example: `favNameHit`, `nameHit`, `fullNameHit`, `officialHit`, `anyHit`, `extraHit`).
+	 * If `$filter` ends with " Repository" and the template's `RepoName` does not match the filter, the function
+	 * returns without modifying `$searchResults`.
+	 *
+	 * @param array $template Associative array of template metadata (e.g. Name, RepoName, SortName, Category, Author, Overview, Official, LTOfficial, ExtraSearchTerms, Repository, RepoShort, Language, LanguageLocal).
+	 * @param string $filter The search filter text to match against template fields.
+	 * @param array &$searchResults Reference to an associative array of result buckets that will be modified by this function.
+	 */
 	public static function handleFilteredTemplate($template, $filter, &$searchResults) {
 
 		$template['translatedCategories'] = "";
@@ -300,6 +363,17 @@ class GetContentHelpers {
 		}
 	}
 
+	/**
+	 * Sorts search-result buckets and ensures each expected bucket exists.
+	 *
+	 * Ensures the buckets `fullNameHit`, `officialHit`, `nameHit`, `favNameHit`, `anyHit`, and `extraHit`
+	 * exist in `$searchResults` as arrays, applies the standard sorting order to each bucket, and,
+	 * when `$filter` does not contain " Repository" and a favourite repository is configured,
+	 * applies favourite-priority sorting to the `nameHit` bucket.
+	 *
+	 * @param array &$searchResults Associative array of search-result buckets to sort and normalize.
+	 * @param string $filter The active search filter string (used to decide favourite re-sorting).
+	 */
 	public static function sortSearchResultsBuckets(&$searchResults, $filter) {
 
 		$buckets = ['fullNameHit','officialHit','nameHit','favNameHit','anyHit','extraHit'];
@@ -318,6 +392,21 @@ class GetContentHelpers {
 		}
 	}
 
+	/**
+	 * Persist display results to the appropriate community-templates JSON cache files.
+	 *
+	 * If no filter is provided, writes $displayApplications to `community-templates-displayed`
+	 * and removes any existing `community-templates-allSearchResults` and
+	 * `community-templates-catSearchResults` files.
+	 * If a filter is provided but no category regex is specified, writes $displayApplications
+	 * to both `community-templates-allSearchResults` and `community-templates-catSearchResults`.
+	 * If both a filter and a category regex are provided, writes $displayApplications only to
+	 * `community-templates-catSearchResults`.
+	 *
+	 * @param mixed $categoryRegex Category regex string or falsy value indicating no category filtering.
+	 * @param string|false $filter Search filter string or falsy value when no filter is applied.
+	 * @param array $displayApplications The display payload to serialize to JSON.
+	 */
 	public static function cacheDisplayApplications($categoryRegex, $filter, $displayApplications) {
 
 		if ( ! $filter ) {

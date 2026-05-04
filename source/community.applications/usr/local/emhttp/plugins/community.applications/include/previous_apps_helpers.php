@@ -1,11 +1,12 @@
 <?php
 
 class PreviousAppsHelpers {
-	/* Strip a docker image tag without breaking registry ports.
-	   `registry:5000/ns/app:latest` → `registry:5000/ns/app`
-	   `library/foo:latest`           → `library/foo`
-	   `library/foo`                  → `library/foo`
-	   The port colon comes BEFORE the last slash; the tag colon comes AFTER. */
+	/**
+	 * Remove the tag portion from a Docker image repository string while preserving registry ports.
+	 *
+	 * @param string $repository Docker image repository or image name, possibly including a registry host:port and a tag (e.g. "registry:5000/ns/app:latest").
+	 * @return string The repository string with a trailing tag removed when present (e.g. "registry:5000/ns/app"), leaving registry port separators intact.
+	 */
 	private static function stripImageTag(string $repository): string {
 		$lastSlash = strrpos($repository, "/");
 		$lastColon = strrpos($repository, ":");
@@ -14,6 +15,11 @@ class PreviousAppsHelpers {
 		return substr($repository, 0, $lastColon);
 	}
 
+	/**
+	 * Remove cached files used by Community Applications for previous-apps searches and displays.
+	 *
+	 * Removes a fixed set of cache files referenced by the CA_PATHS constants; file deletion failures are suppressed and ignored.
+	 */
 	public static function clearPreviousAppsCaches() {
 		$paths = [
 			'community-templates-allSearchResults',
@@ -30,6 +36,18 @@ class PreviousAppsHelpers {
 		}
 	}
 
+	/**
+	 * Resolve the previous-apps context used to select installed/legacy items.
+	 *
+	 * When Action Centre mode is enabled, returns a context that forces Action
+	 * Centre behavior; otherwise reads `installed` and `filter` from POST and
+	 * clears previous app caches before returning them.
+	 *
+	 * @param bool $enableActionCentre If truthy, force Action Centre mode.
+	 * @return array{installed:string,filter:string} Associative array with keys:
+	 *         - `installed`: the installed mode (`"action"`, `"true"`, or other POST value)
+	 *         - `filter`: the filter string (empty or the POST `filter` value)
+	 */
 	public static function resolvePreviousAppsContext($enableActionCentre) {
 		if ( $enableActionCentre ) {
 			return ['installed' => "action", 'filter' => ""];
@@ -42,6 +60,14 @@ class PreviousAppsHelpers {
 		return ['installed' => $installed, 'filter' => $filter];
 	}
 
+	/**
+	 * Loads Docker update status data when Docker is running and returns it as an array.
+	 *
+	 * If Docker is not running or the underlying status file does not contain an array, an empty array is returned.
+	 *
+	 * @param bool $dockerRunning Whether Docker is currently running.
+	 * @return array Associative array of Docker update status, or an empty array when unavailable.
+	 */
 	public static function loadDockerUpdateStatus($dockerRunning) {
 		if ( ! $dockerRunning ) {
 			return [];
@@ -54,6 +80,20 @@ class PreviousAppsHelpers {
 		return is_array($status) ? $status : [];
 	}
 
+	/**
+	 * Collects Docker application templates that should be displayed as removable or updatable based on the current environment and Action Centre mode.
+	 *
+	 * @param bool $dockerRunning Whether Docker is running; when false an empty array is returned.
+	 * @param string $installed Value from request context controlling mode: `"true"` for installed view, `"action"` for Action Centre mode, or other for legacy view.
+	 * @param string $filter Optional UI filter; when non-empty and not `"docker"` an empty array is returned.
+	 * @param array $info Array of currently installed Docker container information.
+	 * @param int &$updateCount Incremented when an Action Centre update candidate is detected.
+	 * @param array $templates Catalog templates indexed by repository/ID used to enrich XML templates.
+	 * @param array $extraBlacklist Map of moderator blacklist overrides keyed by canonical repository.
+	 * @param array $extraDeprecated Map of moderator deprecation overrides keyed by canonical repository.
+	 * @param array $dockerUpdateStatus Preloaded docker update status data used in Action Centre mode.
+	 * @return array An array of template entries to display (removable and/or update candidates). 
+	 */
 	public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
 		if ( ! $dockerRunning ) {
 			return [];
@@ -73,6 +113,18 @@ class PreviousAppsHelpers {
 		return self::collectLegacyDockerApplications($allFiles, $info, $templates);
 	}
 
+	/**
+	 * Build the list of plugin templates to display based on installation context and filter.
+	 *
+	 * Chooses between installed-mode and legacy-mode plugin collection depending on the
+	 * `$installed` flag and respects the `$filter` (returns an empty array when the filter
+	 * is non-empty and not equal to `"plugins"`).
+	 *
+	 * @param string $installed "true" for installed mode, "action" for Action Centre mode, or other values for legacy mode.
+	 * @param string $filter A UI filter string; only `"plugins"` or empty allow plugin results.
+	 * @param array $templates Catalog templates available for matching.
+	 * @param int &$updateCount Reference to a counter that may be incremented when updates are detected.
+	 * @return array An array of plugin templates to display (may be empty).
 	public static function collectPluginApplications($installed, $filter, $templates, &$updateCount) {
 		if ( $filter && $filter !== "plugins" ) {
 			return [];
@@ -87,6 +139,21 @@ class PreviousAppsHelpers {
 		return self::collectLegacyPluginApplications($templates);
 	}
 
+	/**
+	 * Build the list of installed Docker templates to display (marking uninstallable entries and Action Centre update/ moderation flags).
+	 *
+	 * Iterates XML template files, matches each to a running container from `$info`, enriches template metadata from the catalog `$templates`, applies Action Centre update detection using `$dockerUpdateStatus`, applies moderator overrides from `$extraBlacklist` and `$extraDeprecated`, and returns the prepared templates to present to the user.
+	 *
+	 * @param string[] $allFiles Paths to Docker template XML files to consider.
+	 * @param array[] $info Array of installed Docker container info entries (each item must include at least `Name` and `Image`).
+	 * @param array[] $templates Catalog templates indexed numerically (used to enrich XML templates; expected fields include `Repository`, `ID`, `TemplateURL`, etc.).
+	 * @param array<string,array> $dockerUpdateStatus Mapping of normalized repository keys to update status data (used in Action Centre mode).
+	 * @param array<string,string> $extraBlacklist Moderator-provided blacklist messages keyed by catalog repository.
+	 * @param array<string,string> $extraDeprecated Moderator-provided deprecation messages keyed by catalog repository.
+	 * @param bool $isActionCentre Whether Action Centre mode is active (enables update/moderation checks).
+	 * @param int &$updateCount Reference to a counter that will be incremented for each detected update.
+	 * @return array Prepared list of templates to display (each template may include flags such as `Uninstall`, `ID`, `actionCentre`, `UpdateAvailable`, `Blacklist`, `Deprecated`, and `ModeratorComment`).
+	 */
 	private static function collectInstalledDockerApplications($allFiles, $info, $templates, $dockerUpdateStatus, $extraBlacklist, $extraDeprecated, $isActionCentre, &$updateCount) {
 		$displayed = [];
 
@@ -210,6 +277,19 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Build a list of legacy Docker templates that are not currently running and are eligible for removal.
+	 *
+	 * Processes XML template files and returns templates that have no matching running container, are not blacklisted,
+	 * and are prepared for display as removable legacy applications (fields such as `Removable`, `InstallPath`,
+	 * `UnknownCompatible`, and overview/description fields are set or preserved). When available, matching catalog
+	 * metadata is merged into the template using `TemplateURL` or a repository match with tags stripped.
+	 *
+	 * @param string[] $allFiles Array of filesystem paths to Docker XML template files to evaluate.
+	 * @param array[] $info Array of installed Docker container info entries to check for running matches.
+	 * @param array[] $templates Array of catalog templates used to enrich XML templates when a match is found.
+	 * @return array[] An array of templates prepared for display as removable legacy Docker applications.
+	 */
 	private static function collectLegacyDockerApplications($allFiles, $info, $templates) {
 		$displayed = [];
 
@@ -299,6 +379,21 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Build the list of installed plugin templates (including language packs) to display,
+	 * marking uninstallable entries and, when in Action Centre mode, detecting and flagging updates.
+	 *
+	 * Processes each template that represents an installed plugin: sets `InstallPath` and `Uninstall`,
+	 * includes the template when appropriate, and in Action Centre mode only includes templates whose
+	 * installed plugin URL matches the template and that pass Action Centre visibility rules.
+	 * When an update is detected (by version comparison or existing `UpdateAvailable`), sets
+	 * `actionCentre` and `UpdateAvailable` on the template and increments `$updateCount`.
+	 *
+	 * @param array $templates Array of plugin templates to evaluate.
+	 * @param bool $isActionCentre True when Action Centre mode is active; alters visibility and update checks.
+	 * @param int &$updateCount Incremented for each plugin (or language pack) detected as having an update.
+	 * @return array An array of templates to display for installed plugins and installed language packs.
+	 */
 	private static function collectInstalledPluginApplications($templates, $isActionCentre, &$updateCount) {
 		$displayed = [];
 
@@ -367,6 +462,21 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Collects templates corresponding to installed language pack plugin definitions.
+	 *
+	 * Scans the installed languages directory for files named `lang-<code>.xml` (excluding `en_US`),
+	 * locates the matching template by `LanguagePack`, marks it uninstallable, and includes it in the
+	 * returned list. In Action Centre mode, templates are flagged for Action Centre, validated via
+	 * `languageCheck()`, marked `UpdateAvailable` and cause `$updateCount` to be incremented when added.
+	 *
+	 * @param array $templates List of available templates to search.
+	 * @param bool $isActionCentre When true, apply Action Centre update/visibility rules.
+	 * @param int  &$updateCount Reference to the update counter; incremented for each language pack
+	 *                          marked `UpdateAvailable`.
+	 * @return array An array of language-pack templates to display (each template may be modified with
+	 *               `Uninstall`, `actionCentre`, and `UpdateAvailable` flags).
+	 */
 	private static function collectInstalledLanguagePacks($templates, $isActionCentre, &$updateCount) {
 		$displayed = [];
 		/* Source the user's installed language *plugins* from the boot config
@@ -413,6 +523,17 @@ class PreviousAppsHelpers {
 		return $displayed;
 	}
 
+	/**
+	 * Builds a list of plugin templates corresponding to legacy `.plg` files that are not currently installed.
+	 *
+	 * Scans legacy plugin locations for `.plg` files, matches each file to a template by the plugin's install URL (falling back to repository basename),
+	 * excludes templates that are blacklisted or (when configured) incompatible, skips plugins already present in /boot/config/plugins/,
+	 * requires the legacy `.plg` to provide a plugin URL via `ca_plugin("pluginURL", ...)`, and deduplicates matches case-insensitively.
+	 *
+	 * Matched templates are marked with `Removable = true` and `InstallPath` set to the `.plg` path.
+	 *
+	 * @param array $templates Array of available plugin templates to match against.
+	 * @return array An array of matched template entries to display for removal.
 	private static function collectLegacyPluginApplications($templates) {
 		$displayed = [];
 		$alreadySeen = [];

@@ -54,12 +54,26 @@ if ( caIsDockerRunning() ) {
 	$DockerClient = new DockerClient();
 }
 
+/**
+ * Writes a debug message to standard output when debugging is enabled.
+ *
+ * @param string $message The message to output if global `$debugging` is truthy.
+ */
 function debug1($message) {
 	global $debugging;
 
 	if ($debugging) echo $message;
 }
 
+/**
+ * Evaluate a single condition result and update the aggregate condition state.
+ *
+ * If `$value` is truthy the function records the condition as passed; if `$value`
+ * is falsy it sets the global `$conditionsMet` to `false`. A debug message
+ * indicating pass or fail is emitted.
+ *
+ * @param mixed $value The condition result to evaluate; treated as true when truthy and false when falsy.
+ */
 function conditionsMet($value) {
 	global $conditionsMet;
 
