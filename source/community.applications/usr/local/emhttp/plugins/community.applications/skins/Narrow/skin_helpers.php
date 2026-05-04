@@ -1306,18 +1306,8 @@ function caBuildReadmeSectionDiv(array $template): string {
 		return "";
 	}
 
-	/* If the source URL points at a specific README (eg /blob/main/docs/README.md),
-	   preserve the subpath when constructing the raw URL — otherwise the lazy-
-	   loader fetches the wrong file and the README never resolves. The blob form
-	   is /<org>/<repo>/blob/<branch>/<path...>, so $pathParts[2..3] are
-	   "blob"/branch and the file path starts at index 4. */
-	$readmePath = "README.md";
-	if (($pathParts[2] ?? "") === "blob" && count($pathParts) > 4) {
-		$readmePath = implode("/", array_slice($pathParts, 4));
-	}
-
-	$rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/{$readmePath}";
-	$rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/{$readmePath}";
+	$rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/README.md";
+	$rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/README.md";
 	// Stable cache key derived from the template-provided README URL (avoids re-trying main/master on repeat views).
 	$cacheKey = hash("sha256", $readmeUrl);
 	$readmeId = "ca_readme_" . $cacheKey;
