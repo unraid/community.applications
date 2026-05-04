@@ -49,7 +49,9 @@ class PreviousAppsHelpers {
 
 		$status = readJsonFile(CA_PATHS['dockerUpdateStatus']);
 
-		return $status ?: [];
+		/* readJsonFile() tries unserialize() before json_decode(), so a truthy
+		   non-array could leak through and crash the array-indexing consumers. */
+		return is_array($status) ? $status : [];
 	}
 
 	public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
@@ -401,7 +403,7 @@ class PreviousAppsHelpers {
 					continue;
 				}
 
-				$languageTemplate['Updated'] = true;
+				$languageTemplate['UpdateAvailable'] = true;
 				$updateCount++;
 			}
 
@@ -428,12 +430,16 @@ class PreviousAppsHelpers {
 
 		foreach ($allPlugs as $oldplug) {
 			foreach ($templates as $template) {
-				/* Skip non-plugin templates and guard against missing Repository
-				   so basename() doesn't throw a notice on custom/local XML. */
+				/* Skip non-plugin templates and guard against missing PluginURL
+				   so basename() doesn't throw a notice on custom/local XML.
+				   Match on PluginURL (which is what the plugin system installs
+				   from) — falling back to Repository keeps legacy templates
+				   working when only the older field is populated. */
 				if ( ! ($template['Plugin'] ?? false) ) {
 					continue;
 				}
-				if ( basename($oldplug) != basename($template['Repository'] ?? "") ) {
+				$pluginRef = $template['PluginURL'] ?? $template['Repository'] ?? "";
+				if ( basename($oldplug) != basename($pluginRef) ) {
 					continue;
 				}
 
