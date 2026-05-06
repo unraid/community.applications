@@ -29,7 +29,7 @@ if (false) {
 	// IDE-only hint for static analyzers; never executed at runtime.
 	require_once __DIR__ . "/include/_ide_stubs.php";
 }
-
+file_put_contents("/tmp/blah",print_r($_SERVER,true));
 $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
@@ -230,9 +230,16 @@ data.ignoreUnload = false;
 data.maxPerPage = 12;
 data.totalApps = 0;
 data.loadingMore = false;
-data.cardCache = []; // current loaded slice of cards (HTML strings) — array, not necessarily aligned with global index
-data.cardCacheOffset = 0; // global index of cardCache[0] (non-zero after a jump-load like move-to-end)
-data.firstInDom = 0; // index within cardCache of the first card currently in the DOM
+/* Card-stream cache lives outside `data` because (a) it can grow into the
+   tens-of-KB range and we don't want it riding along when `data` gets
+   serialized for save-state, and (b) it's pure runtime — derived from
+   server responses + the existing changeSortOrder restore path, never
+   persisted across navigations. */
+var caCardCache = {
+	cache: [],       // current loaded slice of cards (HTML strings) — array, not necessarily aligned with global index
+	offset: 0,       // global index of caCardCache.cache[0] (non-zero after a jump-load like move-to-end)
+	firstInDom: 0    // index within caCardCache.cache of the first card currently in the DOM
+};
 
 /* Per-tab id: sessionStorage is scoped per browser-tab and survives reloads of
    that same tab, which is exactly what we need so the server-side cache files
@@ -526,7 +533,7 @@ $(function(){
 					var _restoreTarget = (_restoreSavedPage - 1) * _restorePerPage;
 					var _restoreAttempts = 0;
 					var _restoreScroll = function() {
-						if ($.isArray(data.cardCache) && data.cardCache.length > _restoreTarget) {
+						if ($.isArray(caCardCache.cache) && caCardCache.cache.length > _restoreTarget) {
 							var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 							var perRow = $cards.length ? caVirtCardsPerRow($cards) : 0;
 							var rowH   = (perRow > 0) ? caVirtRowHeight($cards, perRow) : 0;
@@ -2024,14 +2031,14 @@ function postMultiDockerInstall() {
 function caUpdateDisplayCount() {
 	var $el = $(".ca_displayCount");
 	if (!$el.length) return;
-	var loaded = $.isArray(data.cardCache) ? data.cardCache.length : 0;
+	var loaded = $.isArray(caCardCache.cache) ? caCardCache.cache.length : 0;
 	var total = parseInt(data.totalApps, 10) || 0;
 	if (total < 2 || loaded === 0) {
 		$el.empty().hide();
 		return;
 	}
 
-	var offset = parseInt(data.cardCacheOffset, 10) || 0;
+	var offset = parseInt(caCardCache.offset, 10) || 0;
 	var first = offset + 1;
 	var last = Math.min(offset + loaded, total);
 
@@ -2041,7 +2048,7 @@ function caUpdateDisplayCount() {
 		var perRow = caVirtCardsPerRow($cards);
 		var rowH = caVirtRowHeight($cards, perRow);
 		if (perRow > 0 && rowH > 0) {
-			var firstInDom = (typeof data.firstInDom === "number") ? data.firstInDom : 0;
+			var firstInDom = (typeof caCardCache.firstInDom === "number") ? caCardCache.firstInDom : 0;
 			/* The top spacer takes up scrollTop space equal to evicted rows; that
 			   eviction is already encoded in firstInDom, so subtract the spacer
 			   to avoid double-counting. */
@@ -2074,7 +2081,7 @@ function caRenderStructuredFresh(content) {
 	$("#templates_content").html(html);
 }
 /**
- * Paint server HTML or structured card payloads: maintains `data.cardCache` for virtualization, runs fitText, translation banner, and scroll affordances.
+ * Paint server HTML or structured card payloads: maintains `caCardCache.cache` for virtualization, runs fitText, translation banner, and scroll affordances.
  *
  * @param {string|object} content HTML string or `{ cards, header, scripts, pageNumber, maxPerPage }`
  * @param {boolean} [append] Infinite-scroll append vs full replace
@@ -2087,7 +2094,7 @@ function updateDisplay(content, append) {
 			var $existing = $("#templates_content .ca_templatesDisplay").first();
 			if ($existing.length) {
 				for (var i = 0; i < content.cards.length; i++) {
-					data.cardCache.push(content.cards[i]);
+					caCardCache.cache.push(content.cards[i]);
 					$existing.append(content.cards[i]);
 				}
 				/* Re-evaluate scripts (caRenderPageNavigation) so data.nextpage updates.
@@ -2102,11 +2109,11 @@ function updateDisplay(content, append) {
 				caRenderStructuredFresh(content);
 			}
 		} else {
-			data.cardCache = content.cards.slice();
-			data.firstInDom = 0;
+			caCardCache.cache = content.cards.slice();
+			caCardCache.firstInDom = 0;
 			var _pn  = parseInt(content.pageNumber, 10) || 1;
 			var _ppg = parseInt(content.maxPerPage, 10) || data.maxPerPage || 12;
-			data.cardCacheOffset = (_pn - 1) * _ppg;
+			caCardCache.offset = (_pn - 1) * _ppg;
 			caRenderStructuredFresh(content);
 		}
 	} else {
@@ -2118,15 +2125,15 @@ function updateDisplay(content, append) {
 				$existing.append($newChildren);
 			} else {
 				$("#templates_content").html(content);
-				data.firstInDom = 0;
-				data.cardCache = [];
-				data.cardCacheOffset = 0;
+				caCardCache.firstInDom = 0;
+				caCardCache.cache = [];
+				caCardCache.offset = 0;
 			}
 		} else {
 			$("#templates_content").html(content);
-			data.firstInDom = 0;
-			data.cardCache = [];
-			data.cardCacheOffset = 0;
+			caCardCache.firstInDom = 0;
+			caCardCache.cache = [];
+			caCardCache.offset = 0;
 		}
 	}
 	data.loadingMore = false;
@@ -2224,9 +2231,9 @@ function restoreState() {
 		data.ignoreUnload = false;
 		/* These were intentionally stripped before saving; re-init so the next
 		   render path (refreshDisplay → updateDisplay) repopulates cleanly. */
-		data.cardCache = [];
-		data.firstInDom = 0;
-		data.cardCacheOffset = 0;
+		caCardCache.cache = [];
+		caCardCache.firstInDom = 0;
+		caCardCache.offset = 0;
 		data.loadingMore = false;
 		$.removeCookie("ca_data");
 	} catch (e) {
@@ -3355,7 +3362,7 @@ function postCheckForUpdates() {
 }
 
 /* Virtualization: evict cards far above the viewport into a top-spacer (so
-   scroll height stays the same) and restore them from data.cardCache when the
+   scroll height stays the same) and restore them from caCardCache.cache when the
    user scrolls back up. Cards are kept in row-aligned chunks because the float
    layout would mis-pack a partial row. */
 function caVirtSpacer() {
@@ -3419,7 +3426,7 @@ function caVirtRowHeight($cards, perRow) {
 	return $cards[perRow].offsetTop - $cards[0].offsetTop;
 }
 /**
- * Evict off-screen card rows into a top spacer or restore from `data.cardCache` on upward scroll; may trigger `changePage(1)` on large jumps.
+ * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
  */
 function caVirtUpdate() {
 	var mainArea = $(".mainArea")[0];
@@ -3452,9 +3459,9 @@ function caVirtUpdate() {
 	   fresh page-1 fetch instead. */
 	var prevScrollTop = data._prevScrollTop || 0;
 	data._prevScrollTop = scrollTop;
-	if (data.firstInDom > 0 && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
-		data.firstInDom = 0;
-		data.cardCache = [];
+	if (caCardCache.firstInDom > 0 && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
+		caCardCache.firstInDom = 0;
+		caCardCache.cache = [];
 		data.loadingMore = false;
 		data._prevScrollTop = 0;
 		if (typeof changePage === "function") changePage(1);
@@ -3476,28 +3483,28 @@ function caVirtUpdate() {
 		for (var k = 0; k < n; k++) {
 			$cards[k].parentNode.removeChild($cards[k]);
 		}
-		data.firstInDom += n;
+		caCardCache.firstInDom += n;
 		caVirtAdjustSpacer(rowsToEvict * rowHeight);
 		return;
 	}
 
 	/* RESTORE: user has scrolled back into the spacer region. */
-	if (data.firstInDom > 0) {
+	if (caCardCache.firstInDom > 0) {
 		var spacerH = caVirtSpacerHeight();
 		if (spacerH > 0 && scrollTop < spacerH + buffer) {
 			var rowsToRestore = Math.min(
 				Math.ceil(((spacerH + buffer) - scrollTop) / rowHeight),
-				Math.floor(data.firstInDom / perRow) || 1
+				Math.floor(caCardCache.firstInDom / perRow) || 1
 			);
 			rowsToRestore = Math.min(rowsToRestore, 8);
 			if (rowsToRestore <= 0) return;
-			var cardsToRestore = Math.min(rowsToRestore * perRow, data.firstInDom);
+			var cardsToRestore = Math.min(rowsToRestore * perRow, caCardCache.firstInDom);
 			var html = "";
 			for (var j = 0; j < cardsToRestore; j++) {
-				var idx = data.firstInDom - cardsToRestore + j;
-				html += data.cardCache[idx];
+				var idx = caCardCache.firstInDom - cardsToRestore + j;
+				html += caCardCache.cache[idx];
 			}
-			data.firstInDom -= cardsToRestore;
+			caCardCache.firstInDom -= cardsToRestore;
 			caVirtSpacer().after(html);
 			caVirtAdjustSpacer(-(rowsToRestore * rowHeight));
 		}
@@ -3622,7 +3629,7 @@ function caInitInfiniteScroll() {
 		changePage(1, false);
 		var attempts = 0;
 		var poll = function() {
-			if ($.isArray(data.cardCache) && data.cardCache.length >= total) {
+			if ($.isArray(caCardCache.cache) && caCardCache.cache.length >= total) {
 				scrollToEnd();
 				return;
 			}

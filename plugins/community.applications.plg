@@ -2389,29 +2389,24 @@ THIS IS A REQUIRED UPDATE
 <?
   $version = parse_ini_file("/etc/unraid-version");
   
-  if ( version_compare($version['version'],"6.9.0", "<") )
+  if ( version_compare($version['version'],"6.12.0", "<") )
   {
     echo "**********************************************************************\n";
     echo "\n";
-    echo "Community Applications Requires Unraid version 6.9.0 or greater to run\n";
+    echo "Community Applications Requires Unraid version 6.12.0 or greater to run\n";
     echo "\n";
     echo "**********************************************************************\n";
     exit(1);
   }
-  echo "Cleaning Up Old Versions\n";
-  if ( is_file("/usr/local/emhttp/plugins/community.applications/scripts/removeCron.php") ) {
-    exec("/usr/local/emhttp/plugins/community.applications/scripts/removeCron.php");
-  }
+
   exec("rm -rf /usr/local/emhttp/plugins/community.applications");
   @unlink("/etc/cron.daily/updateApplications.sh");
 	
 	exec("rm -rf /tmp/ca_notices");
-	
-	echo "Setting up cron for background notifications\n";
-	$cron = rand(0,59)." * * * * php /usr/local/emhttp/plugins/community.applications/scripts/notices.php > /dev/null 2>&1";
-	@file_put_contents("/boot/config/plugins/community.applications/notification_scan.cron","\n# CRON for CA background scanning of applications\n$cron\n\n");
+  @unlink("/boot/config/plugins/community.applications/notification_scan.cron");
 	exec("/usr/local/sbin/update_cron");
 ?>
+
 ]]>
 </INLINE>
 </FILE>

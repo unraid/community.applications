@@ -477,17 +477,6 @@ $(function() {
 
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
-							<span><?tr("Allow CA to send emergency notifications");?></span>
-							<input type='hidden' name='notifications' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='notifications' value='yes' <?=($GLOBALS['caSettings']['notifications'] ?? "no") == "yes" ? "checked" : ""; ?>>
-						</div>
-						<div class='ca_settingDescription'>
-							<?tr("Allow periodic safety scans and emergency alerts for malware, security vulnerabilities, and critical app/server risks.");?>
-						</div>
-					</div>
-
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
 							<span><?tr("Disable Featured Applications");?></span>
 							<input type='hidden' name='featuredDisable' value='no'>
 							<input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>

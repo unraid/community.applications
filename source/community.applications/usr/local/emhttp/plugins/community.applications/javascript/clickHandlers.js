@@ -156,12 +156,12 @@ function caInitializeClickHandlers() {
 					   so size/position the thumb against data.totalApps (the full result
 					   set from caRenderPageNavigation) instead. Fall back to the local
 					   calc above if any required signal is missing. */
-					if (entry.alwaysShowVertical && typeof data !== "undefined" && data.totalApps > 0 && Array.isArray(data.cardCache)) {
+					if (entry.alwaysShowVertical && typeof data !== "undefined" && data.totalApps > 0 && Array.isArray(caCardCache.cache)) {
 						var $virtCards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 						var perRow = (typeof caVirtCardsPerRow === "function") ? caVirtCardsPerRow($virtCards) : 1;
 						var rowH = (typeof caVirtRowHeight === "function") ? caVirtRowHeight($virtCards, perRow) : 0;
 						if (perRow > 0 && rowH > 0) {
-							var firstInDom = (typeof data.firstInDom === "number") ? data.firstInDom : 0;
+							var firstInDom = (typeof caCardCache.firstInDom === "number") ? caCardCache.firstInDom : 0;
 							var scrolledRows = Math.max(0, Math.floor(el.scrollTop / rowH));
 							var firstVisibleGlobal = firstInDom + (scrolledRows * perRow);
 							var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowH));
