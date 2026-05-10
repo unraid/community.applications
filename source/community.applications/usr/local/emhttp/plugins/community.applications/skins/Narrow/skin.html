@@ -66,10 +66,10 @@ $(function() {
 		<div id='sortIconArea' class='menuAdjust'>
 			<div class='caButton hideWithMenu' id='sortByButton'></div>
 			<div id='sortIconOptions' class='ca_hide'>
-				<a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
-				<a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
-				<a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
-				<a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
+				<button type='button' id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></button>
+				<button type='button' class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></button>
+				<button type='button' class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></button>
+				<button type='button' class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></button>
 			</div>
 		</div>
 		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
@@ -168,7 +168,7 @@ $(function() {
      and the .ca_modal_overlay click handler in clickHandlers.js). -->
 <div class='ca_modal_overlay' role='presentation' aria-hidden='true'></div>
 
-<div class='sidebar' role='modal'>
+<div class='sidebar' role='dialog' aria-modal='true'>
 	<div class='popupCloseArea'>
 		<div class='popupCloseAreaButtons'>
 			<span class='popUpClose caButton'><?tr("CLOSE");?></span>

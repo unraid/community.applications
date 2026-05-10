@@ -16,7 +16,7 @@ c6dcb5b441ab71d133bcbb9a7c025522  ./include/exec.php
 ac9319d17141edcbc1a4c2532cebcd60  ./javascript/clickHandlers.js
 6c21186ac1cfe995fa2d12b5c0916487  ./javascript/libraries.js
 2a8e6fa3709d62cfc6c92b450e90d14e  ./javascript/statistics.js
-6cfe86474a50269fb83bfa9155b0d2e2  ./javascript/helpers.js
+e09c7f7c84b79ba755ca1f23659b9ce6  ./javascript/helpers.js
 5d4bd67852f602f59d6e7da06eb97e01  ./phpstan.neon
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_preHook
@@ -44,4 +44,4 @@ f26cca2a14a97779f372c91dadbd3869  ./skins/Narrow/themes/black.css
 ef7db66b1c128694e09a9c7aad3d10dc  ./skins/Narrow/themes/white.css
 680794ac42520245d89e0359b87b6f56  ./skins/Narrow/skin.php
 af7579c5c68df812e3df2b02c8d7359a  ./skins/Narrow/skin_helpers.php
-7408b1ef0e57cbf916462bb61d853b92  ./skins/Narrow/skin.html
+c1d48c979f9a566f30e6c0c10cd3a71d  ./skins/Narrow/skin.html
