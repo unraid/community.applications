@@ -1247,6 +1247,8 @@ function display_content() {
 function dismiss_warning() {
 
 	ca_file_put_contents(CA_PATHS['warningAccepted'],"warning dismissed");
+	unset($GLOBALS['caSettings']['NoInstalls']);
+	write_ini_file(CA_PATHS['pluginSettings'],$GLOBALS['caSettings']);
 	postReturn(['status'=>"warning dismissed"]);
 }
 
