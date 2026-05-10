@@ -75,12 +75,17 @@
 		height: 100vh;
 	}
 
+	:root {
+		/* Mobile slide-in menu width — referenced by the scrim offset below
+		   so the two stay in lockstep. */
+		--ca-mobile-menu-width: 20rem;
+	}
 	.mobileMenu.menuHidden{
 		display: none;
 	}
 	.mobileMenu.menuShowing {
 		display: block;
-		width: 20rem;
+		width: var(--ca-mobile-menu-width);
 	}
 
 	.mobileMenuButton {
@@ -106,10 +111,10 @@
 	.Theme--sidebar body.menuShowing .ca_modal_overlay {
 		top: 0;
 	}
-	/* Mobile menu slides in from the left and is 7rem wide here — pull the
-	   scrim in by that amount so the menu itself isn't blurred/dimmed. */
+	/* Pull the scrim in by the full mobile menu width so the menu itself
+	   isn't dimmed and stays clickable. Var matches .mobileMenu.menuShowing. */
 	body.menuShowing .ca_modal_overlay {
-		left: 7rem;
+		left: var(--ca-mobile-menu-width);
 	}
 
 	.mainArea {

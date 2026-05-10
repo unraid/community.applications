@@ -894,7 +894,12 @@ jQuery.fn.fitText = function(overFlowType=false) {
 jQuery.fn.showAlternateView = function() {
 	const $src = $(this);
 	const $dest = $("#sidenavContent");
-	$dest.empty().append($src.contents().clone(true, true)).scrollTop(0);
+	$dest.empty().append($src.contents().clone(true, true));
+	/* `.sidenav` is the overflow-y:scroll container; `#sidenavContent` is just
+	   the inner wrapper (no scrollbar of its own), so resetting scrollTop on
+	   the wrapper is a no-op. Reset the actual scroller so alternate views
+	   always open at the top. */
+	$dest.closest(".sidenav").scrollTop(0);
 	showAlternateView();
 	return this;
 }

@@ -770,7 +770,7 @@ function downloadDebugging() {
 function appOfDay($file) {
 	global $sortOrder,$dynamixSettings;
 
-	$max = getPost("maxHomeApps",10);
+	$max = getPost("maxHomeApps",6);
 	$appOfDay = [];
 
 	switch ($GLOBALS['caSettings']['startup']) {
@@ -1043,7 +1043,7 @@ function get_content() {
 	if ( $mobileDevice ) {
 		$GLOBALS['caSettings']['maxPerPage'] = 6;
 	}
-	$maxHomeApps = getPost("maxHomeApps",12);
+	$maxHomeApps = getPost("maxHomeApps",6);
 
 	$GLOBALS['caSettings']['startup'] = getPost("startupDisplay",false);
 	@unlink(CA_PATHS['repositoriesDisplayed']);

@@ -2415,8 +2415,12 @@ THIS IS A REQUIRED UPDATE
 		if ( $raw !== false && $raw !== "" && json_decode($raw, true) === null ) {
 			$arr = @unserialize($raw);
 			if ( is_array($arr) ) {
-				@file_put_contents($pinned, json_encode($arr, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-				echo "Migrated pinned_appsV2.json from PHP-serialized to JSON\n";
+				$json = json_encode($arr, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+				if ( $json !== false && @file_put_contents($pinned, $json) !== false ) {
+					echo "Migrated pinned_appsV2.json from PHP-serialized to JSON\n";
+				} else {
+					echo "WARNING: Failed to rewrite pinned_appsV2.json as JSON; pins may need to be re-applied\n";
+				}
 			}
 		}
 	}

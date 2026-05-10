@@ -3,7 +3,13 @@
    video tile rendering. Pure URL→URL transform. */
 
 require_once __DIR__ . "/lib.php";
-require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
+/* Prefer the repo-relative path so this test runs in CI / dev sandboxes; fall
+   back to the appliance install path when running on a live Unraid box. */
+$helpersPath = dirname(__DIR__) . "/source/community.applications/usr/local/emhttp/plugins/community.applications/include/helpers.php";
+if (!is_file($helpersPath)) {
+	$helpersPath = "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
+}
+require_once $helpersPath;
 
 echo "=== getYoutubeThumbnail ===\n";
 
