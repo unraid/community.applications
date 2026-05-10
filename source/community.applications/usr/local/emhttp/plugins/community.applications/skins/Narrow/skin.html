@@ -96,14 +96,10 @@ $(function() {
 			<? endif; ?>
 			<input type='button' class='multi_installAll' value='<?tr("Select all");?>'>
 			<input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
-			<input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
+			<input type='button' class='multi_deleteButton' style='display:none' value='<?tr("Remove");?>'>
 		</div>
 	</div>
 </div>
-<!-- Pagination target lives outside the display tree (infinite-scroll handles
-     paging now; kept as a render target for caRenderPageNavigation so
-     data.nextpage / data.totalApps still get populated; hidden via CSS). -->
-<div id='ca_pageNavigation' class='navigationSection'></div>
 <!-- CA's own scroll controls — visibility & click are handled in
      caInitInfiniteScroll (Apps.page); independent of dynamix's .back_to_top
      / .move_to_end so we don't disturb other plugins that bind them. -->
@@ -149,7 +145,7 @@ $(function() {
 				<li class='caMenuItem showSettings noSelect'><?tr("Settings");?></li>
 				<li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
 				<li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
-				<li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'><?tr("Support");?></a></li>
+				<li class='caMenuItem noSelect'><a href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'><?tr("Support");?></a></li>
 				<li><hr class='category_hr'/></li>
 				<li><?=tr("VERSION");?></li>
 				<li><span id='caInstalledVersion'></span></li>
@@ -495,17 +491,6 @@ $(function() {
 				</div>
 
 			</form>
-		</div>
-	</div>
-	<div id='caPageNavigationTemplate'>
-		<div class='pageNavigation'>
-			<span class='pageLeft pageNumber'></span>
-			<span class='pageRight pageNumber'></span>
-		</div>
-		<div class='ca_hide caPageNavTemplates'>
-			<a class='caPageNavLink pageNumber pageNavClick'></a>
-			<span class='caPageNavSelected pageNumber pageSelected'></span>
-			<span class='caPageNavDots pageDots'></span>
 		</div>
 	</div>
 </div>

@@ -4,13 +4,12 @@
 <!ENTITY author    "Lime Technology">
 <!ENTITY version   "2025.10.27">
 <!ENTITY md5       "368247b310ff5ee79e4f3fcd9ae12ce1">
-<!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/master/plugins/&name;.plg">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
 ###2025.10.27
@@ -2401,10 +2400,26 @@ THIS IS A REQUIRED UPDATE
 
   exec("rm -rf /usr/local/emhttp/plugins/community.applications");
   @unlink("/etc/cron.daily/updateApplications.sh");
-	
+
 	exec("rm -rf /tmp/ca_notices");
   @unlink("/boot/config/plugins/community.applications/notification_scan.cron");
 	exec("/usr/local/sbin/update_cron");
+
+	/* One-time migration: pre-2026 builds wrote pinned apps as PHP-serialized
+	   data; the new readJsonFile() is JSON-only. If the on-disk file decodes
+	   via unserialize() but not via json_decode(), rewrite it as JSON in
+	   place so the user's pins survive the upgrade. */
+	$pinned = "/boot/config/plugins/community.applications/pinned_appsV2.json";
+	if ( is_file($pinned) ) {
+		$raw = @file_get_contents($pinned);
+		if ( $raw !== false && $raw !== "" && json_decode($raw, true) === null ) {
+			$arr = @unserialize($raw);
+			if ( is_array($arr) ) {
+				@file_put_contents($pinned, json_encode($arr, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+				echo "Migrated pinned_appsV2.json from PHP-serialized to JSON\n";
+			}
+		}
+	}
 ?>
 
 ]]>

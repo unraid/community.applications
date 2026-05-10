@@ -136,9 +136,6 @@ function displayPopup($template) {
 	$Beta = $Beta ?? false;
 	$SortName = $SortName ?? "";
 	$pinnedClass = $pinnedClass ?? "";
-	$pinnedTitle = $pinnedTitle ?? "";
-	$pinnedAlt = $pinnedAlt ?? "";
-	$pinned = $pinned ?? "";
 	$display_icon = $display_icon ?? "";
 	$display_ovr = $display_ovr ?? "";
 	$Category = $Category ?? "";
@@ -210,9 +207,6 @@ function displayPopup($template) {
 	if ($Blacklist) {
 		$ModeratorComment .= "<br>".tr("This application template has been blacklisted.");
 	}
-	if ($CAComment) {
-		$ModeratorComment .= "  $CAComment";
-	}
 	if ($Language && $LanguagePack !== "en_US") {
 		if (validURL($disclaimLineLink)) {
 			$safeDisclaim = htmlspecialchars($disclaimLineLink, ENT_QUOTES);
@@ -225,10 +219,12 @@ function displayPopup($template) {
 		$ModeratorComment = "<span class='featuredIncompatible'>".sprintf(tr("%s is incompatible with your OS version.  Please update the OS to proceed"), $Name)."</span>";
 	}
 
-	$ModeratorCommentBlock = "";
-	if ($ModeratorComment) {
-		$ModeratorCommentBlock = "<div class='modComment'><div class='moderatorCommentHeader'>".tr("Note:")."</div><div class='moderatorComment'>$ModeratorComment</div></div>";
-	}
+	/* Two separate sidebar blocks, same styling: ModeratorComment (curated /
+	   moderation-derived warnings) goes BEFORE the description; CAComment
+	   (auto-generated security/config heads-up like privileged mode, custom
+	   network) goes AFTER. No "Note:" header, normal text size. */
+	$ModeratorCommentBlock = $ModeratorComment ? "<div class='modComment'>$ModeratorComment</div>" : "";
+	$CACommentBlock        = $CAComment        ? "<div class='modComment'>$CAComment</div>"        : "";
 
 	$RecommendedBlock = "";
 	if ($RecommendedReason) {
@@ -440,6 +436,8 @@ function displayPopup($template) {
 						<div class='popupAuthorMain'><?= $Author ?></div>
 					<?php endif; ?>
 
+					<?php /* Primary action row: Install / WebUI / Settings, then
+					         Update / Edit / Uninstall / Pin. */ ?>
 					<?php if (!empty($installFirstAction['action'])): ?>
 						<div class='caButton actionsPopup'><span onclick="<?= $installFirstAction['action'] ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
 					<?php endif; ?>
@@ -448,16 +446,6 @@ function displayPopup($template) {
 						<div class='caButton actionsPopup'><span onclick="<?= $popupShortcut['action'] ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
 					<?php endif; ?>
 					<?= $readmeButton ?>
-
-					<?php if (count($supportContext) === 1 && validURL($supportContext[0]['link'] ?? "")): ?>
-						<div class='caButton supportPopup'><a href='<?= htmlspecialchars($supportContext[0]['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $supportContext[0]['icon'] ?>'> <?= $supportContext[0]['text'] ?></span></a></div>
-					<?php elseif ($supportContext): ?>
-						<div class='caButton supportPopup' id='supportPopup'><span class='ca_fa-support'> <?= tr("Support") ?></span></div>
-					<?php endif; ?>
-
-					<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
-						<div class='caButton pinPopup <?= $pinnedClass ?>' title='<?= $pinnedTitle ?>' data-pinnedalt='<?= $pinnedAlt ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= $pinned ?></span></div>
-					<?php endif; ?>
 
 					<?php if ($actionsButtonItems): ?>
 						<?php foreach ($actionsButtonItems as $actionItem): ?>
@@ -473,6 +461,22 @@ function displayPopup($template) {
 						<div class='caButton actionsPopup'><span onclick="<?= $popupUninstallAction['action'] ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
 					<?php endif; ?>
 
+					<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
+						<div class='caButton pinPopup <?= $pinnedClass ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= tr("Pin") ?></span></div>
+					<?php endif; ?>
+
+					<?php /* Force the support cluster (Project / Discord / Support /
+					         Registry / Template / Plugin) onto its own line beneath
+					         the action row via a flex row-break. */ ?>
+					<?php if (!empty($supportContext)): ?>
+						<span class='popupRowBreak' aria-hidden='true'></span>
+					<?php endif; ?>
+					<?php foreach ($supportContext as $sc): ?>
+						<?php if (validURL($sc['link'] ?? "")): ?>
+							<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
+						<?php endif; ?>
+					<?php endforeach; ?>
+
 					<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
 						<div class='ca_red'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
 					<?php endif; ?>
@@ -485,8 +489,9 @@ function displayPopup($template) {
 					<?php endif; ?>
 				</div>
 			</div>
-			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
 			<?= $ModeratorCommentBlock ?>
+			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
+			<?= $CACommentBlock ?>
 			<?= $RequiresMessage ?>
 			<?= $readmeSection ?>
 			<?= $RecommendedBlock ?>
@@ -572,7 +577,7 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
  * @param bool $returnArray
  * @return array|string|void
  */
-function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
+function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false,$emitNavScript=true) {
 
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
 	$extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
@@ -697,7 +702,12 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 		}
 	}
 
-	$navScript = getPageNavigation($pageNumber, count($file), false, true);
+	/* Suppressed on the home page — handleHomeStartupDisplay() builds 5-6
+	   sections, each of which would emit its own caRenderPageNavigation()
+	   that stomps on data.nextpage / data.totalApps. The last section's
+	   value would then mislead the infinite-scroll trigger and the display
+	   count. Home has no pagination concept anyway. */
+	$navScript = $emitNavScript ? getPageNavigation($pageNumber, count($file), false, true) : "";
 	$ct .= $navScript;
 
 	if (! $count) {
@@ -888,6 +898,12 @@ function getRepoDescriptionSkin($repository) {
 	$favouriteLabel = tr("Favourite");
 	$repoBio = strip_tags($repoBio);
 
+	$repoUrlButton = "";
+	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url']) && validURL($repo['url'])) {
+		$safeRepoUrl = htmlspecialchars($repo['url'], ENT_QUOTES);
+		$repoUrlButton = "<a class='caButton ca_repoUrl' href='{$safeRepoUrl}' target='_blank' rel='noopener noreferrer'>".tr("Repository")."</a>";
+	}
+
 	$popupContent = "
 		<div class='popupContent'>
 			<div class='ca_popupIconArea'>
@@ -898,6 +914,7 @@ function getRepoDescriptionSkin($repository) {
 					<div class='popupName ellipsis'>$repository</div>
 					<div class='caButton ca_repoSearchPopUp popupProfile' data-repository='{$encodedRepository}'>$seeAllAppsLabel</div>
 					<div class='caButton ca_favouriteRepo $favRepoClass' data-repository='{$encodedRepository}'>$favouriteLabel</div>
+					{$repoUrlButton}
 				</div>
 			</div>
 			<div class='popupRepoDescription'>$repoBio</div>
@@ -997,14 +1014,14 @@ function displayCard($template) {
 		$holderClass = $repositoryContext['holderClass'];
 		$cardClass = $repositoryContext['cardClass'];
 		$id = $repositoryContext['id'];
-		$supportContext = $repositoryContext['supportContext'];
 		$actionsContext = $repositoryContext['actionsContext'];
 		$name = $repositoryContext['name'];
 		$author = $repositoryContext['author'];
 		$template = array_merge($template, $repositoryContext['overrides']);
-	} else {
-		$supportContext = caBuildSupportContextForApplication($template);
 	}
+	/* Cards no longer render any support buttons — the sidebar owns that.
+	   Both branches above used to set $supportContext but nothing here reads
+	   it, so the build call and field were pure waste. */
 
 	[$cardStart, $card, $backgroundClickable] = caBuildBottomLineSection($template, $cardClass, $popupType, $holderClass, $class, $name, $repoName);
 
@@ -1012,8 +1029,8 @@ function displayCard($template) {
 		$card .= caRenderActionsButtons($actionsContext, $template['PluginURL'] ?? "", $template['LanguagePack'] ?? "", $name, (string) $id);
 	}
 	$card .= "<span class='{$appType}' title='".htmlentities($typeTitle)."'></span>";
-	$card .= caRenderFavouriteSpan($template, $repoName, !empty($template['RepositoryTemplate']));
-	$card .= caRenderPinnedSpan($template);
+	/* Favourite + pinned glyphs no longer render as corner overlays — they
+	   live inline ahead of the author/name lines (see caBuildApplicationHeader). */
 
 	$type = caResolveCheckboxType($appType);
 	$previousAppName = !empty($template['Plugin']) ? ($template['PluginURL'] ?? "") : $name;
@@ -1024,7 +1041,7 @@ function displayCard($template) {
 	$card .= "<div class='ca_iconArea'>";
 	$card .= caBuildIconMarkup($template, !empty($template['DockerHub']));
 	$card .= "</div>";
-	$card .= caBuildApplicationHeader($template, $name, $author, $template['Category'], !empty($template['Official']));
+	$card .= caBuildApplicationHeader($template, $name, $author, $template['Category']);
 	$card .= "</div>";
 
 	$overview = caNormalizeOverview($template, $name);

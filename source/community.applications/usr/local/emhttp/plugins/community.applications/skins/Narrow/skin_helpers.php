@@ -234,15 +234,15 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		$supportContext[] = ["icon"=>"ca_reddit","link"=>$template['Reddit'],"text"=>tr("Reddit")];
 	}
 	if ($template['Support']) {
-		$supportContext[] = ["icon"=>"ca_fa-support","link"=>$template['Support'],"text"=>$template['SupportLanguage'] ?: tr("Support Forum")];
+		$supportContext[] = ["icon"=>"ca_fa-support","link"=>$template['Support'],"text"=>$template['SupportLanguage'] ?: tr("Support")];
 	}
 	if ($template['Registry']) {
 		$supportContext[] = ["icon"=>"ca_fa-docker","link"=>$template['Registry'],"text"=>tr("Registry")];
 	}
 	if ($GLOBALS['caSettings']['dev'] == "yes") {
-		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Application Template")];
+		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Template")];
 		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
-			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("PluginURL")];
+			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("Plugin")];
 		}
 	}
 
@@ -328,17 +328,12 @@ function caPrepareTrendVisuals(array &$template, &$templateDescription) {
  * Resolve pinned/unpinned state for templates based on user preferences
  */
 function caResolvePinnedState(array &$template, array $pinnedApps) {
-		if ($pinnedApps["{$template['Repository']}&{$template['SortName']}"] ?? false) {
-			$template['pinned'] = tr("Unpin App");
-			$template['pinnedAlt'] = tr("Pin App");
-			$template['pinnedTitle'] = tr("Click to unpin this application");
-			$template['pinnedClass'] = "pinned";
-		} else {
-			$template['pinned'] = tr("Pin App");
-			$template['pinnedAlt'] = tr("Unpin App");
-			$template['pinnedTitle'] = tr("Click to pin this application");
-			$template['pinnedClass'] = "unpinned";
-		}
+		/* Mirrors the favourite-repo button: static label, state shown via
+		   `.pinned` / `.unpinned` colour classes. pinApp() in Apps.page just
+		   toggles those — no text/title swap. */
+		$template['pinnedClass'] = ($pinnedApps["{$template['Repository']}&{$template['SortName']}"] ?? false)
+			? "pinned"
+			: "unpinned";
 	}
 
 /**
@@ -422,7 +417,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider"=>true];
 						}
-						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
+						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
 					} else {
 						if (!$template['Blacklist']) {
 							if ($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") {
@@ -442,18 +437,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 			if (checkInstalledPlugin($template)) {
 				$template['Installed'] = true;
 				$template['installedVersion'] = ca_plugin("version","/var/log/plugins/$pluginName");
-				/* Ordered comparison — only treat installed < feed/tmp as an
-				   update. The previous `!=` form would also fire when the
-				   installed plugin was *newer* than the feed/tmp copy and
-				   surface a bogus Update action. Matches the strcmp(...) < 0
-				   form used by caProcessPluginTemplate(). */
-				$tmpPluginVersion = is_file("/tmp/plugins/$pluginName")
-					? ca_plugin("version", "/tmp/plugins/$pluginName")
-					: false;
-				if (
-					strcmp($template['installedVersion'], $template['pluginVersion']) < 0 ||
-					($tmpPluginVersion && strcmp($template['installedVersion'], $tmpPluginVersion) < 0)
-				) {
+				/* `!=` (not `<`) is intentional: also fires when installed > feed,
+				   so a user can roll back to the feed version via the Update action. */
+				if ($template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName"))) {
 					if (is_file(CA_PATHS['pluginTempDownload'])) {
 						@copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
 						$template['UpdateAvailable'] = true;
@@ -463,15 +449,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					$template['UpdateAvailable'] = false;
 				}
 
-				$pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch","/var/log/plugins/$pluginName");
+				$pluginSettings = ca_plugin("launch","/var/log/plugins/$pluginName");
 				if ($pluginSettings) {
-					/* For CA itself, open the in-sidebar settings view rather than
-					   navigating away to /Apps/ca_settings — keeps the user in
-					   context and matches the "click Settings in the menu" flow. */
-					$settingsAction = ($pluginName == "community.applications.plg")
-						? "showSettings();"
-						: "openNewWindow('/Apps/$pluginSettings');";
-					$actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>$settingsAction];
+					$actionsContext[] = ["icon"=>"ca_fa-pluginSettings","text"=>tr("Settings"),"action"=>"openNewWindow('/Apps/$pluginSettings');"];
 				}
 				if ($pluginName != "community.applications.plg") {
 					if (!empty($actionsContext)) {
@@ -509,7 +489,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (!empty($actionsContext)) {
 						$actionsContext[] = ["divider"=>true];
 					}
-					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove from Previous Apps")."</span>","action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
+					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove")."</span>","action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
 				}
 			}
 			if (is_file(CA_PATHS['pluginPending'].$pluginName)) {
@@ -771,7 +751,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 				$userTemplate = readXmlFile($template['InstallPath'], false, false);
 				$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall"), "action" => "popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
 				$actionsContext[] = ["divider" => true];
-				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove from Previous Apps"), "alternate" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','{$template['Name']}');"];
+				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','{$template['Name']}');"];
 			} else {
 				$canFreshInstall = (($template['Compatible'] ?? false) || ($GLOBALS['caSettings']['hideIncompatible'] ?? "true") !== "true")
 					&& (! ($template['Deprecated'] ?? false) || ($GLOBALS['caSettings']['hideDeprecated'] ?? "true") !== "true");
@@ -831,7 +811,7 @@ function caProcessPluginTemplate(array $template): array {
 				$template['UpdateAvailable'] = false;
 			}
 		}
-		$pluginSettings = ($pluginName == "community.applications.plg") ? "ca_settings" : ca_plugin("launch", "/var/log/plugins/$pluginName");
+		$pluginSettings = ca_plugin("launch", "/var/log/plugins/$pluginName");
 		if ($pluginSettings) {
 			$actionsContext[] = ["icon" => "ca_fa-pluginSettings", "text" => tr("Settings"), "action" => "openNewWindow('/Apps/$pluginSettings');"];
 		}
@@ -876,7 +856,7 @@ function caProcessPluginTemplate(array $template): array {
 			if (! empty($actionsContext)) {
 				$actionsContext[] = ["divider" => true];
 			}
-			$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove from Previous Apps"), "action" => "removeApp('{$template['InstallPath']}','$pluginName');"];
+			$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Remove"), "action" => "removeApp('{$template['InstallPath']}','$pluginName');"];
 		}
 	}
 
@@ -948,9 +928,6 @@ function caProcessLanguageTemplate(array $template, array $actionsContext): arra
  * @return string HTML
  */
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
-
-	$pageFunction = $dockerSearch ? "dockerSearch" : "changePage";
-
 	if ( $dockerSearch ) {
 		$GLOBALS['caSettings']['maxPerPage'] = 25;
 	}
@@ -960,20 +937,16 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 	}
 
 	$maxPerPage = max(1, (int)$GLOBALS['caSettings']['maxPerPage']);
-	$maxMiddlePages = 3; // Change this value to control how many middle page numbers are shown.
 
 	$navigationData = [
 		'pageNumber' => (int)$pageNumber,
 		'totalApps' => (int)$totalApps,
 		'maxPerPage' => (int)$maxPerPage,
-		'displayCount' => (bool)$displayCount,
-		'pageFunction' => $pageFunction,
 		'dockerSearch' => (bool)$dockerSearch,
-		'maxMiddlePages' => (int)$maxMiddlePages,
 	];
 	$jsonNavigationData = json_encode($navigationData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
-	return "<script>caRenderPageNavigation('ca_pageNavigation',$jsonNavigationData);</script>";
+	return "<script>caRenderPageNavigation($jsonNavigationData);</script>";
 }
 
 
@@ -1144,11 +1117,6 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 		$rows[] = "<tr><td class='repoLeft'>".tr("Total Languages")."</td><td class='repoRight'>{$totals['languages']}</td></tr>";
 	}
 
-	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && !empty($repo['url']) && validURL($repo['url'])) {
-		$safeRepoUrl = htmlspecialchars($repo['url'], ENT_QUOTES);
-		$rows[] = "<tr><td class='repoLeft'><a class='popUpLink' href='{$safeRepoUrl}' target='_blank' rel='noopener noreferrer'>".tr("Repository URL")."</a></td></tr>";
-	}
-
 	$rows[] = "<tr><td class='repoLeft'>".tr("Total Applications")."</td><td class='repoRight'>{$totals['apps']}</td></tr>";
 
 	if ($totals['downloadDockerCount'] && $totals['downloads']) {
@@ -1310,31 +1278,6 @@ function caResolveAuthor(array $template, string $repoName): string {
 }
 
 /**
- * Build support button context for template cards (non-repo)
- */
-function caBuildSupportContextForApplication(array $template): array {
-	$context = [];
-	if (!empty($template['Project'])) {
-		$context[] = ["icon" => "ca_fa-project", "link" => $template['Project'], "text" => tr("Project")];
-	}
-	if (!empty($template['Discord'])) {
-		$context[] = ["icon" => "ca_discord", "link" => $template['Discord'], "text" => tr("Discord")];
-	}
-	if (!empty($template['Support'])) {
-		$context[] = [
-			"icon" => "ca_fa-support",
-			"link" => $template['Support'],
-			"text" => $template['SupportLanguage'] ?: tr("Support Forum")
-		];
-	}
-	if (!empty($template['Registry'])) {
-		$context[] = ["icon" => "docker", "link" => $template['Registry'], "text" => tr("Registry")];
-	}
-
-	return $context;
-}
-
-/**
  * Build an inline ReadMe section placeholder for GitHub README links
  */
 function caBuildReadmeSectionDiv(array $template): string {
@@ -1381,26 +1324,8 @@ function caBuildReadmeSectionDiv(array $template): string {
  * Build repository card overrides/context when rendering repo entries
  */
 function caBuildRepositoryContext(array $template, string $repoName, string $author): array {
-	$supportContext = [];
-
-	if (!empty($template['profile'])) {
-		$supportContext[] = ["icon" => "ca_profile", "link" => $template['profile'], "text" => tr("Profile")];
-	}
-	if (!empty($template['Forum'])) {
-		$supportContext[] = ["icon" => "ca_forum", "link" => $template['Forum'], "text" => tr("Forum")];
-	}
-	if (!empty($template['Twitter'])) {
-		$supportContext[] = ["icon" => "ca_twitter", "link" => $template['Twitter'], "text" => tr("Twitter")];
-	}
-	if (!empty($template['Reddit'])) {
-		$supportContext[] = ["icon" => "ca_reddit", "link" => $template['Reddit'], "text" => tr("Reddit")];
-	}
-	if (!empty($template['Facebook'])) {
-		$supportContext[] = ["icon" => "ca_facebook", "link" => $template['Facebook'], "text" => tr("Facebook")];
-	}
-	if (!empty($template['WebPage'])) {
-		$supportContext[] = ["icon" => "ca_webpage", "link" => $template['WebPage'], "text" => tr("Web Page")];
-	}
+	/* No supportContext built here — repo cards don't render support buttons.
+	   The sidebar's own caBuildSupportContext() handles that on click. */
 
 	$name = str_replace(["' Repository", "'s Repository", " Repository"], "", html_entity_decode($author, ENT_QUOTES));
 	$name = str_replace(["&apos;s", "'s"], "", $name);
@@ -1440,7 +1365,6 @@ function caBuildRepositoryContext(array $template, string $repoName, string $aut
 		"holderClass" => "repositoryCard",
 		"cardClass" => "ca_repoinfo",
 		"id" => str_replace(" ", "", $repoName),
-		"supportContext" => $supportContext,
 		"actionsContext" => [],
 		"name" => $name,
 		"author" => "",
@@ -1463,6 +1387,13 @@ function caBuildBottomLineSection(
 	$bottomClass = "ca_bottomLineSpotLight";
 	$card = "";
 
+	/* Favourite + pinned indicators sit inline right after the Details/Docker
+	   Hub button — same row as the rest of the card buttons so they inherit
+	   the surrounding font size. Both spans always render; their Show/Hide
+	   classes (and pinApp()'s .toggle()) flip visibility without re-rendering. */
+	$favSpan    = caRenderFavouriteSpan($template, $repoName, !empty($template['RepositoryTemplate']));
+	$pinnedSpan = caRenderPinnedSpan($template);
+
 	if (!empty($template['DockerHub']) && validURL($template['DockerHub'])) {
 		$backgroundClickable = "dockerCardBackground";
 		$safeDockerHub = htmlspecialchars($template['DockerHub'], ENT_QUOTES);
@@ -1471,6 +1402,7 @@ function caBuildBottomLineSection(
 		$card .= "
 			<div class='ca_bottomLine {$bottomClass}'>
 			<div class='caButton infoButton_docker ca_href' data-href='{$safeDockerHub}'>".tr("Docker Hub")."</div>
+			{$favSpan}{$pinnedSpan}
 			<div class='caButton actionsButton similarSearch' data-search='".($template['similarSearch'] ?? "")."'>".tr("Similar")."</div>";
 	} else {
 		$backgroundClickable = "ca_backgroundClickable";
@@ -1480,53 +1412,11 @@ function caBuildBottomLineSection(
 		$card .= "
 			<div class='ca_bottomLine {$bottomClass}'>
 			<div class='caButton infoButton {$cardClass}'>".tr("Details")."</div>
+			{$favSpan}{$pinnedSpan}
 		";
 	}
 
 	return [$cardStart, $card, $backgroundClickable];
-}
-
-/**
- * Render the Support button(s) for a template card depending on context size
- */
-function caRenderSupportButtons(array $supportContext, string $name, string $id): string {
-	$supportContext = array_values(array_filter($supportContext, static function ($context) {
-		if (!is_array($context)) {
-			return false;
-		}
-		$link = trim((string)($context['link'] ?? ""));
-		$text = trim(strip_tags((string)($context['text'] ?? "")));
-		/* Drop any context whose link isn't a real http(s) URL — the JS
-		   ca_href handler treats a leading "/" as internal and would happily
-		   open /Main/Dashboard on the user's own GUI. */
-		return ($link !== "" && $text !== "" && validURL($link));
-	}));
-
-	if (empty($supportContext)) {
-		return "";
-	}
-
-	if (count($supportContext) === 1) {
-		$context = $supportContext[0];
-
-		/* Sanitize the visible label — SupportLanguage can be a user-supplied
-		   string in custom templates, so strip tags and escape before rendering.
-		   The earlier filter only used the stripped form for emptiness, not output. */
-		$displayText = trim(strip_tags((string)($context['text'] ?? "")));
-		if ($displayText === tr("Support Forum")) {
-			$displayText = tr("Support");
-		}
-
-		$safeLink = htmlspecialchars($context['link'], ENT_QUOTES);
-		$safeText = htmlspecialchars($displayText, ENT_QUOTES, "UTF-8");
-		return "<div class='caButton supportButton'><span class='ca_href' data-href='{$safeLink}' data-target='_blank'>{$safeText}</span></div>";
-	}
-
-	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;
-
-	return "
-			<div class='caButton supportButton supportButtonCardContext' id='support{$sanitizedName}' data-context='".json_encode($supportContext, JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP)."'>".tr("Support")."</div>
-		";
 }
 
 /**
@@ -1538,12 +1428,11 @@ function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string
 	}
 
 	if (count($actionsContext) === 1 && ($actionsContext[0]['text'] ?? "") === tr("Install")) {
-		$dispText = $actionsContext[0]['alternate'] ?? $actionsContext[0]['text'];
 		/* htmlspecialchars + ENT_QUOTES so apostrophes inside the JS body don't
 		   collide with the surrounding onclick='...' delimiters. */
 		$safeAction = htmlspecialchars($actionsContext[0]['action'], ENT_QUOTES);
 
-		return "<div class='caButton actionsButton' data-pluginURL='{$pluginUrl}' data-languagePack='{$languagePack}' onclick='{$safeAction}'>{$dispText}</div>";
+		return "<div class='caButton actionsButton' data-pluginURL='{$pluginUrl}' data-languagePack='{$languagePack}' onclick='{$safeAction}'>{$actionsContext[0]['text']}</div>";
 	}
 
 	$sanitizedName = preg_replace("/[^a-zA-Z0-9]+/", "", $name).$id;
@@ -1639,31 +1528,22 @@ function caBuildIconMarkup(array $template, bool $dockerHub): string {
 /**
  * Build the header section (name/author/category) for a template card
  */
-function caBuildApplicationHeader(array $template, string $name, string $author, string $category, bool $official): string {
+function caBuildApplicationHeader(array $template, string $name, string $author, string $category): string {
 	$header = "
 		<div class='ca_applicationName ellipsis'>{$name}
 	";
 
-	if (!empty($template['CAComment']) || !empty($template['ModeratorComment']) || !empty($template['Requires'])) {
-		$commentIcon = "";
-		$warning = "";
-
-		if (!empty($template['CAComment']) || !empty($template['ModeratorComment'])) {
-			$commentIcon = "ca_fa-comment";
-			$warning = tr("Click info to see the notes regarding this application");
-		}
-
-		if (!empty($template['Requires'])) {
-			if (!empty($template['RequiresFile']) && !is_file($template['RequiresFile'])) {
-				$commentIcon = "ca_fa-additional";
-				$warning = tr("This application has additional requirements");
-			}
-		}
-
-		$header .= "&nbsp;<span class='{$commentIcon} cardWarning' title='".htmlentities($warning, ENT_QUOTES)."'></span>";
+	/* Author label tier:
+	   - LTOfficial   = LimeTech-official plugin OR language pack    → "Unraid Official"
+	   - Official     = Docker-Hub-official image (library/* repo)   → "Official Container"
+	   - otherwise    = whatever caResolveAuthor() produced */
+	if (!empty($template['LTOfficial'])) {
+		$authorDisplay = tr("Unraid Official");
+	} elseif (!empty($template['Official'])) {
+		$authorDisplay = tr("Official Container");
+	} else {
+		$authorDisplay = $author;
 	}
-
-	$authorDisplay = $official ? tr("Official Container") : $author;
 
 	$header .= "
 				</div>

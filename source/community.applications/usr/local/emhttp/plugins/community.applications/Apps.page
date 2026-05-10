@@ -29,11 +29,10 @@ if (false) {
 	// IDE-only hint for static analyzers; never executed at runtime.
 	require_once __DIR__ . "/include/_ide_stubs.php";
 }
-file_put_contents("/tmp/blah",print_r($_SERVER,true));
+
 $_SESSION['locale'] = $_SESSION['locale'] ?? null;
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 $plugin = "community.applications";
-
 
 require_once("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php");
 require_once("$docroot/plugins/$plugin/include/paths.php");
@@ -267,8 +266,6 @@ var postCount = 0;
 var cookieWarning = false;
 var dockerWarningAdded = false;
 var restoreStateMenu = false;
-var repoBanner = false;
-var repoBannerTimer = false;
 var resizeTimer;
 var portsInUse = [];
 var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
@@ -437,9 +434,6 @@ $(function(){
 	if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
 	<?if ( CA_PATHS['localONLY'] == true ):?>
 		addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
-	<?endif;?>
-	<?if ( CA_PATHS['humanReadable'] ):?>
-		addBannerWarning("<?tr("Human readable files are enabled.  DO NOT RELEASE PUBLIC WITH THIS ENABLED");?>",true,true);
 	<?endif;?>
 	context.init({preventDoubleContext:false,left:true,above:'auto'});
 
@@ -934,7 +928,7 @@ function changeSortOrder(button,buttonClass,previousApps) {
 function getContent(init,category,description,newApp,startupDisplay) {
 	data.currentpage = 1;
 	var initialize;
-	var maxHomeApps = 10; // Maximum number of apps to display in each row on home page
+	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
 	data.maxPerPage = getMaxPerPage();
 
 	enableSearch();
@@ -1084,7 +1078,6 @@ function closeSidebar(cookie=false,visible=false) {
 		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
 		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
 	}
-	context.destroy("#supportPopup");
 	context.destroy("#actionsPopup");
 
 	/* If a settings form was open with unsaved edits, submit it instead of just
@@ -1363,10 +1356,10 @@ function removeApp(application, humanName) {
 	closeSidebar();
 	disableSearch();
 	swal({
-		title: "<?tr("Delete Template?");?>",
-		text: sprintf("<?tr("Are you sure you want to delete %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
+		title: "<?tr("Remove Template?");?>",
+		text: sprintf("<?tr("Are you sure you want to remove %s from the list of previously installed applications?")?>","<span class='ca_italic ca_bold caHighlight'>"+humanName+"</span>")+"<br><font size='0'>"+application+"</font>",
 		type: "warning",
-		confirmButtonText: "<?tr("Yes, delete it!");?>",
+		confirmButtonText: "<?tr("Yes, remove it!");?>",
 		cancelButtonText: "<?tr("Cancel");?>",
 		showCancelButton: true,
 		showConfirmButton: true,
@@ -1535,14 +1528,10 @@ function checkPLGupdate() {
  * @param {string} name Application name portion
  */
 function pinApp(button,repository,name) {
+	/* Toggle the colour class only — the button text is static now (matches
+	   the Favourite-repo pattern). The on-card .pinnedCard glyph is animated
+	   in/out so the user sees state change there too. */
 	$(button).toggleClass("pinned unpinned");
-	var pinned = ( $(button).hasClass("unpinned") ) ? "<?tr("Click to pin this application");?>" : "<?tr("Click to unpin this application");?>";
-
-	var pin1 = $(button).text();
-	var pin2 = $(button).data('pinnedalt');
-
-	$(button).text(pin2);
-	$(button).data('pinnedalt',pin1);
 
 	var app = $.find(".pinnedCard[data-pindata='"+repository+name+"']");
 	$(app).toggle("slow");
@@ -1814,10 +1803,10 @@ function clearMultiInstall() {
 function deleteMulti() {
 	var selected = getSelectedApps();
 	swal({
-		title: "<?tr("Delete Template?");?>",
-		text: sprintf("<?tr("Are you sure you want to delete %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
+		title: "<?tr("Remove Templates?");?>",
+		text: sprintf("<?tr("Are you sure you want to remove %s applications from the previously installed list?")?>","<span class='caHighlight ca_bold'>"+selected.deletePaths.length+"</span>"),
 		type: "warning",
-		confirmButtonText: "<?tr("Delete");?>",
+		confirmButtonText: "<?tr("Remove");?>",
 		cancelButtonText: "<?tr("Cancel");?>",
 		showCancelButton: true,
 		showConfirmButton: true,
@@ -2021,13 +2010,15 @@ function postMultiDockerInstall() {
 
 /* Build the .ca_templatesDisplay wrapper from structured display_data. The
    header may contain inline scripts (showSidebarApp / hideSortIcons / etc.);
-   the trailing scripts string holds caRenderPageNavigation. jQuery's html()
-   evaluates both as part of the assignment. */
+   the trailing scripts string holds caRenderPageNavigation, which only
+   updates data.* (no DOM target since we removed the paginator). jQuery's
+   html() evaluates both as part of the assignment. */
 /* Refresh the "displaying X - Y of Z" indicator in the search area. X..Y is
    the range of cards currently visible in the viewport (computed from scrollTop
-   plus the live card layout); Z is the full result count from
-   caRenderPageNavigation. Falls back to the loaded range when the layout
-   signals aren't measurable, and hides itself on the home page / empty result. */
+   plus the live card layout); Z is data.totalApps, kept current by the
+   caRenderPageNavigation script the server emits with each batch. Falls back
+   to the loaded range when the layout signals aren't measurable, and hides
+   itself on the home page / empty result. */
 function caUpdateDisplayCount() {
 	var $el = $(".ca_displayCount");
 	if (!$el.length) return;
@@ -2578,22 +2569,12 @@ function setToolTipForFavourite() {
 function setFavourite(button) {
 	$(button).toggleClass("fav nonfav");
 	var repo = $(button).data("repository");
-	clearTimeout(repoBannerTimer);
 
+	/* No transient banner: this is virtually always invoked from inside the
+	   sidebar, where the modal scrim would dim the banner anyway. The
+	   .favCardBackground repaint and the favourite-icon state change are
+	   visible feedback enough. */
 	post({action:'toggleFavourite',repository:repo},function(data) {
-		if ( repoBanner !== false )
-			removeBannerWarning(repoBanner);
-		if ( data.fav ) {
-			var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-			repoBanner = addBannerWarning(sprintf("<?tr("%s set as favourite repository")?>",bannerMessage),false,true);
-		} else {
-			var bannerMessage = repo.replace("'s Repository","").replace("' Repository","").replace(" Repository","");
-			repoBanner = addBannerWarning(sprintf("<?tr("%s removed as favourite repository")?>",bannerMessage),false,true);
-		}
-		repoBannerTimer = setTimeout(function() {
-			removeBannerWarning(repoBanner);
-			repoBanner = false;
-		},5000);
 		$(".favCardBackground").each(function() {
 			if ( $(this).data("repository") == data.fav.replace("'","") )
 				$(this).addClass("favCardBackgroundShow").removeClass("favCardBackgroundHide");
@@ -2962,7 +2943,8 @@ function showSidebarApp(apppath,appname) {
 			}
 
 			popUpChart(result);
-			setupContext(result.supportContext,"#supportPopup");
+			/* Support entries now render as inline caButtons in skin.php — no
+			   #supportPopup dropdown to attach. Actions still uses the menu. */
 			setupContext(result.actionsContext,"#actionsPopup");
 
 			$(".betaPopupText,.popupTableLeft,.upgradePopupText,.installedPopupText").fitText(true);
@@ -3087,7 +3069,6 @@ function slideInSidebar() {
 function showRepoPopup(repository) {
 	if ( !repository ) return;
 	data.repository = repository;
-	context.destroy("#supportPopup");
 	context.destroy("#actionsPopup");
 	var fromCard = false;
 
@@ -3342,8 +3323,10 @@ function getSortOpts() {
  * Background poll: POST `enableActionCentre` to toggle visibility of Action Centre menu entry.
  */
 function setupActionCentre() {
-	// set up action centre - run in background without tying anything up
-	$.post(execURL,{action:'enableActionCentre'},function(ret) {
+	/* Use the post() helper (not raw $.post) so the request carries tabId
+	   and matches the rest of CA's request shape. noSpinner keeps this a
+	   silent background poll. */
+	post({action:'enableActionCentre',noSpinner:true},function(ret) {
 		if ( ret.status == "action" ) {
 			if ( !$(".actionCentre").is(":visible") ) {
 				$(".actionCentre").show();
@@ -3543,9 +3526,9 @@ function caEnsureScrollable() {
 }
 
 /* Infinite scroll: when the user nears the bottom of .mainArea and the most
-   recent caRenderPageNavigation said another page exists, append the next 12
-   cards rather than waiting for a page-number click. dockerSearch and the
-   regular display path share the same pagination state (data.nextpage). */
+   recent caRenderPageNavigation said another page exists (via data.nextpage),
+   append the next batch of cards. dockerSearch and the regular display path
+   share the same pagination state. */
 function caInitInfiniteScroll() {
 	var virtScheduled = false;
 	var triggerNext = function() {

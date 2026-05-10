@@ -31,20 +31,6 @@
 	.ca_display_area {
 		right: 1rem;
 	}
-	.pageNavigation,
-	.navigationSection {
-		position: fixed;
-		left: 15rem;
-		right: 0;
-		bottom: 2rem;
-		display: flex;
-		flex-direction: row;
-	}
-	.navigationSection .pageNumber,
-	.navigationSection a.pageNumber {
-		width: revert;
-		max-width: revert;
-	}
 	:root {
 		--mobileDevice: true;
 	}
@@ -130,10 +116,6 @@
 		left: 0;
 		right: 0;
 		padding-left: 1rem;
-	}
-
-	.navigationSection .pageNavigation {
-		left: 0;
 	}
 
 	#templates_content {

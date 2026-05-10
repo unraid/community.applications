@@ -134,7 +134,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 
 	if ( ! $dontCache ) {
 		if ( empty($attributeCache) && file_exists(CA_PATHS['pluginAttributesCache']) ) {
-			$attributeCache = @unserialize(file_get_contents(CA_PATHS['pluginAttributesCache']))??[];
+			$attributeCache = readJsonFile(CA_PATHS['pluginAttributesCache']);
 			if ( empty($attributeCache) ) {
 				$attributeCache = [];
 				dropAttributeCache();
@@ -157,7 +157,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 			} else {
 				unset($attributeCache[$plugin_file]);
 			}
-			file_put_contents(CA_PATHS['pluginAttributesCache'], serialize($attributeCache));
+			writeJsonFile(CA_PATHS['pluginAttributesCache'], $attributeCache);
 
 			// return the cached result if it exists.  If it doesn't return false;;
 			return $attributeCache[$plugin_file]['@attributes'][$method]??false;
@@ -207,29 +207,24 @@ function randomFile() {
 	return tempnam(CA_PATHS['tempFiles'],"CA-Temp-");
 }
 /**
- * Read a JSON or PHP-serialized file; falls back from unserialize to json_decode.
+ * Read a JSON file. Returns $default if the file is missing or not valid JSON.
  *
  * @param string $filename
  * @param array $default
  * @return mixed
  */
 function readJsonFile($filename, $default = []) {
-	debug( ($GLOBALS['action']?? "Unknown") . " - Read Serialized file $filename");
+	debug( ($GLOBALS['action']?? "Unknown") . " - Read JSON file $filename");
 
 	if ( ! is_file($filename) ) {
 		debug("$filename not found");
 		return $default;
 	}
 
-	$json = @unserialize(@file_get_contents($filename));
-
-	if ( $json === false ) {
-		debug("$filename is not serialized.  Reading as JSON.");
-		$json = json_decode(@file_get_contents($filename),true);
-			if ( $json === null ) {
-				debug("JSON Read Error ($filename)");
-				return $default;
-			}
+	$json = json_decode(@file_get_contents($filename), true);
+	if ( $json === null ) {
+		debug("JSON Read Error ($filename)");
+		return $default;
 	}
 
 	debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
@@ -266,9 +261,7 @@ function caIsDockerRunning() {
 }
 
 /**
- * Persist an array to disk as PHP serialize (or pretty JSON when humanReadable).
- *
- * When writing the main templates file, also updates templates-old JSON for plugin support scripts.
+ * Persist an array to disk as pretty JSON.
  *
  * @param string $filename
  * @param array $jsonArray
@@ -276,22 +269,7 @@ function caIsDockerRunning() {
  */
 function writeJsonFile($filename,$jsonArray) {
 	debug(($_POST['action']??'Unknown')." - Write JSON File $filename");
-	if ( CA_PATHS['humanReadable'] ) {
-		$result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-	} else {
-		$result = ca_file_put_contents($filename,serialize($jsonArray));
-	}
-
-	// The plugin script needs a template.json in JSON format to update support URLs on plugins
-	// If we're writing $template, then save templates.json but filtered only for plugins to save space
-
-	if ( $filename == CA_PATHS['community-templates-info'] ) {
-		ca_file_put_contents(CA_PATHS['community-templates-info-old'],json_encode(array_map(function($t) {
-			return ["PluginURL"=>$t['PluginURL'],"Support"=>$t['Support']];
-		},array_filter($jsonArray, function($t1) {
-				return $t1['Plugin']??false;
-		})),JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-	}
+	$result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
 	debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
 }
 
@@ -1319,6 +1297,7 @@ function debug($str) {
 		if ( ! isset($GLOBALS['caSettings']) )
 			getSettings();
 
+		@mkdir(CA_PATHS['CA_logs']);
 		touch(CA_PATHS['logging']);
 		$caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
 

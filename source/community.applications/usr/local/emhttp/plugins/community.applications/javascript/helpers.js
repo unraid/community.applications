@@ -1007,140 +1007,24 @@ function guiSearchOnUnload() {
 }
 
 /**
- * Build paginator HTML from `#caPageNavigationTemplate` (prev/next, ellipsis, current page).
+ * Update `data.*` pagination fields from server-computed nav payload. The
+ * UI is fully infinite-scroll; the only thing this still does is keep
+ * `data.nextpage` / `data.totalApps` (and friends) accurate so the scroll
+ * trigger and display-count math have the truth from the server.
  *
- * @param {object} nav `pageNumber`, `totalApps`, `maxPerPage`, `pageFunction` (`changePage` or `dockerSearch`), `maxMiddlePages`
- * @returns {string} Outer HTML or empty string if template missing
+ * @param {object} navigationData `pageNumber`, `totalApps`, `maxPerPage`, `dockerSearch`
  */
-function caBuildPageNavigationHtml(nav) {
-	var pageNumber = parseInt(nav.pageNumber, 10) || 1;
-	var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
-	var maxPerPage = Math.max(1, parseInt(nav.maxPerPage, 10) || 1);
-	var totalPages = Math.max(1, Math.ceil(totalApps / maxPerPage));
-	pageNumber = Math.min(Math.max(1, pageNumber), totalPages);
-	var pageFunction = nav.pageFunction === "dockerSearch" ? "dockerSearch" : "changePage";
-	var maxMiddlePages = Math.max(1, parseInt(nav.maxMiddlePages, 10) || 3);
-	var halfMiddlePages = Math.floor(maxMiddlePages / 2);
-	var startingPage = Math.max(1, Math.min(pageNumber - halfMiddlePages, totalPages - maxMiddlePages + 1));
-	var endingPage = Math.min(totalPages, startingPage + maxMiddlePages - 1);
-	var $template = $("#caPageNavigationTemplate");
-	if (!$template.length) return "";
-	var $nav = $template.children(".pageNavigation").first().clone();
-	var $templates = $template.find(".caPageNavTemplates").first();
-	var $left = $nav.find(".pageLeft");
-	var $right = $nav.find(".pageRight");
-	var fixedMiddleSlots = maxMiddlePages + 4; // first + left dots + middle pages + right dots + last
-	var middleItems = [];
-	var i;
-
-	if (pageNumber === 1) {
-		$left.addClass("pageNavNoClick");
-	} else {
-		$left.addClass("pageNavClick").attr("data-page", pageNumber - 1).attr("data-page-function", pageFunction);
-	}
-
-	var appendLink = function(page) {
-		var $link = $templates.find(".caPageNavLink").first().clone();
-		$link.text(page).attr("data-page", page).attr("data-page-function", pageFunction);
-		middleItems.push($link);
-	};
-	var appendSelected = function(page) {
-		var $selected = $templates.find(".caPageNavSelected").first().clone();
-		$selected.text(page);
-		middleItems.push($selected);
-	};
-	var appendDots = function() {
-		middleItems.push($templates.find(".caPageNavDots").first().clone());
-	};
-	var createSpacer = function() {
-		var $spacer = $templates.find(".caPageNavSelected").first().clone();
-		$spacer
-			.addClass("pageNavSpacer")
-			.removeClass("pageSelected")
-			.attr("aria-hidden", "true")
-			.html("&nbsp;");
-		return $spacer;
-	};
-
-	if (startingPage > 1) {
-		appendLink(1);
-		if (startingPage > 2) {
-			appendDots();
-		}
-	}
-
-	for (i = startingPage; i <= endingPage; i++) {
-		if (i === pageNumber) {
-			appendSelected(i);
-		} else {
-			appendLink(i);
-		}
-	}
-
-	if (endingPage < totalPages) {
-		if (endingPage < (totalPages - 1)) {
-			appendDots();
-		}
-		appendLink(totalPages);
-	}
-
-	var missingMiddleItems = Math.max(0, fixedMiddleSlots - middleItems.length);
-	var leadingSpacers = Math.floor(missingMiddleItems / 2);
-	var trailingSpacers = missingMiddleItems - leadingSpacers;
-
-	for (i = 0; i < leadingSpacers; i++) {
-		$right.before(createSpacer());
-	}
-
-	for (i = 0; i < middleItems.length; i++) {
-		$right.before(middleItems[i]);
-	}
-
-	for (i = 0; i < trailingSpacers; i++) {
-		$right.before(createSpacer());
-	}
-
-	if (pageNumber < totalPages) {
-		$right.addClass("pageNavClick").attr("data-page", pageNumber + 1).attr("data-page-function", pageFunction);
-	} else {
-		$right.addClass("pageNavNoClick");
-	}
-
-	return $("<div>").append($nav).html();
-}
-
-/**
- * Inject built navigation into `#targetId`, update `data.*` pagination fields, run fitText.
- *
- * @param {string} targetId Element id (no leading #)
- * @param {object} navigationData Same shape as `nav` for {@link caBuildPageNavigationHtml}
- */
-function caRenderPageNavigation(targetId, navigationData) {
-	var $target = $("#" + targetId);
-	if (!$target.length) return;
+function caRenderPageNavigation(navigationData) {
 	var nav = navigationData || {};
 	var totalApps = Math.max(0, parseInt(nav.totalApps, 10) || 0);
 	var maxPerPage = Math.max(1, parseInt(nav.maxPerPage, 10) || 1);
 	var totalPages = Math.max(1, Math.ceil(totalApps / maxPerPage));
 	var pageNumber = Math.min(Math.max(1, parseInt(nav.pageNumber, 10) || 1), totalPages);
-	var isDockerSearch = !!nav.dockerSearch;
 
 	data.currentpage = pageNumber;
 	data.prevpage = pageNumber - 1;
 	data.nextpage = (pageNumber < totalPages) ? (pageNumber + 1) : 0;
 	data.totalApps = totalApps;
-
-	if ((isDockerSearch && totalApps <= 25) || totalApps < 2 || totalPages <= 1) {
-		$target.empty();
-		$target.removeClass("ca_navVisible");
-		return;
-	}
-
-	nav.pageNumber = pageNumber;
-	nav.totalPages = totalPages;
-	$target.html(caBuildPageNavigationHtml(nav));
-	$target.addClass("ca_navVisible");
-	$target.find(".caPageNavLink,.caPageNavSelected").fitText(true);
 }
 
 /** Sum of offsetTop along offsetParent from el up to ancestor (layout; stable when inner scroll moves getBoundingClientRect). */

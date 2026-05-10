@@ -164,7 +164,7 @@ class GetContentHelpers {
 				$o['display'] .= "</div>";
 				$homeClass = "caHomeSpotlight";
 
-				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1")."</div>";
+				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1",false,false,false,false)."</div>";
 				$o['script'] = "$('#templateSortButtons,#sortButtons').hide();";
 
 			} else {

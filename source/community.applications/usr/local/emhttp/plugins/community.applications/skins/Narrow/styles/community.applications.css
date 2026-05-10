@@ -235,13 +235,6 @@ body:has(.mfp-bg) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_display
 	color: var(--magnificCloseColor);
 }
 
-/* Pagination is now infinite-scroll — hide the page-number bar at all sizes. */
-#ca_pageNavigation,
-.pageNavigation,
-.navigationSection {
-	display: none !important;
-}
-
 .mainArea {
 	right: 0rem;
 	display: block;
@@ -426,11 +419,6 @@ body,
 
 	/* Ensure it's positioned correctly */
 	pointer-events: none;
-}
-
-	.cardWarning {
-	font-size: 1.5rem;
-	color: var(--ca-warning-color);
 }
 
 	/* 2.4) Buttons & Forms
@@ -1466,11 +1454,6 @@ body,
 		left: 6rem;
 		top: 13rem;
 	}
-	.ca_fa-additional::before {
-		content: "\f055";
-		font-family: fontAwesome;
-	}
-
 	.ca_fa-asterisk::before {
 		content: "\f069";
 		font-family: fontAwesome;
@@ -1482,11 +1465,6 @@ body,
 
 	.ca_fa-checkmark::before {
 		content: "\f00c";
-		font-family: fontAwesome;
-	}
-
-	.ca_fa-comment::before {
-		content: "\f075";
 		font-family: fontAwesome;
 	}
 
@@ -1842,7 +1820,8 @@ body,
 		color: var(--unraid-66-color) !important;
 	}
 
-	.fav {
+	.fav,
+	.pinPopup.pinned {
 		background: linear-gradient(
 		to bottom,
 		transparent 0%,
@@ -1858,15 +1837,16 @@ body,
 		background-size: 100% 100% !important;
 	}
 
-	.nonfav {
+	.nonfav,
+	.pinPopup.unpinned {
 		background-color: var(--support-popup-background);
 	}
 
 	.favCardBackground {
-		float: right;
 		color: var(--ca-light-grey-color);
-		padding-top: .25rem;
-		margin-left: 1rem;
+		font-size: 1.75rem;
+		margin-left: 0.75rem;
+		vertical-align: middle;
 	}
 
 	.favCardBackground::before {
@@ -1906,7 +1886,6 @@ body,
 	.popUpLink:hover,
 	.chartMenu:hover,
 	li.context:hover,
-	.pageNumber:hover,
 	.sortIcons:hover {
 		color: var(--unraid-66-color);
 	}
@@ -1941,20 +1920,11 @@ input[type="button"] {
 	}
 
 	/* 3.10) Moderation comments and install status areas */
+	/* Same styling for both .modComment slots: ModeratorComment (above the
+	   description) and CAComment (below). Text inherits the popup body
+	   font-size — no header, no shrunk inner type, no border. */
 	.modComment {
 		padding: 2rem;
-		border: 1px solid;
-		border-color: var(--mod-comment-border);
-	}
-
-	.moderatorCommentHeader {
-		font-size: 2rem;
-		font-weight: normal;
-	}
-
-	.moderatorComment {
-		font-size: 1.2rem;
-		line-height: 1.5rem;
 	}
 
 	.caDownloadProgress {
@@ -2067,70 +2037,11 @@ input[type="button"] {
 		height: 2.5rem;
 	}
 
-	.pageDots::after {
-		content: "...";
-	}
-
-	.pageDots {
-		color: var(--ca-named-grey);
-		cursor: default;
-	}
-
-	.pageLeft::after {
-		content: "\f137";
-		font-family: fontAwesome;
-	}
-
-	.pageNavigation {
-		display: flex;
-		flex-direction: column;
-		flex-wrap: nowrap;
-		align-content: stretch;
-		justify-content: center;
-		align-items: center;
-		background-color: var(--ca-legacy-background-color);
-	}
-
-
-	.pageNavNoClick {
-		cursor: default !important;
-		opacity: 0.3;
-	}
-
-	.pageNavNoClick:hover {
-		color: var(--sidebar-text) !important;
-		opacity: 0.3;
-	}
-
-	.pageNumber {
-		margin-left: 1rem;
-		margin-right: 1rem;
-		cursor: pointer;
-		text-decoration: none !important;
-		-webkit-user-select: none;
-		-moz-user-select: none;
-		user-select: none;
-	}
-
-	.pageRight::after {
-		content: "\f138";
-		font-family: fontAwesome;
-	}
-
-	.pageSelected {
-		cursor: default;
-		color: var(--unraid-66-color);
-	}
-
-	.pageNavSpacer {
-		visibility: hidden;
-		pointer-events: none;
-	}
-
 	.pinnedCard {
-		float: right;
 		color: var(--ca-teal-color);
 		font-size: 1.75rem;
+		margin-left: 0.75rem;
+		vertical-align: middle;
 	}
 
 	.pinnedCard::before {
@@ -2244,6 +2155,14 @@ input[type="button"] {
 	   is the sole source of spacing — guarantees even row spacing whether 3 or
 	   8 buttons are present, and consistent wrapping behavior. */
 	.popupInfo > .caButton {
+		margin: 0;
+	}
+	/* Forces the support button cluster onto its own line beneath the action
+	   row regardless of how many primary action buttons we render. Standard
+	   flexbox row-break trick: a zero-height item that consumes a full row. */
+	.popupInfo > .popupRowBreak {
+		flex-basis: 100%;
+		height: 0;
 		margin: 0;
 	}
 
@@ -2817,44 +2736,6 @@ input[type="button"] {
 		padding: 0px;
 		cursor: pointer;
 		display: none;
-	}
-	.navigationSection {
-		position: fixed;
-		width: 6rem;
-		font-size: 3rem;
-		background-color: var(--ca-legacy-background-color);
-		right: 0;
-		bottom: 0;
-		display: block;
-		margin-left: auto;
-		text-align: center;
-		display: flex;
-		min-width: 0;
-		visibility: hidden;
-	}
-	.Theme--nav-top .navigationSection {
-		top: 12rem;
-	}
-	.Theme--sidebar .navigationSection {
-		top: 15rem;
-	}
-	.navigationSection.ca_navVisible {
-		visibility: visible;
-	}
-	/* Let page numbers measure overflow so fitText() can shrink font-size inside narrow strip */
-	.navigationSection .pageNavigation {
-		width: 100%;
-		min-width: 0;
-	}
-	.navigationSection .pageNumber,
-	.navigationSection a.pageNumber {
-		display: block;
-		width: 100%;
-		max-width: 100%;
-		min-width: 0;
-		box-sizing: border-box;
-		white-space: nowrap;
-		overflow: hidden;
 	}
 	.actionCentre {
 		display: none;

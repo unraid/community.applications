@@ -154,8 +154,8 @@ function caInitializeClickHandlers() {
 					/* Read-only "true progress" mode for the always-on mainArea bar:
 					   the local scroll only covers the loaded+un-evicted slice of cards,
 					   so size/position the thumb against data.totalApps (the full result
-					   set from caRenderPageNavigation) instead. Fall back to the local
-					   calc above if any required signal is missing. */
+					   set, kept current by caRenderPageNavigation's data.* updates).
+					   Fall back to the local calc above if any required signal is missing. */
 					if (entry.alwaysShowVertical && typeof data !== "undefined" && data.totalApps > 0 && Array.isArray(caCardCache.cache)) {
 						var $virtCards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 						var perRow = (typeof caVirtCardsPerRow === "function") ? caVirtCardsPerRow($virtCards) : 1;
@@ -526,7 +526,7 @@ function caInitializeClickHandlers() {
 			var isInternalUnraid = false;
 			if (parsedHref && (parsedHref.protocol === "http:" || parsedHref.protocol === "https:")) {
 				var parsedHost = parsedHref.hostname.toLowerCase();
-				if (parsedHost === "unraid.net" || parsedHost === "lime-technology.com" || parsedHost.endsWith(".unraid.net") || parsedHost.endsWith(".myunraid.net") || parsedHost.endsWith(".lime-technology.com")) {
+				if (parsedHost === "unraid.net" || parsedHost === "myunraid.net" || parsedHost === "lime-technology.com" || parsedHost.endsWith(".unraid.net") || parsedHost.endsWith(".myunraid.net") || parsedHost.endsWith(".lime-technology.com")) {
 					isInternalUnraid = true;
 				}
 			}
@@ -710,7 +710,7 @@ function caInitializeClickHandlers() {
 			caMqFallback();
 		}
 	}
-	$(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.supportButton,.supportButtonCardContext,.ca_multiselect", function() {
+	$(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.ca_multiselect", function() {
 		data.actions = true;
 	});
 	$(".searchButton").on("mousedown", function(e) {
@@ -785,14 +785,9 @@ function caInitializeClickHandlers() {
 		$(".ca_holderFav").removeClass("ca_holderFav");
 		$(this).removeClass("ca_favouriteRepo").addClass("ca_non_favouriteRepo");
 		setToolTipForFavourite();
+		/* No transient banner — see setFavourite() in Apps.page. The icon swap
+		   and tooltip update give the user visible confirmation. */
 		post({ action: "toggleFavourite", repository: "" }, function() {
-			clearTimeout(repoBannerTimer);
-			if (repoBanner !== false) removeBannerWarning(repoBanner);
-			repoBanner = addBannerWarning(tr("Removed favourite repository"), false, true);
-			repoBannerTimer = setTimeout(function() {
-				removeBannerWarning(repoBanner);
-				repoBanner = false;
-			}, 5000);
 			setFavRepoSearch();
 		});
 	});
@@ -821,19 +816,6 @@ function caInitializeClickHandlers() {
 	});
 
 	$("body").on("click", ".templateSearch", function() { caClearHomeSectionSubtitle(); doSearch(false); });
-	$("body").on("click", ".pageNavClick", function(e) {
-		e.preventDefault();
-		if ($(this).hasClass("pageNavNoClick")) return;
-		if (window.getSelection) window.getSelection().removeAllRanges();
-		var page = parseInt($(this).data("page"), 10);
-		if (!page || page < 1) return;
-		var pageFunction = $(this).data("pageFunction");
-		if (pageFunction === "dockerSearch") dockerSearch(String(page));
-		else changePage(String(page));
-	});
-	$("body").on("mousedown", ".pageNavClick", function(e) {
-		e.preventDefault();
-	});
 	$("body").on("click", ".xmlInstall", function() {
 		var type = $(this).data("type");
 		var xml = $(this).data("xml");

@@ -69,8 +69,8 @@ class PreviousAppsHelpers {
 
 		$status = readJsonFile(CA_PATHS['dockerUpdateStatus']);
 
-		/* readJsonFile() tries unserialize() before json_decode(), so a truthy
-		   non-array could leak through and crash the array-indexing consumers. */
+		/* json_decode() can return scalars (e.g. a top-level string/number) for
+		   malformed cache files, so guard against non-array before indexing. */
 		return is_array($status) ? $status : [];
 	}
 
