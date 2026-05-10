@@ -906,7 +906,10 @@ function caInitializeClickHandlers() {
 		if (currentCat && currentCat.startsWith(newCat)) slideFlag = false;
 		if (!$(this).hasClass("caRepositoryMenu")) {
 			$(".caMenuItem").removeClass("selectedMenu");
-			if (!$(this).parent().hasClass("subCategory") && slideFlag) $(".subCategory").hide("fast");
+			/* `closest()` instead of `parent()` because subcategory items
+			   are now nested one level deeper (<li class='subCategory'><ul>
+			   <li class='caMenuItem'>...). */
+			if (!$(this).closest(".subCategory").length && slideFlag) $(".subCategory").hide("fast");
 		}
 		if ($(this).hasClass("caRepositoryMenu") && $(".startupButton").hasClass("selectedMenu")) {
 			$(".startupButton").removeClass("selectedMenu");
@@ -997,6 +1000,25 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
 	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
+
+	/* MagnificPopup gallery: route arrow keys to the video iframe when the
+	   mouse is over it (so YouTube/Vimeo's player can seek), and back to
+	   MFP's gallery prev/next when the mouse is over the surrounding scrim.
+	   Implementation is focus-based — MFP's document-level keydown handler
+	   only fires when the parent document has keyboard focus; an embedded
+	   iframe with focus captures keys before they reach the parent. So we
+	   focus the iframe on mouseenter and return focus to .mfp-wrap (MFP's
+	   own focusable container) on mouseleave. */
+	$("body").on("mouseenter", ".mfp-iframe", function() {
+		if (this.focus) this.focus();
+	});
+	$("body").on("mouseleave", ".mfp-iframe", function() {
+		if (document.activeElement === this) {
+			var $wrap = $(".mfp-wrap");
+			if ($wrap.length) $wrap.focus();
+			else if (this.blur) this.blur();
+		}
+	});
 }
 
 /**

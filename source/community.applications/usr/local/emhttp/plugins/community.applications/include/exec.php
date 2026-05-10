@@ -1577,11 +1577,15 @@ function get_categories() {
 		foreach ($newCat as $category) {
 			$cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$category['Cat']}'>".$category['Des']."</li>";
 			if (isset($category['Sub']) && is_array($category['Sub'])) {
-				$cat .= "<li class='subCategory'>";
+				/* Same nested <li class='subCategory'><ul><li>...</li></ul></li>
+				   shape used in skin.html for Installed Apps / Previous Apps,
+				   so the .subCategory bullet-suppression CSS and the
+				   closest('.subCategory') click-handler logic both apply. */
+				$cat .= "<li class='subCategory'><ul>";
 				foreach($category['Sub'] as $subcategory) {
-					$cat .= "<ul class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</ul>";
+					$cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</li>";
 				}
-				$cat .= "</li>";
+				$cat .= "</ul></li>";
 			}
 		}
 		$templates = &$GLOBALS['templates'];

@@ -126,6 +126,7 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 
 .subCategory ul {
 	padding-left: 20px;
+	list-style: none;
 }
 li.subCategory {
 	margin-top: -0.5rem;

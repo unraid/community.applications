@@ -2908,6 +2908,15 @@ function showSidebarApp(apppath,appname) {
 				callbacks: {
 					beforeOpen: function() {
 						closeSidebar();
+						/* MFP binds keydown(left/right) to gallery.next/prev
+						   regardless of item count. With the default loop:true,
+						   a single-item gallery wraps back to itself on each
+						   key, which re-runs updateItemHTML() and recreates
+						   the iframe with ?autoplay=1 — restarting the video.
+						   Disabling loop makes next()/prev() early-return at
+						   both boundaries (0 and length-1), so the keys are
+						   effectively no-ops when items.length === 1. */
+						this.st.gallery.loop = (this.items && this.items.length > 1);
 					},
 					afterClose: function() {
 						showSidebarApp(data.sidebarapppath,data.sidebarappname);
@@ -3126,6 +3135,10 @@ function showRepoPopup(repository) {
 			callbacks: {
 				beforeOpen: function() {
 					closeSidebar();
+					/* See app-popup gallery: disable loop for 1-item galleries
+					   so arrow keys can't re-trigger updateItemHTML() and
+					   restart the autoplay iframe. */
+					this.st.gallery.loop = (this.items && this.items.length > 1);
 				},
 				afterClose: function() {
 					$('body').removeClass("mfp-zoom-out-cur");
