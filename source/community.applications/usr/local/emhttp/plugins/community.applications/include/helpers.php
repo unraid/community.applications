@@ -200,6 +200,7 @@ function download_url($url, $path = "", $bg = false, $timeout = 45) {
   debug("DOWNLOAD starting $url\n");
   $startTime = time();
   $curl_options = [
+    CURLOPT_ENCODING=>"",
     CURLOPT_FRESH_CONNECT=>true,
     CURLOPT_RETURNTRANSFER=>true,
     CURLOPT_FOLLOWLOCATION=>true,
