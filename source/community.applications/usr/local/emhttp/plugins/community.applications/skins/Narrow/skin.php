@@ -436,49 +436,22 @@ function displayPopup($template) {
 						<div class='popupAuthorMain'><?= $Author ?></div>
 					<?php endif; ?>
 
-					<?php /* Primary action row: Install / WebUI / Settings, then
-					         Update / Edit / Uninstall / Pin. */ ?>
-					<?php if (!empty($installFirstAction['action'])): ?>
-						<div class='caButton actionsPopup'><span onclick="<?= $installFirstAction['action'] ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
-					<?php endif; ?>
-
-					<?php if (!empty($popupShortcut['action'])): ?>
-						<div class='caButton actionsPopup'><span onclick="<?= $popupShortcut['action'] ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
-					<?php endif; ?>
-					<?= $readmeButton ?>
-
-					<?php if ($actionsButtonItems): ?>
-						<?php foreach ($actionsButtonItems as $actionItem): ?>
-							<?php if (!empty($actionItem['action'])): ?>
-								<div class='caButton actionsPopup'><span onclick="<?= $actionItem['action'] ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
-							<?php else: ?>
-								<div class='caButton actionsPopup'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
-							<?php endif; ?>
-						<?php endforeach; ?>
-					<?php endif; ?>
-
-					<?php if (!empty($popupUninstallAction['action'])): ?>
-						<div class='caButton actionsPopup'><span onclick="<?= $popupUninstallAction['action'] ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
-					<?php endif; ?>
-
-					<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
-						<div class='caButton pinPopup <?= $pinnedClass ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= tr("Pin") ?></span></div>
-					<?php endif; ?>
-
-					<?php /* Force the support cluster (Project / Discord / Support /
-					         Registry / Template / Plugin) onto its own line beneath
-					         the action row via a flex row-break. */ ?>
-					<?php if (!empty($supportContext)): ?>
-						<span class='popupRowBreak' aria-hidden='true'></span>
-					<?php endif; ?>
-					<?php foreach ($supportContext as $sc): ?>
-						<?php if (validURL($sc['link'] ?? "")): ?>
-							<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
-						<?php endif; ?>
-					<?php endforeach; ?>
-
 					<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
 						<div class='ca_red'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
+					<?php endif; ?>
+
+					<?php /* Support buttons stay in the popup body and scroll
+					         with the rest of the content. Action buttons live
+					         in .popupStickyActions below this block and get
+					         relocated to the close area by JS. */ ?>
+					<?php if (!empty($supportContext)): ?>
+						<div class='popupSupportRow'>
+							<?php foreach ($supportContext as $sc): ?>
+								<?php if (validURL($sc['link'] ?? "")): ?>
+									<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
+								<?php endif; ?>
+							<?php endforeach; ?>
+						</div>
 					<?php endif; ?>
 
 					<?php if ($Repo): ?>
@@ -489,6 +462,39 @@ function displayPopup($template) {
 					<?php endif; ?>
 				</div>
 			</div>
+			<?php /* Action buttons only — gets relocated to .popupCloseAreaButtons
+			         by Apps.page's caRelocatePopupActions() at popup-load time. */ ?>
+			<div class='popupStickyActions'>
+				<?php /* Primary action row: Install / WebUI / Settings, then
+				         Update / Edit / Uninstall / Pin. */ ?>
+				<?php if (!empty($installFirstAction['action'])): ?>
+					<div class='caButton actionsPopup'><span onclick="<?= $installFirstAction['action'] ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
+				<?php endif; ?>
+
+				<?php if (!empty($popupShortcut['action'])): ?>
+					<div class='caButton actionsPopup'><span onclick="<?= $popupShortcut['action'] ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
+				<?php endif; ?>
+				<?= $readmeButton ?>
+
+				<?php if ($actionsButtonItems): ?>
+					<?php foreach ($actionsButtonItems as $actionItem): ?>
+						<?php if (!empty($actionItem['action'])): ?>
+							<div class='caButton actionsPopup'><span onclick="<?= $actionItem['action'] ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<?php else: ?>
+							<div class='caButton actionsPopup'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				<?php endif; ?>
+
+				<?php if (!empty($popupUninstallAction['action'])): ?>
+					<div class='caButton actionsPopup'><span onclick="<?= $popupUninstallAction['action'] ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
+				<?php endif; ?>
+
+				<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
+					<div class='caButton pinPopup <?= $pinnedClass ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= tr("Pin") ?></span></div>
+				<?php endif; ?>
+			</div>
+
 			<?= $ModeratorCommentBlock ?>
 			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
 			<?= $CACommentBlock ?>

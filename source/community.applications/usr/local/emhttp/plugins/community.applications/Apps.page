@@ -422,7 +422,7 @@ $(function(){
 		}
 	} catch (e) { /* no-op */ }
 
-	if ( "<?=$date?>" == "5/03" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
+	if ( "<?=$date?>" == "12/24" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
 	if ( "<?=$date?>" == "12/25" ) addBannerWarning("<i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i> <?tr("Happy Holidays from Andrew, Tracey, and family");?> <i style='float:initial;cursor:initial;' class='fa fa-snowflake-o'></i>",false);
 	if ( "<?=$date?>" == "1/01" )  addBannerWarning("<?tr("Happy New Year!");?>",false);
 	if ( "<?=$date?>" == "12/31" ) addBannerWarning("<?tr("Happy New Year!");?> <i style='float:initial;cursor:initial;' class='fa fa-beer'></i> <?tr("Please Enjoy Responsibly");?>",false);
@@ -1079,6 +1079,9 @@ function closeSidebar(cookie=false,visible=false) {
 		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
 	}
 	context.destroy("#actionsPopup");
+	/* Drop the relocated per-app action strip so a stale row from the
+	   previous app doesn't linger next to CLOSE when the sidebar reopens. */
+	$(".popupCloseAreaButtons .popupStickyActions").remove();
 
 	/* If a settings form was open with unsaved edits, submit it instead of just
 	   closing — the submit handler saves and reloads, which subsumes closing. */
@@ -2863,6 +2866,20 @@ function showAlternateView(content="") {
 }
 
 /**
+ * Detach the per-app action + support button strip from the freshly-rendered
+ * sidebar content and append it next to the always-visible CLOSE button in
+ * .popupCloseAreaButtons. Server keeps emitting the strip inside the popup
+ * body (so it ships with the right per-app actions); this just relocates it
+ * after each render so the buttons live at the top of the sidebar instead
+ * of inline with the icon area.
+ */
+function caRelocatePopupActions() {
+	$(".popupCloseAreaButtons .popupStickyActions").remove();   // clear any stragglers
+	var $strip = $("#sidenavContent .popupStickyActions").first();
+	if ($strip.length) $strip.detach().appendTo(".popupCloseAreaButtons");
+}
+
+/**
  * Load app popup HTML via `getPopupDescription`, wire MagnificPopup galleries, context menus, charts, and async readme/change sections.
  *
  * @param {string} apppath Template path key
@@ -2884,6 +2901,7 @@ function showSidebarApp(apppath,appname) {
 		post({action:'getPopupDescription',appName:appname,appPath:apppath},function(result) {
 			myCloseSpinner();
 			$("#sidenavContent").html(result.description);
+			caRelocatePopupActions();
 			caInitSidebarReadmore();
 			caLoadSidebarReadmeSections();
 			caLoadSidebarTemplateChanges();
@@ -3095,6 +3113,7 @@ function showRepoPopup(repository) {
 
 	post({action:'getRepoDescription',repository:repository},function(result) {
 		$("#sidenavContent").html(result.description);
+		caRelocatePopupActions();
 		$(".sidenav").removeClass("sidenavHide").addClass("sidenavShow");
 		caInitSidebarReadmore();
 		caLoadSidebarReadmeSections();

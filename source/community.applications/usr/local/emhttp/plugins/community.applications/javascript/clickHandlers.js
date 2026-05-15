@@ -779,7 +779,10 @@ function caInitializeClickHandlers() {
 	});
 	$(".caChangeLog").on("click", function() { disableSort(); scrollToTop(); caChangeLog(); });
 	$(".mainArea").on("click", ".ca_multiselect", function() { enableMultiInstall(); });
-	$("#sidenavContent").on("click", ".pinPopup", function() { pinApp(this, $(this).data("repository"), $(this).data("name")); });
+	/* body-delegated rather than #sidenavContent-delegated because the pin
+	   button gets relocated into .popupCloseAreaButtons (sibling of
+	   #sidenavContent, not descendant) by caRelocatePopupActions(). */
+	$("body").on("click", ".pinPopup", function() { pinApp(this, $(this).data("repository"), $(this).data("name")); });
 	$(".mainArea").on("click", ".ca_favouriteRepo", function() {
 		$(".ca_fav").removeClass("ca_favouriteRepo").addClass("ca_non_favouriteRepo");
 		$(".ca_holderFav").removeClass("ca_holderFav");

@@ -1842,6 +1842,15 @@ body,
 	.pinPopup.unpinned {
 		background-color: var(--support-popup-background);
 	}
+	/* Pin button: only the UNPINNED state gets the orange hover, so a pinned
+	   (green) button stays green on hover — matches the .fav repo-button
+	   behaviour where the active state wins over hover. .pinPopup.unpinned
+	   would otherwise tie with .caButton:hover on specificity and win via
+	   cascade order, so we use !important to claim hover unambiguously. */
+	.pinPopup.unpinned:hover {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
 
 	.favCardBackground {
 		color: var(--ca-light-grey-color);
@@ -2155,15 +2164,53 @@ input[type="button"] {
 	/* Zero out the right-margin that .caButton ships with so the flex gap above
 	   is the sole source of spacing — guarantees even row spacing whether 3 or
 	   8 buttons are present, and consistent wrapping behavior. */
-	.popupInfo > .caButton {
+	.popupInfo > .caButton,
+	.popupStickyActions > .caButton {
 		margin: 0;
 	}
 	/* Forces the support button cluster onto its own line beneath the action
 	   row regardless of how many primary action buttons we render. Standard
 	   flexbox row-break trick: a zero-height item that consumes a full row. */
-	.popupInfo > .popupRowBreak {
+	.popupInfo > .popupRowBreak,
+	.popupStickyActions > .popupRowBreak {
 		flex-basis: 100%;
 		height: 0;
+		margin: 0;
+	}
+
+	/* Action buttons (Install / WebUI / Settings / Update / Edit / Uninstall
+	   / Pin) live next to CLOSE inside .popupCloseAreaButtons after
+	   caRelocatePopupActions() moves them there at popup-load time.
+	   .popupCloseArea is already position:fixed, so this row is naturally
+	   pinned to the top of the sidebar for the entire scroll. */
+	.popupStickyActions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	/* CLOSE / BACK sit on the left, then a big gap, then the relocated
+	   per-app action row. Wrap so a wide button row can drop to the next
+	   line on narrow sidebars rather than overflow. */
+	.popupCloseAreaButtons {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem 4rem;
+	}
+	/* Support buttons (Project / Discord / Support / Registry / Template /
+	   Plugin) stay in the popup body and scroll with the description. The
+	   flex-basis:100% gives them their own row inside .popupInfo's flex. */
+	.popupSupportRow {
+		flex-basis: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	.popupSupportRow > .caButton {
 		margin: 0;
 	}
 

@@ -1452,8 +1452,6 @@ function statistics() {
 	else
 		$statistics = readJsonFile(CA_PATHS['statistics']);
 
-	download_json(CA_PATHS['moderationURL'],CA_PATHS['moderation']);
-	$statistics['totalModeration'] = count(readJsonFile(CA_PATHS['moderation']));
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
 	$templates = &$GLOBALS['templates'];
 	pluginDupe();

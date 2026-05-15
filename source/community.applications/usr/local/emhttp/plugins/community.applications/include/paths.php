@@ -81,8 +81,8 @@ define("CA_PATHS",[
 	'startupDisplayed'                    => "$tempFiles/startupDisplayed{$caTabSuffix}",      /* per-tab */
 	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
 	'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
-	'application-feed'                    => "https://preview.ca.unraid.net/assets/feed/applicationFeed.json",
-	'application-feed-last-updated'       => "https://preview.ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
+	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
+	'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
 	'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",
 	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
 	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
@@ -96,9 +96,7 @@ define("CA_PATHS",[
 	'lastUpdated'                         => "$tempFiles/lastUpdated.json",
 	'lastUpdated-old'                     => "$tempFiles/lastUpdated-old.json",
 	'addConverted'                        => "$tempFiles/TrippingTheRift",                    /* flag to indicate a rescan needed since a dockerHub container was added */
-	//'convertedTemplates'                  => "$flashDrive/private/",                        /* path to private repositories on boot device */
-	'moderationURL'                       => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Moderation.json",
-	'moderation'                          => "$tempFiles/moderation.json",                    /* json file that has all of the moderation */
+	//'convertedTemplates'                  => "$flashDrive/private/",                        /* path to private repositories on boot device */          /* json file that has all of the moderation */
 	'unRaidVersion'                       => "/etc/unraid-version",
 	'unRaidVars'                          => "/var/local/emhttp/var.ini",
 	'network_ini'                         => "/var/local/emhttp/network.ini",
