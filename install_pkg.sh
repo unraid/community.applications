@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # install_pkg.sh — Install a built CA .txz onto Unraid from the Mac.
 #
-# Drops the package through the GitHub SMB share into Unraid's archive/
-# directory and runs `installpkg` over SSH — matches your existing manual
-# workflow exactly, no web-server / HTTP-fetch dance.
+# scp's the package into /tmp on the Unraid box and runs `installpkg`
+# over the same ssh transport. No SMB share involvement, no AppleDouble
+# / chflags weirdness, no leftover files in /mnt/user/GitHub. The remote
+# /tmp copy is removed once installpkg returns.
 #
 # Usage:
 #   ./install_pkg.sh                       # newest .txz in ./archive/
@@ -15,17 +16,12 @@
 #   Neither -> the script exits with a setup hint.
 # The .unraid-host file is gitignored so the box you push to (often a
 # Tailscale name) never leaks into the repo or a fresh clone.
-#
-# Other overrides:
-#   GH_SHARE_LOCAL        Mac path to /mnt/user/GitHub on Unraid
-#                         (default: /Volumes/GitHub/community.applications/archive)
-#   GH_SHARE_REMOTE       Equivalent path Unraid sees
-#                         (default: /mnt/user/GitHub/community.applications/archive)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ARCHIVE_DIR="$ROOT/archive"
 HOST_FILE="$ROOT/.unraid-host"
+REMOTE_TMP="/tmp/community.applications-install.txz"
 
 # Resolve the SSH target.
 if [ -n "${UNRAID_HOST:-}" ]; then
@@ -46,9 +42,6 @@ if [ -z "${UNRAID_HOST:-}" ]; then
 	exit 1
 fi
 
-GH_SHARE_LOCAL="${GH_SHARE_LOCAL:-/Volumes/GitHub/community.applications/archive}"
-GH_SHARE_REMOTE="${GH_SHARE_REMOTE:-/mnt/user/GitHub/community.applications/archive}"
-
 # Resolve which .txz to install.
 if [ "$#" -ge 1 ]; then
 	PKG="$1"
@@ -65,27 +58,14 @@ else
 	echo "==> Using newest build: $(basename "$PKG")"
 fi
 
-# Sanity: the GitHub share has to be mounted so we can drop the file where
-# Unraid expects to read it from.
-if [ ! -d "$GH_SHARE_LOCAL" ]; then
-	echo "GitHub SMB share not mounted at:" >&2
-	echo "  $GH_SHARE_LOCAL" >&2
-	echo "Mount it in Finder (or override GH_SHARE_LOCAL) and retry." >&2
-	exit 1
-fi
-
 PKG_NAME="$(basename "$PKG")"
-DEST_LOCAL="$GH_SHARE_LOCAL/$PKG_NAME"
-DEST_REMOTE="$GH_SHARE_REMOTE/$PKG_NAME"
 
-echo "==> Copying $PKG_NAME -> $GH_SHARE_LOCAL/"
-# COPYFILE_DISABLE keeps cp from sprinkling ._* AppleDouble metadata onto
-# the SMB target alongside the package itself.
-COPYFILE_DISABLE=1 cp -p "$PKG" "$DEST_LOCAL"
+echo "==> Transferring $PKG_NAME -> $UNRAID_HOST:$REMOTE_TMP"
+scp -q "$PKG" "$UNRAID_HOST:$REMOTE_TMP"
 
 echo "==> Installing on $UNRAID_HOST"
 echo "    rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications"
-echo "    installpkg $DEST_REMOTE"
-ssh "$UNRAID_HOST" "rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications && installpkg \"$DEST_REMOTE\""
+echo "    installpkg $REMOTE_TMP"
+ssh "$UNRAID_HOST" "rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications && installpkg \"$REMOTE_TMP\" && rm -f \"$REMOTE_TMP\""
 
 echo "==> Done. Reload /Apps in the Unraid GUI to see the change."

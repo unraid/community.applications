@@ -1,46 +1,59 @@
 #!/usr/bin/env bash
 # Mac-native version of copy_to_git.sh.
 #
-# Pulls the live Community Applications plugin tree from the SMB-mounted
-# Unraid share into this repo's source/ directory, then regenerates ca.md5.
-# Stand-in for the legacy Linux script (kept in copy_to_git.sh.bak) which
-# ran on the Unraid host itself and copied from /usr/local/emhttp/...
+# Pulls the live Community Applications plugin tree from Unraid over SSH
+# (no SMB share involvement) into this repo's source/ directory, then
+# regenerates ca.md5. Replaces the legacy Linux script (saved as
+# copy_to_git.sh.bak) that ran on the Unraid host itself.
 #
-# Run from anywhere — the script resolves its own location and operates on
-# paths relative to the repo root.
+# SSH target resolution (no hostname ever lives in tracked source):
+#   1. UNRAID_HOST env var, if set
+#   2. ./.unraid-host file at the repo root (single line "user@host")
+#   Neither -> the script exits with a setup hint.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-SRC="/Volumes/EMHTTP PLUGINS/community.applications"
-DST="$ROOT/source/community.applications/usr/local/emhttp/plugins/community.applications"
+HOST_FILE="$ROOT/.unraid-host"
+REMOTE_SRC="/usr/local/emhttp/plugins/community.applications"
+LOCAL_DST="$ROOT/source/community.applications/usr/local/emhttp/plugins/community.applications"
 
-if [ ! -d "$SRC" ]; then
-	echo "Live install not mounted at:" >&2
-	echo "  $SRC" >&2
-	echo "Mount the EMHTTP PLUGINS SMB share in Finder and retry." >&2
+# Resolve the SSH target.
+if [ -n "${UNRAID_HOST:-}" ]; then
+	: # env var wins
+elif [ -r "$HOST_FILE" ]; then
+	UNRAID_HOST="$(grep -v '^\s*\(#\|$\)' "$HOST_FILE" | head -1 | tr -d '[:space:]')"
+fi
+
+if [ -z "${UNRAID_HOST:-}" ]; then
+	cat >&2 <<-EOMSG
+		No Unraid host configured.
+
+		Set it one of two ways:
+		  - export UNRAID_HOST=user@host  (per-shell, not persisted)
+		  - echo user@host > $HOST_FILE   (per-clone, gitignored)
+	EOMSG
 	exit 1
 fi
 
-echo "==> Syncing $SRC -> source/"
-rm -rf "$DST"
-mkdir -p "$DST"
+echo "==> Pulling $UNRAID_HOST:$REMOTE_SRC -> source/"
+rm -rf "$LOCAL_DST"
+mkdir -p "$(dirname "$LOCAL_DST")"
+# scp -r into the *parent* directory; scp recreates the leaf dir
+# (community.applications) inside it, so the final path lands at $LOCAL_DST.
+scp -rq "$UNRAID_HOST:$REMOTE_SRC" "$(dirname "$LOCAL_DST")/"
 
-# COPYFILE_DISABLE keeps `cp` from sprinkling ._* AppleDouble metadata files
-# alongside the copied tree. The trailing slash on $SRC copies the directory
-# *contents* (matches the legacy script's `cp /path/*` behaviour).
-COPYFILE_DISABLE=1 cp -R "$SRC/" "$DST/"
-
-# Belt-and-braces: scrub any mac metadata that snuck in via the SMB layer.
+# Belt-and-braces: scrub any mac metadata that snuck in (shouldn't with scp
+# from a linux source, but keep the cleanup so the workflow is consistent).
 echo "==> Pruning macOS metadata files"
-find "$DST" -name ".DS_Store" -delete
-find "$DST" -name "._*"       -delete
+find "$LOCAL_DST" -name ".DS_Store" -delete
+find "$LOCAL_DST" -name "._*"       -delete
 
-# Regenerate ca.md5 in the Linux md5sum format (`<hash>  <relative path>`,
+# Regenerate ca.md5 in Linux md5sum format (`<hash>  <relative path>`,
 # two-space separator) so `md5sum -c` works on the Unraid side.
 echo "==> Regenerating ca.md5"
-cd "$DST"
+cd "$LOCAL_DST"
 rm -f ca.md5
 find . -type f -exec md5 -r {} + | awk '{print $1"  "$2}' > ca.md5
 
 echo "==> Done. Source tree updated at:"
-echo "    $DST"
+echo "    $LOCAL_DST"
