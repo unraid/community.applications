@@ -9,8 +9,14 @@
 #   ./install_pkg.sh                       # newest .txz in ./archive/
 #   ./install_pkg.sh path/to/file.txz      # explicit package
 #
-# Overrides (env vars):
-#   UNRAID_HOST           SSH target (default: root@unraida-1.tail4a32cc.ts.net)
+# SSH target resolution (no hostname ever lives in tracked source):
+#   1. UNRAID_HOST env var, if set
+#   2. ./.unraid-host file at the repo root (single line "user@host")
+#   Neither -> the script exits with a setup hint.
+# The .unraid-host file is gitignored so the box you push to (often a
+# Tailscale name) never leaks into the repo or a fresh clone.
+#
+# Other overrides:
 #   GH_SHARE_LOCAL        Mac path to /mnt/user/GitHub on Unraid
 #                         (default: /Volumes/GitHub/community.applications/archive)
 #   GH_SHARE_REMOTE       Equivalent path Unraid sees
@@ -19,8 +25,27 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ARCHIVE_DIR="$ROOT/archive"
+HOST_FILE="$ROOT/.unraid-host"
 
-UNRAID_HOST="${UNRAID_HOST:-root@unraida-1.tail4a32cc.ts.net}"
+# Resolve the SSH target.
+if [ -n "${UNRAID_HOST:-}" ]; then
+	: # env var wins, nothing to do
+elif [ -r "$HOST_FILE" ]; then
+	# First non-blank, non-comment line of the file.
+	UNRAID_HOST="$(grep -v '^\s*\(#\|$\)' "$HOST_FILE" | head -1 | tr -d '[:space:]')"
+fi
+
+if [ -z "${UNRAID_HOST:-}" ]; then
+	cat >&2 <<-EOMSG
+		No Unraid host configured.
+
+		Set it one of two ways:
+		  - export UNRAID_HOST=user@host  (per-shell, not persisted)
+		  - echo user@host > $HOST_FILE   (per-clone, gitignored)
+	EOMSG
+	exit 1
+fi
+
 GH_SHARE_LOCAL="${GH_SHARE_LOCAL:-/Volumes/GitHub/community.applications/archive}"
 GH_SHARE_REMOTE="${GH_SHARE_REMOTE:-/mnt/user/GitHub/community.applications/archive}"
 
