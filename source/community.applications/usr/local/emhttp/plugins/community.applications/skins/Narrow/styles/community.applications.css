@@ -2109,7 +2109,16 @@ input[type="button"] {
 		top: 0;
 		transform: translateX(0);             /* slide into view */
 		opacity: 1;
-
+	}
+	body:has(.sidenavShow) .popupCloseArea::after {
+		content: "";
+		position: absolute;
+		left: 1.5rem;
+		right: 1.5rem;
+		bottom: 2px;
+		height: 1px;
+		background-color: color-mix(in srgb, var(--sidebar-text) 75%, var(--sidebar-background));
+		pointer-events: none;
 	}
 	.popupCloseArea > div:first-child {
 		margin-left: 2rem;
