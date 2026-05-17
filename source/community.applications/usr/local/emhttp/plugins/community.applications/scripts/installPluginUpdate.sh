@@ -13,4 +13,4 @@
 #   Exit status of the underlying `plugin update` invocation; writes the
 #   plugin manager's progress/output to stdout.
 # ---------------------------------------------------------------------------
-/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin update $1
+/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin update "$1"

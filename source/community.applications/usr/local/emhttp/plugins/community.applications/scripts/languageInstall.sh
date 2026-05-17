@@ -13,7 +13,11 @@
 #   Exit status of the final `language` invocation; writes that command's
 #   progress output to stdout.
 # ---------------------------------------------------------------------------
-if [ "$1" = "update" ]; then
-	/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/language check $2
+if [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
+	echo "Usage: $0 <install|update|remove> <language-pack-id>" >&2
+	exit 2
 fi
-/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/language $1 $2
+if [ "$1" = "update" ]; then
+	/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/language check "$2"
+fi
+/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/language "$1" "$2"
