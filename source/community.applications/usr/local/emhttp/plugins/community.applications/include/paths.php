@@ -2,109 +2,144 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
-# Licenced under GPLv2                 #
+# Licensed under GPL-2.0-or-later      #
+# SPDX-License-Identifier:             #
+#   GPL-2.0-or-later                   #
 #                                      #
 ########################################
+
+/**
+ * Path constants, URLs, and temp locations for Community Applications.
+ *
+ * Defines CA_PATHS (feeds, caches, moderation files, Docker-related paths) and
+ * optional per-browser-tab cache suffixes from POSTed tabId.
+ */
 
 $docroot = $docroot ?? $_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp";
 require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 
 $CA = "community.applications";
+$tempFiles = "/tmp/$CA/tempFiles";
+$flashDrive = "/boot/config/plugins/$CA";
 
 if ( ! isset($dockerManPaths) ) {
-  $dockerManPaths = [
-    'autostart-file' => "/var/lib/docker/unraid-autostart",
-    'update-status'  => "/var/lib/docker/unraid-update-status.json",
-    'template-repos' => "/boot/config/plugins/dockerMan/template-repos",
-    'templates-user' => "/boot/config/plugins/dockerMan/templates-user",
-    'templates-usb'  => "/boot/config/plugins/dockerMan/templates",
-    'images'         => "/var/lib/docker/unraid/images",
-    'user-prefs'     => "/boot/config/plugins/dockerMan/userprefs.cfg",
-    'plugin'         => "$docroot/plugins/dynamix.docker.manager",
-    'images-ram'     => "$docroot/state/plugins/dynamix.docker.manager/images",
-    'webui-info'     => "$docroot/state/plugins/dynamix.docker.manager/docker.json"
-  ];
+	$dockerManPaths = [
+		'autostart-file' => "/var/lib/docker/unraid-autostart",
+		'update-status'  => "/var/lib/docker/unraid-update-status.json",
+		'template-repos' => "/boot/config/plugins/dockerMan/template-repos",
+		'templates-user' => "/boot/config/plugins/dockerMan/templates-user",
+		'templates-usb'  => "/boot/config/plugins/dockerMan/templates",
+		'images'         => "/var/lib/docker/unraid/images",
+		'user-prefs'     => "/boot/config/plugins/dockerMan/userprefs.cfg",
+		'plugin'         => "$docroot/plugins/dynamix.docker.manager",
+		'images-ram'     => "$docroot/state/plugins/dynamix.docker.manager/images",
+		'webui-info'     => "$docroot/state/plugins/dynamix.docker.manager/docker.json"
+	];
 }
 
-$caPaths['tempFiles']                           = "/tmp/$CA/tempFiles";                            /* path to temporary files */
-$caPaths['flashDrive']                          = "/boot/config/plugins/$CA";
-$caPaths['templates-community']                 = $caPaths['tempFiles']."/templates-community-apps";           /* templates and temporary files stored here.  Deleted every update of applications */
-$caPaths['community-templates-url']             = "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json";
-$caPaths['PublicServiceAnnouncement']           = "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt";
-$caPaths['community-templates-info']            = $caPaths['tempFiles']."/templates_new.json";                     /* json file containing all of the templates */
-$caPaths['community-templates-info-old']        = $caPaths['tempFiles']."/templates.json";  /* this file is for plugin script to update suppport URLs on plugins.  Has to be in JSON format */
-$caPaths['haveTemplates']												= $caPaths['tempFiles']."/haveTemplates";
-$caPaths['community-templates-displayed']       = $caPaths['tempFiles']."/displayed.json";                     /* json file containing all of the templates currently displayed */
-$caPaths['community-templates-allSearchResults']= $caPaths['tempFiles']."/allSearchResults.json";
-$caPaths['community-templates-catSearchResults']= $caPaths['tempFiles']."/catSearchResults.json";
-$caPaths['startupDisplayed']                    = $caPaths['tempFiles']."/startupDisplayed";
-$caPaths['repositoriesDisplayed']               = $caPaths['tempFiles']."/repositoriesDisplayed.json";
-$caPaths['localONLY']                           = false;    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
-$caPaths['humanReadable']                       = false;     /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
-$caPaths['application-feed']                    = "https://ca.unraid.net/assets/feed/applicationFeed.json";
-$caPaths['application-feed-last-updated']       = "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json";
-$caPaths['application-feedBackup']              = "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json";
-$caPaths['application-feed-last-updatedBackup'] = "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json";
-$caPaths['application-feed-local']              = "/tmp/GitHub/AppFeed/applicationFeed.json";
-$caPaths['appFeedDownloadError']                = $caPaths['tempFiles']."/downloaderror.txt";
-$caPaths['categoryList']                        = $caPaths['tempFiles']."/categoryList.json";
-$caPaths['repositoryList']                      = $caPaths['tempFiles']."/repositoryList.json";
-$caPaths['extraBlacklist']                      = $caPaths['tempFiles']."/extraBlacklist.json";
-$caPaths['extraDeprecated']                     = $caPaths['tempFiles']."/extraDeprecated.json";
-$caPaths['sortOrder']                           = $caPaths['tempFiles']."/sortOrder.json";
-$caPaths['currentServer']                       = $caPaths['tempFiles']."/currentServer.txt";
-$caPaths['lastUpdated']                         = $caPaths['tempFiles']."/lastUpdated.json";
-$caPaths['lastUpdated-old']                     = $caPaths['tempFiles']."/lastUpdated-old.json";
-$caPaths['addConverted']                        = $caPaths['tempFiles']."/TrippingTheRift";                    /* flag to indicate a rescan needed since a dockerHub container was added */
-$caPaths['convertedTemplates']                  = "{$caPaths['flashDrive']}/private/";                        /* path to private repositories on boot device */
-$caPaths['moderationURL']                       = "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Moderation.json";
-$caPaths['moderation']                          = $caPaths['tempFiles']."/moderation.json";                    /* json file that has all of the moderation */
-$caPaths['unRaidVersion']                       = "/etc/unraid-version";
-$caPaths['unRaidVars']                          = "/var/local/emhttp/var.ini";
-$caPaths['network_ini']                         = "/var/local/emhttp/network.ini";
-$caPaths['docker_cfg']                          = "/boot/config/docker.cfg";
-$caPaths['dockerUpdateStatus']                  = "/var/lib/docker/unraid-update-status.json";
-$caPaths['pinnedV2']                            = "{$caPaths['flashDrive']}/pinned_appsV2.json";
-$caPaths['appOfTheDay']                         = $caPaths['tempFiles']."/appOfTheDay.json";
-$caPaths['statistics']                          = $caPaths['tempFiles']."/statistics.json";
-$caPaths['statisticsURL']                       = "https://assets.ca.unraid.net/feed/statistics.json";
-$caPaths['pluginSettings']                      = "{$caPaths['flashDrive']}/community.applications.cfg";
-$caPaths['fixedTemplates_txt']                  = $caPaths['tempFiles']."/caFixed.txt";
-$caPaths['invalidXML_txt']                      = $caPaths['tempFiles']."/invalidxml.txt";
-$caPaths['warningAccepted']                     = "{$caPaths['flashDrive']}/accepted";
-$caPaths['pluginWarning']                       = "{$caPaths['flashDrive']}/plugins_accepted";
-$caPaths['pluginDupes']                         = $caPaths['tempFiles']."/pluginDupes.json";
-$caPaths['pluginTempDownload']                  = $caPaths['tempFiles']."/pluginTempFile.plg";
-$caPaths['dockerManTemplates']                  = $dockerManPaths['templates-user'];
-$caPaths['disksINI']                            = "/var/local/emhttp/disks.ini";
-$caPaths['dynamixSettings']                     = "/boot/config/plugins/dynamix/dynamix.cfg";
-$caPaths['dockerSettings']                      = "/boot/config/docker.cfg";
-$caPaths['defaultAppdataPath']                  = "/mnt/user/appdata/";
-$caPaths['installedLanguages']                  = "/boot/config/plugins";
-$caPaths['dynamixUpdates']                      = "/tmp/plugins";
-$caPaths['LanguageErrors']                      = "https://squidly271.github.io/languageErrors.html";
-$caPaths['CA_languageBase']                     = "https://assets.ca.unraid.net/feed/languages/";
-$caPaths['CA_logs']                             = "/tmp/CA_logs";
-$caPaths['logging']                             = "{$caPaths['CA_logs']}/ca_log.txt";
-$caPaths['languageInstalled']                   = "/usr/local/emhttp/languages/";
-$caPaths['updateTime']                          = "/tmp/$CA/checkForUpdatesTime"; # can't be in /tmp/community.applications/tempFiles because new feed downloads erases everything there
-$caPaths['updateRunning']                       = "/tmp/$CA/updateRunning";
-$caPaths['info']                                = $caPaths['tempFiles']."/info.json";
-$caPaths['dockerSearchResults']                 = $caPaths['tempFiles']."/dockerSearch.json";
-$caPaths['dockerSearchInstall']                 = $caPaths['tempFiles']."/dockerConvert.xml";
-$caPaths['dockerSearchActive']                  = $caPaths['tempFiles']."/dockerSearchActive";
-$caPaths['dockerConvertFlash']                  = $dockerManPaths['templates-user']."/my-CA_TEST_CONTAINER_DOCKERHUB.xml";
-$caPaths['pluginPending']                       = "/tmp/plugins/pluginPending/";
-$caPaths['phpErrorSettings']                    = "/etc/php.d/errors-php.ini";
-$caPaths['pluginProxy']                         = "https://ca.unraid.net/dl/";
-$caPaths['RepositoryAssets']                    = "http://ca.unraid.net/dl/https://assets.ca.unraid.net/feed/repositories/";
-$caPaths['PHPErrorLog']                         = "/var/log/phplog";
-$caPaths['pluginAttributesCache']               = $caPaths['tempFiles']."/pluginAttributesCache";
-
 $dynamixSettings = parse_plugin_cfg("dynamix");
-$caPaths['SpotlightIcon-backup']								= "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png";
-$caPaths['SpotlightIcon']                       = "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png";
+
+/* Cheap mtime stamp for cache-busting URLs. ca.md5 is regenerated by
+   copy_to_git.sh on every build, so its mtime == build time. Append as
+   `?v={$caBuildTime}` anywhere a URL needs to bust a CDN/browser cache. */
+$caBuildTime = (int) @filemtime("/usr/local/emhttp/plugins/$CA/ca.md5");
+
+/* Per-tab cache suffix: JS generates a stable tabId in sessionStorage on page
+   load and posts it with every request. Server suffixes a small, explicit set
+   of cache files so two tabs in the same browser don't stomp each other's
+   filtered/displayed/search results. The shared feed/templates files (and
+   anything not in the per-tab list below) are intentionally left untouched. */
+$caTabSuffix = '';
+if (!empty($_POST['tabId']) && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $_POST['tabId'])) {
+	$caTabSuffix = '.' . $_POST['tabId'];
+}
+
+define("CA_PATHS",[
+	'tempFiles'                           => "/tmp/$CA/tempFiles",
+	'flashDrive'                          => "/boot/config/plugins/$CA",
+	/* User-curated list of repository names to hide from CA. Touched only by
+	   the moderation Repository view (toggle UI) and consumed by
+	   DownloadApplicationFeed() — entries here are stamped hideFromCA on the
+	   processed template so the rest of the pipeline drops them. */
+	'ignoredRepos'                        => "/boot/config/plugins/$CA/ignoredRepos.json",
+	'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
+	'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",
+	'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",
+	'community-templates-info'            => "$tempFiles/templates.json",
+	'community-templates-info-full'       => "$tempFiles/templates_full.json", /* json file containing all of the templates */
+	/* Global (NOT per-tab): the application feed and the lock that gates
+	   concurrent downloads are shared state — only one download should be in
+	   flight across all tabs, and "feed is ready" is a server-wide fact. */
+	'haveTemplates'                       => "/tmp/ca_haveTemplates",
+	'gettingTemplates'                    => "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
+	'community-templates-displayed'       => "$tempFiles/displayed{$caTabSuffix}.json",        /* json file containing all of the templates currently displayed (per-tab) */
+	'community-templates-allSearchResults'=> "$tempFiles/allSearchResults{$caTabSuffix}.json", /* per-tab */
+	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults{$caTabSuffix}.json", /* per-tab */
+	'startupDisplayed'                    => "$tempFiles/startupDisplayed{$caTabSuffix}",      /* per-tab */
+	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
+	'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
+	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
+	'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
+	'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",
+	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
+	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
+	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
+	'categoryList'                        => "$tempFiles/categoryList.json",
+	'repositoryList'                      => "$tempFiles/repositoryList.json",
+	'extraBlacklist'                      => "$tempFiles/extraBlacklist.json",
+	'extraDeprecated'                     => "$tempFiles/extraDeprecated.json",
+	'sortOrder'                           => "$tempFiles/sortOrder{$caTabSuffix}.json", /* per-tab */
+	'currentServer'                       => "$tempFiles/currentServer.txt",
+	'lastUpdated'                         => "$tempFiles/lastUpdated.json",
+	'lastUpdated-old'                     => "$tempFiles/lastUpdated-old.json",
+	'addConverted'                        => "$tempFiles/TrippingTheRift",                    /* flag to indicate a rescan needed since a dockerHub container was added */
+	//'convertedTemplates'                  => "$flashDrive/private/",                        /* path to private repositories on boot device */          /* json file that has all of the moderation */
+	'unRaidVersion'                       => "/etc/unraid-version",
+	'unRaidVars'                          => "/var/local/emhttp/var.ini",
+	'network_ini'                         => "/var/local/emhttp/network.ini",
+	'docker_cfg'                          => "/boot/config/docker.cfg",
+	'dockerUpdateStatus'                  => "/var/lib/docker/unraid-update-status.json",
+	'pinnedV2'                            => "$flashDrive/pinned_appsV2.json",
+	'appOfTheDay'                         => "$tempFiles/appOfTheDay.json",
+	'statistics'                          => "$tempFiles/statistics.json",
+	'statisticsURL'                       => "https://preview.ca.unraid.net/assets/feed/statistics.json",
+	'pluginSettings'                      => "$flashDrive/community.applications.cfg",
+	'fixedTemplates_txt'                  => "$tempFiles/caFixed.txt",
+	'invalidXML_txt'                      => "$tempFiles/invalidxml.txt",
+	'warningAccepted'                     => "$flashDrive/accepted",
+	'pluginDupes'                         => "$tempFiles/pluginDupes.json",
+	'pluginTempDownload'                  => "$tempFiles/pluginTempFile.plg",
+	'dockerManTemplates'                  => $dockerManPaths['templates-user'],
+	'disksINI'                            => "/var/local/emhttp/disks.ini",
+	'dynamixSettings'                     => "/boot/config/plugins/dynamix/dynamix.cfg",
+	'dockerSettings'                      => "/boot/config/docker.cfg",
+	'defaultAppdataPath'                  => "/mnt/user/appdata/",
+	'installedLanguages'                  => "/boot/config/plugins",
+	'dynamixUpdates'                      => "/tmp/plugins",
+	'LanguageErrors'                      => "https://squidly271.github.io/languageErrors.html",
+	'CA_languageBase'                     => "https://assets.ca.unraid.net/feed/languages/",
+	'CA_logs'                             => "/tmp/CA_logs",
+	'logging'                             => "/tmp/CA_logs/ca_log.txt",
+	'languageInstalled'                   => "/usr/local/emhttp/languages/",
+	'updateTime'                          => "/tmp/$CA/checkForUpdatesTime", # can't be in /tmp/community.applications/tempFiles because new feed downloads erases everything there
+	'updateRunning'                       => "/tmp/$CA/updateRunning",
+	'info'                                => "$tempFiles/info.json",
+	'dockerSearchResults'                 => "$tempFiles/dockerSearch{$caTabSuffix}.json",  /* per-tab */
+	'dockerSearchInstall'                 => "$tempFiles/dockerConvert.xml",
+	'dockerSearchActive'                  => "$tempFiles/dockerSearchActive{$caTabSuffix}", /* per-tab */
+	'dockerConvertFlash'                  => $dockerManPaths['templates-user']."/my-CA_TEST_CONTAINER_DOCKERHUB.xml",
+	'pluginPending'                       => "/tmp/plugins/pluginPending/",
+	'phpErrorSettings'                    => "/etc/php.d/errors-php.ini",
+	'pluginProxy'                         => "https://ca.unraid.net/dl/",
+	'RepositoryAssets'                    => "http://ca.unraid.net/dl/https://assets.ca.unraid.net/feed/repositories/",
+	'PHPErrorLog'                         => "/var/log/phplog",
+	'pluginAttributesCache'               => "$tempFiles/pluginAttributesCache",
+	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
+	'downloadLocksDir'                    => "$tempFiles/locks",
+	'SpotlightIcon-backup'                => "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}",
+	'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}"
+]);
 ?>

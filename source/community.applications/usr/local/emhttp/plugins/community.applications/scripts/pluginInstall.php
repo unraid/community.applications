@@ -3,26 +3,30 @@
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
-# Licenced under GPLv2                 #
+# Licensed under GPL-2.0-or-later      #
+# SPDX-License-Identifier:             #
+#   GPL-2.0-or-later                   #
 #                                      #
 ########################################
+$DOCROOT = $DOCROOT ?? "/usr/local/emhttp";
+
 require_once "/usr/local/emhttp/plugins/community.applications/include/paths.php";
 require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
 
 $pluginURL = $argv[2];
 
 if ( ! $pluginURL ) {
-  echo "No URL passed";
-  exit(1);
+	echo "No URL passed";
+	exit(1);
 }
-$apps = readJsonFile($caPaths['community-templates-info']);
+$apps = readJsonFile(CA_PATHS['community-templates-info']);
 if ( searchArray($apps,"PluginURL",$pluginURL) !== false || $argv[1] == "update" || $argv[1] == "remove") {
-  passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
-  passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
+	passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
+	passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
 }
 else
-  echo "URL passed for installation does not exist in application feed\n";
+	echo "URL passed for installation does not exist in application feed\n";
 ?>

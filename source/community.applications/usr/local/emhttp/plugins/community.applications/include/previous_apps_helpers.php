@@ -1,0 +1,564 @@
+<?php
+
+/**
+ * Helpers for the "Previously Installed" / installed-apps views in Community Applications.
+ *
+ * Resolves installed Docker templates, filters, update status, and clears
+ * related per-tab caches when the user changes installed-app filters.
+ */
+class PreviousAppsHelpers {
+	/**
+	 * Strip a Docker image tag without breaking registry ports
+	 * (`registry:5000/ns/app:latest` to `registry:5000/ns/app`; tag colon is after last `/`).
+	 */
+	private static function stripImageTag(string $repository): string {
+		$lastSlash = strrpos($repository, "/");
+		$lastColon = strrpos($repository, ":");
+		if ($lastColon === false) return $repository;
+		if ($lastSlash !== false && $lastColon < $lastSlash) return $repository;
+		return substr($repository, 0, $lastColon);
+	}
+
+	/**
+	 * Remove per-tab JSON caches used when switching Previous Apps filters.
+	 */
+	public static function clearPreviousAppsCaches() {
+		$paths = [
+			'community-templates-allSearchResults',
+			'community-templates-catSearchResults',
+			'repositoriesDisplayed',
+			'startupDisplayed',
+			'dockerSearchActive'
+		];
+
+		foreach ($paths as $pathKey) {
+			if ( isset(CA_PATHS[$pathKey]) ) {
+				@unlink(CA_PATHS[$pathKey]);
+			}
+		}
+	}
+
+	/**
+	 * Build installed/filter tuple from POST or Action Centre mode; clears caches when using POST filters.
+	 *
+	 * @param bool $enableActionCentre When true, force installed=action with empty filter
+	 * @return array{installed: string, filter: string}
+	 */
+	public static function resolvePreviousAppsContext($enableActionCentre) {
+		if ( $enableActionCentre ) {
+			return ['installed' => "action", 'filter' => ""];
+		}
+
+		$installed = getPost("installed","");
+		$filter = getPost("filter","");
+		self::clearPreviousAppsCaches();
+
+		return ['installed' => $installed, 'filter' => $filter];
+	}
+
+	/**
+	 * Load Unraid docker update-status JSON, or empty array when Docker is off or file is unusable.
+	 *
+	 * @param bool $dockerRunning From caIsDockerRunning()
+	 * @return array<string, mixed>
+	 */
+	public static function loadDockerUpdateStatus($dockerRunning) {
+		if ( ! $dockerRunning ) {
+			return [];
+		}
+
+		$status = readJsonFile(CA_PATHS['dockerUpdateStatus']);
+
+		/* json_decode() can return scalars (e.g. a top-level string/number) for
+		   malformed cache files, so guard against non-array before indexing. */
+		return is_array($status) ? $status : [];
+	}
+
+	/**
+	 * Build the Docker section of Previous Apps (installed vs legacy) from user templates XML.
+	 *
+	 * @param bool $dockerRunning
+	 * @param string $installed POST filter: "true", "action", etc.
+	 * @param string $filter "docker" or empty for docker section
+	 * @param array<int, array<string, mixed>> $info Running containers from getAllInfo()/Docker
+	 * @param int $updateCount Incremented when Action Centre marks updates
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param array<string, mixed> $extraBlacklist Moderation map
+	 * @param array<string, mixed> $extraDeprecated Moderation map
+	 * @param array<string, mixed> $dockerUpdateStatus Per-repo update flags from Unraid
+	 * @return list<array<string, mixed>>
+	 */
+	public static function collectDockerApplications($dockerRunning, $installed, $filter, $info, &$updateCount, $templates, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus) {
+		if ( ! $dockerRunning ) {
+			return [];
+		}
+
+		if ( $filter && $filter !== "docker" ) {
+			return [];
+		}
+
+		$allFiles = glob(CA_PATHS['dockerManTemplates']."/*.xml") ?: [];
+		$isActionCentre = ($installed === "action");
+
+		if ( $installed === "true" || $isActionCentre ) {
+			return self::collectInstalledDockerApplications($allFiles, $info, $templates, $dockerUpdateStatus, $extraBlacklist, $extraDeprecated, $isActionCentre, $updateCount);
+		}
+
+		return self::collectLegacyDockerApplications($allFiles, $info, $templates);
+	}
+
+	/**
+	 * Build the plugins (and language packs) section for Previous Apps.
+	 *
+	 * @param string $installed Same semantics as Docker branch ("true", "action", …)
+	 * @param string $filter Must be empty or "plugins" to return rows
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param int $updateCount Action Centre counter (by ref)
+	 * @return list<array<string, mixed>>
+	 */
+	public static function collectPluginApplications($installed, $filter, $templates, &$updateCount) {
+		if ( $filter && $filter !== "plugins" ) {
+			return [];
+		}
+
+		$isActionCentre = ($installed === "action");
+
+		if ( $installed === "true" || $isActionCentre ) {
+			return self::collectInstalledPluginApplications($templates, $isActionCentre, $updateCount);
+		}
+
+		return self::collectLegacyPluginApplications($templates);
+	}
+
+	/**
+	 * Map running containers to feed templates for "installed" Previous Apps, including Action Centre updates.
+	 *
+	 * @param list<string> $allFiles Paths to user template XML under dockerMan templates-user
+	 * @param array<int, array<string, mixed>> $info Running containers from DockerTemplates/getAllInfo
+	 * @param array<int, array<string, mixed>> $templates Application feed
+	 * @param array<string, mixed> $dockerUpdateStatus Unraid dockerMan update JSON
+	 * @param array<string, mixed> $extraBlacklist Moderation overrides by repo
+	 * @param array<string, mixed> $extraDeprecated Moderation overrides by repo
+	 * @param bool $isActionCentre Whether to emit action-centre-only rows
+	 * @param int $updateCount Incremented when updates are flagged
+	 * @return list<array<string, mixed>>
+	 */
+	private static function collectInstalledDockerApplications($allFiles, $info, $templates, $dockerUpdateStatus, $extraBlacklist, $extraDeprecated, $isActionCentre, &$updateCount) {
+		$displayed = [];
+
+		foreach ($allFiles as $xmlfile) {
+			$template = readXmlFile($xmlfile);
+			if ( ! $template ) {
+				continue;
+			}
+
+			$template['Overview'] = fixDescription($template['Overview']);
+			$template['Description'] = $template['Overview'];
+			$template['CardDescription'] = $template['Overview'];
+			$template['InstallPath'] = $xmlfile;
+			$template['UnknownCompatible'] = true;
+
+			$containerID = false;
+			$isRunning = false;
+			/* Default $catalogRepo to the original (catalog) Repository so
+			   moderation lookups still work when the search loop below finds a
+			   running container but no catalog template, and the Repository
+			   mutation never happens. */
+			$catalogRepo = $template['Repository'];
+
+			foreach ($info as $installedDocker) {
+				if ( $installedDocker['Name'] != $template['Name'] ) {
+					continue;
+				}
+
+				if ( ! startsWith(str_replace("library/","",$installedDocker['Image']), $template['Repository']) && ! startsWith($installedDocker['Image'],$template['Repository']) ) {
+					continue;
+				}
+
+				$isRunning = true;
+				$searchResult = searchArray($templates,'Repository',$template['Repository']);
+				if ( $searchResult === false ) {
+					$searchResult = searchArray($templates,'Repository',self::stripImageTag($template['Repository']));
+				}
+
+				if ( $searchResult !== false ) {
+					if ( ($template['TemplateURL'] ?? false) ) {
+						if ( ($templates[$searchResult]['TemplateURL'] ?? INF) != $template['TemplateURL'] ) {
+							$search = searchArray($templates,'TemplateURL',$template['TemplateURL']);
+							$searchResult = $search === false ? $searchResult : $search;
+						}
+					}
+
+					$tempPath = $template['InstallPath'];
+					$containerID = $templates[$searchResult]['ID'];
+					$tmpOvr = $template['Overview'];
+					$template = $templates[$searchResult];
+					$template['Name'] = $installedDocker['Name'];
+					$template['Overview'] = $tmpOvr;
+					$template['CardDescription'] = $tmpOvr;
+					$template['InstallPath'] = $tempPath;
+					$template['SortName'] = str_replace("-"," ",$template['Name']);
+					/* Preserve the catalog Repository before we overwrite it with the
+					   running image name — moderation overrides ($extraBlacklist /
+					   $extraDeprecated) are keyed by the canonical catalog repository,
+					   and the running image often carries a tag or registry prefix
+					   that wouldn't match those keys. */
+					$catalogRepo = $template['Repository'];
+					$template['Repository'] = $installedDocker['Image'];
+				}
+
+				break;
+			}
+
+			if ( ! $isRunning ) {
+				continue;
+			}
+
+			$template['Uninstall'] = true;
+			$template['ID'] = $containerID;
+
+			if ( $isActionCentre ) {
+				/* "Already tagged" means a colon AFTER the last slash — `registry:5000/repo`
+				   has a port, not a tag, and still needs `:latest` appended.
+				   Use $catalogRepo (saved before the running-image overwrite above)
+				   so the dockerUpdateStatus key matches what the catalog produced. */
+				$repoStr = $catalogRepo ?? $template['Repository'];
+				$lastSlash = strrpos($repoStr, "/");
+				$colonAfterPath = $lastSlash !== false ? strpos($repoStr, ":", $lastSlash) : strpos($repoStr, ":");
+				$tmpRepo = $colonAfterPath !== false ? $repoStr : $repoStr.":latest";
+				if ( strpos($tmpRepo,"/") === false ) {
+					$tmpRepo = "library/$tmpRepo";
+				}
+
+				$status = $dockerUpdateStatus[$tmpRepo]['status'] ?? null;
+				if ( $tmpRepo && ($status === "false" || $status === false) ) {
+					$template['actionCentre'] = true;
+					$template['UpdateAvailable'] = true;
+					$updateCount++;
+				}
+
+				if ( ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) ) {
+					/* Look up overrides by $catalogRepo (saved above) — $template['Repository']
+					   here is the running image name and won't match the catalog-keyed override map. */
+					$overrideKey = $catalogRepo ?? $template['Repository'];
+					if ( $extraBlacklist[$overrideKey] ?? false ) {
+						$template['Blacklist'] = true;
+						$template['ModeratorComment'] = $extraBlacklist[$overrideKey];
+					}
+					if ( $extraDeprecated[$overrideKey] ?? false ) {
+						$template['Deprecated'] = true;
+						$template['ModeratorComment'] = $extraDeprecated[$overrideKey];
+					}
+				}
+
+				if ( ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
+					continue;
+				}
+			}
+
+			if ( $isActionCentre ) {
+				$template['actionCentre'] = true;
+			}
+
+			$displayed[] = $template;
+		}
+
+		return $displayed;
+	}
+
+	/**
+	 * Previous Apps "not running" path: user XML merged with feed metadata, excluding running containers.
+	 *
+	 * @param list<string> $allFiles
+	 * @return list<array<string, mixed>>
+	 */
+	private static function collectLegacyDockerApplications($allFiles, $info, $templates) {
+		$displayed = [];
+
+		foreach ($allFiles as $xmlfile) {
+			$template = readXmlFile($xmlfile);
+			if ( ! $template ) {
+				continue;
+			}
+			if ( $template['Blacklist'] ?? false ) {
+				continue;
+			}
+
+			$template['Overview'] = fixDescription($template['Overview']);
+			$template['Description'] = $template['Overview'];
+			$template['CardDescription'] = $template['Overview'];
+			$template['InstallPath'] = $xmlfile;
+			$template['UnknownCompatible'] = true;
+			$template['Removable'] = true;
+
+			$isRunning = false;
+			foreach ($info as $installedDocker) {
+				if ( ! startsWith(str_replace("library/","",$installedDocker['Image']), $template['Repository']) && ! startsWith($installedDocker['Image'],$template['Repository']) ) {
+					continue;
+				}
+
+				if ( $installedDocker['Name'] == $template['Name'] ) {
+					$isRunning = true;
+					continue;
+				}
+			}
+
+			if ( $isRunning ) {
+				continue;
+			}
+
+			$foundflag = false;
+			$testRepo = self::stripImageTag($template['Repository']);
+
+			if ( $template['TemplateURL'] ?? false ) {
+				$search = searchArray($templates,'TemplateURL',$template['TemplateURL']);
+				if ( $search !== false ) {
+					$foundflag = true;
+
+					$tempPath = $template['InstallPath'];
+					$tempName = $template['Name'];
+					$tempOvr = $template['Overview'];
+					$template = $templates[$search];
+					$template['Overview'] = $tempOvr;
+					$template['Description'] = $tempOvr;
+					$template['CardDescription'] = $tempOvr;
+					$template['Removable'] = true;
+					$template['InstallPath'] = $tempPath;
+					$template['Name'] = $tempName;
+					$template['SortName'] = str_replace("-"," ",$template['Name']);
+				}
+			}
+
+			if ( ! $foundflag ) {
+				foreach ($templates as $appTemplate) {
+					/* Match the catalog repo (sans tag) against $testRepo exactly —
+					   prefix matching previously let `space/foo` match against
+					   `space/foobar` and copy the wrong template's metadata. */
+					if ( self::stripImageTag($appTemplate['Repository'] ?? "") !== $testRepo ) {
+						continue;
+					}
+
+					$tempPath = $template['InstallPath'];
+					$tempName = $template['Name'];
+					$tempOvr = $template['Overview'];
+					$template = $appTemplate;
+					$template['Overview'] = $tempOvr;
+					$template['Description'] = $tempOvr;
+					$template['CardDescription'] = $tempOvr;
+					$template['Removable'] = true;
+					$template['InstallPath'] = $tempPath;
+					$template['Name'] = $tempName;
+					$template['SortName'] = str_replace("-"," ",$template['Name']);
+					break;
+				}
+			}
+
+			if ( ! ($template['Blacklist'] ?? false) ) {
+				$displayed[] = $template;
+			}
+		}
+
+		return $displayed;
+	}
+
+	/**
+	 * Installed .plg entries from the feed plus nested language-pack rows for Action Centre.
+	 *
+	 * @param int $updateCount
+	 * @return list<array<string, mixed>>
+	 */
+	private static function collectInstalledPluginApplications($templates, $isActionCentre, &$updateCount) {
+		$displayed = [];
+
+		foreach ($templates as $template) {
+			if ( ! ($template['Plugin'] ?? null) ) {
+				continue;
+			}
+
+			/* Derive $filename from PluginURL — checkInstalledPlugin() and the
+			   /var/log/plugins/... checks below are keyed off the installed
+			   plugin filename produced by the plugin system, which comes from
+			   PluginURL. Repository can diverge for custom XML, leaving us
+			   reading the wrong file. */
+			$pluginUrl = $template['PluginURL'] ?? null;
+			if ( ! $pluginUrl ) {
+				continue;
+			}
+			$filename = basename($pluginUrl);
+			if ( ! checkInstalledPlugin($template) ) {
+				continue;
+			}
+
+			$template['InstallPath'] = "/var/log/plugins/$filename";
+			$template['Uninstall'] = true;
+
+			if ( $isActionCentre && ($template['PluginURL'] ?? "") && ($template['Name'] ?? "") !== "Community Applications" ) {
+				if ( strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$filename"))) !== strtolower(trim($template['PluginURL'] ?? "")) ) {
+					continue;
+				}
+
+				$installedVersion = ca_plugin("version","/var/log/plugins/$filename");
+				$pluginUpdated = false;
+				$templatePluginVersion = $template['pluginVersion'] ?? null;
+				$hasNewVersion = ($templatePluginVersion !== null)
+					&& (strcmp($installedVersion, (string)$templatePluginVersion) < 0);
+				if ( $hasNewVersion || ($template['UpdateAvailable'] ?? null) ) {
+					$template['actionCentre'] = true;
+					$template['UpdateAvailable'] = true;
+					$pluginUpdated = true;
+				}
+
+				if ( is_file("/tmp/plugins/$filename") && strcmp($installedVersion,ca_plugin("version","/tmp/plugins/$filename")) < 0 ) {
+					$template['actionCentre'] = true;
+					$template['UpdateAvailable'] = true;
+					$pluginUpdated = true;
+				}
+
+				if ( $pluginUpdated ) {
+					$updateCount++;
+				}
+			}
+
+			if ( $isActionCentre && ! ($template['Blacklist'] ?? false) && ! ($template['Deprecated'] ?? false) && ($template['Compatible'] ?? false) && ! ($template['actionCentre'] ?? null) ) {
+				continue;
+			}
+
+			if ( $isActionCentre ) {
+				$template['actionCentre'] = true;
+			}
+
+			$displayed[] = $template;
+		}
+
+		$displayed = array_merge($displayed, self::collectInstalledLanguagePacks($templates, $isActionCentre, $updateCount));
+
+		return $displayed;
+	}
+
+	/**
+	 * Language packs detected from boot config lang-*.xml with optional update badges for Action Centre.
+	 *
+	 * @param int $updateCount
+	 * @return list<array<string, mixed>>
+	 */
+	private static function collectInstalledLanguagePacks($templates, $isActionCentre, &$updateCount) {
+		$displayed = [];
+		/* Source the user's installed language *plugins* from the boot config
+		   directory (lang-<code>.xml files) — not /usr/local/emhttp/languages/
+		   which holds the runtime-extracted folders. languageCheck() and the
+		   plugin-system both treat lang-<code>.xml as the source of truth. */
+		$languagesDir = CA_PATHS['installedLanguages'] ?? null;
+
+		if ( ! $languagesDir || ! is_dir($languagesDir) ) {
+			return $displayed;
+		}
+
+		$entries = scandir($languagesDir) ?: [];
+
+		foreach ($entries as $entry) {
+			if ( preg_match('/^lang-(.+)\.xml$/', $entry, $matches) !== 1 ) {
+				continue;
+			}
+			$language = $matches[1];
+			if ( $language === "en_US" ) {
+				continue;
+			}
+			$index = searchArray($templates,"LanguagePack",$language);
+			if ( $index === false ) {
+				continue;
+			}
+
+			$languageTemplate = $templates[$index];
+			$languageTemplate['Uninstall'] = true;
+
+			if ( $isActionCentre ) {
+				$languageTemplate['actionCentre'] = true;
+				if ( ! languageCheck($languageTemplate) ) {
+					continue;
+				}
+
+				$languageTemplate['UpdateAvailable'] = true;
+				$updateCount++;
+			}
+
+			$displayed[] = $languageTemplate;
+		}
+
+		return $displayed;
+	}
+
+	/**
+	 * Plugins moved to plugins-error / plugins-removed still listed for reinstall/removal in Previous Apps.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function collectLegacyPluginApplications($templates) {
+		$displayed = [];
+		$alreadySeen = [];
+
+		$sources = [
+			"/boot/config/plugins-error/*.plg",
+			"/boot/config/plugins-removed/*.plg"
+		];
+
+		$allPlugs = [];
+		foreach ($sources as $pattern) {
+			$results = glob($pattern) ?: [];
+			$allPlugs = array_merge($allPlugs, $results);
+		}
+
+		foreach ($allPlugs as $oldplug) {
+			foreach ($templates as $template) {
+				/* Skip non-plugin templates and guard against missing PluginURL
+				   so basename() doesn't throw a notice on custom/local XML.
+				   Match on PluginURL (which is what the plugin system installs
+				   from) — falling back to Repository keeps legacy templates
+				   working when only the older field is populated. */
+				if ( ! ($template['Plugin'] ?? false) ) {
+					continue;
+				}
+				$pluginRef = trim($template['PluginURL'] ?? $template['Repository'] ?? "");
+				if ( basename($oldplug) != basename($pluginRef) ) {
+					continue;
+				}
+
+				if ( file_exists("/boot/config/plugins/".basename($oldplug)) ) {
+					continue;
+				}
+
+				if ( ($template['Blacklist'] ?? false) || ( ($GLOBALS['caSettings']['hideIncompatible'] == "true") && ! ($template['Compatible'] ?? false) ) ) {
+					continue;
+				}
+
+				$oldPlugURL = trim(ca_plugin("pluginURL",$oldplug));
+				if ( ! $oldPlugURL ) {
+					continue;
+				}
+
+				/* Use $pluginRef (which already falls back to Repository) for the
+				   exact-match too — otherwise legacy templates that only set
+				   Repository pass the basename prefilter above and then always
+				   fail this comparison, never showing up in Previous Apps. */
+				if ( strtolower($pluginRef) != strtolower(trim($oldPlugURL)) ) {
+					continue;
+				}
+
+				$template['Removable'] = true;
+				$template['InstallPath'] = $oldplug;
+				/* Dedup key normalized the same way the comparison above is so case/
+				   whitespace variants of the same URL aren't treated as distinct. */
+				$oldPlugURLKey = strtolower(trim($oldPlugURL));
+				if ( isset($alreadySeen[$oldPlugURLKey]) ) {
+					continue;
+				}
+
+				$alreadySeen[$oldPlugURLKey] = true;
+				$displayed[] = $template;
+				break;
+			}
+		}
+
+		return $displayed;
+	}
+}
+?>
