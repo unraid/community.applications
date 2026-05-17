@@ -53,3 +53,6 @@ Temporary Items
 # `user@hostname` for the Unraid box you push test builds to. Never tracked
 # so the hostname / Tailscale name doesn't leak into the repo or clones.
 .unraid-host
+
+# Claude Code local state (subagent worktrees, session metadata).
+.claude/
