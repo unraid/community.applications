@@ -1,113 +1,544 @@
+<?
+########################################
+#                                      #
+# Community Applications               #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
+#                                      #
+# Licensed under GPL-2.0-or-later      #
+# SPDX-License-Identifier:             #
+#   GPL-2.0-or-later                   #
+#                                      #
+########################################
+?>
+
+<?
+#############################################################################################################
+# JS to adjust the layout of the DOM and move elements around as needed outside of the Dynamix display area #
+#############################################################################################################
+?>
+<script>
+
+$(function() {
+	// Add the HTML classes to the html element. json_encode escapes any quotes
+	// so this is safe to drop into a JS string literal even if $htmlClasses is
+	// ever sourced from anything beyond the static set in skin.php.
+	$("html").addClass(<?= json_encode($htmlClasses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
+
+	// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
+	<? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
+		$(".searchAreaHolder").insertAfter("#menu");
+	<? endif; ?>
+
+	// Move the sidebar to the body so it fills the entire screen.
+	$(".sidebar,.ca_statusArea").appendTo("body");
+
+	$("body,.content").addClass("menuAdjust");
+
+	// Override the OS switch language function so that CA can save it's current state when switching via the OS
+	const caPreviousLocale = <?= json_encode($previousLocale, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+	$(".LanguageButton").find("a").off("click.caLang").on("click.caLang", function(e) {
+		e.preventDefault();
+		CAswitchLanguage(caPreviousLocale);
+	});
+
+});
+</script>
+
+<!-- Search Area - This gets moved to body on responsive and black and white themes on legacy OS -->
 <div class="searchAreaHolder menuAdjust">
-  <div class='searchArea onlyShowWithFeed'>
-    <div class='mobileMenuButton'>
-      <div class='showMenuButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
-      <div class='closeMenuButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
-    </div>
-    <div id='searchFilter' class='hideWithMenu'>
-      <input type='text' id='searchBox' placeholder='<?tr('Search');?>'>
-      <span class='searchSubmit'><i id='searchButton' class='fa fa-search fa-lg'></i></span>
-    </div>
-    <div class='caButton maxPerPage hideWithMenu' id='maxPerPage'></div>
-    <div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
-    <div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
-    <div class='category categoryLine hideWithMenu'></div>
-    <div class='category altCategoryLine hideWithMenu'></div>
-  </div>
+	<div class='searchArea onlyShowWithFeed'>
+		<div class='mobileMenuButton'>
+			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"><?tr("Menu");?></div>
+			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"><?tr("Hide");?></div>
+		</div>
+		<div class="caSearchModalToolbarSpacer" id="caSearchModalToolbarSpacer" aria-hidden="true"></div>
+		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
+			<div class='caSearchModalTopRow'>
+				<div class="searchButton caButton"><?tr('SEARCH');?></div>
+				<div class="caSearchModalIconControls">
+					<span class="searchModalQueryBtn" title="<?tr('Search');?>"><i class="fa fa-question fa-lg" aria-hidden="true"></i></span>
+					<span class="searchModalClearBtn ca_hide" title="<?tr('Clear search');?>"><i class="fa fa-remove fa-lg" aria-hidden="true"></i></span>
+				</div>
+				<input type='text' id='searchBox' class='ca_searchBoxHidden' placeholder='<?tr('Search');?>' aria-label="<?tr('Search');?>">
+			</div>
+		</div>
+		<div id='sortIconArea' class='menuAdjust'>
+			<div class='caButton hideWithMenu' id='sortByButton'></div>
+			<div id='sortIconOptions' class='ca_hide'>
+				<button type='button' id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></button>
+				<button type='button' class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></button>
+				<button type='button' class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></button>
+				<button type='button' class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></button>
+			</div>
+		</div>
+		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
+		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
+		<div class='ca_displayCount hideWithMenu' aria-live='polite'></div>
+	</div>
 </div>
+
+<!-- Status Bar.   This gets moved to the body -->
+<div class='ca_statusArea'>
+	<span class='caDownloadProgress ca_hide'></span>
+	<span class='caStatusText'></span>
+</div>
+
+<!-- Main Display Area -->
 <div class='ca_display_area'>
-  <div class='mobileOverlay menuAdjust menuHidden' role='modal'><div class='mobileOverlayOutsideClick'></div></div>
-  <div class='mobileMenu' id='mobileMenu'>
-    <div class='menuItems menuAdjust'>
-      <ul class='caMenu '>
-        <li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'><?tr("Home");?></li>
-        <li><hr class='onlyShowWithFeed'/></li>
-        <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?>
-        <li class='subCategory onlyShowWithFeed'>
-          <ul class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></ul>
-          <ul class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></ul>
-        </li>
-        <li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='previous_apps'><?tr("Previous Apps");?></li>
-        <li class='subCategory onlyShowWithFeed'>
-          <ul class='caMenuItem sectionMenu dockerSpecific' data-category='prev_docker'><?tr("Docker");?></ul>
-          <ul class='caMenuItem sectionMenu' data-category='prev_plugins'><?tr("Plugins");?></ul>
-        </li>
-        <li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
-        <li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
-        <li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' data-category='action_centre'><?tr("Action Centre");?></li>
-        <li><hr class='onlyShowWithFeed'/></li>
-      </ul>
-        <span id='category_list' class='onlyShowWithFeed'></span>
-      <ul class='caMenu'>
-        <li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><?tr("All Apps");?></li>
-        <li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
-        <li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
-        <li><hr class='category_hr onlyShowWithFeed'/></li>
-        <li class='caMenuItem' onclick='window.location="/Apps/ca_settings"'><?tr("Settings");?></li>
-        <li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
-        <li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
-        <li class='caMenuItem'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank'><?tr("Support");?></a></li>
-        <li><hr class='category_hr'/></li>
-        <li><?=tr("VERSION");?></li>
-        <li><span id='caInstalledVersion'></span></li>
-        <li class='caMenuItem caChangeLog noSelect'><?tr("Change Log");?></li>
-        <?if ($md5Error):?>
-        <li><span class='modifiedCode'>Modified Code</span></li>
-        <br>
-        <?endif;?>  
-        <li><hr/></li>
-        <li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
-      </ul>
-    </div>
-  </div>
-  <div class='mainArea menuAdjust'>
-    <div id='sortIconArea' class='menuAdjust'>
-      <div class="category categoryLineNoMenu"></div>
-      <?tr("Sort By:");?>
-      <a id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></a>
-      <a class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></a>
-      <a class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></a>
-      <a class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></a>
-    </div>
-    <div id='templates_content' class='menuAdjust'></div>
-    <div class='multi_installDiv'>
-      <input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
-      <input type='button' class='multi_installAll' value='<?tr("Select all on page");?>'>
-      <input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
-      <input type='button' class='multi_deleteButton ca_hide' value='<?tr("Delete");?>'>
-    </div>
-  </div>
+
+	<div class='mainArea menuAdjust'>
+
+		<div id='templates_content' class='menuAdjust'></div>
+		<div class='multi_installDiv'>
+			<? if ( $firstRun !== "true" ): ?>
+				<input class='multi_install multi_installButton' type='button' value='<?tr("Install Selected Applications");?>' disabled>
+			<? endif; ?>
+			<input type='button' class='multi_installAll' value='<?tr("Select all");?>'>
+			<input type='button' class='multi_installClear' value='<?tr("Clear");?>' disabled>
+			<input type='button' class='multi_deleteButton' style='display:none' value='<?tr("Remove");?>'>
+		</div>
+	</div>
 </div>
-<div id='alternateView'>
-  <div class='caButton alternateViewClose'><?tr("CLOSE");?></div>
-  <div class='alternateViewContent'></div>
+<!-- CA's own scroll controls — visibility & click are handled in
+     caInitInfiniteScroll (Apps.page); independent of dynamix's .back_to_top
+     / .move_to_end so we don't disturb other plugins that bind them. -->
+<div class='ca_back_to_top' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
+<div class='ca_move_to_end' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
+<div class='ca_bottomBanner ca_hide'>
+	<div class='ca_pageGeometryChange'>
+		<?tr("Page numbering changed due to display size change");?>
+	</div>
+	<div class='ca_fatalReloadBanner ca_hide'></div>
 </div>
+<div id="caViewportBlocker" class="ca_viewportBlocker ca_hide" aria-hidden="true"></div>
+<div class='mobileMenu' id='mobileMenu'>
+		<div class='menuItems menuAdjust'>
+			<ul class='caMenu '>
+				<li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'>
+					<span class='caHomeMenuLabel' data-home-label="<?tr('Home');?>" data-clear-label="<?tr('Clear Search');?>"><?tr("Home");?></span>
+					<div id='ca_homeSectionSubtitle' class='ca_homeSectionSubtitle ca_hide'></div>
+					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>
+				</li>
+				<li><hr class='onlyShowWithFeed'/></li>
+				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?></li>
+				<li class='subCategory onlyShowWithFeed'>
+					<ul>
+						<li class='caMenuItem sectionMenu onlyShowWithFeed dockerSpecific' data-category='inst_docker'><?tr("Docker");?></li>
+						<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></li>
+					</ul>
+				</li>
+				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='previous_apps'><?tr("Previous Apps");?></li>
+				<li class='subCategory onlyShowWithFeed'>
+					<ul>
+						<li class='caMenuItem sectionMenu dockerSpecific' data-category='prev_docker'><?tr("Docker");?></li>
+						<li class='caMenuItem sectionMenu' data-category='prev_plugins'><?tr("Plugins");?></li>
+					</ul>
+				</li>
+				<li class='caMenuItem sectionMenu caPinnedMenu onlyShowWithFeed' data-category='pinned_apps'><?tr("Pinned Apps");?></li>
+				<li class='caMenuItem favouriteRepo onlyShowWithFeed'><?tr("Favourite Repo");?></li>
+				<li class='caMenuItem sectionMenu actionCentre onlyShowWithFeed' data-category='action_centre'><?tr("Action Centre");?></li>
+				<li><hr class='onlyShowWithFeed'/></li>
+			</ul>
+				<span id='category_list' class='onlyShowWithFeed'></span>
+			<ul class='caMenu'>
+				<li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><span class='caAllAppsMenuLabel' data-all-apps-label="<?tr('All Apps');?>" data-all-results-label="<?tr('All Results');?>"><?tr("All Apps");?></span></li>
+				<li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
+				<li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
+				<li><hr class='category_hr onlyShowWithFeed'/></li>
+				<li class='caMenuItem showSettings noSelect'><?tr("Settings");?></li>
+				<li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
+				<li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
+				<li class='caMenuItem noSelect'><a href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Support");?></a></li>
+				<li><hr class='category_hr'/></li>
+				<li><?=tr("VERSION");?></li>
+				<li><span id='caInstalledVersion'></span></li>
+				<li class='caMenuItem caChangeLog noSelect'><?tr("Change Log");?></li>
+				<?if ($md5Error):?>
+				<li><span class='modifiedCode'>Modified Code</span></li>
+				<br>
+				<?endif;?>
+				<li><hr/></li>
+				<li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
+				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
+				<li class='caMenuDisabled noSelect'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</li>
+				<?endif;?>
+			</ul>
+		</div>
+	</div>
+<!-- Sidebar for the application description.   This gets moved to the body -->
+<!-- Single modal scrim — backs the sidenav, search modal, and mobile menu.
+     Visibility, z-index, and click-dispatch are all state-driven (see CSS
+     and the .ca_modal_overlay click handler in clickHandlers.js). -->
+<div class='ca_modal_overlay' role='presentation' aria-hidden='true'></div>
+
+<div class='sidebar' role='dialog' aria-modal='true'>
+	<div class='popupCloseArea'>
+		<div class='popupCloseAreaButtons'>
+			<span class='popUpClose caButton'><?tr("CLOSE");?></span>
+			<span class='popUpBack caButton'><?tr("BACK");?></span>
+			<span class="popUpStat caButton"><?tr("BACK");?></span>
+		</div>
+	</div>
+	<div class='sidenav sidenavHide'>
+		<div id='sidenavContent'></div>
+	</div>
+	<!-- Sidebar copy of the scroll controls. Sibling of .sidenav, not child,
+	     so they're outside the scrollable area and don't move with sidenav
+	     content. .sidebar has no transform, so position:fixed resolves
+	     against the viewport. .sidebar's stacking context (z-index 1000)
+	     keeps these above .sidenav since they appear later in DOM order. -->
+	<div class='ca_back_to_top' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
+	<div class='ca_move_to_end' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
+</div>
+
+<!-- Templates / HTML for alternate views -->
 <div class='ca_hide'>
-  <div id='caCredits'>
-    <div class='credits'>
-      <div class='ca_center ca_creditTitle caLogoIcon'></div>
-      <div class='ca_center ca_creditTitle'>Community Applications</div>
-      <div class='ca_center ca_creditheader'><?tr("Development");?></div>
-      <div class='ca_center ca_credit'>Andrew Zawadzki</div>
-      <div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
-      <div class='ca_center ca_credit'>bonienl, Lime Technology Inc</div>
-      <div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
-      <div class='ca_center ca_credit'>Magnus Engø</div>
-      <div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
-      <div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
-      <div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
-      <div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
-      <div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
-      <div class='ca_center ca_credit'>
-        <div class='ca_libraries'>Awesomeplete (Lea Verou)</div>
-        <div class='ca_libraries'>Chart.js (various)</div>
-        <div class='ca_libraries'>chartjs-plugin-trendline (Marcus Alsterfjord)</div>
-        <div class='ca_libraries'>XML2Array/Array2XML (Miles Johnson)</div>
-        <div class='ca_libraries'>Magnific-Popup (Dmytro Semenov)</div>
-      </div>
-      <br>
-      <div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2025 Lime Technology, 2015-2025 Andrew Zawadzki</div>
-    </div>
-  </div>
+	<!-- Loading screen for the sidebar -->
+	<div id='sidebarLoading'>
+		<div class='ca_center caLogoIcon'></div>
+		<div class='ca_center ca_italic'><?tr("LOADING...")?></div>
+	</div>
+	<div id='caModerationShellTemplate'>
+		<div>
+			<div class='ca_center caLogoIcon'></div>
+			<div class='ca_center ca_settingsTitle'><?tr("Community Applications");?></div>
+			<div class='caModerationBody'></div>
+		</div>
+	</div>
+	<div id='caModerationRepositoryTableTemplate'>
+		<tt><table class='caModerationRepoTable'></table></tt>
+	</div>
+	<div id='caModerationInvalidListTemplate'>
+		<div class='ca_moderationList'>
+			<div class='ca_moderationItem caModerationInvalidIntro'>
+				<div class='ca_moderationTitle'></div>
+			</div>
+			<div class='caModerationInvalidItems'></div>
+		</div>
+	</div>
+	<div id='caModerationInvalidItemTemplate'>
+		<div class='ca_moderationItem'>
+			<div class='ca_moderationTitle'></div>
+			<div class='ca_moderationDetails'></div>
+		</div>
+	</div>
+	<!-- Source template — gets cloned into #sidenavContent via showAlternateView.
+	     Inner descendants use classes instead of IDs to avoid duplicate-ID
+	     conditions (the source remains in the hidden DOM after cloning). -->
+	<div id='caModerationFixedTemplate'>
+		<div class='caModerationFixedRoot'>
+			<div class='caModerationFixedIntro'></div>
+			<div class='ca_center caModerationJumpWrap'>
+				<label class='caModerationJumpLabel'>
+					<span><?tr("Jump to repository");?>:</span>
+					<select class='caFixedRepoJump' onchange='caJumpToFixedRepository(this);'>
+						<option value=''><?tr("Select repository");?></option>
+					</select>
+				</label>
+				<span class='caModerationJumpLinks'>
+					<span class='popUpLink caModerationJumpPluginDupes ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection(".caModerationFixedPluginDupes");'><?tr("Duplicated plugin filenames");?></span>
+					<span class='caModerationJumpSep ca_hide'> | </span>
+					<span class='popUpLink caModerationJumpDuplicateRepos ca_hide' role='button' tabindex='0' onclick='caScrollModerationSection(".caModerationFixedDuplicateRepos");'><?tr("Duplicated repositories");?></span>
+				</span>
+			</div>
+			<div class='ca_center caModerationToggleAllWrap'>
+				<span class='caFixedToggleAll caButton' data-show-all='0' onclick='caToggleAllFixedDetails(this);'><?tr("Show All");?></span>
+			</div>
+			<div class='ca_moderationList caModerationFixedList'></div>
+			<div class='caModerationFixedPluginDupes'></div>
+			<div class='caModerationFixedDuplicateRepos'></div>
+		</div>
+	</div>
+	<div id='caModerationFixedRepoTemplate'>
+		<div class='ca_moderationItem'>
+			<div class='ca_moderationTitle'>
+				<span class='ca_fixedToggle caModerationFixedToggle' role='button' tabindex='0'>
+					<i class='fa fa-plus' aria-hidden='true'></i>
+				</span>
+				<span class='caModerationFixedRepoTitle'></span>
+			</div>
+			<div class='ca_moderationDetails ca_fixedDetails caModerationFixedDetails'></div>
+		</div>
+	</div>
+	<div id='caModerationFixedEntryTemplate'>
+		<div>
+			<div class='ca_moderationRule'><span class='ca_bold caModerationFixedEntryName'></span></div>
+			<div class='caModerationFixedErrors'></div>
+		</div>
+	</div>
+	<!-- Change log view -->
+	<div id="caChangeLog">
+		<div>
+			<div class='ca_center caLogoIcon'></div>
+			<div class='ca_center caChangelogTitle'><?tr("Community Applications Changelog")?></div>
+			<div class='ca_center ca_italic'><?tr("Copyright")?> &copy; 2020-2026 Lime Technology, 2015-2026 Andrew Zawadzki</div>
+			<div class='ca_center ca_italic'><?tr("Licensed under GPL-2.0-or-later")?></div>
+			<div class="caChanges"></div>
+		</div>
+	</div>
+	<!-- Credits view -->
+	<div id='caCredits'>
+		<div class='credits'>
+			<div class='ca_center caLogoIcon'></div>
+			<div class='ca_center ca_creditTitle'>Community Applications</div>
+			<div class='ca_center ca_creditheader'><?tr("Development");?></div>
+			<div class='ca_center ca_credit'>Andrew Zawadzki, Lime Technology Inc</div>
+			<div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
+			<div class='ca_center ca_credit'>bonienl, Claude Shannon</div>
+			<div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
+			<div class='ca_center ca_credit'>Magnus Engø, Andrew Zawadzki, Lime Technology Inc</div>
+			<div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
+			<div class='ca_center ca_credit'>Andrew Zawadzki, Kode, Lime Technology Inc</div>
+			<div class='ca_center ca_creditheader'><?tr("Additional Testing");?></div>
+			<div class='ca_center ca_credit'>CHBMB, SpaceInvaderOne, Sparklyballs, wgstarks, DJoss, Zer0Nin3r, Mex, prostuff1, bonienl, ljm42, kizer, trurl, Jos, Lime Technology Inc, SimonF, ich777, jimmy898, Alex.b, neruve, Eugeni_CAT, ChaseCares, TheEyeTGuy, dlandon</div>
+			<div class='ca_center ca_creditheader'><?tr("Additional Libraries");?></div>
+			<div class='ca_center ca_credit'>
+				<div>Awesomeplete (Lea Verou) - MIT licence</div>
+				<div>Chart.js (various) - MIT licence</div>
+				<div>chartjs-plugin-trendline (Marcus Alsterfjord) - MIT licence</div>
+				<div>XML2Array/Array2XML (Miles Johnson) - Apache 2.0 licence - <?tr("Modified by Andrew Zawadzki");?></div>
+				<div>Magnific-Popup (Dmytro Semenov) - MIT licence - <?tr("Modified by Andrew Zawadzki");?></div>
+			</div>
+			<br>
+			<div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2026 Lime Technology, 2015-2026 Andrew Zawadzki</div>
+		</div>
+	</div>
+	<!-- Statistics view -->
+	<div id='caStatisticsTemplate'>
+		<div class='ca_statistics'>
+			<div>
+				<table>
+					<thead>
+					 <tr class='caStatisticsHeaderRow'>
+						<td colspan='2'>
+							<div class='ca_center caLogoIcon'></div>
+						</td>
+					</tr>
+					<tr>
+						<td colspan='2'>
+							<div class='ca_center caStatisticsTitle'>Community Applications</div>
+						</td>
+					</tr>
+					</thead>
+					<tbody>
+					<tr>
+						<td class='ca_table'>
+							<?tr("Last Change To Application Feed");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='updateTime'></span><br><span data-stat-html='currentServer'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<?tr("Docker Applications");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='docker'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<?tr("Plugin Applications");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='plugin'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<?tr("Templates");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='totalApplications'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<?tr("Official Containers");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='official'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Repository","<?tr("Repositories");?>");'><?tr("Repositories");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='repositories'></span>
+						</td>
+					</tr>
+					<tr data-stat-row='private'>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' data-category='PRIVATE' onclick='showSpecialCategory(this);'><?tr("Private Docker Applications");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='private'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Invalid","<?tr("Invalid Templates");?>");'><?tr("Invalid Templates");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='invalidXML'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' onclick='event.stopPropagation();showModeration("Fixed","<?tr("Template Errors");?>");'><?tr("Template Errors");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='caFixed'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' data-category='BLACKLIST' onclick='showSpecialCategory(this);'><?tr("Blacklisted Apps");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='blacklist'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' data-category='INCOMPATIBLE' onclick='showSpecialCategory(this);'><?tr("Incompatible Applications");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='totalIncompatible'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<span class='popUpLink' role='button' tabindex='0' data-category='DEPRECATED' onclick='showSpecialCategory(this);'><?tr("Deprecated Applications");?></span>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='totalDeprecated'></span>
+						</td>
+					</tr>
+					<tr>
+						<td class='ca_table'>
+							<a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank' rel='noopener noreferrer'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank' rel='noopener noreferrer'> <?tr("Backup Server");?></a>
+						</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
+			<div class='ca_center'>
+				<a class='popUpLink' href='https://forums.unraid.net/topic/87144-ca-application-policies/' target='_blank' rel='noopener noreferrer'><?tr("Application Policy");?></a>
+			</div>
+		</div>
+	</div>
+	<div class='settingsContainer'>
+		<div class='ca_settingsPanel'>
+			<div class='ca_center caLogoIcon'></div>
+			<div class='ca_center ca_settingsTitle'><?tr("Community Applications Settings");?></div>
+			<form class='ca_settingsForm js-confirm-leave' method='POST' action='/update.php' target='progressFrame'>
+				<input type='hidden' name='#file' value='community.applications/community.applications.cfg'>
+
+				<div class='ca_settingsGrid'>
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Hide Deprecated Applications");?></span>
+							<input type='hidden' name='hideDeprecated' value='false'>
+							<input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($GLOBALS['caSettings']['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Hide Incompatible Applications");?></span>
+							<input type='hidden' name='hideIncompatible' value='false'>
+							<input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($GLOBALS['caSettings']['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Allow install of second instance");?></span>
+							<input type='hidden' name='defaultReinstall' value='false'>
+							<input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($GLOBALS['caSettings']['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Show reinstall options to install additional instances of an already installed app using default template values.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Allow CA to check for updates to applications");?></span>
+							<input type='hidden' name='updateCheck' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($GLOBALS['caSettings']['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Disable Featured Applications");?></span>
+							<input type='hidden' name='featuredDisable' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Enable developer mode");?></span>
+							<input type='hidden' name='dev' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='dev' value='yes' <?=($GLOBALS['caSettings']['dev'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Unlock additional developer-focused features. Not generally recommended.");?></div>
+					</div>
+				</div>
+
+			</form>
+		</div>
+	</div>
 </div>
+
+<div id='sampleApp' style='display:none;'>
+	<div class='ca_templatesDisplay' style='visibility:hidden;'>
+		<div>
+			<div class="installedCardBackground">
+				<div class="installedCardText ca_center" style="font-size: 70%;">&nbsp;&nbsp;INSTALLED&nbsp;&nbsp;</div>
+			</div>
+			<div
+				class="ca_holder ca_appTemplate ca_appPopup "
+				data-apppath="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg"
+				data-appname="Community Applications"
+				data-repository="Official Unraid Plugin Repository"
+				data-pluginurl="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg"
+			>
+				<div class="ca_bottomLine ca_bottomLineSpotLight">
+					<div class="caButton infoButton ca_appPopup">Details</div>
+					<span class="appPlugin" title="This application is a plugin"></span>
+					<span class="favCardBackground favCardBackgroundHide" data-repository="Official Unraid Plugin Repository"></span>
+					<span
+						class="pinnedCard"
+						title="This application is pinned for later viewing"
+						data-pindata="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plgCommunity Applications"
+						style="display:none;"
+					></span>
+				</div>
+				<div class="ca_appPopup ca_backgroundClickable">
+					<div class="ca_iconArea">
+						<img class="ca_displayIcon " src="https://raw.githubusercontent.com/unraid/docker-templates/master/images/CA.png" alt="Application Icon">
+					</div>
+					<div class="ca_applicationName ellipsis">Community Applications          </div>
+					<div class="ca_author ellipsis">Andrew Zawadzki</div>
+					<div class="cardCategory">Tools</div>
+				</div>
+				<div class="cardDescription ca_backgroundClickable">
+					<div class="cardDesc">This is THE place to find add-on applications for your Unraid server. </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- Debugging span
+	Not currently used, but a span at bottom of page that can be used to display debugging information
+-->
 <span id='debugging'></span>

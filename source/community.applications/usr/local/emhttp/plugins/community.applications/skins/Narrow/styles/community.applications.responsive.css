@@ -1,85 +1,144 @@
-@media (min-width: 769px) {
-  .mobileOverlay {
-    display: none !important;
-  }
+/* IntersectionObserver probe: in-viewport only under the same breakpoint as :root { --mobileDevice: true } (below). */
+#ca_mobile_layout_probe {
+	position: fixed;
+	width: 1px;
+	height: 1px;
+	top: 0;
+	left: -9999px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	pointer-events: none;
+	visibility: hidden;
+	z-index: -1;
+	opacity: 0;
+	overflow: hidden;
+	contain: strict;
 }
+
 @media (max-width: 1024px) {
-  .searchAreaHolder {
-    height:4rem;
-    padding-left: 2rem;
-  }
-  .Theme--sidebar .searchAreaHolder {
-    margin-left: 6rem;
-  }
-  .searchArea {
-    padding-left: 0;
-    margin-left: 0;
-  }
+	.searchAreaHolder {
+		height:4rem;
+		padding-left: 2rem;
+	}
+	.Theme--sidebar .searchAreaHolder {
+		margin-left: 6rem;
+	}
+	.searchArea {
+		padding-left: 0;
+		margin-left: 0;
+	}
+	.ca_display_area {
+		right: 1rem;
+	}
+	:root {
+		--mobileDevice: true;
+	}
+	#ca_mobile_layout_probe {
+		left: 0;
+	}
 }
-@media (max-width: 768px) {
-  :root {
-    --mobileDevice: true;
-  }
-  body {
-    overflow-x: unset !important;
-    width: initial;
-  }
-  .searchAreaHolder {
-    top: var(--search-area-mobile-top);
-  }
- 
-  .mobileMenu {
-    position: absolute;
-    display: none;
-    z-index: 5;
-  }
+@media (max-width: 767px) {
+	:root {
+		/* Mobile: overlays should appear/disappear instantly (search/sidebar/SweetAlert). */
+		--ca-scrim-transition-duration: 0s;
+		--ca-scrim-transition-ease: linear;
+	}
+	.Theme--nav-top .ca_display_area {
+		top: 14rem;
+	}
+	body {
+		overflow-x: unset !important;
+		width: initial;
+	}
 
-  .mobileMenu.menuHidden{
-    display: none;
-  }
-  .mobileMenu.menuShowing {
-    width: 20rem;
-    padding-left:2rem;
-  }
+	#footer {
+		display: none;
+	}
+	#header {
+		display: none;
+	}
+	.searchAreaHolder {
+		top: var(--search-area-mobile-top);
+	}
+	.Theme--nav-top .ca_display_area {
+		top: 11rem;
+	}
+	.upgrade_notice {
+		position: absolute;
+	}
+	.mobileMenu {
+		position: absolute;
+		display: none;
+		z-index: 5;
+		overflow: auto;
+		height: 100vh;
+	}
 
-  .mobileMenuButton {
-    display: inline-block;
-    z-index: 5;
-  }
-  .menuItems {
-    padding-left: 2rem;
-    padding-right: 2rem;
-    top: 2rem;
-  }
-  .mainArea {
-    left: 0;
-    padding-left: 1rem;
-  }
+	:root {
+		/* Mobile slide-in menu width — referenced by the scrim offset below
+		   so the two stay in lockstep. */
+		--ca-mobile-menu-width: 20rem;
+	}
+	.mobileMenu.menuHidden{
+		display: none;
+	}
+	.mobileMenu.menuShowing {
+		display: block;
+		width: var(--ca-mobile-menu-width);
+	}
 
-  #searchBox {
-    width: 150px;
-  }
+	.mobileMenuButton {
+		display: inline-block;
+		z-index: 5;
+	}
+	.menuItems {
+		padding-right: 2rem;
+		top: 2rem;
+	}
+	.Theme--nav-top .menuItems {
+		top: 11rem;
+	}
+	.Theme--sidebar .menuItems {
+		top: 2.5rem;
+	}
+	.Theme--sidebar .ca_display_area {
+		top: 1rem;
+	}
+	/* On mobile sidebar layouts the menu doesn't reserve a top bar, so the
+	   .ca_modal_overlay should fill the whole viewport — override the
+	   `top: 8rem` push-down applied at body.menuShowing in the desktop CSS. */
+	.Theme--sidebar body.menuShowing .ca_modal_overlay {
+		top: 0;
+	}
+	/* Pull the scrim in by the full mobile menu width so the menu itself
+	   isn't dimmed and stays clickable. Var matches .mobileMenu.menuShowing. */
+	body.menuShowing .ca_modal_overlay {
+		left: var(--ca-mobile-menu-width);
+	}
 
-  .multi_installDiv {
-    position: relative;
-  }
-  .navigationSection {
-    bottom: 0 !important;
-    position: relative;
-  }
-  .altCategoryLine {
-    display: none;
-  }
-  .categoryLine {
-    display: none;
-  }
-  .maxPerPage {
-    display: none !important;
-  }
-  .categoryLineNoMenu {
-    display: inline-block;
-  }
-  #templates_content {
-    margin-bottom: 0;
-  }
+	.mainArea {
+		left: 0;
+		right: 0;
+		padding-left: 1rem;
+	}
+
+	#templates_content {
+		margin-bottom: 0;
+	}
+}
+@media (max-height: 600px) {
+	#header {
+		display: none;
+	}
+
+	.Theme--nav-top .ca_display_area {
+		top: 11rem;
+	}
+	.menuItems {
+		top: 2rem;
+	}
+	.Theme--nav-top .menuItems {
+		top: 12rem;
+	}
 }

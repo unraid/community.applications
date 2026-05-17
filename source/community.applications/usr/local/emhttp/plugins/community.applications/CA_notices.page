@@ -5,79 +5,28 @@ Link='nav-user'
 ########################################
 #                                      #
 # Community Applications               #
-# Copyright 2020-2025, Lime Technology #
-# Copyright 2015-2025, Andrew Zawadzki #
+# Copyright 2020-2026, Lime Technology #
+# Copyright 2015-2026, Andrew Zawadzki #
 #                                      #
-# Licenced under GPLv2                 #
+# Licensed under GPL-2.0-or-later      #
+# SPDX-License-Identifier: GPL-2.0-or-later #
 #                                      #
 ########################################
 ?>
 
-<?
-$caCFG = parse_plugin_cfg("community.applications");
-?>
 <script>
-// set a cookie if the URL contains /Apps/ is CA in case the user instead of hitting "done" hits the back button. 
+// set a cookie if the URL contains /Apps/ is CA in case the user instead of hitting "done" hits the back button.
 // Allows CA to restore its state in this situation.
 $(function() {
-  // Set the cookie if the URL contains /Apps/ and it's not CA's settings page or the CA page itself.
-  if ( window.location.href.includes("/Apps/") && ( ! window.location.href.endsWith("/Apps/") ) && ( ! window.location.href.endsWith("ca_settings") ) ) {
-    $.cookie("ca_apps_referrer","true",{expires: 1,path:"/;SameSite=Lax"});
-  } else {
-    // If we're not on CA itself then reset the cookie.  If we're on CA do nothing.
-    if ( (! window.location.href.includes("/Apps") ) || ( window.location.href.endsWith("ca_settings") ) ) {
-      $.cookie("ca_apps_referrer","false",{expires: 1,path:"/;SameSite=Lax"});
-    }
-  }
-}); 
-</script>
-
-<? if ( "{$caCFG['notifications']}" == "yes" ) :?>
-<script>
-var CA_BANNER_NOTICES = [];
-$(function() {
-  $.post("/plugins/community.applications/scripts/notices.php",{action:"scan"},function(data) {
-    console.groupCollapsed("Result: CA Background Scan");
-    console.log(data);
-    console.groupEnd();
-    CA_BANNER_NOTICES = JSON.parse(data);
-    $.each(CA_BANNER_NOTICES,function(i,el) {
-      var dismiss = "<a class='bannerDismiss' onclick='ca_DismissNotice("+i+");'></a>";
-      CA_BANNER_NOTICES[i]['warning_index'] = addBannerWarning(el.Banner+" <a onclick='ca_Notices("+i+");' style='cursor:pointer;'>More Info</a>"+dismiss,true,true);
-    });
-  });
+	// Set the cookie if the URL contains /Apps/ and it's not CA's settings page or the CA page itself.
+	if ( window.location.href.includes("/Apps/") && ( ! window.location.href.endsWith("/Apps/") ) && ( ! window.location.href.endsWith("ca_settings") ) ) {
+		$.cookie("ca_apps_referrer","true",{expires: 1,path:"/;SameSite=Lax"});
+	} else {
+		// If we're not on CA itself then reset the cookie.  If we're on CA do nothing.
+		if ( (! window.location.href.includes("/Apps") ) || ( window.location.href.endsWith("ca_settings") ) ) {
+			$.cookie("ca_apps_referrer","false",{expires: 1,path:"/;SameSite=Lax"});
+		}
+	}
 });
-
-function ca_Notices(index) {
-  var title = CA_BANNER_NOTICES[index]['App'];
-  if ( CA_BANNER_NOTICES[index]['Name'] ) {
-    title = CA_BANNER_NOTICES[index]['Name'];
-  }
-  swal({
-    title: title,
-    text: CA_BANNER_NOTICES[index]['PopUp'],
-    type: "error",
-    showCancelButton: false,
-    showConfirmButton: true,
-    html: true
-  });
-}
-
-function ca_DismissNotice(index) {
-  swal({
-    title: "Are you sure?",
-    text: "Are you sure you want to dismiss this warning?<br> ("+CA_BANNER_NOTICES[index]['Banner']+")",
-    html: true,
-    type: 'warning',
-    showCancelButton: true,
-    showConfirmButton: true,
-    confirmButtonText: "Yes"
-  },function(isConfirm) {
-    if ( isConfirm ) {
-      removeBannerWarning(CA_BANNER_NOTICES[index]['warning_index']);
-      $.post("/plugins/community.applications/scripts/notices.php",{action:"dismiss",ID:CA_BANNER_NOTICES[index]['ID']});
-    }
-  });
-}
 </script>
-<?endif;?>
+

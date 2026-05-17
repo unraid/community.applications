@@ -1,2528 +1,3530 @@
 /* ==========================================================================
-  Base Styles & Reset
-  ========================================================================== */
+1) Base Styles & Reset
+========================================================================== */
+/* File organization:
+* 1) Base/typography/layout
+* 2) Core CA components (cards/buttons/menu/sidebar/settings/moderation)
+* 3) Legacy and supplemental CA UI blocks
+* 4) Third-party components (Awesomplete / Magnific Popup)
+*/
 body {
-  scrollbar-gutter: stable;
-  cursor: default !important;
+	scrollbar-gutter: stable;
+	cursor: default !important;
+}
+
+.caChangelogTitle {
+	font-size: 2rem;
+}
+
+.caLogoIcon {
+	font-size: 6rem;
 }
 
 .caLogoIcon::before {
-  content: "\f0c0";
-  font-family: fontAwesome;
+	content: "\f0c0";
+	font-family: fontAwesome;
 }
 
 #maxHomeApps {
-  display: none;
-  z-index: 0;
+	display: none;
+	z-index: 0;
 }
-body.menuShowing,body.body_sidebarScroll {
-  overflow: hidden !important;
+body.menuShowing {
+	overflow: hidden !important;
 }
+/* Stop the main area from being scrolled when the alternate view or sidebar is visible */
+body:has(.sidenavShow) {
+	overflow: hidden !important;
+}
+/* Hide the built-in dynamix scroll controls within CA — we use our own
+   .ca_back_to_top / .ca_move_to_end instead, but the dynamix scroll handler
+   is left bound so other plugins that depend on it keep working. */
+:is(.back_to_top, .move_to_end) {
+	display: none !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+}
+/* CA's own scroll controls — independent of dynamix's .back_to_top /
+   .move_to_end so we don't conflict with other plugins. Visibility and click
+   targets (.mainArea instead of html/body) are managed in Apps.page. */
+.ca_back_to_top,
+.ca_move_to_end {
+	display: none;
+	position: fixed;
+	bottom: 24px;
+	color: var(--red-800);
+	font-size: 2.5rem;
+	/* High enough to beat the sidebar (1000) and any wrapper stacking context
+	   it inherits from, while still under SweetAlert (10000+) and the viewport
+	   blocker (9999). */
+	z-index: 9998;
+	cursor: pointer;
+}
+.ca_back_to_top {
+	right: 40px;
+}
+.ca_move_to_end {
+	right: 12px;
+}
+.ca_back_to_top::before,
+.ca_move_to_end::before {
+	font-family: fontAwesome;
+}
+/* Branch chooser rows in the install popup — rendered as <span> with
+   role='button' so screen readers / keyboard nav treat them correctly.
+   Cursor + hover color match the rest of CA's clickable text affordances. */
+.xmlInstall {
+	cursor: pointer;
+}
+.xmlInstall:hover {
+	color: var(--unraid-66-color);
+}
+.ca_back_to_top::before {
+	content: "\f0aa"; /* fa-arrow-circle-up */
+}
+.ca_move_to_end::before {
+	content: "\f0ab"; /* fa-arrow-circle-down */
+}
+/*
+/* Dim all page content except the visible sidebar and its children */
+/*body:has(.sidenavShow) > :not(.sidebar, .ca_modal_overlay, .ca_sweetalert_open, .dropdown-menu, #ca_fixed_scroll_root) {
+    opacity: 0.5; 
+	transition: opacity 250ms ease-in-out;
+}*/
+
+/* Two copies of the scroll controls live in the markup: one at body level for
+   the main view, one inside .sidenav for sidebar mode. Hide the body-level
+   pair while the sidebar is showing so only the in-sidebar pair is active.
+   Also hide them while a MagnificPopup overlay (image/video) is open so they
+   don't sit clickable on top of the dimmed page. */
+body:has(.sidenavShow) > .ca_back_to_top,
+body:has(.sidenavShow) > .ca_move_to_end,
+body:has(.mfp-bg) > .ca_back_to_top,
+body:has(.mfp-bg) > .ca_move_to_end,
+body:has(.mfp-wrap) > .ca_back_to_top,
+body:has(.mfp-wrap) > .ca_move_to_end {
+	display: none !important;
+}
+
+/* Restore opacity for Unraid chrome elements that the line-86 dim rule would
+   otherwise dial down — the .ca_modal_overlay's backdrop-filter handles the
+   visual blur/dim now, so we just want these visible at full opacity. */
+body:has(.sidenavShow) :is(#header, #menu, .upgrade_notice, #footer),
+body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
+	opacity: 1;
+}
+/* SweetAlert v1's JS animation can leave the .sweet-alert element pinned at
+   `style="opacity: -0.2"` (or other bogus mid-animation values) — most visible
+   on the .nchan log popup, which routes its customClass through the
+   `data-custom-class` attribute instead of as a real class. Force opacity back
+   to its rendered default whenever the swal is in its `showSweetAlert.visible`
+   state (covers both .ca_sweetalert_open instances and .nchan flavored swals). */
+.sweet-alert.showSweetAlert.visible {
+	opacity: revert !important;
+}
+
 .subCategory ul {
-  padding-left: 20px;
+	padding-left: 20px;
+	list-style: none;
 }
 li.subCategory {
-  margin-top: -0.5rem;
+	margin-top: -0.5rem;
 }
 .category {
-  font-style: italic;
-}
-.categoryLine {
-  display: inline-block;
-}
-.altCategoryLine {
-  display: none;
-}
-.categoryLineNoMenu {
-  display: none;
-  margin-right: 1rem;
+	font-style: italic;
 }
 
 p {
-  margin: auto;
-  text-align: left;
-  margin-bottom: 10px;
+	margin: auto;
+	text-align: left;
+	margin-bottom: 10px;
 }
 
 /* ==========================================================================
-  Typography
-  ========================================================================== */
+1.1) Typography
+========================================================================== */
 a {
-  color: var(--a-color);
+	color: var(--a-color);
 }
 
 .ca_bold {
-  font-weight: bold;
+	font-weight: bold;
 }
 
 .ca_italic {
-  font-style: italic;
+	font-style: italic;
 }
 
 .ca_normal {
-  font-size: 1.4rem !important;
+	font-size: 1.4rem !important;
 }
 
 .ca_red {
-  color: var(--ca-red-color);
+	color: var(--ca-red-color);
 }
 
 .ca_green {
-  color: var(--ca-green-color);
+	color: var(--ca-green-color);
 }
 
 /* ==========================================================================
-  Layout & Grid
-  ========================================================================== */
+1.2) Layout & Grid
+========================================================================== */
 .ca_center {
-  margin: auto;
-  text-align: center;
+	margin: auto;
+	text-align: center;
 }
 
-.invisible {
-  opacity: 0;
-  pointer-events: none; 
-  visibility: hidden;
+/* Move the banners to the very top of the page.  When displayed, it covers up part of the search area when display scrolled */
+.upgrade_notice {
+	top: 0rem !important;
+}
+/* Drop .upgrade_notice below the .ca_modal_overlay (z-index 999) when any
+   modal is open so it gets blurred/dimmed along with the rest of the page
+   instead of sitting on top of the scrim. */
+body:has(.sidenavShow) .upgrade_notice,
+body.ca_searchModalOpen .upgrade_notice,
+body:has(.mobileMenu.menuShowing) .upgrade_notice,
+body:has(.ca_sweetalert_open) .upgrade_notice,
+body:has(.mfp-bg) .upgrade_notice {
+	z-index: 998;
+}
+/* #sortIconArea / .dockerSearch / .templateSearch / .ca_displayCount otherwise
+   float above the search modal's input/dropdown — push them all well behind
+   everything when any modal scrim is up. */
+body:has(.sidenavShow) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body.ca_searchModalOpen :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.mobileMenu.menuShowing) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.ca_sweetalert_open) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount),
+body:has(.mfp-bg) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount) {
+	z-index: -1;
+}
+/* When the multi-install bar is showing in Theme--sidebar layouts, give the
+   main display area extra bottom padding so the bar doesn't overlap the last
+   row of cards. .multi_installDiv is toggled via jQuery .show()/.hide() which
+   sets inline `display:none` when hidden — `:not([style*="display: none"])`
+   matches the shown state. */
+.Theme--sidebar body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 9rem;
+}
+.Theme--nav-top body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 6rem;
+}
+
+/* In Theme--sidebar layouts the persistent #menu is the sidebar itself — keep
+   it parked at the same plane as the .ca_modal_overlay (999) when a modal is
+   open so it stays visible/interactive at scrim level instead of being pushed
+   below the page content like upgrade_notice. */
+.Theme--sidebar body:has(.sidenavShow) #menu,
+.Theme--sidebar body.ca_searchModalOpen #menu,
+.Theme--sidebar body:has(.mobileMenu.menuShowing) #menu,
+.Theme--sidebar body:has(.ca_sweetalert_open) #menu,
+.Theme--sidebar body:has(.mfp-bg) #menu {
+	z-index: 999;
 }
 
 .ca_href {
-  cursor: pointer;
+	cursor: pointer;
 }
-
-.ca_display_area {
-  display: flex;
-  overflow: hidden;
-  min-height: 100rem;
+.magnificPopup.caButton {
+	position: absolute;
+	right: 0;
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+	font-size: 1.5rem;
+	color: var(--magnificCloseColor);
 }
 
 .mainArea {
-  right: 0px;
-  top: 2rem;
-  display: block;
-  overflow-x: hidden;
-  padding-left: 4.5rem;
-  align-items: stretch;
-  width: 100%;
+	right: 0rem;
+	display: block;
+	overflow-x: hidden;
+	align-items: stretch;
+	position: absolute;
+	left: 18.5rem;
+  bottom: 1rem;
+	height:100%;
+	overscroll-behavior-x: none; /* don't translate left/right scroll-bounce into browser back/forward */
 }
-.mainArea.menuShowing {
-  height: var(--mainAreaHeight);
+/* Same suppression on the home-row strips and the html root, so two-finger
+   trackpad swipes anywhere in the app don't trigger browser navigation. */
+html,
+body,
+.ca_homeTemplates,
+.menuItems,
+.sidenav {
+	overscroll-behavior-x: none;
+}
+/* Suppress the focus ring on panes we focus via mouseenter so native arrow-key
+   scroll works without showing a visible focus outline. */
+.mainArea:focus,
+.mainArea:focus-visible,
+.menuItems:focus,
+.menuItems:focus-visible,
+.sidenav:focus,
+.sidenav:focus-visible {
+	outline: none;
+}
+.Theme--sidebar .mainArea {
+	top: 2rem;
 }
 /* ==========================================================================
-  Components
-  ========================================================================== */
+2) Core CA Components
+========================================================================== */
 
-/* Cards & Containers
-  -------------------------------------------------------------------------- */
-.ca_holder,
-.dockerHubHolder {
-  /* Layout */
-  display: inline-block;
-  float: left;
-  height: 20rem;
-  width:24rem;
-  padding: 1.25rem 0.625rem 1.25rem 1.25rem;
-  margin: 0 1rem 1rem 0;
-  font-size: 1.2rem;
-  
-  /* Visual */
-  background-color: var(--template-background);
-  border: 1px solid var(--border-color);
-  overflow: hidden;
-  
-  /* Interactive */
-  cursor: pointer;
+/* 2.1) Cards & Containers
+-------------------------------------------------------------------------- */
+.ca_holder {
+	/* Layout */
+	float: left;
+	height: 24rem;
+	width: 36rem;
+	padding: 1.25rem 0.625rem 1.25rem 1.25rem;
+	margin: 0 1rem 1rem 0;
+	font-size: 1.2rem;
+	position: relative; /* anchor for the corner-ribbon flag */
+	flex-shrink: 0;     /* keep fixed width inside flex containers (home strip, templatesDisplay) */
+
+	/* Visual */
+	background-color: var(--template-background);
+	border: 1px solid var(--ca-border-color);
+	overflow: hidden;
+
+	/* Interactive */
+	cursor: pointer;
+
+	/* Browser-native virtualization: skip layout/paint for cards not near the
+	   viewport. The intrinsic-size hint lets the browser reserve space without
+	   rendering the contents until the card scrolls close. */
+	content-visibility: auto;
+	contain-intrinsic-size: auto 36rem 24rem;
 }
 
-.ca_holder:hover,
-.dockerHubHolder:hover {
-  background-color: var(--template-hover-background);
-  box-shadow: 5px 5px 5px -3px var(--ca-shadow-color);
+.ca_holder:hover {
+	background-color: var(--template-hover-background);
+	box-shadow: 5px 5px 5px -3px var(--ca-shadow-color);
 }
 
 .ca_holderFav {
-  background-color: var(--template-favourite) !important;
+	background-color: var(--template-favourite) !important;
 }
 
-/* Home Templates Section */
+/* 2.2) Home Templates Section */
 .ca_homeTemplates {
-  display: flex;
-  flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
-  height: 29.5rem;
-  overflow-x: auto; /* Enable horizontal scrolling */
-  overflow-y: hidden; /* Hide vertical scrollbar */
+	display: flex;
+	flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
+	height: 29.5rem;
+	overflow-x: auto; /* Enable horizontal scrolling */
+	overflow-y: hidden; /* Hide vertical scrollbar */
 }
-
+.ca_homeTemplates::-webkit-scrollbar {
+	height: 0px;  /* horizontal scrollbar height */
+}
+.ca_homeTemplates:hover::-webkit-scrollbar {
+	height: 2px; /* horizontal scrollbar height */
+}
 .ca_homeTemplatesHeader {
-  font-size: 2rem;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+	font-size: 2rem;
+	margin-top: 1rem;
+	margin-bottom: 0.5rem;
 }
 
 .ca_homeTemplatesLine2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+	font-size: 1.5rem;
+	margin-bottom: 1rem;
 }
 
-/* Card Elements */
+/* 2.3) Card Elements */
 .ca_applicationName {
-  /* Layout */
-  width: 25rem;
-  max-height: 3rem;
-  margin-left: 0.75rem;
-  padding-top: 1.5rem;
-  
-  /* Typography */
-  font-size: 2rem;
-  font-weight: bold;
+	/* Layout */
+	width: 25rem;
+	max-height: 3rem;
+	margin-left: 0.75rem;
+	padding-top: 1.5rem;
+
+	/* Typography */
+	font-size: 2rem;
+	font-weight: bold;
 }
 
 .ca_backgroundClickable {
-  height: 18.5rem;
-  cursor: pointer;
+	height: 18.5rem;
+	cursor: pointer;
 }
 
 .ca_bottomLine {
-  display: block;
-  position: relative;
-  top: 18rem;
+	display: block;
+	position: relative;
+	top: 18rem;
 }
 
 .ca_bottomLineSpotLight {
-  top: 15rem !important;
-}
-
-.ca_categories {
-  font-size: 1rem;
-  font-style: italic;
+	top: 15rem !important;
 }
 
 .cardCategory {
-  font-size: 1rem;
-  margin-left: 0.75rem;
+	font-size: 1rem;
+	margin-left: 0.75rem;
 }
 
 .cardDescription {
-  /* Layout */
-  display: block;
-  position: relative;
-  top: 0.5rem;
-  max-height: 6.5rem;
-  line-height: 1.5rem;
-  
-  /* Interactive */
-  cursor: pointer;
-  overflow: hidden;
+	/* Layout */
+	display: block;
+	position: relative;
+	top: 0.5rem;
+	max-height: 6.5rem;
+	line-height: 1.5rem;
+
+	/* Interactive */
+	cursor: pointer;
+	overflow: hidden;
 }
 
 .cardDesc {
-  display: inline-block;
-  max-height: 7rem;
-  overflow: hidden;
-  position: relative; /* Required for absolute positioning of ::after */
+	display: inline-block;
+	max-height: 7rem;
+	overflow: hidden;
+	position: relative; /* Required for absolute positioning of ::after */
 }
 
 .cardDesc::after {
-  content: "...";
-  
-  /* Positioning */
-  position: absolute;
-  right: 0;
-  top: 4.75rem;
-  height: 1.2rem;
-  width: 60ch;
-  
-  /* Typography */
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
-  
-  /* Create fade effect using template background color */
-  background: linear-gradient(to right, 
-    transparent 0%, 
-    color-mix(in srgb, var(--template-background) 10%, transparent) 30%, 
-    color-mix(in srgb, var(--template-background) 30%, transparent) 70%, 
-    color-mix(in srgb, var(--template-background) 80%, transparent) 100%);
-  
-  /* Ensure it overlays the text */
-  z-index: 10;
-  
-  /* Padding for spacing */
-  padding-left: 0.5rem;
-  
-  /* Display properties */
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  
-  /* Ensure it's positioned correctly */
-  pointer-events: none;
-}
-
-.cardWarning {
-  font-size: 1.5rem;
-  color: var(--ca-warning-color);
-}
-
-/* Buttons & Forms
-  -------------------------------------------------------------------------- */
-.caButton,
-.popupRepoDescription,
-.popupDescription {
-  /* Layout */
-  display: inline-block;
-  margin-right: 1rem;
-  padding: 1px 10px;
-  
-  /* Typography */
-  font-size: 1.2rem;
-  line-height: 2rem;
-  color: var(--support-popup-text) !important;
-  
-  /* Visual */
-  background: linear-gradient(
-    to bottom,
-    transparent 50%,
-    var(--ca-overlay-color) 100%
-  ),
-  linear-gradient(
-    to right,
-    color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
-    var(--support-popup-background) 50%,
-    color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
-  );
-  background-position: 0 0;
-  background-size: 100% 100%;
-  border-radius: 15px;
-}
-.popupDescription, .popupRepoDescription {
-  background: var(--support-popup-background);
-}
-.caButton {
-  cursor: pointer;
-}
-.alternateViewClose.caButton {
-  font-size: 20px;
-  line-height: 25px;
-}
-.popupRepoDescription,
-.popupDescription {
-  width: 90%;
-  min-height: 3rem;
-  padding: 2rem!important;
-  -webkit-mask-image: unset !important;
-}
-.caButton a {
-  text-decoration: none;
-  color: var(--support-popup-text);
-  cursor: pointer;
-}
-
-.caButton:hover {
-  background: var(--unraid-66-color);
-  color: var(--ca-white-color) !important;
-}
-
-.caButton:hover a,
-a.caButton:hover {
-  color: var(--ca-white-color);
-  text-decoration: none;
-}
-
-.maxPerPage {
-  display: block;
-  top: 0.5rem;
-  font-size: 1rem;
-}
-
-/* Form Elements */
-input[type="checkbox"] {
-  width: 2rem;
-  height: 2rem;
-  margin-left: 0;
-}
-
-input[type="button"] {
-  background: none;
-  font-size: 1.5rem;
-}
-
-input:hover[type="button"] {
-  color: var(--unraid-66-color) !important;
-  background: none !important;
-}
-
-input:hover[type="button"][disabled] {
-  background: none !important;
-  color: currentColor !important;
-}
-
-input[type="button"][disabled] {
-  background: none !important;
-}
-
-.searchSubmit {
-  /* Layout */
-  width: 2rem;
-  min-width: 2rem;
-  height: 3.4rem;
-  padding: 1.1rem 1rem 1rem 1rem;
-  position: relative;
-  left: -1rem;
-  
-  /* Typography */
-  font-family: 'FontAwesome';
-  font-size: 1.1rem;
-  
-  /* Visual */
-  background: var(--template-hover-background);
-  border: none;
-  
-  /* Interactive */
-  cursor: pointer;
-}
-
-/* Menu and Navigation */
-.menuHeader {
-  font-size: 2rem;
-  margin: 1rem 0;
-}
-
-.menuItemsHidden {
-  top: 1.5rem;
-  left: 2rem;
-  padding-right: 1rem;
-  height: auto;
-  display: none;
-}
-.ca_hide{
-  display: none;
-}
-.menuShowing.hideWithMenu,#searchFilter.menuShowing {
-  display: none;
-
-}
-.mainArea.menuShowing {
-  overflow: hidden;
-  height: var(--mainAreaHeight) !important;
-}
-.mainArea.menuHidden {
-  height: unset !important
-}
-#templates_content {
-  margin-bottom:12rem;
-}
-
-.showMenuButton.menuShowing {
-  display: none;
-}
-.closeMenuButton.menuShowing {
-  display: inline-block;
-}
-.showMenuButton.menuHidden {
-  display: inline-block;
-}
-.closeMenuButton.menuHidden {
-  display: none;
-}
-.mobileMenuButton {
-  display: none;
-  margin-top: 2px;
-}
-
-.menuOverlay.menuHidden {
-  display: none;
-}
-.menuOverlay.menuShowing {
-  display: inline-block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: transparent;
-  z-index: 6;
-}
-.menuItems {
-  position: relative;
-  height: auto;
-  align-items: stretch;
-  width: 14rem;
-  z-index: 2;
-  background-color: var(--ca-legacy-background-color);
-}
-.menuItems.menuHidden {
-  display: block;
-}
-.menuItems.menuShowing {
-  padding-top: 3rem;
-  padding-left: 5rem;
-  padding-right: 5rem;
-}
-
-.selectedMenu {
-  color: var(--unraid-66-color);
-  font-weight: bold;
-}
-
-.caMenuDisabled:hover {
-  color: inherit !important;
-}
-.caNonselectMenu:hover {
-  color: inherit !important;
-}
-/* Sidebar Navigation */
-.sidebar{
-  /* Layout */
-  top: 0;
-  right: 0;
-  bottom: 1.6rem;
-  width: 100%;
-  height: 100vh;
-  margin-bottom: 10px;
-  /* Visual */
- background-color: transparent;
- display: none;
- position: fixed;
- z-index: 1000;
-
-}
-
-.mobileOverlay {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 1.6rem;
-  width: 100%;
-  height: 200vh;
-  margin-bottom: 10px;
-  background-color: var(--ca-legacy-background-color);
-  z-index: 2;
-
-}
-.mobileOverlay.menuShowing {
-  display: inline-block;
-  opacity: 0.5;
-  background-color: var(--ca-legacy-background-color);
-  filter: grayscale(100%);
-}
-.mobileOverlay.menuHidden {
-  display: none;
-}
-.sidebarClose {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-}
-
-.sidenav {
-  /* Layout */
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 1.6rem;
-  margin-bottom: 1rem;
-  padding-top: 4rem;
-  
-  /* Visual */
-  background-color: var(--sidebar-background);
-  color: var(--sidebar-text);
-  
-  /* Interactive */
-  overflow-x: hidden;
-  overflow-y: scroll;
-}
-
-.sidenavHide {
-  width: 0;
-}
-
-.sidenavShow {
-  width: 90%;
-  max-width: 70rem;
-}
-
-/* Utility Classes */
-.ca_multiselect {
-  float: right;
-  cursor: pointer;
-  padding-right: 1rem;
-}
-
-.noClick {
-  cursor: default !important;
-}
-
-/* Icon and Symbol Styles */
-.appDocker,
-.appLanguage,
-.appDriver,
-.appPlugin,
-.appRepository {
-  float: right;
-  font-size: 2rem;
-  opacity: 0.7;
-  margin-left: 1rem;
-}
-
-.appDocker::before {
-  font-family: Unraid;
-  content: '\e90b';
-}
-
-.appLanguage::before {
-  font-family: Unraid;
-  content: '\e987';
-}
-
-.appDriver::before {
-  content: '\f2db';
-  font-family: fontAwesome;
-}
-
-.appPlugin::before {
-  font-family: Unraid;
-  content: '\e986';
-}
-
-/* Menu and Navigation */
-ul.caMenu,
-ul.nonselectMenu {
-  list-style-type: none;
-  margin: 0 0 20px 0;
-  padding: 0;
-  font-size: 1.5rem;
-}
-
-li.caMenuItem {
-  padding: 0 0 5px 0;
-  width: fit-content;
-}
-a.caMenuItem {
-  text-decoration: none;
-  color: inherit;
-}
-
-.caMenuDisabled {
-  cursor: default;
-  opacity: 0.5;
-}
-
-.caMenuEnabled {
-  cursor: pointer;
-  opacity: 1;
-}
-
-.ca_NoAppsFound,
-.ca_NoDockerAppsFound {
-  font-size: 3rem;
-  margin: auto;
-  text-align: center;
-}
-
-/* Base link styles */
-.additionalRequirements {
-  margin-left: 2rem;
-}
-
-.additionalRequirementsHeader {
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.appIconsPopUp {
-  font-size: 2rem !important;
-  cursor: pointer;
-  padding-left: .5rem;
-  padding-right: .5rem;
-  color: default;
-  display: inline-block;
-  margin-right: 5rem;
-}
-
-td.appIconsPopUp {
-  white-space: normal;
-  height: unset;
-}
-
-.appIconsPopUp:hover {
-  text-decoration: none;
-}
-
-a.appIconsPopUp {
-  text-decoration: none;
-  color: inherit;
-}
-
-.appRepository::before {
-  font-family: 'fontAwesome';
-  content: '\f2be';
-}
-
-.back_to_top_hide {
-  z-index: 0;
-}
-
-.betaPopupBackground,
-.upgradePopupBackground,
-.installedPopup {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  background-color: var(--unraid-66-color);
-  top: var(--beta-popup-offset);
-  height: 9rem;
-  width: 9rem;
-  position: absolute;
-  right: 0;
-}
-.installedPopup {
-  background-color: var(--ca-purple-color);
-}
-.betaPopupBackground,
-.upgradePopupBackground {
-  background-color: var(--unraid-66-color);
-}
-.betaPopupText,
-.upgradePopupText,
-.installedPopupText {
-  position: absolute;
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -o-transform: rotate(45deg);
-  color: var(--ca-named-white);
-  font-size: 5rem;
-  top: 2.25rem;
-  right: -1rem;
-  width: 100%;
-  overflow: hidden;
-  height: 2.5rem;
-}
-
-.caChangeLog {
-  cursor: pointer;
-}
-
-.caChart {
-  height: 1px;
-  width: 3px;
-  border: none;
-}
-
-.ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ca_author {
-  font-size: 1rem;
-  margin-left: 0.75rem;
-  margin-top: 0.75rem;
-  max-width: 22rem;
-}
-
-a.ca_author {
-  text-decoration: none;
-  color: inherit;
-}
-
-a.ca_categories {
-  text-decoration: none;
-  color: inherit;
-}
-
-.credits {
-  margin-left: 10%;
-  margin-right: 10%;
-}
-
-.ca_credit {
-  padding: .5rem 0 1rem 0;
-  font-size: 1.5rem;
-  line-height: 2rem;
-  font-style: italic;
-}
-
-.ca_creditheader {
-  font-size: 2rem;
-  padding-top: 1rem;
-}
-
-.ca_discord::before {
-  content: "\e988";
-  font-family: Unraid;
-}
-
-.ca_discord_popup::before {
-  content: "\e988";
-  font-family: Unraid;
-  font-size: 2.2rem;
-  vertical-align: middle;
-}
-
-img.ca_displayIcon {
-  height: 8rem;
-  width: 8rem;
-}
-
-.ca_fa-additional::before {
-  content: "\f055";
-  font-family: fontAwesome;
-}
-
-.ca_fa-asterisk::before {
-  content: "\f069";
-  font-family: fontAwesome;
-}
-
-.ca_fa-checkmark {
-  color: var(--ca-green-color);
-}
-
-.ca_fa-checkmark::before {
-  content: "\f00c";
-  font-family: fontAwesome;
-}
-
-.ca_fa-comment::before {
-  content: "\f075";
-  font-family: fontAwesome;
-}
-
-.ca_fa-delete {
-  color: var(--ca-red-color);
-}
-
-.ca_fa-delete::before {
-  content: "\f00d";
-  font-family: fontAwesome;
-}
-
-a.ca_fa-delete {
-  text-decoration: none;
-  margin-left: 1rem;
-  font-size: 2rem;
-  margin-top: -0.25rem;
-  cursor: pointer;
-  float: right;
-}
-
-.ca_fa-docker::before {
-  font-family: Unraid;
-  content: '\e90b';
-}
-
-.ca_fa-edit::before {
-  content: "\f044";
-  font-family: fontAwesome;
-}
-
-.ca_fa-film::before {
-  content: "\f04b";
-  font-family: fontAwesome;
-}
-
-.ca_fa-globe::before {
-  content: "\f0ac";
-  font-family: fontAwesome;
-}
-
-.ca_fa-info::before {
-  content: "\f05a";
-  font-family: fontAwesome;
-}
-
-.ca_fa-install::before {
-  content: "\f019";
-  font-family: fontAwesome;
-}
-
-.ca_fa-money::before {
-  content: "\f0d6";
-  font-family: fontAwesome;
-}
-
-.ca_fa-pluginSettings::before {
-  content: "\f013";
-  font-family: fontAwesome;
-}
-
-.ca_fa-project::before {
-  content: "\e953";
-  font-family: Unraid;
-}
-
-.ca_fa-readme::before {
-  content: "\f02d";
-  font-family: fontAwesome;
-}
-
-.ca_fa-support::before {
-  content: "\f059";
-  font-family: fontAwesome;
-}
-
-.ca_fa-switchto::before {
-  content: "\e982";
-  font-family: Unraid;
-}
-
-.ca_fa-template::before {
-  content: "\f08e";
-  font-family: fontAwesome;
-}
-
-.ca_fa-uninstall::before {
-  content: "\e92f";
-  font-family: Unraid;
-}
-
-.ca_fa-update::before {
-  content: "\f0ed";
-  font-family: fontAwesome;
-}
-
-.ca_facebook::before {
-  content: "\f09a";
-  font-family: fontAwesome;
-}
-
-.ca_forum::before {
-  content: "\f1cd";
-  font-family: fontAwesome;
-}
-
-.ca_icon {
-  width: 6.4rem;
-  height: 6.4rem;
-}
-
-.ca_iconArea {
-  width: 100%;
-  height: 6.4rem;
-  margin-top: -2rem;
-  margin-left: 1rem;
-}
-
-ul.caMenu {
-  list-style-type: none;
-  margin: 0px 0px 20px 0px;
-  padding: 0;
-  font-size: 1.5rem;
-}
-
-.ca_non_favouriteRepo {
-  font-size: 2rem;
-  cursor: pointer;
-  margin-left: 2.5rem !important;
-  cursor: pointer;
-  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
-}
-
-.ca_non_favouriteRepo::before {
-  content: "\f2be";
-  font-family: fontAwesome;
-}
-
-.ca_popupIconArea {
-  height: 15.5rem;
-  top: 1rem;
-  position: relative;}
-
-.ca_profile::before {
-  content: "\f2bb";
-  font-family: fontAwesome;
-}
-
-.ca_readmore {
-  color: var(--unraid-66-color);
-  font-size: 1.5rem !important;
-  cursor: pointer;
-  padding-left: .5rem;
-  padding-right: .5rem;
-  padding-top: 1rem;
-  display: inline-block;
-  margin-bottom: 2rem;
-  font-family: unset;
-}
-
-.ca_readmore::before {
-  font-family: fontAwesome;
-}
-
-.ca_readmore:hover {
-  text-decoration: none;
-}
-
-.ca_reddit::before {
-  content: "\f281";
-  font-family: fontAwesome;
-}
-
-.ca_repoPopup {
-  display: inline-block;
-  text-decoration: none !important;
-  cursor: pointer;
-  color: inherit;
-}
-
-.ca_repoSearch {
-  font-size: 2rem;
-  cursor: pointer;
-  padding: 0.3rem 0.5rem 0.3rem 0.5rem;
-}
-
-.ca_repoSearch::after {
-  content: "\f002";
-  font-family: fontAwesome;
-}
-
-.ca_serverWarning {
-  color: var(--ca-yellow-color);
-}
-
-#alternateView table {
-  background-color: var(--sidebar-background);
-}
-
-.ca_stat {
-  color: coral;
-  font-size: 1.5rem;
-  line-height: 1.7rem;
-}
-
-.ca_table {
-  padding: .5rem 2rem .5rem 0;
-  font-size: 1.5rem;}
-
-.ca_template {
-  color: var(--ca-dark-blue-color);
-  border-radius: 0px 0px 2rem 2rem;
-  display: inline-block;
-  text-align: left;
-  overflow: auto;
-  height: 27rem;
-  width: 36rem;
-  padding-left: .5rem;
-  padding-right: .5rem;
-  background-color: var(--ca-light-bg-color);
-}
-
-.ca_templatesDisplay {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.ca_twitter::before {
-  content: "\f099";
-  font-family: fontAwesome;
-}
-
-.ca_webpage::before {
-  content: "\f0ac";
-  font-family: fontAwesome;
-}
-
-.changelogMessage {
-  font-size: 1rem;
-  line-height: 1rem;
-  margin-top: 1rem;
-}
-
-#Category {
-  margin: auto 2rem auto 2rem;
-  display: inline-block;
-  font-size: 1.5rem;
-  font-style: italic;
-  font-weight: bold;
-}
-
-.changelogTitle {
-  font-size: 2rem;
-  line-height: 2rem;
-  margin-top: 2rem;
-  font-weight: normal;
-}
-
-.changelog {
-  font-size: 1.2rem;
-  line-height: 1.4rem;
-  margin-top: 1.5rem;
-}
-
-.chartMenu {
-  padding-left: 2rem;
-  cursor: pointer;
-}
-
-
-.chartMenu.selectedMenu {
-  color: var(--unraid-66-color);
-  font-weight: bold;
-}
-
-.charts {
-  font-size: 1.5rem;
-}
-
-.chartTitle {
-  margin-top: 1.5rem;
-  font-size: 2.5rem;
-}
-
-.checkForUpdates {
-  width: 100%;
-  display: none;
-  padding-bottom: 20px;
-}
-
-ul.context {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-a.context {
-  text-decoration: none;
-  color: currentColor;
-  margin: 5px;
-}
-
-li.context {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
-}
-
-.alternateViewClose {
-  position: fixed;
-}
-.Theme--sidebar .alternateViewClose {
-  left: 8.5rem;
-}
-
-#alternateView {
-  /* Layout */
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 1.6rem;
-  margin-bottom: 10px;
-  padding-top: 15rem;
-  width:100%;
-  z-index:10000;
-  
-  /* Visual */
-  background-color: var(--sidebar-background);
-  color: var(--sidebar-text);
-  opacity: 0.9;
-  display:none;
-
-  
-  /* Interactive */
-  overflow-x: scroll;
-  overflow-y: scroll;
-}
-.Theme--azure #alternateView {
-  opacity: 0.95;
-}
-
-li.debugging {
-  cursor: pointer;
-}
-
-.dim {
-  opacity: 0.5;
-  filter: grayscale(100%);
-}
-
-i.displayIcon {
-  font-size: 5.5rem;
-  color: var(--ca-grey-color);
-  padding-top: 0.25rem;
-}
-
-img.licence {
-  max-height: 2rem;
-  max-width: 10rem;
-}
-
-img.displayIcon {
-  height: 6.4rem;
-  width: 6.4rem;
-  border-radius: 1rem 1rem 1rem 1rem;
-}
-
-#cookieWarning {
-  display: none;
-}
-
-.docker::after {
-  font-family: Unraid;
-  content: '\e90b';
-  font-size: 2.5rem;
-}
-
-.dockerCardBackground {
-  height: 18.5rem;
-  cursor: default !important;
-}
-
-.dockerHubStar {
-  font-size: 1rem;
-}
-
-.dockerHubStar::before {
-  content: "\e95a";
-  font-family: Unraid;
-}
-
-.dockerSearch,
-.templateSearch {
-  display: inline-block;
-  cursor: pointer;
-  color: var(--unraid-66-color);
-  margin-bottom: 1rem;
-}
-
-.donateArea {
-  margin-top: 2rem;
-}
-
-.donateText {
-  margin-top: 2rem;
-}
-
-.enabledIcon,
-.homeMore
-{
-  cursor: pointer;
-  color: var(--unraid-66-color) !important;
-}
-
-.fav {
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    var(--ca-overlay-color) 100%
-  ),
-  linear-gradient(
-    to right,
-    color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 0%,
-    var(--ca-dark-orange-color) 50%,
-    color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 100%
-  ) !important;
-  background-position: 0 0 !important;
-  background-size: 100% 100% !important;
-}
-
-.nonfav {
-  background-color: var(--support-popup-background);
-}
-
-.favCardBackground {
-  float: right;
-  color: var(--ca-light-grey-color);
-  padding-top: .25rem;
-  margin-left: 1rem;
-}
-
-.favCardBackground::before {
-  content: "\f004";
-  font-family: fontAwesome;
-}
-
-.favCardBackgroundShow {
-  display: inline-block;
-}
-
-.favCardBackgroundHide {
-  display: none;
-}
-
-.featuredIncompatible {
-  color: var(--unraid-66-color);
-}
-
-.homespotlightIconArea {
-  display: inline-block;
-  position: relative;
-  top: -25rem;
-  left: 24rem;
-  cursor: pointer;
-}
-
-.initDockerSearch {
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 1.5rem;
-}
-
-.initDockerSearch:hover,
-#searchButton:hover,
-.caMenuItem:hover,
-.appIconsPopUp:hover,
-a.ca_repoPopup:hover,
-a.popUpLink:hover,
-.chartMenu:hover,
-li.context:hover,
-.pageNumber:hover,
-.sortIcons:hover  {
-  color: var(--unraid-66-color);
-}
-
-a.initDockerSearch {
-  cursor: pointer;
-  text-decoration: none;
-  color: unset;
-}
-
-input[type=checkbox] {
-  width: 2rem;
-  height: 2rem;
-  margin-left: 0rem;
-}
-
-input[type=button] {
-  background: none;
-  font-size: 1.5rem;
-}
-
-input:hover[type=button] {
-  color: var(--unraid-66-color) !important;
-  background: none !important;
-  background-color: none !important;
-}
-
-input:hover[type=button][disabled] {
-  background: none !important;
-  color: currentColor !important;
-  background-color: none !important;
-}
-
-input[type=button][disabled] {
-  background: none !important;
-  background-color: none !important;
-}
-
-.modComment {
-  padding: 2rem;
-  border: 1px solid;
-  border-color: var(--mod-comment-border);
-}
-
-.moderatorCommentHeader {
-  font-size: 2rem;
-  font-weight: normal;
-}
-
-.moderatorCommentHeader:before {
-  content: "\e97d";
-  font-family: Unraid;
-  color: var(--mod-comment-border);
-}
-
-.moderatorComment {
-  font-size: 1.2rem;
-  font-style: italic;
-  line-height: 1.5rem;
-}
-
-.ca_creditTitle {
-  font-size: 5rem;
-}
-.ca_creditLogo {
-  margin-top: 2rem;
-}
-
-.multi_installDiv {
-  width: 100%;
-  display: none;
-  padding-bottom: 20px;
-  position: fixed;
-  bottom: 0;
-  background-color: var(--ca-legacy-background-color);
-}
-
-.notice.shift {
-  margin-top: 0px;
-}
-
-.officialCardBackground,
-.LTOfficialCardBackground,
-.spotlightCardBackground,
-.warningCardBackground,
-.betaCardBackground,
-.greenCardBackground,
-.installedCardBackground {
-  clip-path: polygon(0 0,100% 0, 100% 100%);
-  top: 0px;
-  height: 9rem;
-  width: 9rem;
-  position: relative;
-  display: inline-block;
-  left: -10rem;
-  margin-right: -9rem;
-}
-.installedCardBackground {
-  background-color: var(--ca-purple-color);
-}
-.LTOfficialCardBackground {
-  background-color: var(--ca-orange-color);
-}
-.officialCardBackground,
-.spotlightCardBackground {
-  background-color: var(--ca-dark-purple-color);
-}
-.warningCardBackground {
-  background-color: var(--ca-dark-red-color);
-}
-.betaCardBackground {
-  background-color: var(--unraid-66-color);
-}
-.greenCardBackground {
-  background-color: var(--ca-dark-green-color);
-}
-
-.installedCardText {
-  position: absolute;
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -o-transform: rotate(45deg);
-  color: var(--ca-named-white);
-  font-size: 1.1rem;
-  position: absolute;
-  top: 2rem;
-  right: 0rem;
-  width: 6rem;
-  overflow: hidden;
-  height: 2.5rem;
-  display: inline;
-}
-
-.officialPopupText,
-.LTOfficialPopupText {
-  position: absolute;
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-  -moz-transform: rotate(45deg);
-  -o-transform: rotate(45deg);
-  color: var(--ca-named-white);
-  font-size: 2rem;
-  position: absolute;
-  top: 2.25rem;
-  right: -1rem;
-  width: 100%;
-  overflow: hidden;
-  height: 2.5rem;
-}
-
-.pageDots::after {
-  content: "...";
-}
-
-.pageDots {
-  color: var(--ca-named-grey);
-  cursor: default;
-}
-
-.pageLeft::after {
-  content: "\f137";
-  font-family: fontAwesome;
-}
-
-.pageNavigation {
-  margin-bottom: 3rem;
-}
-
-.pageNavNoClick {
-  cursor: default !important;
-  opacity: 0.3;
-}
-
-.pageNavNoClick:hover {
-  color: var(--sidebar-text) !important;
-  opacity: 0.3;
-}
-
-.pageNumber {
-  margin-left: 1rem;
-  margin-right: 1rem;
-  cursor: pointer;
-  text-decoration: none !important;
-}
-
-.pageRight::after {
-  content: "\f138";
-  font-family: fontAwesome;
-}
-
-.pageSelected {
-  cursor: default;
-  color: var(--unraid-66-color);
-}
-
-.pinnedCard {
-  float: right;
-  color: var(--ca-teal-color);
-  font-size: 1.75rem;
-}
-
-.pinnedCard::before {
-  content: "\f08d";
-  font-family: fontAwesome;
-}
-
-.plugin::after {
-  font-family: Unraid;
-  content: '\e986';
-  font-size: 2.5rem;
-}
-
-.popupAuthor {
-  font-size: 1.7rem;
-  line-height: 2rem;
-  margin-bottom: 0.5rem;
-  margin-top: 0.5rem;
-  display: inline-block;
-}
-
-.popupAuthorMain {
-  font-size: 1.7rem;
-  line-height: 2rem;
-  margin-bottom: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.popupAuthorIcon {
-  display: inline-block;
-  float: right;
-}
-
-img.popupAuthorIcon {
-  height: 7.2rem;
-  width: 7.2rem;
-  border-radius: 1rem 1rem 1rem 1rem;
-}
-
-.popupAuthorTitle {
-  font-size: 2.5rem;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
-
-.popupCloseArea {
-    position: fixed;
-    margin-left: 10px;
-    margin-top: -2rem;
-    padding-top: 2rem;
-    padding-bottom: 1rem;
-    width: 100%;
-    background-color: var(--sidebar-background);
-    z-index: 5;
-}
-
-.popupDescription {
-  font-size: 1.5rem;
-  line-height: 1.7rem !important;
-  margin-top: 1.5rem;
-  margin-left: 1rem;
-  margin-right: 1rem;
-  margin-bottom: 0px;
-}
-
-.popupIcon {
-  display: inline-block;
-}
-
-i.popupIcon {
-  color: var(--ca-grey-color);
-  font-size: 10rem;
-  padding-left: 1rem;
-  padding-top: 2.2rem;
-}
-
-img.popupIcon {
-  width: 10rem;
-  height: 10rem;
-  padding: 0.3rem;
-  margin-top: 2.2rem;
-  border-radius: 1rem 1rem 1rem 1rem;
-}
-
-.popupInfo {
-  position: absolute;
-  top: 3rem;
-  left: 15rem;
-  right: 0;
-}
-
-.popupInfoLeft {
-  margin-right: 10px;
-  margin-left: 10px;
-  overflow: hidden;
-}
-
-.popupInfoSection {
-  line-height: 2rem;
-  font-size: 1.5rem;
-}
-
-#displaybox {
-  margin-top: 0 !important;
-}
-.popUpLink {
-  cursor: pointer;
-  color: var(--a-color);
-}
-
-a.popUpLink {
-  text-decoration: none;
-}
-
-.popupName {
-  display: block;
-  font-size: 3rem;
-  line-height: 4rem;
-  font-weight: bold;
-  max-height: 4rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.popupRepoDescription {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.popupTable td {
-  width: 30%;
-  text-align: left;
-}
-
-.popupTable {
-  font-size: 1.5rem;
-  width: 55rem;
-  margin-top: 0px;
-  margin-left: auto;
-}
-
-.popupTable.contents {
-  display: contents;
-}
-
-.popupTableLeft {
-  vertical-align: top;
-  padding-right: 15px;
-}
-
-.popupTableRight {
-  overflow: hidden;
-  text-wrap: auto;
-}
-
-.popup {
-  margin: 1.5rem;
-  margin-top: -2rem;
-}
-
-.readmore-js-collapsed {
-  -webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(var(--ca-white-overlay)), to(var(--ca-white-overlay-light)));
-}
-
-.repoDonateText {
-  margin-bottom: 0.5rem;
-}
-
-.repoLinks {
-  margin-top: 3rem;
-  margin-left: 1.5rem;
-}
-
-.repoStats {
-  font-size: 2rem;
-  margin-top: 2rem;
-}
-
-.repoTable {
-  margin-top: 15px;
-  width: 70%;
-  background-color: initial;
-}
-
-.repoLeft {
-  width: 50%;
-}
-
-.repoLinkArea {
-  margin-top: 1.5rem;
-}
-
-.repoRight {
-  text-align: right;
-}
-
-.rightTitle {
-  font-size: 2.5rem;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
-
-/* might be coming from magnific popup - leave in place */
-.screen {
-  border: 1px solid;
-  border-radius: 5px 5px 5px 5px;
-  border-color: var(--unraid-66-color);
-  vertical-align: top;
-  min-width: 8rem;
-  max-width: 12rem;
-  height: 8rem;
-  margin: 10px;
-  transition: transform 0.3s ease;
-}
-
-.screen:hover {
-  transform: scale(1.2);
-  transition: transform 0.3s ease;
-  z-index: 10;
-  position: relative;
-}
-
-.screenshot {
-  cursor: pointer;
-}
-
-#displayBox {
-  padding-top: 0;
-}
-.searchAreaHolder {
-  top: var(--search-area-top);
-  position: sticky;
-  z-index: 6;
-}
-.searchArea {
-  padding-left: var(--search-area-left);
-  background-color: var(--ca-legacy-background-color);
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-.Theme--width-boxed .searchAreaHolder {
-  max-width: 1920px; 
-  margin: 0 auto;
-}
-.Theme--legacyOS.Theme--sidebar .searchArea {
-  margin-left: -8.5rem;
-}
-.Theme--legacyOS.Theme--nav-top .searchArea {
-  margin: var(--ca_legacySearchMarginTop) auto -10rem auto !important;
-}
-
-#searchFilter {
-  position: relative;
-  display:inline-block;
-}
-
-#searchBox {
-  left: var(--search-area-left);
-  margin-left: 0rem;
-  margin-right: 0;
-  margin-bottom: 1rem;
-  top: -0.6rem;
-  border: none;
-  padding: 0.6rem;
-  background: var(--template-hover-background);
-  padding-right: 0.5rem;
-  width: 300px;
-  font-size: 1.5rem;
-}
-
-.showMenuButton::before {
-  content: '\f101';
-  font-family: fontAwesome;
-  font-size: 2rem;
-}
-.closeMenuButton::before {
-  content: '\f100';
-  font-family: fontAwesome;
-  font-size: 2rem;
-}
-.showMenuButton, .closeMenuButton { 
-  left: 2rem;
-  top: 2rem;
-  display: inline-block;
-  cursor: pointer;
-  margin-right: 1rem;
-}
-.showMenuButton:hover, .closeMenuButton:hover {
-  color: var(--unraid-66-color);
-}
-
-#sortIconArea {
-  padding-bottom: 1rem;
-  display: none;
-}
-
-.sortIcons {
-  font-size: 1.2rem;
-  margin-right: 10px;
-  margin-left: 10px;
-  cursor: pointer;
-  text-decoration: none !important;
-  color: var(--sidebar-text);
-}
-
-.spinnerBackground {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  display: none;
-  background: transparent;
-  z-index: 9999;
-}
-
-.spotlightDate {
-  font-size: 1.5rem;
-  margin-left: -4rem;
-}
-
-.spotlightDateSidebar {
-  margin-left: 0.5rem !important;
-}
-
-.spotlightHome {
-  width: 36rem !important;
-  height: 24rem !important;
-  margin-bottom: 1rem;
-}
-/* might not be needed
-.Theme--legacyOS .caHomeSpotlight {
-  height: 27rem !important;
-}
-*/
-
-.spotlightHeader {
-  font-size: 2rem;
-}
-
-.spotlightIconArea {
-  display: inline-block;
-  float: left;
-  width: 10rem;
-}
-
-.spotlightIcon {
-  height: 15rem;
-  margin-bottom: -2.5rem;
-  margin-left: -4rem;
-  margin-top: -3rem;
-}
-.spotlightIconArea img.spotlightIcon {
-  margin-left: -2rem !important;
-}
-
-.spotlightInfoArea {
-  margin-left: 2rem;
-  padding-left: 10rem;
-  margin-top: 2rem;
-}
-
-.spotlightPopup {
-  display: inline-block;
-  margin-top: 0.75rem;
-}
-
-.spotlightWho {
-  font-style: italic;
-}
-
-.spotlightWhy {
-  font-weight: bold;
-  font-size: 1.6rem;
-  line-height: 1.8rem;
-}
-
-.spotlightMessage {
-  margin-top: 0.8rem;
-  line-height: 1.5rem;
-}
-
-.spotlightMessage a {
-  color: var(--unraid-66-color);
-  text-decoration: none;
-}
-
-ul.subCategory {
-  list-style-type: none;
-  margin-left: 2rem;
-  padding: 0px;
-  cursor: pointer;
-  display: none;
-}
-.navigationSection {
-  position: fixed;
-  bottom: 0;
-  display: block;
-  width: 100%;
-  margin-left: auto;
-  left: 0;
-  text-align: center;
-  font-size: 1.5rem;
-  background-color: var(--ca-legacy-background-color);
-}
-.Theme--fontSize50 .navigationSectionShift {
-  bottom: 6rem;
-}
-.Theme--fontSize56 .navigationSectionShift {
-  bottom: 5rem;
-}
-.Theme--fontSize62 .navigationSectionShift {
-  bottom: 4.5rem;
-}
-.Theme--fontSize68 .navigationSectionShift {
-  bottom: 4rem;
-}
-.Theme--fontSize75 .navigationSectionShift {
-  bottom: 3.5rem;
-}
-.Theme--fontSize80 .navigationSectionShift {
-  bottom: 3rem;
-}
-
-.actionCentre {
-  display: none;
-}
-
-#warningNotAccepted {
-  display: none;
-}
-
-.modifiedCode {
-  margin-bottom: 1rem;
-  animation: cycleRed 1s infinite;
-}
-
-@keyframes cycleRed {
-  0% { color: inherit; }
-  50% { color: var(--ca-red-color); }
-}
+	content: "...";
+
+	/* Positioning */
+	position: absolute;
+	right: 0;
+	top: 4.75rem;
+	height: 1.2rem;
+	width: 60ch;
+
+	/* Typography */
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+
+	/* Create fade effect using template background color */
+	background: linear-gradient(to right,
+	transparent 0%,
+	color-mix(in srgb, var(--template-background) 10%, transparent) 30%,
+	color-mix(in srgb, var(--template-background) 30%, transparent) 70%,
+	color-mix(in srgb, var(--template-background) 80%, transparent) 100%);
+
+	/* Padding for spacing */
+	padding-left: 0.5rem;
+
+	/* Display properties */
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+
+	/* Ensure it's positioned correctly */
+	pointer-events: none;
+}
+
+	/* 2.4) Buttons & Forms
+	-------------------------------------------------------------------------- */
+	.caButton,
+	.popupRepoDescription,
+	.popupDescription {
+		/* Layout */
+		display: inline-block;
+		margin-right: 1rem;
+		padding: 1px 10px;
+
+		/* Typography */
+		font-size: 1.2rem;
+		line-height: 2rem;
+		color: var(--support-popup-text);
+
+		/* Visual */
+		background: linear-gradient(
+		to bottom,
+		transparent 50%,
+		var(--ca-overlay-color) 100%
+		),
+		linear-gradient(
+		to right,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
+		var(--support-popup-background) 50%,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
+		);
+		background-position: 0 0;
+		background-size: 100% 100%;
+		border-radius: 15px;
+	}
+	.popupDescription, .popupRepoDescription {
+		background: var(--support-popup-background);
+	}
+	.caButton {
+		cursor: pointer;
+	}
+
+	.popupRepoDescription,
+	.popupDescription {
+		width: 90%;
+		min-height: 3rem;
+		padding: 2rem!important;
+		mask-image: unset !important;
+		-webkit-mask-image: unset !important;
+	}
+	.caButton a {
+		text-decoration: none;
+		color: var(--support-popup-text);
+		cursor: pointer;
+	}
+
+	.caButton:hover {
+		background: var(--unraid-66-color);
+		color: var(--ca-white-color) !important;
+	}
+
+	.caButton:hover a,
+	a.caButton:hover {
+		color: var(--ca-white-color);
+		text-decoration: none;
+	}
+
+	/* Awesomplete suggestions: use caButton styling, force precedence */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
+		display: inline-block !important;
+		margin-right: 1rem !important;
+		padding: 1px 10px !important;
+		font-size: 1.2rem !important;
+		line-height: 2rem !important;
+		color: var(--support-popup-text) !important;
+		background: linear-gradient(
+		to bottom,
+		transparent 50%,
+		var(--ca-overlay-color) 100%
+		),
+		linear-gradient(
+		to right,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
+		var(--support-popup-background) 50%,
+		color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
+		) !important;
+		background-position: 0 0 !important;
+		background-size: 100% 100% !important;
+		border-radius: 15px !important;
+		cursor: pointer !important;
+	}
+	/* Mouse hover highlight: only applies while the mouse is the active input device.
+	   When the user presses an arrow key, JS removes ca_suggestionMouseUsed which instantly
+	   drops this style even if the cursor is still physically over a <li>, so only the
+	   keyboard-selected item is highlighted. */
+	body.ca_searchModalOpen.ca_suggestionMouseUsed #searchFilter .awesomplete > ul > li.caButton:hover {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
+	/* Keyboard navigation highlight (Awesomplete sets aria-selected="true") */
+	body.ca_searchModalOpen:not(.ca_suggestionMouseUsed) #searchFilter .awesomplete > ul > li.caButton[aria-selected="true"] {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
+	/* Awesomplete match highlight: per-theme color (red in black/gray, yellow in white/azure), no background fill */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton mark {
+		background: transparent !important;
+		color: var(--ca-suggestion-mark-color, var(--ca-red-color)) !important;
+	}
+
+	/* 2.5) Form Elements */
+	input[type="checkbox"] {
+		width: 2rem;
+		height: 2rem;
+		margin-left: 0;
+	}
+
+	/* 2.6) Menu and Navigation */
+
+	.ca_hide,
+	.menuShowing.hideWithMenu,
+	#searchFilter.menuShowing {
+		display: none !important;
+
+	}
+	.mainArea.menuShowing {
+		top: 0;
+		overflow: hidden;
+		height: var(--mainAreaHeight) !important;
+	}
+
+	.showMenuButton.menuShowing {
+		display: none;
+	}
+	.closeMenuButton.menuShowing,
+	.showMenuButton.menuHidden {
+		display: inline-block;
+	}
+
+	.closeMenuButton.menuHidden {
+		display: none;
+	}
+	/* Hide the show/close menu buttons entirely while the search modal is up —
+	   the menu shouldn't be reachable from inside search and the buttons would
+	   otherwise sit on top of the modal layout. */
+	body.ca_searchModalOpen .showMenuButton,
+	body.ca_searchModalOpen .closeMenuButton {
+		display: none !important;
+	}
+	.mobileMenuButton {
+		display: none;
+		margin-top: 2px;
+	}
+
+	.menuOverlay.menuHidden {
+		display: none;
+	}
+	.menuOverlay.menuShowing {
+		display: inline-block;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: transparent;
+		z-index: 6;
+	}
+	.menuItems {
+		overflow-inline: scroll;
+		position: fixed;
+		top: 19rem;
+		bottom: 4rem;
+		align-items: stretch;
+		width: 14rem;
+		z-index: 2;
+		background-color: var(--ca-legacy-background-color);
+	}
+	.Theme--nav-top .menuItems {
+		top: 19rem;
+	}
+	.Theme--sidebar .menuItems {
+		top: 15rem;
+	}
+	.menuItems::-webkit-scrollbar {
+		width: 0px;  /* vertical scrollbar width */
+	}
+	.menuItems:hover::-webkit-scrollbar:vertical,
+	.sidenav:hover::-webkit-scrollbar:vertical,
+	.ca_homeTemplates:hover::-webkit-scrollbar:vertical,
+	.mainArea::-webkit-scrollbar:vertical {
+		width: 2px;  /* vertical scrollbar width */
+	}
+	.menuItems:hover::-webkit-scrollbar:horizontal,
+	.sidenav:hover::-webkit-scrollbar:horizontal,
+	.ca_homeTemplates:hover::-webkit-scrollbar:horizontal,
+	.mainArea::-webkit-scrollbar:horizontal {
+		height: 2px; /* horizontal scrollbar height */
+	}
+	.menuItems::-webkit-scrollbar-thumb,
+	.sidenav::-webkit-scrollbar-thumb,
+	.ca_homeTemplates::-webkit-scrollbar-thumb,
+	.mainArea::-webkit-scrollbar-thumb {
+		background-color: transparent;
+		background-image: linear-gradient(var(--unraid-66-color), var(--unraid-66-color));
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: 100% 20rem;
+		border-radius: 999px;
+	}
+	.menuItems::-webkit-scrollbar-thumb:horizontal,
+	.sidenav::-webkit-scrollbar-thumb:horizontal,
+	.ca_homeTemplates::-webkit-scrollbar-thumb:horizontal,
+	.mainArea::-webkit-scrollbar-thumb:horizontal {
+		background-size: 20rem 100%;
+	}
+	.menuItems::-webkit-scrollbar-track,
+	.sidenav::-webkit-scrollbar-track,
+	.ca_homeTemplates::-webkit-scrollbar-track,
+	.mainArea::-webkit-scrollbar-track {
+		background: transparent;
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 28%, transparent);
+		border-radius: 999px;
+	}
+	.menuItems::-webkit-scrollbar-corner,
+	.sidenav::-webkit-scrollbar-corner,
+	.ca_homeTemplates::-webkit-scrollbar-corner,
+	.mainArea::-webkit-scrollbar-corner {
+		background: var(--unraid-66-color);
+	}
+	.menuItems::-webkit-scrollbar-thumb:hover,
+	.sidenav::-webkit-scrollbar-thumb:hover,
+	.ca_homeTemplates::-webkit-scrollbar-thumb:hover,
+	.mainArea::-webkit-scrollbar-thumb:hover {
+		background-color: transparent;
+		background-image: linear-gradient(var(--unraid-66-color), var(--unraid-66-color));
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: 100% 20rem;
+	}
+	.menuItems::-webkit-scrollbar-thumb:hover:horizontal,
+	.sidenav::-webkit-scrollbar-thumb:hover:horizontal,
+	.ca_homeTemplates::-webkit-scrollbar-thumb:hover:horizontal,
+	.mainArea::-webkit-scrollbar-thumb:hover:horizontal {
+		background-size: 20rem 100%;
+	}
+
+	#ca_fixed_scroll_root {
+		position: fixed;
+		left: 0;
+		top: 0;
+		width: 0;
+		height: 0;
+		pointer-events: auto;
+		z-index: 1000;
+	}
+	/* While CA search modal is open, block interaction with custom scrollbars */
+	body.ca_searchModalOpen #ca_fixed_scroll_root,
+	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_hscroll_thumb,
+	body.ca_searchModalOpen .ca_fixed_vscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_vscroll_thumb {
+		pointer-events: none !important;
+	}
+
+	:root {
+		--ca-fixed-scrollbar-thickness: 10px;
+	}
+	/* Horizontal indicator: always visible (subtle, transparent track) at any
+	   resolution; track styling fades in only while actively scrolling, hovered,
+	   or being dragged. */
+	.ca_fixed_hscroll_indicator {
+		position: fixed;
+		height: var(--ca-fixed-scrollbar-thickness);
+		opacity: 1;
+		pointer-events: auto;
+		cursor: default;
+		z-index: 1000;
+		transition: opacity 120ms ease-in-out;
+		background: transparent;
+		box-shadow: none;
+		border-radius: 999px;
+	}
+	.ca_fixed_hscroll_indicator.visible {
+		opacity: 1;
+	}
+	.ca_fixed_hscroll_indicator:hover,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover),
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging),
+	.ca_fixed_hscroll_indicator.ca_scroll_active,
+	.ca_fixed_hscroll_indicator.ca_scroll_target_hover {
+		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+	}
+	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
+	.ca_fixed_hscroll_thumb {
+		position: absolute;
+		top: auto;
+		bottom: 0;
+		left: 0;
+		height: 3px;
+		border-radius: 999px;
+		background: var(--unraid-66-color);
+		pointer-events: auto;
+		cursor: default;
+		transition: height 150ms ease-out;
+	}
+	.ca_fixed_hscroll_indicator:hover > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover) > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging) > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator.ca_scroll_active > .ca_fixed_hscroll_thumb,
+	.ca_fixed_hscroll_indicator.ca_scroll_target_hover > .ca_fixed_hscroll_thumb {
+		height: var(--ca-fixed-scrollbar-thickness);
+	}
+
+	.ca_fixed_vscroll_indicator {
+		position: fixed;
+		width: var(--ca-fixed-scrollbar-thickness);
+		opacity: 0;
+		pointer-events: auto;
+		cursor: default;
+		z-index: 1000;
+		transition: opacity 120ms ease-in-out;
+		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+		border-radius: 999px;
+	}
+	.ca_fixed_vscroll_indicator.visible {
+		opacity: 1;
+	}
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always {
+		opacity: 1;
+		background: transparent;
+		box-shadow: none;
+	}
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb:hover),
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb.dragging),
+	.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_scroll_active {
+		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+	}
+	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
+	.ca_fixed_vscroll_thumb {
+		position: absolute;
+		top: 0;
+		left: auto;
+		right: 0;
+		width: 3px;
+		border-radius: 999px;
+		background: var(--unraid-66-color);
+		pointer-events: auto;
+		cursor: default;
+		transition: width 150ms ease-out;
+	}
+	.ca_fixed_vscroll_indicator:hover > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb:hover) > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb.dragging) > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator.ca_scroll_active > .ca_fixed_vscroll_thumb,
+	.ca_fixed_vscroll_indicator.ca_scroll_target_hover > .ca_fixed_vscroll_thumb {
+		width: var(--ca-fixed-scrollbar-thickness);
+	}
+	.ca_fixed_hscroll_thumb.dragging,
+	.ca_fixed_vscroll_thumb.dragging {
+		cursor: default;
+	}
+	/* Keep JS-based scroll indicators available in sidenav too. */
+	.sidenavShow .ca_scroll_mainarea,
+	body:has(.sidenavShow) .ca_scroll_mainarea {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* When the sidebar is open, disable all other overlay scrollbars (e.g. home templates). */
+	body:has(.sidenavShow) .ca_scroll_nonsidenav {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* When the search modal is open, hide every JS overlay scrollbar (matches sidenav behavior). */
+	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
+	body.ca_searchModalOpen .ca_fixed_vscroll_indicator {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* While the mobile menu is open, do not show JS horizontal overlay scrollbars at all. */
+	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_indicator,
+	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_thumb {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	/* When an nchan swal (with our scrim above it) is open, kill the JS overlay
+	   scrollbars too — they otherwise float over the dimmed home page. */
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_hscroll_indicator,
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_vscroll_indicator {
+		display: none !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+	.ca_custom_scroll_target::-webkit-scrollbar,
+	.menuItems::-webkit-scrollbar,
+	.sidenav::-webkit-scrollbar,
+	.ca_homeTemplates::-webkit-scrollbar,
+	.mainArea::-webkit-scrollbar {
+		display: none !important;
+		width: 0 !important;
+		height: 0 !important;
+	}
+	.sidenav::-webkit-scrollbar:vertical,
+	.sidenav::-webkit-scrollbar:horizontal,
+	.sidenav::-webkit-scrollbar-thumb,
+	.sidenav::-webkit-scrollbar-track,
+	.sidenav::-webkit-scrollbar-corner,
+	.mainArea::-webkit-scrollbar:vertical,
+	.mainArea::-webkit-scrollbar:horizontal,
+	.mainArea::-webkit-scrollbar-thumb,
+	.mainArea::-webkit-scrollbar-track,
+	.mainArea::-webkit-scrollbar-corner {
+		display: none !important;
+		width: 0 !important;
+		height: 0 !important;
+		background: transparent !important;
+		box-shadow: none !important;
+	}
+	/* Firefox fallback for scrollbar styling (WebKit rules stay primary). */
+	@supports not selector(::-webkit-scrollbar) {
+		.menuItems,
+		.sidenav,
+		.ca_homeTemplates,
+		.mainArea {
+			scrollbar-width: none;
+		}
+		.menuItems:hover,
+		.sidenav:hover,
+		.ca_homeTemplates:hover,
+		.mainArea:hover {
+			scrollbar-width: thin;
+			scrollbar-color: var(--unraid-66-color) color-mix(in srgb, var(--unraid-66-color) 22%, transparent);
+		}
+		.ca_custom_scroll_target:hover {
+			scrollbar-width: none;
+		}
+	}
+	.menuItems.menuHidden {
+		display: block;
+	}
+	.menuItems.menuShowing {
+		padding-top: 3rem;
+	}
+
+	.selectedMenu {
+		color: var(--unraid-66-color);
+		font-weight: bold;
+	}
+
+	/* Subtitle under Home: which home "Show More" section is expanded */
+	.ca_homeSectionSubtitle {
+		display: block;
+		margin-top: 0.35rem;
+		padding-left: 0.25rem;
+		font-size: 1.05rem;
+		line-height: 1.25;
+		font-weight: normal;
+		color: var(--unraid-66-color);
+		white-space: normal;
+		word-break: break-word;
+	}
+
+	.ca_homeSearchSubtitle {
+		display: block;
+		margin-top: 0.25rem;
+		padding-left: 0.25rem;
+		font-size: 0.95rem;
+		line-height: 1.2;
+		font-weight: normal;
+		font-style: italic;
+		color: var(--sidebar-text);
+		white-space: normal;
+		word-break: break-word;
+		cursor: default;
+		user-select: text;
+	}
+
+	.caMenuDisabled:hover {
+		color: inherit !important;
+	}
+
+	.ca_bottomBanner {
+		z-index: 10000;
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+
+		padding: 1.25rem 2rem;
+		min-width: 24rem;
+		max-width: 90vw;
+
+		background: linear-gradient(145deg, var(--ca-bottomBanner-bg-from), var(--ca-bottomBanner-bg-to));
+		border: 1px solid color-mix(in srgb, var(--unraid-66-color) 50%, transparent);
+		border-radius: 0.75rem;
+		box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 10%, transparent),
+		0 10px 30px var(--ca-dark-overlay-color),
+		0 0 40px color-mix(in srgb, var(--unraid-66-color) 15%, transparent);
+
+		color: var(--ca-bottomBanner-text);
+		font-size: 2rem;
+		font-weight: 500;
+		letter-spacing: 0.01em;
+		text-align: center;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+	}
+
+	.ca_viewportBlocker {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		background: transparent;
+		pointer-events: auto;
+	}
+
+	/* 2.7) Sidebar Navigation */
+	.sidebar {
+		/* Match .sidenav's footprint exactly so the area to the *left* of the
+		   visible sidenav stays uncovered — clicks there land on the
+		   .ca_modal_overlay (z-index 999) and trigger close, instead of being
+		   eaten by an invisible viewport-wide .sidebar. */
+		position: fixed;
+		top: 4rem;
+		right: 0;
+		bottom: 1.6rem;
+		width: 90%;
+		max-width: 70rem;
+		background-color: transparent;
+		z-index: 1000;
+	}
+
+
+	.sidenav {
+		/* Layout */
+		position: fixed;
+		top: 4rem;
+		right: 0;
+		bottom: 1.6rem;
+		margin-bottom: 1rem;
+		width: 90%;
+		max-width: 70rem;
+		/* Visual */
+		background-color: var(--sidebar-background);
+		color: var(--sidebar-text);
+
+		/* Interactive */
+		overflow-x: hidden;
+		overflow-y: scroll;
+	}
+
+	.sidenavShow {
+		width: 90%;
+		max-width: 70rem;
+	}
+	.sidebar .sidenav,
+	.popupCloseArea {
+		transform: translateX(100%);          /* default: off-screen right */
+		opacity: 0;
+		transition: transform 500ms ease, opacity 500ms ease;
+	}
+
+	.sidebar .sidenav.sidenavShow,
+	.popupCloseArea {
+		transform: translateX(0);             /* slide into view */
+		opacity: 1;
+	}
+
+	.sidebar .sidenav.sidenavHide,
+	.popupCloseArea {
+		transform: translateX(100%);          /* slide back out */
+		opacity: 0;
+	}
+	body:has(.sidenavHide) .sidebar {
+		pointer-events: none;
+		display: none;
+	}
+	body:has(.ca_homeTemplates) .mainArea {
+		right: 1rem;
+		display: block;
+		align-items: stretch;
+	}
+
+	.caChangeLog > div:first-child {
+		margin: auto;
+		width: 500px;
+	}
+	.ca_statistics {
+		height: auto;
+		overflow: scroll;
+		overflow-x: scroll;
+		overflow-y: hidden;
+		margin: 3rem auto auto auto;
+		width: fit-content;
+		background-color: revert;
+	}
+	.ca_settingsPanel {
+		margin: 3rem auto;
+		width: min(96%, 90rem);
+	}
+
+	.ca_settingsTitle {
+		font-size: 2.6rem;
+		margin-bottom: 2rem;
+	}
+
+	.ca_settingsGrid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+		gap: 1.2rem;
+	}
+
+	.ca_settingCard {
+		background-color: var(--template-background);
+		border: 1px solid var(--ca-border-color);
+		border-radius: 0.8rem;
+		padding: 1.2rem 1.4rem;
+	}
+
+	.ca_settingHeader {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		font-size: 1.5rem;
+		font-weight: bold;
+		line-height: 1.8rem;
+	}
+
+	.ca_settingHeader .caSettingSwitch {
+		flex-shrink: 0;
+	}
+
+	.ca_settingDescription {
+		margin-top: 0.8rem;
+		font-size: 1.2rem;
+		line-height: 1.55rem;
+	}
+
+	.ca_settingsButtons {
+		display: flex;
+		justify-content: center;
+		flex-wrap: wrap;
+		gap: 2rem;
+		margin: 2.5rem 0 1.5rem 0;
+	}
+
+	.ca_settingsButtons input[type="button"],
+	.ca_settingsButtons input[type="submit"] {
+		font-size: 1.4rem;
+	}
+
+	.ca_settingsButtons input[disabled] {
+		opacity: 0.45;
+		cursor: default;
+	}
+
+	.ca_statistics > table {
+		margin-top:1rem;
+	}
+	body:has(.sidenavShow):has(.moderationContainer) .sidenav {
+		overflow: scroll;
+	}
+	body:has(.sidenavShow):has(.moderationContainer) :is(.popUpClose, .popUpBack) {
+		display: none !important;
+	}
+	body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
+		display: inline-block;
+	}
+	.popUpStat {
+		display: none;
+	}
+
+	.caModerationJumpWrap {
+		margin-bottom: .5rem;
+	}
+
+	.caModerationJumpLabel {
+		margin-right: .35rem;
+	}
+
+	.caModerationJumpLinks {
+		margin-left: .75rem;
+		white-space: nowrap;
+	}
+
+	.caModerationToggleAllWrap {
+		margin-bottom: .75rem;
+	}
+
+	/* +/- toggle in the moderation Repository view: strike-through the repo
+	   name when its row is in the ignored set. Persistence is handled in JS
+	   on transition to showStatistics(). */
+	.caModerationRepoTable tr.caRepoIgnored .caRepoName {
+		text-decoration: line-through;
+		opacity: 0.6;
+	}
+	.caRepoIgnoreCell {
+		width: 2rem;
+		text-align: center;
+	}
+	.caRepoIgnoreToggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.6rem;
+		height: 1.6rem;
+		font-size: 1.6rem;
+		font-weight: 700;
+		user-select: none;
+	}
+	.caRepoIgnoreToggle:hover {
+		color: var(--unraid-66-color);
+	}
+
+	.caModerationFixedToggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: .5rem;
+		width: 2rem;
+		height: 2rem;
+		font-size: 1.35rem;
+		line-height: 1.1;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.caModerationFixedDetails {
+		display: none;
+	}
+
+	.caStatisticsHeaderRow {
+		height: 6rem;
+	}
+
+	.caStatisticsTitle {
+		font-size: 2rem;
+	}
+
+	.moderationContainer {
+		margin: 3rem 3rem auto 3rem;
+	}
+
+	.moderationContainer table {
+		background-color: unset !important;
+	}
+
+	.moderationContainer .ca_moderationList {
+		margin-top: .25rem;
+	}
+
+	.moderationContainer .ca_moderationItem {
+		margin: 0 0 .9rem 0;
+	}
+
+	.moderationContainer .ca_moderationTitle {
+		font-family: monospace;
+		font-size: 1.3rem;
+		font-weight: 400;
+		line-height: 1.25;
+	}
+
+	.moderationContainer .ca_moderationDetails {
+		margin-left: 1.2rem;
+		margin-top: .2rem;
+	}
+
+	.moderationContainer .ca_moderationRule {
+		font-family: monospace;
+		font-size: 1.2rem;
+		line-height: 1.25;
+		margin: .1rem 0;
+	}
+
+	.moderationContainer .ca_moderationSubRule {
+		margin-left: 2rem;
+	}
 
 /* ==========================================================================
-  Third Party Components
-  ========================================================================== */
-
-/* Awesomplete Autocomplete Component */
-.awesomplete {
-  /* Layout */
-  display: inline-block;
-  position: relative;
-  /* Typography */
-  color: var(--ca-named-red);
-}
-
-.awesomplete > input {
-  display: block;
-}
-
-.awesomplete > ul {
-  /* Layout */
-  position: absolute;
-  left: 0;
-  z-index: 1;
-  min-width: 100%;
-  box-sizing: border-box;
-  margin: 0.2em 0 0;
-  padding: 0;
-  /* Visual */
-  background: linear-gradient(to bottom right, var(--ca-named-white), var(--ca-hsl-white));
-  border: 1px solid var(--ca-medium-overlay-color);
-  border-radius: 0.3em;
-  box-shadow: 0.05em 0.2em 0.6em var(--ca-medium-overlay-color);
-  list-style: none;
-  text-shadow: none;
-  font-size: 1.5rem;
-}
-
-.awesomplete > ul:empty {
-  display: none;
-}
-
-.awesomplete [hidden] {
-  display: none;
-}
-
-.awesomplete .visually-hidden {
-  position: absolute;
-  clip: rect(0, 0, 0, 0);
-}
-
-/* Awesomplete Animations */
-@supports (transform: scale(0)) {
-  .awesomplete > ul {
-      transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.5, 1.4);
-      transform-origin: 1.43em -0.43em;
-  }
-  
-  .awesomplete > ul[hidden],
-  .awesomplete > ul:empty {
-      opacity: 0;
-      transform: scale(0);
-      display: block;
-      transition-timing-function: ease;
-  }
-}
-
-/* Awesomplete Dropdown Pointer */
-.awesomplete > ul:before {
-  content: "";
-  position: absolute;
-  top: -0.43em;
-  left: 1em;
-  width: 0;
-  height: 0;
-  padding: 0.4em;
-  background: var(--ca-named-white);
-  border: inherit;
-  border-right: 0;
-  border-bottom: 0;
-  transform: rotate(45deg);
-}
-
-/* Awesomplete List Items */
-.awesomplete > ul > li {
-  position: relative;
-  padding: 0.2em 0.5em;
-  cursor: pointer;
-}
-
-.awesomplete > ul > li:hover {
-  background: var(--ca-hsl-light-blue);
-  color: var(--ca-named-black);
-}
-
-.awesomplete > ul > li[aria-selected="true"] {
-  background: var(--ca-hsl-dark-blue);
-  color: var(--ca-named-white);
-}
-
-.awesomplete mark {
-  background: var(--ca-hsl-yellow);
-}
-
-.awesomplete li:hover mark {
-  background: var(--ca-hsl-light-yellow);
-}
-
-.awesomplete li[aria-selected="true"] mark {
-  background: var(--ca-hsl-green);
-  color: inherit;
-}
-
-/* Magnific Popup
-  -------------------------------------------------------------------------- */
-.mfp-bg {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1042;
-  overflow: hidden;
-  position: fixed;
-  background: var(--ca-dark-bg-color);
-  opacity: 0.8;
-}
-
-.mfp-wrap {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1043;
-  position: fixed;
-  outline: none !important;
-  -webkit-backface-visibility: hidden;
-}
-
-.mfp-container {
-  text-align: center;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  left: 0;
-  top: 0;
-  padding: 0 8px;
-  box-sizing: border-box;
-}
-
-.mfp-container:before {
-  content: '';
-  display: inline-block;
-  height: 100%;
-  vertical-align: middle;
-}
-
-.mfp-align-top .mfp-container:before {
-  display: none;
-}
-
-.mfp-content {
-  position: relative;
-  display: inline-block;
-  vertical-align: middle;
-  margin: 0 auto;
-  text-align: left;
-  z-index: 1045;
-}
-
-.mfp-inline-holder .mfp-content,
-.mfp-ajax-holder .mfp-content {
-  width: 100%;
-  cursor: auto;
-}
-
-.mfp-ajax-cur {
-  cursor: progress;
-}
-
-.mfp-zoom-out-cur,
-.mfp-zoom-out-cur .mfp-image-holder .mfp-close {
-  cursor: -moz-zoom-out;
-  cursor: -webkit-zoom-out;
-  cursor: zoom-out;
-}
-
-.mfp-zoom {
-  cursor: pointer;
-  cursor: -webkit-zoom-in;
-  cursor: -moz-zoom-in;
-  cursor: zoom-in;
-}
-
-.mfp-auto-cursor .mfp-content {
-  cursor: auto;
-}
-
-.mfp-close,
-.mfp-arrow,
-.mfp-preloader,
-.mfp-counter {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
-}
-
-.mfp-loading.mfp-figure {
-  display: none;
-}
-
-.mfp-hide {
-  display: none !important;
-}
-
-.mfp-preloader {
-  color: var(--ca-medium-text-color);
-  position: absolute;
-  top: 50%;
-  width: auto;
-  text-align: center;
-  margin-top: -0.8em;
-  left: 8px;
-  right: 8px;
-  z-index: 1044;
-}
-
-.mfp-preloader a {
-  color: var(--ca-medium-text-color);
-}
-
-.mfp-preloader a:hover {
-  color: var(--ca-named-white);
-}
-
-.mfp-s-ready .mfp-preloader {
-  display: none;
-}
-
-.mfp-s-error .mfp-content {
-  display: none;
-}
-
-button.mfp-close,
-button.mfp-arrow {
-  overflow: visible;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  -webkit-appearance: none;
-  display: block;
-  outline: none;
-  padding: 0;
-  z-index: 1046;
-  box-shadow: none;
-  touch-action: manipulation;
-}
-
-button::-moz-focus-inner {
-  padding: 0;
-  border: 0;
-}
-
-.mfp-close {
-  cursor: pointer !important;
-  width: fit-content !important;
-  height: 44px;
-  line-height: 44px;
-  position: absolute;
-  right: 0;
-  top: 0;
-  text-decoration: none;
-  text-align: center;
-  opacity: 0.65;
-  padding: 0 0 18px 10px;
-  color: var(--ca-red-error-color);
-  font-style: normal;
-  font-size: 2rem;
-  font-family: Arial, Baskerville, monospace;
-}
-
-.mfp-close:hover {
-  color: var(--unraid-66-color) !important;
-}
-
-.mfp-close:active {
-  top: 1px;
-}
-
-.mfp-close-btn-in .mfp-close {
-  color: var(--ca-dark-text-color);
-}
-
-.mfp-image-holder .mfp-close,
-.mfp-iframe-holder .mfp-close {
-  color: var(--ca-red-error-color);
-  font-weight: bold;
-  right: -6px;
-  text-align: center;
-  width: 100%;
-}
-
-.mfp-counter {
-  position: absolute;
-  top: 0;
-  right: 0;
-  color: var(--ca-medium-text-color);
-  font-size: 12px;
-  line-height: 18px;
-  white-space: nowrap;
-}
-
-.mfp-arrow {
-  position: absolute;
-  opacity: 0.65;
-  margin: 0;
-  top: 50%;
-  margin-top: -55px;
-  padding: 0;
-  width: 90px;
-  height: 110px;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.mfp-arrow:active {
-  margin-top: -54px;
-}
-
-.mfp-arrow:hover,
-.mfp-arrow:focus {
-  opacity: 1;
-}
-
-.mfp-arrow:before,
-.mfp-arrow:after {
-  content: '';
-  display: block;
-  width: 0;
-  height: 0;
-  position: absolute;
-  left: 0;
-  top: 0;
-  margin-top: 35px;
-  margin-left: 35px;
-  border: medium inset transparent;
-}
-
-.mfp-arrow:after {
-  border-top-width: 13px;
-  border-bottom-width: 13px;
-  top: 8px;
-}
-
-.mfp-arrow:before {
-  border-top-width: 21px;
-  border-bottom-width: 21px;
-  opacity: 0.7;
-}
-
-.mfp-arrow-left {
-  left: 0;
-}
-
-.mfp-arrow-left:after {
-  border-right: 17px solid var(--ca-named-white);
-  margin-left: 31px;
-}
-
-.mfp-arrow-left:before {
-  margin-left: 25px;
-  border-right: 27px solid var(--ca-medium-dark-color);
-}
-
-.mfp-arrow-right {
-  right: 0;
-}
-
-.mfp-arrow-right:after {
-  border-left: 17px solid var(--ca-named-white);
-  margin-left: 39px;
-}
-
-.mfp-arrow-right:before {
-  border-left: 27px solid var(--ca-medium-dark-color);
-}
-
-.mfp-iframe-holder {
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
-.mfp-iframe-holder .mfp-content {
-  line-height: 0;
-  width: 100%;
-  max-width: 900px;
-}
-
-.mfp-iframe-holder .mfp-close {
-  top: -40px;
-}
-
-.mfp-iframe-scaler {
-  width: 100%;
-  height: 0;
-  overflow: hidden;
-  padding-top: 56.25%;
-}
-
-.mfp-iframe-scaler iframe {
-  position: absolute;
-  display: block;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  box-shadow: 0 0 8px var(--ca-dark-overlay-color);
-  background: var(--ca-named-black);
-}
-
-/* Main image in popup */
-img.mfp-img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  display: block;
-  line-height: 0;
-  box-sizing: border-box;
-  padding: 40px 0 40px;
-  margin: 0 auto;
-}
-
-/* The shadow behind the image */
-.mfp-figure {
-  line-height: 0;
-}
-
-.mfp-figure:after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 40px;
-  bottom: 40px;
-  display: block;
-  right: 0;
-  width: auto;
-  height: auto;
-  z-index: -1;
-  box-shadow: 0 0 8px var(--ca-dark-overlay-color);
-  background: var(--ca-medium-bg-color);
-}
-
-.mfp-figure small {
-  color: var(--ca-light-text-color);
-  display: block;
-  font-size: 12px;
-  line-height: 14px;
-}
-
-.mfp-figure figure {
-  margin: 0;
-}
-
-.mfp-bottom-bar {
-  margin-top: -36px;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  cursor: auto;
-}
-
-.mfp-title {
-  text-align: left;
-  line-height: 18px;
-  color: var(--ca-lighter-text-color);
-  word-wrap: break-word;
-  padding-right: 36px;
-}
-
-.mfp-image-holder .mfp-content {
-  max-width: 100%;
-}
-
-.mfp-gallery .mfp-image-holder .mfp-figure {
-  cursor: pointer;
-}
-
-/* Mobile styles */
-@media screen and (max-width: 800px) and (orientation: landscape),
-      screen and (max-height: 300px) {
-  .mfp-img-mobile .mfp-image-holder {
-      padding-left: 0;
-      padding-right: 0;
-  }
-  
-  .mfp-img-mobile img.mfp-img {
-      padding: 0;
-  }
-  
-  .mfp-img-mobile .mfp-figure:after {
-      top: 0;
-      bottom: 0;
-  }
-  
-  .mfp-img-mobile .mfp-figure small {
-      display: inline;
-      margin-left: 5px;
-  }
-  
-  .mfp-img-mobile .mfp-bottom-bar {
-      background: var(--ca-dark-overlay-color);
-      bottom: 0;
-      margin: 0;
-      top: auto;
-      padding: 3px 5px;
-      position: fixed;
-      box-sizing: border-box;
-  }
-  
-  .mfp-img-mobile .mfp-bottom-bar:empty {
-      padding: 0;
-  }
-  
-  .mfp-img-mobile .mfp-counter {
-      right: 5px;
-      top: 3px;
-  }
-  
-  .mfp-img-mobile .mfp-close {
-      top: 0;
-      right: 0;
-      width: 35px;
-      height: 35px;
-      line-height: 35px;
-      background: var(--ca-dark-overlay-color);
-      position: fixed;
-      text-align: center;
-      padding: 0;
-  }
-}
-
-@media all and (max-width: 900px) {
-  .mfp-arrow {
-      -webkit-transform: scale(0.75);
-      transform: scale(0.75);
-  }
-  
-  .mfp-arrow-left {
-      -webkit-transform-origin: 0;
-      transform-origin: 0;
-  }
-  
-  .mfp-arrow-right {
-      -webkit-transform-origin: 100%;
-      transform-origin: 100%;
-  }
-  
-  .mfp-container {
-      padding-left: 6px;
-      padding-right: 6px;
-  }
-}
-
-/* Animation styles */
-.mfp-fade.mfp-bg {
-  opacity: 0;
-  -webkit-transition: all 0.5s ease-out;
-  -moz-transition: all 0.5s ease-out;
-  transition: all 0.5s ease-out;
-}
-
-.mfp-fade.mfp-bg.mfp-ready {
-  opacity: 0.8;
-}
-
-.mfp-fade.mfp-bg.mfp-removing {
-  opacity: 0;
-}
-
-.mfp-fade.mfp-wrap .mfp-content {
-  opacity: 0;
-  -webkit-transition: all 0.5s ease-out;
-  -moz-transition: all 0.5s ease-out;
-  transition: all 0.5s ease-out;
-}
-
-.mfp-fade.mfp-wrap.mfp-ready .mfp-content {
-  opacity: 1;
-}
-
-.mfp-fade.mfp-wrap.mfp-removing .mfp-content {
-  opacity: 0;
-}
-
-/* Video Play Overlay */
-.videoPlayOverlay::after {
-  content: '\f144'; /* Font Awesome play-circle icon */
-  font-family: 'fontAwesome';
-  font-weight: 900;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.75);
-  font-size: 3em;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-  pointer-events: none;
-  transition: all 0.3s ease;
-}
-
-.videoPlayOverlay:hover::after {
-  color: var(--unraid-66-color);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  transform: translate(-50%, -50%) scale(1.0);
-}
+	3) Legacy & Supplemental CA Blocks
+	========================================================================== */
+
+	/* 3.1) Utility Classes */
+	.ca_multiselect {
+		float: right;
+		cursor: pointer;
+		padding-right: 1rem;
+	}
+
+	.noClick {
+		cursor: default !important;
+	}
+
+	/* 3.2) Icon and Symbol Styles */
+	.appDocker,
+	.appLanguage,
+	.appDriver,
+	.appPlugin,
+	.appRepository {
+		float: right;
+		font-size: 2rem;
+		opacity: 0.7;
+		margin-left: 1rem;
+	}
+	.ca_statistics table {
+		background-color: revert;
+	}
+	.appDocker::before {
+		font-family: Unraid;
+		content: '\e90b';
+	}
+
+	.appLanguage::before {
+		font-family: Unraid;
+		content: '\e987';
+	}
+
+	.appDriver::before {
+		content: '\f2db';
+		font-family: fontAwesome;
+	}
+
+	.appPlugin::before {
+		font-family: Unraid;
+		content: '\e986';
+	}
+
+	/* 3.3) Navigation Lists (legacy/secondary block) */
+	ul.caMenu,
+
+	li.caMenuItem {
+		padding: 0 0 5px 0;
+		width: fit-content;
+	}
+	a.caMenuItem {
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.caMenuDisabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+
+	.caMenuEnabled {
+		cursor: pointer;
+		opacity: 1;
+	}
+
+	.ca_NoAppsFound,
+	.ca_NoDockerAppsFound {
+		font-size: 3rem;
+		margin: auto;
+		text-align: center;
+	}
+
+	/* 3.4) Links, badges, and metadata */
+	.additionalRequirements {
+		margin-left: 2rem;
+	}
+
+	.additionalRequirementsHeader {
+		font-size: 1.5rem;
+		font-weight: bold;
+	}
+
+	.appRepository::before {
+		font-family: 'fontAwesome';
+		content: '\f2be';
+	}
+
+	.betaPopupBackground,
+	.upgradePopupBackground,
+	.installedPopup {
+		clip-path: polygon(0 0, 100% 0, 100% 100%);
+		background-color: var(--unraid-66-color);
+		top: var(--beta-popup-offset);
+		height: 9rem;
+		width: 9rem;
+		position: absolute;
+		right: 0;
+	}
+	.installedPopup {
+		background-color: var(--ca-purple-color);
+	}
+	.betaPopupBackground,
+	.upgradePopupBackground {
+		background-color: var(--unraid-66-color);
+	}
+	.betaPopupText,
+	.upgradePopupText,
+	.installedPopupText {
+		position: absolute;
+		transform: rotate(45deg);
+		-webkit-transform: rotate(45deg);
+		-moz-transform: rotate(45deg);
+		-o-transform: rotate(45deg);
+		color: var(--ca-named-white);
+		font-size: 5rem;
+		top: 2.25rem;
+		right: -1rem;
+		width: 100%;
+		overflow: hidden;
+		height: 2.5rem;
+	}
+
+	.caChangeLog {
+		cursor: pointer;
+	}
+	.caChanges {
+		margin: auto 3rem auto 3rem;
+	}
+	.caChart {
+		height: 1px;
+		width: 3px;
+		border: none;
+	}
+
+	.ellipsis {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* 3.5) Author/credit metadata */
+	.ca_author {
+		font-size: 1rem;
+		margin-left: 0.75rem;
+		margin-top: 0.75rem;
+		max-width: 22rem;
+	}
+
+	a.ca_author {
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.credits {
+		margin-left: 10%;
+		margin-right: 10%;
+		position: relative;
+		z-index: 1;
+	}
+	/* Dim FA glyph painted behind the sidenav credits view as a watermark.
+	   Lives on body::after rather than .sidenav::after because .sidenav has
+	   transform:translateX(...) for its slide animation, which creates a
+	   containing block — `position: fixed` inside .sidenav would anchor to
+	   .sidenav and scroll with #sidenavContent. body has no transform, so
+	   fixed anchors to the viewport (which is what we want) and the
+	   geometry mirrors .sidenav's own layout block. */
+	/* Always-rendered so the show/hide can transition (pseudo-elements gated by
+	   :has() flip in/out of existence and can't animate). Default state mirrors
+	   .sidebar .sidenav: off-screen-right + opacity 0. */
+	body::after {
+		content: "\f0c0";
+		font-family: fontAwesome;
+		position: fixed;
+		top: 4rem;
+		right: 0;
+		bottom: 1.6rem;
+		width: 90%;
+		max-width: 70rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: min(50vw, 50vh);
+		line-height: 1;
+		color: currentColor;
+		opacity: 0;
+		transform: translateX(100%);
+		pointer-events: none;
+		user-select: none;
+		z-index: 1000;
+		transition: transform 500ms ease, opacity 500ms ease;
+	}
+	body:has(.sidenavShow :is(.credits, .caChanges))::after {
+		opacity: 0.1;
+		transform: translateX(0);
+	}
+
+	.ca_credit {
+		padding: .5rem 0 1rem 0;
+		font-size: 1.5rem;
+		line-height: 2rem;
+		font-style: italic;
+	}
+
+	.ca_creditheader {
+		font-size: 2rem;
+		padding-top: 1rem;
+	}
+
+	.ca_discord::before {
+		content: "\e988";
+		font-family: Unraid;
+	}
+
+	.ca_discord_popup::before {
+		content: "\e988";
+		font-family: Unraid;
+		font-size: 2.2rem;
+		vertical-align: middle;
+	}
+
+	/* 3.6) Icon glyph helpers and card icon assets */
+	img.ca_displayIcon {
+		height: 8rem;
+		width: 8rem;
+	}
+
+	.ca_display_area {
+		display: block;
+		display: flex;
+		position: fixed;
+		bottom: 4rem;
+		right: 0rem;
+	}
+	.Theme--nav-top .ca_display_area {
+		left: 0;
+		top: 20rem;
+	}
+	.Theme--sidebar .ca_display_area {
+		left: 6rem;
+		top: 13rem;
+	}
+	.ca_fa-asterisk::before {
+		content: "\f069";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-checkmark {
+		color: var(--ca-green-color);
+	}
+
+	.ca_fa-checkmark::before {
+		content: "\f00c";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-delete {
+		color: var(--ca-red-color);
+	}
+
+	.ca_fa-delete::before {
+		content: "\f00d";
+		font-family: fontAwesome;
+	}
+
+	a.ca_fa-delete {
+		text-decoration: none;
+		margin-left: 1rem;
+		font-size: 2rem;
+		margin-top: -0.25rem;
+		cursor: pointer;
+		float: right;
+	}
+
+	.ca_fa-docker::before {
+		font-family: Unraid;
+		content: '\e90b';
+	}
+
+	.ca_fa-edit::before {
+		content: "\f044";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-globe::before {
+		content: "\f0ac";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-install::before {
+		content: "\f019";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-pluginSettings::before {
+		content: "\f013";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-project::before {
+		content: "\e953";
+		font-family: Unraid;
+	}
+
+	.ca_fa-readme::before {
+		content: "\f02d";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-support::before {
+		content: "\f059";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-switchto::before {
+		content: "\e982";
+		font-family: Unraid;
+	}
+
+	.ca_fa-template::before {
+		content: "\f08e";
+		font-family: fontAwesome;
+	}
+
+	.ca_fa-update::before {
+		content: "\f0ed";
+		font-family: fontAwesome;
+	}
+
+	.ca_facebook::before {
+		content: "\f09a";
+		font-family: fontAwesome;
+	}
+
+	.ca_forum::before {
+		content: "\f1cd";
+		font-family: fontAwesome;
+	}
+
+	.ca_iconArea {
+		width: 100%;
+		height: 6.4rem;
+		margin-top: -2rem;
+		margin-left: 1rem;
+	}
+
+	ul.caMenu {
+		list-style-type: none;
+		margin: 0px 0px 20px 0px;
+		padding: 0;
+		font-size: 1.5rem;
+	}
+
+	.ca_non_favouriteRepo {
+		font-size: 2rem;
+		cursor: pointer;
+		margin-left: 2.5rem !important;
+		cursor: pointer;
+		padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+	}
+
+	.ca_non_favouriteRepo::before {
+		content: "\f2be";
+		font-family: fontAwesome;
+	}
+
+	.ca_popupIconArea {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.ca_profile::before {
+		content: "\f2bb";
+		font-family: fontAwesome;
+	}
+
+	.ca_readmore {
+		color: var(--unraid-66-color);
+		font-size: 1.5rem !important;
+		cursor: pointer;
+		padding-left: .5rem;
+		padding-right: .5rem;
+		padding-top: 1rem;
+		display: inline-block;
+		margin-bottom: 2rem;
+		font-family: unset;
+	}
+
+	.ca_readmore::before {
+		font-family: fontAwesome;
+	}
+
+	.ca_readmore:hover {
+		text-decoration: none;
+	}
+
+	.ca_reddit::before {
+		content: "\f281";
+		font-family: fontAwesome;
+	}
+
+	.ca_repoPopup {
+		display: inline-block;
+		text-decoration: none !important;
+		cursor: pointer;
+		color: inherit;
+	}
+
+	.ca_repoSearch {
+		font-size: 2rem;
+		cursor: pointer;
+		padding: 0.3rem 0.5rem 0.3rem 0.5rem;
+	}
+
+	.ca_repoSearch::after {
+		content: "\f002";
+		font-family: fontAwesome;
+	}
+
+	.ca_serverWarning {
+		color: var(--ca-yellow-color);
+	}
+
+	.ca_stat {
+		color: coral;
+		font-size: 1.5rem;
+		line-height: 1.7rem;
+	}
+
+	.ca_table {
+		padding: .5rem 2rem .5rem 0;
+		font-size: 1.5rem;
+	}
+
+	.ca_templatesDisplay {
+		display: flex;
+		flex-wrap: wrap;
+	}
+
+	.ca_twitter::before {
+		content: "\f099";
+		font-family: fontAwesome;
+	}
+
+	.ca_webpage::before {
+		content: "\f0ac";
+		font-family: fontAwesome;
+	}
+
+	/* 3.7) Changelog, charts, and contextual list UI */
+	.changelogMessage {
+		font-size: 1rem;
+		line-height: 1rem;
+		margin-top: 1rem;
+	}
+
+	#Category {
+		margin: auto 2rem auto 2rem;
+		display: inline-block;
+		font-size: 1.5rem;
+		font-style: italic;
+		font-weight: bold;
+	}
+
+	.changelogTitle {
+		font-size: 2rem;
+		line-height: 2rem;
+		margin-top: 2rem;
+		font-weight: normal;
+	}
+
+	.changelog {
+		font-size: 1.2rem;
+		line-height: 1.4rem;
+		margin-top: 1.5rem;
+	}
+
+	.chartMenu {
+		padding-left: 2rem;
+		cursor: pointer;
+	}
+
+
+	.chartMenu.selectedMenu {
+		color: var(--unraid-66-color);
+		font-weight: bold;
+	}
+
+	.charts {
+		font-size: 1.5rem;
+	}
+
+	.chartTitle {
+		margin-top: 1.5rem;
+		font-size: 2.5rem;
+	}
+	/* Align the trends/charts area, stats-note line, changelog block, and
+	   moderation/template-errors block with the other indented popup content
+	   blocks (popupDescription / popupTable etc.). */
+	.popupChartBlock,
+	.popupStatsNote,
+	.popupChangeLogBlock,
+	.popupModerationBlock {
+		margin-left: 1rem;
+	}
+
+	.checkForUpdates {
+		width: 100%;
+		display: none;
+		padding-bottom: 20px;
+	}
+
+	ul.context {
+		list-style-type: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	a.context {
+		text-decoration: none;
+		color: currentColor;
+		margin: 5px;
+	}
+
+	li.context {
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+		font-size: 1.5rem;
+	}
+
+	/* Prevent a banner warning from covering the search bar when scrolling */
+	.Theme--sidebar .upgrade_notice {
+		position: absolute;
+	}
+
+
+	/* 3.8) Misc application state / compatibility helpers */
+	li.debugging {
+		cursor: pointer;
+	}
+
+
+	i.displayIcon {
+		font-size: 5.5rem;
+		color: var(--ca-grey-color);
+		padding-top: 0.25rem;
+	}
+
+	img.licence {
+		max-height: 2rem;
+		max-width: 10rem;
+	}
+
+	img.displayIcon {
+		height: 6.4rem;
+		width: 6.4rem;
+		border-radius: 1rem 1rem 1rem 1rem;
+	}
+
+	#cookieWarning {
+		display: none;
+	}
+
+	/* 3.9) Template cards, favourite state, and discoverability */
+	.docker::after {
+		font-family: Unraid;
+		content: '\e90b';
+		font-size: 2.5rem;
+	}
+
+	.dockerCardBackground {
+		height: 18.5rem;
+		cursor: default !important;
+	}
+
+	.dockerHubStar {
+		font-size: 1rem;
+	}
+
+	.dockerHubStar::before {
+		content: "\e95a";
+		font-family: Unraid;
+	}
+
+	.dockerSearch,
+	.templateSearch {
+		display: inline-block;
+		cursor: pointer;
+		margin-bottom: 1rem;
+	}
+
+	.donateArea {
+		margin-top: 2rem;
+	}
+
+	.donateText {
+		margin-top: 2rem;
+	}
+
+	.enabledIcon,
+	.homeMore {
+		cursor: pointer;
+		color: var(--unraid-66-color) !important;
+	}
+
+	.fav,
+	.pinPopup.pinned {
+		background: linear-gradient(
+		to bottom,
+		transparent 0%,
+		var(--ca-overlay-color) 100%
+		),
+		linear-gradient(
+		to right,
+		color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 0%,
+		var(--ca-dark-orange-color) 50%,
+		color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 100%
+		) !important;
+		background-position: 0 0 !important;
+		background-size: 100% 100% !important;
+	}
+
+	.nonfav,
+	.pinPopup.unpinned {
+		background-color: var(--support-popup-background);
+	}
+	/* Pin button: only the UNPINNED state gets the orange hover, so a pinned
+	   (green) button stays green on hover — matches the .fav repo-button
+	   behaviour where the active state wins over hover. .pinPopup.unpinned
+	   would otherwise tie with .caButton:hover on specificity and win via
+	   cascade order, so we use !important to claim hover unambiguously. */
+	.pinPopup.unpinned:hover {
+		background: var(--unraid-66-color) !important;
+		color: var(--ca-white-color) !important;
+	}
+
+	.favCardBackground {
+		color: var(--ca-light-grey-color);
+		font-size: 1.75rem;
+		margin-left: 0.75rem;
+		vertical-align: middle;
+	}
+
+	.favCardBackground::before {
+		content: "\f004";
+		font-family: fontAwesome;
+	}
+
+	.favCardBackgroundShow {
+		display: inline-block;
+	}
+
+	.favCardBackgroundHide {
+		display: none;
+	}
+
+	.featuredIncompatible {
+		color: var(--unraid-66-color);
+	}
+
+	.homespotlightIconArea {
+		display: inline-block;
+		position: relative;
+		top: -25rem;
+		left: 24rem;
+		cursor: pointer;
+	}
+
+	.initDockerSearch {
+		cursor: pointer;
+		text-decoration: none;
+		font-size: 1.5rem;
+	}
+
+	.initDockerSearch:hover,
+	.caMenuItem:hover,
+	a.ca_repoPopup:hover,
+	.popUpLink:hover,
+	.chartMenu:hover,
+	li.context:hover,
+	.sortIcons:hover {
+		color: var(--unraid-66-color);
+	}
+
+	a.initDockerSearch {
+		cursor: pointer;
+		text-decoration: none;
+		color: unset;
+	}
+
+input[type="button"] {
+		background: none ! important;
+		font-size: 1.5rem ! important;
+    border: none ! important;
+	}
+	input:hover[type="button"] {
+		color: var(--unraid-66-color) !important;
+		background: none !important;
+		background-color: none !important;
+	}
+
+	input:hover[type="button"][disabled] {
+		background: none !important;
+		color: currentColor !important;
+		background-color: none !important;
+	}
+
+	input[type="button"][disabled] {
+		background: none !important;
+		background-color: none !important;
+    border: none ! important;
+	}
+
+	/* 3.10) Moderation comments and install status areas */
+	/* Same styling for both .modComment slots: ModeratorComment (above the
+	   description) and CAComment (below). Text inherits the popup body
+	   font-size — no header, no shrunk inner type, no border. */
+	.modComment {
+		padding: 2rem;
+	}
+
+	.caDownloadProgress {
+		margin-top: 3rem;
+	}
+	.ca_quitUpdate {
+		vertical-align: middle;
+		margin-left: 1rem;
+	}
+	.ca_displayCount {
+		display: inline-block;
+		margin-left: 1rem;
+		font-size: 1.2rem;
+		opacity: 0.7;
+		white-space: nowrap;
+		vertical-align: middle;
+	}
+	.ca_statusArea {
+		left: 2rem;
+		position: fixed;
+		bottom: 3rem;
+		z-index: 10000;
+		margin-top: 1rem;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+	}
+	.ca_creditTitle {
+		font-size: 5rem;
+	}
+
+	.multi_installDiv {
+		width: 100%;
+		display: none;
+		padding-bottom: 20px;
+		position: fixed;
+		bottom: 0;
+		background-color: var(--ca-legacy-background-color);
+	}
+
+	.notice.shift {
+		margin-top: 0px;
+	}
+
+	/* 3.11) Corner ribbons, pagination, and popup details */
+	.officialCardBackground,
+	.LTOfficialCardBackground,
+	.spotlightCardBackground,
+	.warningCardBackground,
+	.betaCardBackground,
+	.greenCardBackground,
+	.installedCardBackground {
+		clip-path: polygon(0 0, 100% 0, 100% 100%);
+		position: absolute;
+		top: 0;
+		right: 0;
+		height: 9rem;
+		width: 9rem;
+		pointer-events: none;
+	}
+	.installedCardBackground {
+		background-color: var(--ca-purple-color);
+	}
+	.LTOfficialCardBackground {
+		background-color: var(--ca-orange-color);
+	}
+	.officialCardBackground,
+	.spotlightCardBackground {
+		background-color: var(--ca-dark-purple-color);
+	}
+	.warningCardBackground {
+		background-color: var(--ca-dark-red-color);
+	}
+	.betaCardBackground {
+		background-color: var(--unraid-66-color);
+	}
+	.greenCardBackground {
+		background-color: var(--ca-dark-green-color);
+	}
+
+	.installedCardText {
+		position: absolute;
+		transform: rotate(45deg);
+		-webkit-transform: rotate(45deg);
+		-moz-transform: rotate(45deg);
+		-o-transform: rotate(45deg);
+		color: var(--ca-named-white);
+		font-size: 1.1rem;
+		position: absolute;
+		top: 2rem;
+		right: 0rem;
+		width: 6rem;
+		overflow: hidden;
+		height: 2.5rem;
+		display: inline;
+	}
+
+	.LTOfficialPopupText {
+		position: absolute;
+		transform: rotate(45deg);
+		-webkit-transform: rotate(45deg);
+		-moz-transform: rotate(45deg);
+		-o-transform: rotate(45deg);
+		color: var(--ca-named-white);
+		font-size: 2rem;
+		position: absolute;
+		top: 2.25rem;
+		right: -1rem;
+		width: 100%;
+		overflow: hidden;
+		height: 2.5rem;
+	}
+
+	.pinnedCard {
+		color: var(--ca-teal-color);
+		font-size: 1.75rem;
+		margin-left: 0.75rem;
+		vertical-align: middle;
+	}
+
+	.pinnedCard::before {
+		content: "\f08d";
+		font-family: fontAwesome;
+	}
+
+	.plugin::after {
+		font-family: Unraid;
+		content: '\e986';
+		font-size: 2.5rem;
+	}
+
+	.popupAuthor {
+		font-size: 1.7rem;
+		line-height: 2rem;
+		margin-bottom: 0.5rem;
+		margin-top: 0.5rem;
+		display: inline-block;
+	}
+
+	.popupAuthorMain {
+		font-size: 1.7rem;
+		line-height: 2rem;
+		margin-top: 0;
+		margin-bottom: 0.5rem;
+	}
+
+	.popupAuthorIcon {
+		float: right;
+	}
+
+	img.popupAuthorIcon {
+		height: 7.2rem;
+		width: 7.2rem;
+		border-radius: 1rem 1rem 1rem 1rem;
+	}
+
+	.popupAuthorTitle {
+		font-size: 2.5rem;
+		margin-top: 2rem;
+		margin-bottom: 2rem;
+	}
+
+	/* 3.12) Popup detail content area */
+	body:has(.sidenavShow) .popupCloseArea {
+		position: fixed;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+		width: 90%;
+		background-color: var(--sidebar-background);
+		z-index: 5;
+		max-width: 70rem;
+		right: 0;
+		top: 0;
+		transform: translateX(0);             /* slide into view */
+		opacity: 1;
+
+	}
+	.popupCloseArea > div:first-child {
+		margin-left: 2rem;
+	}
+	.popupDescription {
+		font-size: 1.5rem;
+		line-height: 1.7rem !important;
+		margin-top: 1.5rem;
+		margin-left: 1rem;
+		margin-right: 1rem;
+		margin-bottom: 0px;
+	}
+
+	.popupIcon {
+		display: inline-block;
+	}
+
+	i.popupIcon {
+		color: var(--ca-grey-color);
+		font-size: 10rem;
+		padding-left: 1rem;
+	}
+
+	img.popupIcon {
+		width: 10rem;
+		height: 10rem;
+		padding: 0.3rem;
+		border-radius: 1rem 1rem 1rem 1rem;
+	}
+
+	.popupInfo {
+		flex: 1;
+		min-width: 0;             /* allow ellipsis on .popupName inside flex item */
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	/* Force name / author / maintainer line each onto their own row inside the
+	   flex layout — the buttons that follow each then wrap together below as a
+	   compact button row. */
+	.popupInfo > .popupName,
+	.popupInfo > .popupAuthorMain,
+	.popupInfo > .popupMaintainerLine {
+		flex-basis: 100%;
+	}
+	.popupMaintainerLine {
+		font-size: 1.5rem;
+		margin-top: 0.5rem;
+	}
+	/* Zero out the right-margin that .caButton ships with so the flex gap above
+	   is the sole source of spacing — guarantees even row spacing whether 3 or
+	   8 buttons are present, and consistent wrapping behavior. */
+	.popupInfo > .caButton,
+	.popupStickyActions > .caButton {
+		margin: 0;
+	}
+	/* Forces the support button cluster onto its own line beneath the action
+	   row regardless of how many primary action buttons we render. Standard
+	   flexbox row-break trick: a zero-height item that consumes a full row. */
+	.popupInfo > .popupRowBreak,
+	.popupStickyActions > .popupRowBreak {
+		flex-basis: 100%;
+		height: 0;
+		margin: 0;
+	}
+
+	/* Action buttons (Install / WebUI / Settings / Update / Edit / Uninstall
+	   / Pin) live next to CLOSE inside .popupCloseAreaButtons after
+	   caRelocatePopupActions() moves them there at popup-load time.
+	   .popupCloseArea is already position:fixed, so this row is naturally
+	   pinned to the top of the sidebar for the entire scroll. */
+	.popupStickyActions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	/* CLOSE / BACK sit on the left, then a big gap, then the relocated
+	   per-app action row. Wrap so a wide button row can drop to the next
+	   line on narrow sidebars rather than overflow. */
+	.popupCloseAreaButtons {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem 4rem;
+	}
+	/* Support buttons (Project / Discord / Support / Registry / Template /
+	   Plugin) stay in the popup body and scroll with the description. The
+	   flex-basis:100% gives them their own row inside .popupInfo's flex. */
+	.popupSupportRow {
+		flex-basis: 100%;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		row-gap: 0.5rem;
+		column-gap: 1rem;
+	}
+	.popupSupportRow > .caButton {
+		margin: 0;
+	}
+
+	.popupInfoLeft {
+		margin-right: 10px;
+		margin-left: 10px;
+		overflow: hidden;
+	}
+
+	.popupInfoSection {
+		line-height: 2rem;
+		font-size: 1.5rem;
+	}
+
+	#displaybox {
+		margin-top: 0 !important;
+	}
+	.popUpLink {
+		cursor: pointer;
+		color: var(--a-color);
+	}
+
+	a.popUpLink {
+		text-decoration: none;
+	}
+
+	.popupName {
+		display: block;
+		font-size: 3rem;
+		line-height: 4rem;
+		font-weight: bold;
+		max-height: 4rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.popupRepoDescription {
+		font-size: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.popupTable td {
+		width: 30%;
+		text-align: left;
+	}
+
+	.popupTable {
+		font-size: 1.5rem;
+		width: 55rem;
+		margin-top: 0px;
+		margin-left: auto;
+	}
+	.content {
+		overflow-y: hidden;
+	}
+	.popupTable.contents {
+		display: contents;
+	}
+
+	.popupTableLeft {
+		vertical-align: top;
+		padding-right: 15px;
+	}
+
+	.popupTableRight {
+		overflow: hidden;
+		text-wrap: auto;
+	}
+
+	.popup {
+		margin: 1.5rem;
+	}
+
+	.readmore-js-collapsed {
+		-webkit-mask-image: -webkit-gradient(linear, left top, left bottom, from(var(--ca-white-overlay)), to(var(--ca-white-overlay-light)));
+		/* Standard property for Firefox and others */
+		mask-image: linear-gradient(to bottom, var(--ca-white-overlay), var(--ca-white-overlay-light));
+	}
+
+	.repoDonateText {
+		margin-bottom: 0.5rem;
+	}
+
+	.repoLinks {
+		margin-top: 3rem;
+	}
+
+	.repoStats {
+		font-size: 2rem;
+		margin-top: 2rem;
+	}
+
+	.repoTable {
+		margin-top: 15px;
+		width: 70%;
+		background-color: initial;
+	}
+
+	.repoLeft {
+		width: 50%;
+	}
+
+	.repoLinkArea {
+		margin-top: 1.5rem;
+	}
+
+	.repoRight {
+		text-align: right;
+	}
+
+	.rightTitle {
+		font-size: 2.5rem;
+		margin-top: 2rem;
+		margin-bottom: 2rem;
+	}
+
+	/* might be coming from magnific popup - leave in place */
+	.screen {
+		border: 1px solid;
+		border-radius: 5px 5px 5px 5px;
+		border-color: var(--unraid-66-color);
+		vertical-align: top;
+		min-width: 8rem;
+		max-width: 12rem;
+		height: 8rem;
+		margin: 10px;
+		transition: transform 0.3s ease;
+	}
+
+	.screen:hover {
+		transform: scale(1.2);
+		transition: transform 0.3s ease;
+		z-index: 10;
+		position: relative;
+	}
+
+	.screenshot {
+		cursor: pointer;
+	}
+
+	#displayBox {
+		padding-top: 0;
+	}
+	/* 3.13) Search area, sort controls, and spotlight section */
+	.searchAreaHolder {
+		top: var(--search-area-top);
+		position: sticky;
+		z-index: 6;
+	}
+	/* When the search modal is open, raise the holder's stacking context above
+	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
+	   inside is composited as part of the holder's context (z-index 6) and ends
+	   up *behind* the overlay — getting blurred along with the rest of the page. */
+	body.ca_searchModalOpen .searchAreaHolder,
+	body.menuShowing .searchAreaHolder {
+		z-index: 1000;
+	}
+	.searchArea {
+		padding-left: var(--search-area-left);
+		background-color: var(--ca-legacy-background-color);
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-start;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+	.Theme--width-boxed .searchAreaHolder {
+		max-width: 1920px;
+		margin: 0 auto;
+	}
+	.Theme--legacyOS.Theme--sidebar .searchArea {
+		margin-left: -8.5rem;
+	}
+	.Theme--legacyOS.Theme--nav-top .searchArea {
+		margin: var(--ca_legacySearchMarginTop) auto -10rem auto !important;
+	}
+
+	#searchFilter {
+		position: relative;
+		display: inline-flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.25rem;
+		vertical-align: middle;
+	}
+
+	.caSearchModalTopRow {
+		display: inline-flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.25rem;
+		vertical-align: middle;
+	}
+
+	/* Search pop-out: same #searchBox + Awesomplete, fixed to viewport (see caOpenSearchModal) */
+	.caSearchModalToolbarSpacer {
+		display: none;
+	}
+	body.ca_searchModalOpen {
+		overflow: hidden;
+	}
+	body.ca_searchModalOpen .caSearchModalToolbarSpaceca_searchModalOpenr {
+		display: inline-block;
+		width: 2.5rem;
+		min-width: 2.5rem;
+		min-height: 1.5rem;
+		flex: 0 0 auto;
+		align-self: center;
+	}
+	/* ──────────────────────────────────────────────────────────────────────
+	   .ca_modal_overlay — single scrim element backing the sidenav, search
+	   modal, and mobile menu. Show-state and z-index are driven by which
+	   modal is open. Click-dispatch lives in the .ca_modal_overlay handler
+	   in clickHandlers.js. SweetAlert keeps its own .sweet-overlay; we just
+	   harmonize the visuals so the two scrims look identical when both are
+	   ever active simultaneously.
+	   ──────────────────────────────────────────────────────────────────── */
+	.ca_modal_overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 999;            /* sidebar = 1000, search modal = 1060, mobile menu raised to 1000 below */
+	}
+	body:has(.sidenavShow) .ca_modal_overlay,
+	body.ca_searchModalOpen .ca_modal_overlay,
+	body:has(.mobileMenu.menuShowing) .ca_modal_overlay,
+	body:has(.sweet-alert.showSweetAlert.nchan) .ca_modal_overlay {
+		opacity: 1;
+		pointer-events: auto;
+	}
+	/* Pop the mobile menu above the scrim (default z-index 5 from responsive
+	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
+	body:has(.mobileMenu.menuShowing) .mobileMenu {
+		z-index: 1000;
+	}
+	/* When the mobile menu is open the menu's own header bar sits at the
+	   top 8rem of the viewport — pull the scrim down so the bar shows above it. */
+	body.menuShowing .ca_modal_overlay {
+		top: 8rem;
+	}
+
+	/* While a SweetAlert is on screen the overlay must remain visible — other CA
+	   layers (sidebar dim, search-modal backdrop, magnific) can otherwise either
+	   fade or be display:none'd via their own scoped rules and leave the swal
+	   sitting on a non-scrim'd page. */
+	body:has(.ca_sweetalert_open) .sweet-overlay {
+		display: block !important;
+	}
+
+	/* Unified scrim visuals: our .ca_modal_overlay + SweetAlert's .sweet-overlay
+	   + MagnificPopup's .mfp-bg (we don't own the latter two). !important is
+	   required for the third-party overlays (their libs set inline/own bg and
+	   opacity) and harmless for .ca_modal_overlay. */
+	.ca_modal_overlay,
+	.sweet-overlay,
+	.mfp-bg {
+		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		background-color: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
+		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		transition:
+			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
+			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important;
+	}
+	/* .ca_modal_overlay starts hidden; per-state rules above flip these on. */
+	.ca_modal_overlay {
+		opacity: 0;
+		pointer-events: none;
+	}
+	body.ca_searchModalOpen #searchFilter {
+		position: fixed;
+		top: var(--ca-search-modal-top, 6rem);
+		left: var(--ca-search-modal-left, 0);
+		width: var(--ca-search-modal-width, 100%);
+		max-width: 100vw;
+		box-sizing: border-box;
+		transform: none;
+		z-index: 1000;           /* match .sidebar so backdrop-filter doesn't blur the popup itself */
+		margin: 0;
+		padding: 0.9rem 1.1rem 0.6rem 1.1rem;
+		border-radius: 0.45rem;
+		box-shadow: 0 0.35rem 1.2rem var(--ca-medium-overlay-color);
+		background: var(--ca-search-modal-background);
+		border: 1px solid var(--ca-medium-overlay-color);
+	}
+	body.ca_searchModalOpen #searchBox.ca_searchBoxHidden,
+	body.ca_searchModalOpen #searchBox {
+		position: static !important;
+		left: auto !important;
+		top: auto !important;
+		width: 100% !important;
+		max-width: none !important;
+		height: auto !important;
+		flex: 1 1 auto;
+		min-width: 0 !important;
+		margin: 0 0 0 0 !important;
+		margin-bottom: 0 !important;
+		padding: 0.6rem !important;
+		padding-right: 0.5rem !important;
+		overflow: visible !important;
+		clip: auto !important;
+		white-space: normal !important;
+		opacity: 1 !important;
+		pointer-events: auto !important;
+		border: none !important;
+	}
+	body:not(.ca_searchModalOpen) #searchFilter .caSearchModalIconControls {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .searchButton {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalIconControls {
+		display: inline-flex !important;
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+		grid-column: 1;
+		grid-row: 1;
+		align-self: center;
+		position: relative;
+		z-index: 2;
+	}
+	.caSearchModalIconControls .searchModalQueryBtn,
+	.caSearchModalIconControls .searchModalClearBtn {
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		line-height: 1;
+	}
+	.caSearchModalIconControls .searchModalQueryBtn:hover,
+	.caSearchModalIconControls .searchModalClearBtn:hover {
+		color: var(--unraid-66-color);
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		grid-template-rows: auto auto;
+		column-gap: 0.5rem;
+		row-gap: 0.55rem;
+		align-items: center;
+		width: 100%;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow > .awesomplete {
+		display: contents;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > input#searchBox,
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > input {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow .awesomplete > ul {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		align-self: stretch;
+	}
+
+	/* Awesomplete in search modal: plain text list */
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul {
+		position: static !important;
+		left: auto !important;
+		z-index: auto;
+		display: block !important;
+		width: 100%;
+		max-height: none;
+		overflow: visible;
+		min-width: 0 !important;
+		max-width: none;
+		margin: 0;
+		padding: 0.35rem 0 0 0;
+		box-shadow: none;
+		border: none;
+		border-radius: 0;
+		background: transparent;
+		color: inherit;
+		font-size: inherit;
+		transform: none !important;
+		opacity: 1 !important;
+		transition: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:before {
+		display: none !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul[hidden],
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:empty {
+		display: none !important;
+		transform: none !important;
+		opacity: 0 !important;
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li {
+		position: relative;
+		max-width: 100%;
+		box-sizing: border-box;
+		margin: 0.15rem 0;
+		padding: 0;
+		min-width: 0;
+		border-radius: 0;
+		border: none;
+		background: transparent;
+		font-family: inherit;
+		font-size: inherit;
+		font-weight: inherit;
+		letter-spacing: normal;
+		text-transform: none;
+		text-align: left;
+		text-decoration: none;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		line-height: 1.2;
+		cursor: pointer;
+		outline: none;
+		box-shadow: none;
+	}
+	/* No hover/selected styling for now — plain text baseline */
+	body.ca_searchModalOpen #searchFilter .awesomplete mark {
+		background: var(--ca-hsl-yellow);
+	}
+	body.ca_searchModalOpen #searchFilter .awesomplete li:hover mark,
+	body.ca_searchModalOpen #searchFilter .awesomplete li[aria-selected="true"] mark {
+		background: var(--ca-hsl-light-yellow);
+	}
+
+	#searchBox {
+		left: var(--search-area-left);
+		margin-left: 0rem;
+		margin-right: 0;
+		margin-bottom: 1rem;
+		top: -0.6rem;
+		border: none;
+		padding: 0.6rem;
+		background: var(--template-hover-background);
+		padding-right: 0.5rem;
+		width: 300px;
+		font-size: 1.5rem;
+		flex: 0 1 auto;
+		box-sizing: border-box;
+	}
+
+	/* Toolbar: #searchBox stays in DOM for Awesomplete; hide it (committed term shows under Home). */
+	body:not(.ca_searchModalOpen) #searchBox.ca_searchBoxHidden {
+		position: absolute !important;
+		left: -9999px !important;
+		top: 0;
+		width: 1px !important;
+		height: 1px !important;
+		min-width: 0 !important;
+		max-width: 0 !important;
+		padding: 0 !important;
+		margin: -1px !important;
+		margin-bottom: 0 !important;
+		overflow: hidden !important;
+		clip: rect(0, 0, 0, 0) !important;
+		white-space: nowrap !important;
+		border: 0 !important;
+		opacity: 0 !important;
+		pointer-events: none !important;
+		flex: 0 0 0 !important;
+	}
+
+	#searchFilter .searchButton {
+		left: 0;
+		flex: 0 0 auto;
+		margin-top: 0.5rem;
+	}
+
+	.showMenuButton,
+	.closeMenuButton {
+		left: 2rem;
+		top: 2rem;
+		margin-right: 1rem;
+	}
+
+	#sortIconArea {
+		padding-bottom: 1rem;
+		display: none;
+	}
+
+	.sortIcons {
+		font-size: 1.2rem;
+		margin-right: 10px;
+		margin-left: 10px;
+		cursor: pointer;
+		text-decoration: none !important;
+		color: var(--sidebar-text);
+	}
+
+	.spinnerBackground {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100vh;
+		display: none;
+		background: transparent;
+		z-index: 9999;
+	}
+
+	div.spinner {
+		cursor: auto;
+	}
+	/* Hide the page spinner while a SweetAlert popup is open. */
+	body:has(.ca_sweetalert_open) div.spinner {
+		display: none !important;
+	}
+
+	.spotlightDate {
+		font-size: 1.5rem;
+		margin-left: -4rem;
+	}
+
+	.spotlightDateSidebar {
+		margin-left: 0.5rem !important;
+	}
+
+	.spotlightHeader {
+		font-size: 2rem;
+	}
+
+	.spotlightIconArea {
+		float: left;
+		width: 10rem;
+	}
+
+	.spotlightIcon {
+		height: 15rem;
+		margin-bottom: -2.5rem;
+		margin-left: -4rem;
+		margin-top: -3rem;
+	}
+	.spotlightIconArea img.spotlightIcon {
+		margin-left: -2rem !important;
+	}
+
+	.spotlightInfoArea {
+		margin-left: 2rem;
+		padding-left: 10rem;
+		margin-top: 2rem;
+	}
+
+	.spotlightPopup {
+		display: inline-block;
+		margin-top: 0.75rem;
+	}
+
+	.spotlightWho {
+		font-style: italic;
+	}
+
+	.spotlightWhy {
+		font-weight: bold;
+		font-size: 1.6rem;
+		line-height: 1.8rem;
+	}
+
+	.spotlightMessage {
+		margin-top: 0.8rem;
+		line-height: 1.5rem;
+	}
+
+	.spotlightMessage a {
+		color: var(--unraid-66-color);
+		text-decoration: none;
+	}
+
+	/* 3.14) Bottom navigation strip and warning actions */
+	ul.subCategory {
+		list-style-type: none;
+		margin-left: 2rem;
+		padding: 0px;
+		cursor: pointer;
+		display: none;
+	}
+	.actionCentre {
+		display: none;
+	}
+
+	#warningNotAccepted {
+		display: none;
+	}
+
+	.modifiedCode {
+		margin-bottom: 1rem;
+		animation: cycleRed 1s infinite;
+	}
+
+	@keyframes cycleRed {
+		0% { color: inherit; }
+		50% { color: var(--ca-red-color); }
+	}
+
+/* ==========================================================================
+	4) Third Party Components
+	========================================================================== */
+
+	/* Awesomplete Autocomplete Component */
+	.awesomplete {
+		/* Layout */
+		display: inline-block;
+		position: relative;
+		/* Typography: follow theme (search area / body), not fixed red */
+		color: inherit;
+	}
+
+	.awesomplete > input {
+		display: block;
+	}
+
+	.awesomplete > ul {
+		/* Layout */
+		position: absolute;
+		left: 0;
+		z-index: 1;
+		min-width: 100%;
+		box-sizing: border-box;
+		margin: 0.2em 0 0;
+		padding: 0;
+		/* Visual */
+		background: linear-gradient(to bottom right, var(--ca-named-white), var(--ca-hsl-white));
+		border: 1px solid var(--ca-medium-overlay-color);
+		border-radius: 0.3em;
+		box-shadow: 0.05em 0.2em 0.6em var(--ca-medium-overlay-color);
+		list-style: none;
+		text-shadow: none;
+		font-size: 1.5rem;
+	}
+
+	.awesomplete > ul:empty {
+		display: none;
+	}
+
+	.awesomplete [hidden] {
+		display: none;
+	}
+
+	/* While the Awesomplete dropdown is open, prevent the menu from scrolling (wheel events can
+	otherwise scroll the menu under the dropdown, causing scrollbars/indicators to appear). */
+	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems {
+		overflow: hidden !important;
+	}
+
+	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:vertical,
+	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:horizontal {
+		width: 0px !important;
+		height: 0px !important;
+	}
+
+	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .ca_scroll_menuitems {
+		display: none !important;
+	}
+
+	/* When Awesomplete is open, block clicks except the dropdown, toolbar SEARCH, and modal ? / X. */
+	body.ca_awesomplete_open * {
+		pointer-events: none;
+	}
+	body.ca_awesomplete_open .awesomplete,
+	body.ca_awesomplete_open .awesomplete *,
+	body.ca_awesomplete_open .searchButton,
+	body.ca_awesomplete_open .caSearchModalIconControls,
+	body.ca_awesomplete_open .caSearchModalIconControls * {
+		pointer-events: auto;
+	}
+
+	.awesomplete .visually-hidden {
+		position: absolute;
+		clip: rect(0, 0, 0, 0);
+	}
+
+	/* Awesomplete Animations */
+	@supports (transform: scale(0)) {
+		.awesomplete > ul {
+			transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.5, 1.4);
+			transform-origin: 1.43em -0.43em;
+		}
+
+		.awesomplete > ul[hidden],
+		.awesomplete > ul:empty {
+			opacity: 0;
+			transform: scale(0);
+			display: block;
+			transition-timing-function: ease;
+		}
+	}
+
+	/* Awesomplete Dropdown Pointer */
+	.awesomplete > ul:before {
+		content: "";
+		position: absolute;
+		top: -0.43em;
+		left: 1em;
+		width: 0;
+		height: 0;
+		padding: 0.4em;
+		background: var(--ca-named-white);
+		border: inherit;
+		border-right: 0;
+		border-bottom: 0;
+		transform: rotate(45deg);
+	}
+
+	/* Awesomplete List Items */
+	.awesomplete > ul > li {
+		position: relative;
+		padding: 0.2em 0.5em;
+		cursor: pointer;
+	}
+
+	.awesomplete > ul > li:hover {
+		background: var(--ca-hsl-light-blue);
+		color: var(--ca-named-black);
+	}
+
+	.awesomplete > ul > li[aria-selected="true"] {
+		background: var(--ca-hsl-dark-blue);
+		color: var(--ca-named-white);
+	}
+
+	.awesomplete mark {
+		background: var(--ca-hsl-yellow);
+	}
+
+	.awesomplete li:hover mark {
+		background: var(--ca-hsl-light-yellow);
+	}
+
+	.awesomplete li[aria-selected="true"] mark {
+		background: var(--ca-hsl-green);
+		color: inherit;
+	}
+
+	/* Magnific Popup
+	-------------------------------------------------------------------------- */
+	/* Background, opacity, and backdrop-filter come from the unified scrim
+	   visuals block — keep only positioning/sizing/z-index here. */
+	.mfp-bg {
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1042;
+		overflow: hidden;
+		position: fixed;
+	}
+
+	.mfp-wrap {
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1043;
+		position: fixed;
+		outline: none !important;
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+	}
+
+	.mfp-container {
+		text-align: center;
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		left: 0;
+		top: 0;
+		padding: 0 8px;
+		box-sizing: border-box;
+	}
+
+	.mfp-container:before {
+		content: '';
+		display: inline-block;
+		height: 100%;
+		vertical-align: middle;
+	}
+
+	.mfp-align-top .mfp-container:before {
+		display: none;
+	}
+
+	.mfp-content {
+		position: relative;
+		display: inline-block;
+		vertical-align: middle;
+		margin: 0 auto;
+		text-align: left;
+		z-index: 1045;
+	}
+
+	.mfp-inline-holder .mfp-content,
+	.mfp-ajax-holder .mfp-content {
+		width: 100%;
+		cursor: auto;
+	}
+
+	.mfp-ajax-cur {
+		cursor: progress;
+	}
+
+	.mfp-zoom-out-cur,
+	.mfp-zoom-out-cur .mfp-image-holder .mfp-close {
+		cursor: -moz-zoom-out;
+		cursor: -webkit-zoom-out;
+		cursor: zoom-out;
+	}
+
+	.mfp-zoom {
+		cursor: pointer;
+		cursor: -webkit-zoom-in;
+		cursor: -moz-zoom-in;
+		cursor: zoom-in;
+	}
+
+	.mfp-auto-cursor .mfp-content {
+		cursor: auto;
+	}
+
+	.mfp-close,
+	.mfp-arrow,
+	.mfp-preloader,
+	.mfp-counter {
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		user-select: none;
+	}
+
+	.mfp-loading.mfp-figure {
+		display: none;
+	}
+
+	.mfp-hide {
+		display: none !important;
+	}
+
+	.mfp-preloader {
+		color: var(--ca-medium-text-color);
+		position: absolute;
+		top: 50%;
+		width: auto;
+		text-align: center;
+		margin-top: -0.8em;
+		left: 8px;
+		right: 8px;
+		z-index: 1044;
+	}
+
+	.mfp-preloader a {
+		color: var(--ca-medium-text-color);
+	}
+
+	.mfp-preloader a:hover {
+		color: var(--ca-named-white);
+	}
+
+	.mfp-s-ready .mfp-preloader {
+		display: none;
+	}
+
+	.mfp-s-error .mfp-content {
+		display: none;
+	}
+
+	button.mfp-close,
+	button.mfp-arrow {
+		overflow: visible;
+		cursor: pointer;
+		background: transparent;
+		border: 0;
+		appearance: none;
+		-webkit-appearance: none;
+		display: block;
+		outline: none;
+		padding: 0;
+		z-index: 1046;
+		box-shadow: none;
+		touch-action: manipulation;
+	}
+
+	button::-moz-focus-inner {
+		padding: 0;
+		border: 0;
+	}
+
+	.mfp-close {
+		cursor: pointer !important;
+		width: fit-content !important;
+		height: 44px;
+		line-height: 44px;
+		position: absolute;
+		right: 0;
+		top: 0;
+		text-decoration: none;
+		text-align: center;
+		opacity: 0.65;
+		padding: 0 0 18px 10px;
+		color: var(--ca-red-error-color);
+		font-style: normal;
+		font-size: 2rem;
+		font-family: Arial, Baskerville, monospace;
+	}
+
+	.mfp-close:hover {
+		color: var(--unraid-66-color) !important;
+	}
+
+	.mfp-close:active {
+		top: 1px;
+	}
+
+	.mfp-close-btn-in .mfp-close {
+		color: var(--ca-dark-text-color);
+	}
+
+	/* Our custom MFP close button carries .mfp-close (so the lib's
+	   _checkIfClose detection fires + position rules below apply) AND
+	   .caButton (so it visually matches the rest of CA's pill buttons).
+	   Use the holder-scoped selector so specificity (0,3,0) beats the
+	   `.mfp-image-holder .mfp-close` / `.mfp-iframe-holder .mfp-close`
+	   rule below that otherwise paints the close text red. Hover override
+	   uses 0,3,1 to outrank `.mfp-close:hover` (0,1,1 with !important). */
+	.mfp-image-holder .mfp-close.caButton,
+	.mfp-iframe-holder .mfp-close.caButton {
+		height: auto;
+		line-height: 2rem;
+		padding: 1px 10px;
+		font-size: 1.2rem;
+		color: var(--support-popup-text);
+		font-family: inherit;
+		font-weight: normal;
+		opacity: 1;
+		width: auto;
+		text-align: center;
+		right: 0;
+	}
+	.mfp-image-holder .mfp-close.caButton:hover,
+	.mfp-iframe-holder .mfp-close.caButton:hover {
+		color: var(--ca-white-color) !important;
+	}
+
+	.mfp-image-holder .mfp-close,
+	.mfp-iframe-holder .mfp-close {
+		color: var(--ca-red-error-color);
+		font-weight: bold;
+		right: -6px;
+		text-align: center;
+		width: 100%;
+	}
+
+	.mfp-counter {
+		position: absolute;
+		top: 0;
+		right: 0;
+		color: var(--ca-medium-text-color);
+		font-size: 12px;
+		line-height: 18px;
+		white-space: nowrap;
+	}
+
+	.mfp-arrow {
+		position: absolute;
+		opacity: 0.65;
+		margin: 0;
+		top: 50%;
+		margin-top: -55px;
+		padding: 0;
+		width: 90px;
+		height: 110px;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	/* No position shift on :active — the original `margin-top: -54px` rule
+	   visibly nudged the arrow on mousedown, but it also moved the hit-target.
+	   If the user's mouseup landed on the now-empty 1px gap (rather than on
+	   the new arrow position) the click bubbled to .mfp-wrap and the popup
+	   closed instead of advancing. Leaving the arrow stationary fixes that. */
+
+	.mfp-arrow:hover,
+	.mfp-arrow:focus {
+		opacity: 1;
+	}
+
+	.mfp-arrow:before,
+	.mfp-arrow:after {
+		content: '';
+		display: block;
+		width: 0;
+		height: 0;
+		position: absolute;
+		left: 0;
+		top: 0;
+		margin-top: 35px;
+		margin-left: 35px;
+		border: medium inset transparent;
+	}
+
+	.mfp-arrow:after {
+		border-top-width: 13px;
+		border-bottom-width: 13px;
+		top: 8px;
+	}
+
+	.mfp-arrow:before {
+		border-top-width: 21px;
+		border-bottom-width: 21px;
+		opacity: 0.7;
+	}
+
+	.mfp-arrow-left {
+		left: 0;
+	}
+
+	.mfp-arrow-left:after {
+		border-right: 17px solid var(--ca-named-white);
+		margin-left: 31px;
+	}
+
+	.mfp-arrow-left:before {
+		margin-left: 25px;
+		border-right: 27px solid var(--ca-medium-dark-color);
+	}
+
+	.mfp-arrow-right {
+		right: 0;
+	}
+
+	.mfp-arrow-right:after {
+		border-left: 17px solid var(--ca-named-white);
+		margin-left: 39px;
+	}
+
+	.mfp-arrow-right:before {
+		border-left: 27px solid var(--ca-medium-dark-color);
+	}
+
+	.mfp-iframe-holder {
+		padding-top: 40px;
+		padding-bottom: 40px;
+	}
+
+	.mfp-iframe-holder .mfp-content {
+		line-height: 0;
+		width: 100%;
+		max-width: 900px;
+	}
+
+	.mfp-iframe-holder .mfp-close {
+		top: -40px;
+	}
+
+	.mfp-iframe-scaler {
+		width: 100%;
+		height: 0;
+		overflow: hidden;
+		padding-top: 56.25%;
+	}
+
+	.mfp-iframe-scaler iframe {
+		position: absolute;
+		display: block;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		box-shadow: 0 0 8px var(--ca-dark-overlay-color);
+		background: var(--ca-named-black);
+	}
+
+	/* Main image in popup */
+	img.mfp-img {
+		width: auto;
+		max-width: 100%;
+		height: auto;
+		display: block;
+		line-height: 0;
+		box-sizing: border-box;
+		padding: 40px 0 40px;
+		margin: 0 auto;
+	}
+
+	/* The shadow behind the image */
+	.mfp-figure {
+		line-height: 0;
+	}
+
+	.mfp-figure:after {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 40px;
+		bottom: 40px;
+		display: block;
+		right: 0;
+		width: auto;
+		height: auto;
+		z-index: -1;
+		box-shadow: 0 0 8px var(--ca-dark-overlay-color);
+		background: var(--ca-medium-bg-color);
+	}
+
+	.mfp-figure small {
+		color: var(--ca-light-text-color);
+		display: block;
+		font-size: 12px;
+		line-height: 14px;
+	}
+
+	.mfp-figure figure {
+		margin: 0;
+	}
+
+	.mfp-bottom-bar {
+		margin-top: -36px;
+		position: absolute;
+		top: 100%;
+		left: 0;
+		width: 100%;
+		cursor: auto;
+	}
+
+	.mfp-title {
+		text-align: left;
+		line-height: 18px;
+		color: var(--ca-lighter-text-color);
+		word-wrap: break-word;
+		padding-right: 36px;
+	}
+
+	.mfp-image-holder .mfp-content {
+		max-width: 100%;
+	}
+
+	.mfp-gallery .mfp-image-holder .mfp-figure {
+		cursor: pointer;
+	}
+
+	/* Mobile styles */
+	@media screen and (max-width: 800px) and (orientation: landscape),
+	screen and (max-height: 300px) {
+		.mfp-img-mobile .mfp-image-holder {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.mfp-img-mobile img.mfp-img {
+			padding: 0;
+		}
+
+		.mfp-img-mobile .mfp-figure:after {
+			top: 0;
+			bottom: 0;
+		}
+
+		.mfp-img-mobile .mfp-figure small {
+			display: inline;
+			margin-left: 5px;
+		}
+
+		.mfp-img-mobile .mfp-bottom-bar {
+			background: var(--ca-dark-overlay-color);
+			bottom: 0;
+			margin: 0;
+			top: auto;
+			padding: 3px 5px;
+			position: fixed;
+			box-sizing: border-box;
+		}
+
+		.mfp-img-mobile .mfp-bottom-bar:empty {
+			padding: 0;
+		}
+
+		.mfp-img-mobile .mfp-counter {
+			right: 5px;
+			top: 3px;
+		}
+
+		.mfp-img-mobile .mfp-close {
+			top: 0;
+			right: 0;
+			width: 35px;
+			height: 35px;
+			line-height: 35px;
+			background: var(--ca-dark-overlay-color);
+			position: fixed;
+			text-align: center;
+			padding: 0;
+		}
+	}
+
+	@media all and (max-width: 900px) {
+		.mfp-arrow {
+			-webkit-transform: scale(0.75);
+			transform: scale(0.75);
+		}
+
+		.mfp-arrow-left {
+			-webkit-transform-origin: 0;
+			transform-origin: 0;
+		}
+
+		.mfp-arrow-right {
+			-webkit-transform-origin: 100%;
+			transform-origin: 100%;
+		}
+
+		.mfp-container {
+			padding-left: 6px;
+			padding-right: 6px;
+		}
+	}
+
+	/* Animation styles */
+	/* mfp-bg appears/disappears immediately so it doesn't fade in over an
+	   already-visible .ca_modal_overlay (sidebar etc. open when image clicked).
+	   The popup content (.mfp-content) still uses the fade transition below. */
+	.mfp-fade.mfp-bg {
+		opacity: 0;
+		-webkit-transition: none !important;
+		-moz-transition: none !important;
+		transition: none !important;
+	}
+
+	.mfp-fade.mfp-bg.mfp-ready {
+		opacity: 1;     /* match .ca_modal_overlay — scrim color already has alpha baked in via --ca-scrim-background */
+	}
+
+	.mfp-fade.mfp-bg.mfp-removing {
+		opacity: 0;
+	}
+
+	.mfp-fade.mfp-wrap .mfp-content {
+		opacity: 0;
+		-webkit-transition: all 0.5s ease-out;
+		-moz-transition: all 0.5s ease-out;
+		transition: all 0.5s ease-out;
+	}
+
+	.mfp-fade.mfp-wrap.mfp-ready .mfp-content {
+		opacity: 1;
+	}
+
+	.mfp-fade.mfp-wrap.mfp-removing .mfp-content {
+		opacity: 0;
+	}
+
+	/* Video Play Overlay */
+	.videoPlayOverlay::after {
+		content: '\f144'; /* Font Awesome play-circle icon */
+		font-family: 'fontAwesome';
+		font-weight: 900;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%) scale(0.75);
+		font-size: 3em;
+		color: rgba(255, 255, 255, 0.9);
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+		pointer-events: none;
+		transition: all 0.3s ease;
+	}
+
+	.videoPlayOverlay:hover::after {
+		color: var(--unraid-66-color);
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+		transform: translate(-50%, -50%) scale(1.0);
+	}
+
+	.ReadmeSection .inline_help {
+		display: block !important;
+	}
+
+	.ReadmeSection {
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
+
+	.ReadmeSection table {
+		background-color: revert !important;
+	}
+
+	.ReadmeSection table {
+		max-width: 100%;
+	}
+
+	.ReadmeSection pre {
+		max-width: 100%;
+		overflow-x: auto;
+	}
+
+	.ReadmeSection table td {
+		white-space: normal;
+	}
+
+	.ReadmeSection img {
+		max-width: 100%;
+		height: auto;
+	}
+
+	.ReadmeSectionLabel {
+		margin-bottom: 1.5rem;
+	}
+
+	.ReadmeSection code {
+		white-space: normal;
+	}
+
+	.ReadmeSection.readmore-js-expanded {
+		height: unset !important;
+	}
+
+	.additionalRequirementsHeader {
+		margin-left: 2rem;
+		margin-top: 1rem;
+	}
+
+	.modComment {
+		margin-top: 1rem;
+	}

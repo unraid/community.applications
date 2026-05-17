@@ -1,21 +1,37 @@
 :root {
-  --template-background: #f5f5f5;
-  --template-hover-background: #ffffff;
-  --template-favourite: #d0d0d0;
-  --border-color: #e3e3e3;
-  --a-color: #486dba;
-  --sidebar-background: #ffffff;
-  --sidebar-text: #000000;
-  --beta-popup-offset: 5rem;
-  --support-popup-text: #f2f2f2;
-  --support-popup-background: #1c1b1b;
-  --mod-comment-border: #cf3131;
-  --unraid-66-color: var(--orange-500,#FF8C2F);
-  --ca-legacy-background-color: var(--background-color,#f2f2f2);
-  --search-area-top: 4rem;
-  --search-area-left: 19.5rem;
-  --search-area-mobile-left: initial;
-  --search-area-mobile-top: 0;
-  --tooltipster-content: #101010;
-  --chart-grid: #dddddd;
-} 
+	--template-background: #f5f5f5;
+	--template-hover-background: #ffffff;
+	--template-favourite: #d0d0d0;
+	/* Prefer Dynamix `--border-color`; fallback matches dynamix/styles/themes/white.css => --gray-200 */
+	--ca-border-color: var(--border-color, #d3d3d3);
+	/* Bottom banner (avoid hardcoded colors in main CSS) */
+	--ca-bottomBanner-bg-from: #2a2a2e;
+	--ca-bottomBanner-bg-to: #1f1f22;
+	--ca-bottomBanner-text: #f0f0f0;
+	--a-color: #486dba;
+	--sidebar-background: #ffffff;
+	--sidebar-text: #000000;
+	--beta-popup-offset: 5rem;
+	--support-popup-text: #f2f2f2;
+	--support-popup-background: #1c1b1b;
+	--unraid-66-color: var(--orange-500,#FF8C2F);
+	--ca-legacy-background-color: var(--background-color,#f2f2f2);
+	--ca-search-modal-background: var(--ca-legacy-background-color);
+	--search-area-top: 4rem;
+	--search-area-left: 1rem;
+	--search-area-mobile-left: initial;
+	--search-area-mobile-top: 0;
+	--tooltipster-content: #101010;
+	--chart-grid: #dddddd;
+	--magnificCloseColor: var(--sidebar-background);
+	--ca-scrim-background: rgba(0, 0, 0, 0.25);
+	--ca-scrim-blur: 12px;
+	/* Awesomplete <mark> highlight color in suggestion chips */
+	--ca-suggestion-mark-color: var(--ca-hsl-yellow, hsl(65, 100%, 50%));
+}
+.Theme--white .magnificPopup.caButton {
+	filter: invert(100%);
+}
+.Theme--white .magnificPopup.caButton:hover {
+	filter: invert(0);
+}
