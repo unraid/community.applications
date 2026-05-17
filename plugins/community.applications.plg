@@ -4,15 +4,58 @@
 <!ENTITY author    "Lime Technology">
 <!ENTITY version   "2026.05.15gh">
 <!ENTITY md5       "9cb53f0f77e43e7a0d6b6109efc552b1">
-<!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/master/plugins/&name;.plg">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###RELEASE_DATE_PLACEHOLDER
+- Added: Top Nav theme variants (azure and gray) supported in addition to the sidebar themes
+- Added: Search now opens in its own popup window with a dedicated input
+- Added: Browsing and searching use infinite scroll — keep scrolling to load more apps; no more page-number clicks
+- Added: Per-repository ignore list (moderation tool) so entire repositories can be hidden from the catalog
+- Added: Picture and video gallery in the sidebar — left/right arrow keys advance through items
+- Added: Hover the cursor over a video in the gallery and arrow keys go to the player (for seek); hover the area around it and arrow keys navigate between gallery items
+- Changed: Home page now shows 6 apps per section
+- Changed: Settings, Statistics, and Change Log all open inside the sidebar instead of opening as separate pages
+- Changed: Sort controls moved into the search area for quicker access
+- Changed: Pin button keeps a single label and turns green when the app is pinned (matches the Favourite Repo button)
+- Changed: Support links in the sidebar are individual buttons instead of a Support dropdown menu
+- Changed: Action button labels shortened — "Remove from Previous Apps" is now just "Remove"; the multi-select Delete button is now "Remove" too
+- Changed: The multi-select Remove button on Previous Apps now actually appears when entries are checked off
+- Changed: Moderator notes appear above the description; auto-generated configuration warnings appear below it (no header, normal text size, no red border)
+- Changed: Heart and pin icons on the cards now sit inline next to the Details button instead of in the corner of the card
+- Changed: Cards no longer show the speech-bubble icon for moderator/CA comments — those notes appear in the sidebar
+- Changed: Cards no longer show the "Additional Requirements" warning icon — the sidebar still shows the full message and the install flow still blocks updates when required files are missing
+- Changed: Plugin and language-pack cards labelled "Unraid Official" (when appropriate) instead of "Official Container"
+- Changed: Mobile menu redone — survives orientation changes and works on older devices
+- Changed: Close button on popups (screenshots / videos) restyled to match the rest of the action buttons
+- Changed: Custom scrollbars throughout
+- Changed: Licence updated to GPL-2.0-or-later
+- Removed: Pagination bar at the bottom of app lists (infinite scroll replaces it)
+- Removed: Support for private repositories
+- Removed: Banner that briefly appeared when toggling a Favourite Repo (it was hidden behind the sidebar dim overlay anyway)
+- Removed: Action Centre banner alert (the menu indicator already signals pending updates)
+- Fixed: Action Centre would sometimes never load templates; pending updates now show reliably
+- Fixed: Picture/video popup: arrow keys no longer restart a playing video when there is only one item in the gallery
+- Fixed: Popups with a broken image now fall back to the standard "?" placeholder instead of staying blank
+- Fixed: Repository sidebar opened from a card now shows a close button
+- Fixed: Repository sidebar no longer remembers the previously opened app
+- Fixed: Cmd-K / Ctrl-K search shortcut now behaves correctly after the sidebar has been opened
+- Fixed: Clicking a multi-install checkbox no longer opens the sidebar
+- Fixed: Repository sometimes wouldn't open when clicked from a repository card
+- Fixed: Repositories page sometimes appeared as a single column
+- Fixed: Apps-per-page would reset incorrectly after an empty search and during state restore
+- Fixed: Switching between Docker Hub search and regular search wasn't always consistent
+- Fixed: Clearing the search from the popup didn't return to the home page
+- Fixed: Menu state could break across orientation changes
+- Fixed: PHP 8.0+: curl_close warnings in the system log
+- Fixed: Plugin warning is now combined with the initial CYA agreement; previous-app installs are not offered until CYA is accepted
+- Fixed: Debugging tools weren't reporting which files were being read
+
 ###2026.05.15
 - Fixed: Performance issues if feed downgrades to backup server
 
@@ -2392,29 +2435,44 @@ THIS IS A REQUIRED UPDATE
 <?
   $version = parse_ini_file("/etc/unraid-version");
   
-  if ( version_compare($version['version'],"6.9.0", "<") )
+  if ( version_compare($version['version'],"6.12.0", "<") )
   {
     echo "**********************************************************************\n";
     echo "\n";
-    echo "Community Applications Requires Unraid version 6.9.0 or greater to run\n";
+    echo "Community Applications Requires Unraid version 6.12.0 or greater to run\n";
     echo "\n";
     echo "**********************************************************************\n";
     exit(1);
   }
-  echo "Cleaning Up Old Versions\n";
-  if ( is_file("/usr/local/emhttp/plugins/community.applications/scripts/removeCron.php") ) {
-    exec("/usr/local/emhttp/plugins/community.applications/scripts/removeCron.php");
-  }
+
   exec("rm -rf /usr/local/emhttp/plugins/community.applications");
   @unlink("/etc/cron.daily/updateApplications.sh");
-	
+
 	exec("rm -rf /tmp/ca_notices");
-	
-	echo "Setting up cron for background notifications\n";
-	$cron = rand(0,59)." * * * * php /usr/local/emhttp/plugins/community.applications/scripts/notices.php > /dev/null 2>&1";
-	@file_put_contents("/boot/config/plugins/community.applications/notification_scan.cron","\n# CRON for CA background scanning of applications\n$cron\n\n");
+  @unlink("/boot/config/plugins/community.applications/notification_scan.cron");
 	exec("/usr/local/sbin/update_cron");
+
+	/* One-time migration: pre-2026 builds wrote pinned apps as PHP-serialized
+	   data; the new readJsonFile() is JSON-only. If the on-disk file decodes
+	   via unserialize() but not via json_decode(), rewrite it as JSON in
+	   place so the user's pins survive the upgrade. */
+	$pinned = "/boot/config/plugins/community.applications/pinned_appsV2.json";
+	if ( is_file($pinned) ) {
+		$raw = @file_get_contents($pinned);
+		if ( $raw !== false && $raw !== "" && json_decode($raw, true) === null ) {
+			$arr = @unserialize($raw);
+			if ( is_array($arr) ) {
+				$json = json_encode($arr, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+				if ( $json !== false && @file_put_contents($pinned, $json) !== false ) {
+					echo "Migrated pinned_appsV2.json from PHP-serialized to JSON\n";
+				} else {
+					echo "WARNING: Failed to rewrite pinned_appsV2.json as JSON; pins may need to be re-applied\n";
+				}
+			}
+		}
+	}
 ?>
+
 ]]>
 </INLINE>
 </FILE>
