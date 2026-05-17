@@ -28,7 +28,7 @@ if [ -n "${UNRAID_HOST:-}" ]; then
 	: # env var wins, nothing to do
 elif [ -r "$HOST_FILE" ]; then
 	# First non-blank, non-comment line of the file.
-	UNRAID_HOST="$(grep -v '^\s*\(#\|$\)' "$HOST_FILE" | head -1 | tr -d '[:space:]')"
+	UNRAID_HOST="$(sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; p; q' "$HOST_FILE" | tr -d '[:space:]')"
 fi
 
 if [ -z "${UNRAID_HOST:-}" ]; then
@@ -66,6 +66,14 @@ scp -q "$PKG" "$UNRAID_HOST:$REMOTE_TMP"
 echo "==> Installing on $UNRAID_HOST"
 echo "    rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications"
 echo "    installpkg $REMOTE_TMP"
-ssh "$UNRAID_HOST" "rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications && installpkg \"$REMOTE_TMP\" && rm -f \"$REMOTE_TMP\""
+# Pass the package path as a positional arg so the remote shell never re-parses
+# it (no command substitution, no globbing) — safe even if the path were to
+# someday contain shell metacharacters.
+ssh "$UNRAID_HOST" sh -s -- "$REMOTE_TMP" <<'EOF'
+set -e
+rm -rf /tmp/community.applications /usr/local/emhttp/plugins/community.applications
+installpkg "$1"
+rm -f "$1"
+EOF
 
 echo "==> Done. Reload /Apps in the Unraid GUI to see the change."

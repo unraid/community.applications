@@ -30,7 +30,7 @@ LIVE_PREFIX="/usr/local/emhttp/plugins/community.applications"
 if [ -n "${UNRAID_HOST:-}" ]; then
 	: # env var wins
 elif [ -r "$HOST_FILE" ]; then
-	UNRAID_HOST="$(grep -v '^\s*\(#\|$\)' "$HOST_FILE" | head -1 | tr -d '[:space:]')"
+	UNRAID_HOST="$(sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; p; q' "$HOST_FILE" | tr -d '[:space:]')"
 fi
 
 if [ -z "${UNRAID_HOST:-}" ]; then
@@ -77,11 +77,18 @@ for arg in "$@"; do
 		echo "==> $arg/  ->  $UNRAID_HOST:$remote/"
 		# Trailing /. on src + trailing / on dst copies *contents* of the
 		# directory into the existing remote directory.
-		ssh "$UNRAID_HOST" "mkdir -p \"$remote\""
+		# Pass $remote as a positional arg so the remote shell never re-parses it.
+		ssh "$UNRAID_HOST" sh -s -- "$remote" <<-'EOF'
+			set -e
+			mkdir -p "$1"
+		EOF
 		scp -rq "$abs/." "$UNRAID_HOST:$remote/"
 	else
 		echo "==> $arg  ->  $UNRAID_HOST:$remote"
-		ssh "$UNRAID_HOST" "mkdir -p \"$(dirname "$remote")\""
+		ssh "$UNRAID_HOST" sh -s -- "$(dirname "$remote")" <<-'EOF'
+			set -e
+			mkdir -p "$1"
+		EOF
 		scp -q "$abs" "$UNRAID_HOST:$remote"
 	fi
 done

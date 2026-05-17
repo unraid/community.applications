@@ -21,7 +21,7 @@ LOCAL_DST="$ROOT/source/community.applications/usr/local/emhttp/plugins/communit
 if [ -n "${UNRAID_HOST:-}" ]; then
 	: # env var wins
 elif [ -r "$HOST_FILE" ]; then
-	UNRAID_HOST="$(grep -v '^\s*\(#\|$\)' "$HOST_FILE" | head -1 | tr -d '[:space:]')"
+	UNRAID_HOST="$(sed -n '/^[[:space:]]*#/d; /^[[:space:]]*$/d; p; q' "$HOST_FILE" | tr -d '[:space:]')"
 fi
 
 if [ -z "${UNRAID_HOST:-}" ]; then
@@ -53,7 +53,7 @@ find "$LOCAL_DST" -name "._*"       -delete
 echo "==> Regenerating ca.md5"
 cd "$LOCAL_DST"
 rm -f ca.md5
-find . -type f -exec md5 -r {} + | awk '{print $1"  "$2}' > ca.md5
+find . -type f -exec md5 -r {} + | awk '{h=$1; $1=""; sub(/^ /, ""); print h"  "$0}' > ca.md5
 
 echo "==> Done. Source tree updated at:"
 echo "    $LOCAL_DST"
