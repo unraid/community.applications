@@ -1,6 +1,16 @@
 <?php
 
 class ForceUpdateHelpers {
+	/**
+	 * Recursively wipe the CA tempFiles tree and clear in-memory templates.
+	 *
+	 * Side effects: shells out to `rm -rf` against CA_PATHS['tempFiles'],
+	 * optionally recreates the community templates dir, and resets
+	 * $GLOBALS['templates'].
+	 *
+	 * @param  bool  $ensureTemplatesDirectory  When true, mkdir() the community templates directory after wiping.
+	 * @return void
+	 */
 	public static function resetTemplatesCache(bool $ensureTemplatesDirectory = false): void {
 		exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
 
@@ -11,6 +21,16 @@ class ForceUpdateHelpers {
 		$GLOBALS['templates'] = [];
 	}
 
+	/**
+	 * Download the application-feed last-updated JSON (with backup-server fallback).
+	 *
+	 * Side effects: deletes/writes CA_PATHS['lastUpdated'] on disk, emits debug
+	 * output, and reaches over the network with a 60s timeout. When neither
+	 * primary nor backup returns a valid timestamp, falls back to INF so the
+	 * caller treats the local cache as stale.
+	 *
+	 * @return array<string,mixed> Decoded metadata; always contains last_updated_timestamp.
+	 */
 	public static function fetchLatestUpdateMetadata(): array {
 		@unlink(CA_PATHS['lastUpdated']);
 
@@ -35,15 +55,39 @@ class ForceUpdateHelpers {
 		return $latestUpdate;
 	}
 
+	/**
+	 * Decide whether the on-disk templates cache is stale relative to the new metadata.
+	 *
+	 * @param  array<string,mixed>  $latestUpdate    Freshly downloaded metadata.
+	 * @param  array<string,mixed>  $lastUpdatedOld  Previously stored metadata.
+	 * @return bool True when the two timestamps disagree.
+	 */
 	public static function shouldRefreshTemplates(array $latestUpdate, array $lastUpdatedOld): bool {
 		return ($latestUpdate['last_updated_timestamp'] ?? 0) != ($lastUpdatedOld['last_updated_timestamp'] ?? 0);
 	}
 
+	/**
+	 * Return true when the on-disk template info JSON exists and the in-memory $templates global is populated.
+	 *
+	 * Side effect: clears the PHP stat cache so the file_exists() check is fresh.
+	 *
+	 * @return bool
+	 */
 	public static function templatesAvailable(): bool {
 		clearstatcache();
 		return file_exists(CA_PATHS['community-templates-info']) && !empty($GLOBALS['templates']);
 	}
 
+	/**
+	 * Build the failure payload returned when the application feed download fails.
+	 *
+	 * Side effects: reads/deletes CA_PATHS files including the appFeedDownloadError
+	 * temp file and community-templates-info, and clears $GLOBALS['templates']. Adds
+	 * diagnostic copy that varies depending on whether the server clock looks correct
+	 * (checkServerDate) and whether a partial download is detected.
+	 *
+	 * @return array<string,string> Response with `script` and `data` keys for the UI.
+	 */
 	public static function buildDownloadFailureResponse(): array {
 		$response = ['script' => "$('.onlyShowWithFeed').hide();"];
 
@@ -78,6 +122,15 @@ class ForceUpdateHelpers {
 		return $response;
 	}
 
+	/**
+	 * Build the JS snippet appended after a successful update.
+	 *
+	 * Sets the statistics tooltip title to the formatted feed timestamp, and
+	 * appends a deprecation banner when the installed OS is older than the
+	 * CA template's declared MinVer.
+	 *
+	 * @return string JavaScript fragment.
+	 */
 	public static function buildUpdateScript(): string {
 		$appFeedTime = readJsonFile(CA_PATHS['lastUpdated-old']);
 		$timestamp = $appFeedTime['last_updated_timestamp'] ?? 0;
@@ -103,6 +156,12 @@ class ForceUpdateHelpers {
 		return $script;
 	}
 
+	/**
+	 * Validate that the metadata blob is an array with a non-empty last_updated_timestamp.
+	 *
+	 * @param  mixed  $metadata
+	 * @return bool
+	 */
 	private static function isValidUpdateMetadata($metadata): bool {
 		return is_array($metadata) && !empty($metadata['last_updated_timestamp']);
 	}

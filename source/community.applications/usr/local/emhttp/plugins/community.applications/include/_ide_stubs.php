@@ -52,6 +52,13 @@ if (!function_exists('parse_lang_file')) {
 
 if (!function_exists('publish')) {
 		/**
+		 * IDE stub for Unraid's publish().
+		 *
+		 * Runtime implementation is provided by dynamix publish.php; pushes a
+		 * message onto an nchan channel.
+		 *
+		 * @param  string  $message  Message body.
+		 * @param  string  $channel  nchan channel name.
 		 * @return void
 		 */
 		function publish($message = '', $channel = '')
@@ -61,6 +68,12 @@ if (!function_exists('publish')) {
 
 if (!function_exists('publish_noDupe')) {
 		/**
+		 * IDE stub for Unraid's publish_noDupe().
+		 *
+		 * Like publish(), but suppresses consecutive duplicate messages on the same channel.
+		 *
+		 * @param  string  $message
+		 * @param  string  $channel
 		 * @return void
 		 */
 		function publish_noDupe($message = '', $channel = '')
@@ -70,7 +83,12 @@ if (!function_exists('publish_noDupe')) {
 
 if (!function_exists('markdown')) {
 		/**
-		 * @return string
+		 * IDE stub for Unraid's markdown() (lowercase).
+		 *
+		 * Runtime implementation lives in webGui/include/Markdown.php.
+		 *
+		 * @param  string  $text  Markdown source.
+		 * @return string Rendered HTML.
 		 */
 		function markdown($text = '')
 		{
@@ -80,7 +98,10 @@ if (!function_exists('markdown')) {
 
 if (!function_exists('Markdown')) {
 		/**
-		 * @return string
+		 * IDE stub for Unraid's Markdown() (capitalized).
+		 *
+		 * @param  string  $text  Markdown source.
+		 * @return string Rendered HTML.
 		 */
 		function Markdown($text = '')
 		{
@@ -102,10 +123,17 @@ if (!function_exists('autov')) {
 }
 
 if (!class_exists('DockerClient')) {
+		/**
+		 * IDE stub for Unraid's DockerClient.
+		 *
+		 * Real implementation lives in plugins/dynamix.docker.manager/include/DockerClient.php.
+		 */
 		class DockerClient
 		{
 				/**
-				 * @param string $id
+				 * IDE stub for DockerClient::stopContainer().
+				 *
+				 * @param  string  $id  Container ID.
 				 * @return mixed
 				 */
 				public function stopContainer($id)
@@ -114,6 +142,8 @@ if (!class_exists('DockerClient')) {
 				}
 
 				/**
+				 * IDE stub for DockerClient::getAllInfo().
+				 *
 				 * @return array<string,mixed>
 				 */
 				public function getAllInfo()
@@ -122,6 +152,8 @@ if (!class_exists('DockerClient')) {
 				}
 
 				/**
+				 * IDE stub for DockerClient::getDockerContainers().
+				 *
 				 * @return array<int,mixed>
 				 */
 				public function getDockerContainers()
@@ -130,7 +162,9 @@ if (!class_exists('DockerClient')) {
 				}
 
 				/**
-				 * @param string $id
+				 * IDE stub for DockerClient::removeContainer().
+				 *
+				 * @param  string  $id  Container ID.
 				 * @return mixed
 				 */
 				public function removeContainer($id)
@@ -139,7 +173,9 @@ if (!class_exists('DockerClient')) {
 				}
 
 				/**
-				 * @param string $id
+				 * IDE stub for DockerClient::removeImage().
+				 *
+				 * @param  string  $id  Image ID.
 				 * @return mixed
 				 */
 				public function removeImage($id)
@@ -150,12 +186,19 @@ if (!class_exists('DockerClient')) {
 }
 
 if (!class_exists('DockerTemplates')) {
+		/**
+		 * IDE stub for Unraid's DockerTemplates.
+		 *
+		 * Real implementation lives in plugins/dynamix.docker.manager/include/DockerClient.php.
+		 */
 		class DockerTemplates
 		{
 				/**
-				 * @param bool $readDefault
-				 * @param bool $fullPath
-				 * @param bool $includeContainers
+				 * IDE stub for DockerTemplates::getAllInfo().
+				 *
+				 * @param  bool  $readDefault
+				 * @param  bool  $fullPath
+				 * @param  bool  $includeContainers
 				 * @return array<string,mixed>
 				 */
 				public function getAllInfo($readDefault = false, $fullPath = false, $includeContainers = false)

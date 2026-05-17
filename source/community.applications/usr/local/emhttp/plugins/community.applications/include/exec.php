@@ -463,7 +463,12 @@ function DownloadApplicationFeed() {
 }
 
 /**
- * Return moderation/statistics details for sidebar popups
+ * Return moderation/statistics details for sidebar popups.
+ *
+ * Routes on POST['script'] ∈ {Repository, Invalid, Fixed} and returns an array
+ * structured for the moderation pane. Calls postReturn() which echoes JSON.
+ *
+ * @return void
  */
 function showModeration() {
 	$script = getPost("script", "");
@@ -621,7 +626,14 @@ function showModeration() {
 }
 
 /**
- * Persist the moderation Repository view's user-toggled ignore list to the flash drive. Posted as JSON via POST['ignored']; written verbatim to CA_PATHS['ignoredRepos']. Read by DownloadApplicationFeed() to stamp hideFromCA on matching templates.
+ * Persist the moderation Repository view's user-toggled ignore list to the flash drive.
+ *
+ * Posted as JSON via POST['ignored']; normalized to a unique sorted string list
+ * and written to CA_PATHS['ignoredRepos'] (or unlinked when empty). When the
+ * list changes, also wipes /tmp/$CA so the next page load re-downloads the feed.
+ * Calls postReturn() with a status JSON payload.
+ *
+ * @return void
  */
 function saveIgnoredRepos() {
 	$raw = getPost("ignored", "[]");
@@ -746,7 +758,13 @@ function updatePluginSupport($templates) {
 // }
 
 /**
- * Builds and returns debugging zip URL
+ * Build a debugging zip from CA logs and the PHP log, returning the served URL.
+ *
+ * Reads POST['file'] for the zip filename (validated to match the CA-Logging-*.zip
+ * pattern), shells out to `zip` with escaped paths, then returns the URL via
+ * postReturn().
+ *
+ * @return void
  */
 function downloadDebugging() {
 	global $docroot;
@@ -765,7 +783,15 @@ function downloadDebugging() {
 }
 
 /**
- * Selects an app of the day
+ * Pick the cohort of templates that fills the current home-screen row.
+ *
+ * Behaviour depends on $GLOBALS['caSettings']['startup'] (random, onlynew,
+ * topperforming, topPlugins, trending, spotlight, featured). For "random" the
+ * selection is cached in CA_PATHS['appOfTheDay'] and re-used for the rest of
+ * the calendar day. Mutates global $sortOrder for the other modes.
+ *
+ * @param  array<int,array<string,mixed>>  $file  Application templates.
+ * @return array<int,int|string> List of template IDs chosen for the row.
  */
 function appOfDay($file) {
 	global $sortOrder,$dynamixSettings;
@@ -934,7 +960,13 @@ function appOfDay($file) {
 }
 
 /**
- * Checks selected app for eligibility as app of day
+ * Eligibility check for app-of-the-day candidates.
+ *
+ * Rejects CA itself, branch templates, non-displayable rows, blacklisted rows,
+ * and (when configured) incompatible/deprecated rows. Reads $GLOBALS['caSettings'].
+ *
+ * @param  array<string,mixed>  $test  Candidate template.
+ * @return bool True when the template may be shown on the home screen.
  */
 function checkRandomApp($test) {
 
@@ -948,7 +980,13 @@ function checkRandomApp($test) {
 	return true;
 }
 /**
- * Gets the repositories that are listed on any given display
+ * Build the Repositories view dataset and write it to the per-tab cache file.
+ *
+ * Reads the current displayed-templates JSON, deduplicates per repo, separates
+ * "bio" repos from the rest, places the user's favourite first, and writes
+ * CA_PATHS['repositoriesDisplayed']. Reads $GLOBALS['caSettings'].
+ *
+ * @return void
  */
 function displayRepositories() {
 
@@ -1020,7 +1058,14 @@ function displayRepositories() {
 
 
 /**
- * get_content - get the results from templates according to categories, filters, etc
+ * Build the main Apps grid for the current category/filter and return the HTML.
+ *
+ * Reads POST keys (filter, category, newApp, mobileDevice, maxHomeApps,
+ * startupDisplay, maxPerPage), dispatches into GetContentHelpers for filtering /
+ * special-category handling, writes the per-tab displayed JSON, and calls
+ * postReturn() with rendered HTML.
+ *
+ * @return void
  */
 function get_content() {
 
@@ -1163,7 +1208,16 @@ function force_update_skip() {
 	force_update();
 }
 /**
- * force_update -> forces an update of the applications
+ * Force a refresh of the application feed and rebuild local templates.
+ *
+ * Coordinates with the gettingTemplates lock so only one updater runs at a
+ * time; waits for the existing run when present. Otherwise downloads metadata,
+ * rebuilds the feed when stale, runs moderation, and posts an "ok" response.
+ *
+ * Side effects: touches/unlinks the gettingTemplates/haveTemplates lock files,
+ * writes globals, calls postReturn().
+ *
+ * @return void
  */
 function force_update() {
 
@@ -1217,7 +1271,13 @@ function force_update() {
 
 
 /**
- * display_content - displays the templates according to view mode, sort order, etc
+ * Render a single page of the displayed-templates JSON for the Apps grid.
+ *
+ * Reads POST pageNumber/maxPerPage/startup/selected and delegates to
+ * display_apps(). When no displayed cache exists the response is a fatal
+ * "reload" banner.
+ *
+ * @return void
  */
 function display_content() {
 
@@ -1242,7 +1302,12 @@ function display_content() {
 }
 
 /**
- * dismiss_warning - dismisses the warning from appearing at startup
+ * Mark the first-run installation warning as accepted.
+ *
+ * Writes the acceptance flag file, clears the NoInstalls setting, and persists
+ * caSettings via write_ini_file().
+ *
+ * @return void
  */
 function dismiss_warning() {
 
@@ -1253,7 +1318,14 @@ function dismiss_warning() {
 }
 
 /**
- * Displays the list of installed or previously installed apps
+ * Build the Installed Apps / Previously Installed Apps / Action Centre listing.
+ *
+ * Aggregates Docker and plugin sections through PreviousAppsHelpers, writes
+ * the per-tab displayed JSON, and either returns whether any rows were emitted
+ * (Action Centre mode) or calls postReturn() with the action centre badge count.
+ *
+ * @param  bool  $enableActionCentre  When true, only return whether rows exist; do not echo.
+ * @return bool|void Returns bool in Action Centre mode, otherwise void.
  */
 function previous_apps($enableActionCentre=false) {
 
@@ -1303,7 +1375,12 @@ function previous_apps($enableActionCentre=false) {
 }
 
 /**
- * Removes an app from the previously installed list (ie: deletes the user template
+ * Delete the user template/plugin file behind a Previously Installed row.
+ *
+ * Reads POST['application'], validates it resolves under /boot/config and is
+ * either an xml or plg file, then unlinks. Calls postReturn().
+ *
+ * @return void
  */
 function remove_application() {
 	$application = realpath(getPost("application",""));
@@ -1315,7 +1392,12 @@ function remove_application() {
 }
 
 /**
- * Checks for an update still available (to update display) after update installed
+ * After a plugin install/update, refresh UpdateAvailable on the displayed list.
+ *
+ * Reads POST['filename'], walks the cached community-templates-displayed JSON,
+ * re-runs checkPluginUpdate() for the matching plugin and persists the cache.
+ *
+ * @return void
  */
 function updatePLGstatus() {
 
@@ -1335,7 +1417,14 @@ function updatePLGstatus() {
 }
 
 /**
- * Uninstalls a docker
+ * Stop and remove a Docker container plus its image; prune dangling volumes.
+ *
+ * Reads POST['application'] (path to user template XML), extracts the
+ * container Name from it, calls into the global $DockerClient to stop/remove,
+ * shells out to `docker volume prune`, refreshes the running-info cache via
+ * getAllInfo(true), and posts a status reply.
+ *
+ * @return void
  */
 function uninstall_docker() {
 	global $DockerClient;
@@ -1361,7 +1450,12 @@ function uninstall_docker() {
 }
 
 /**
- * Pins / Unpins an application for later viewing
+ * Toggle the pinned state of an application.
+ *
+ * Reads POST['repository'] and POST['name'], updates the pinned list in
+ * CA_PATHS['pinnedV2'], and returns whether any apps remain pinned.
+ *
+ * @return void
  */
 function pinApp() {
 
@@ -1378,7 +1472,9 @@ function pinApp() {
 }
 
 /**
- * Gets if any apps are pinned or not
+ * Return whether the user has any pinned apps (drives the menu visibility).
+ *
+ * @return void
  */
 function areAppsPinned() {
 
@@ -1386,7 +1482,13 @@ function areAppsPinned() {
 }
 
 /**
- * Displays the pinned applications
+ * Render the Pinned Apps grid for the user.
+ *
+ * Resolves the pinned list (CA_PATHS['pinnedV2']) into concrete templates via
+ * PinnedAppsHelpers::findPinnedTemplate(), clears search-result caches, writes
+ * the displayed JSON, and calls postReturn() with the page script.
+ *
+ * @return void
  */
 function pinnedApps() {
 
@@ -1434,7 +1536,12 @@ function pinnedApps() {
 }
 
 /**
- * Displays the possible branch tags for an app
+ * Render the branch-tag picker rows for an app with multiple Tag branches.
+ *
+ * Reads POST['leadTemplate'] and POST['rename']; returns HTML via formatTags()
+ * and postReturn().
+ *
+ * @return void
  */
 function displayTags() {
 	$leadTemplate = getPost("leadTemplate","oops");
@@ -1443,7 +1550,13 @@ function displayTags() {
 }
 
 /**
- * Displays The Statistics For The Appfeed
+ * Compute and return the appfeed statistics shown in the Statistics popup.
+ *
+ * Downloads the statistics JSON on first call, walks the in-memory templates
+ * to tally plugin/docker/private/blacklist/etc. counts, and renders feed
+ * timestamp + current server. Calls postReturn().
+ *
+ * @return void
  */
 function statistics() {
 
@@ -1520,7 +1633,12 @@ function statistics() {
 }
 
 /**
- * Creates the entries for autocomplete on searches
+ * Build and return the autocomplete suggestion list for the search box.
+ *
+ * Waits for templates to be available, seeds with category names, walks each
+ * template through PopulateAutoCompleteHelpers, and returns via postReturn().
+ *
+ * @return void
  */
 function populateAutoComplete() {
 
@@ -1535,14 +1653,22 @@ function populateAutoComplete() {
 }
 
 /**
- * Displays the changelog
+ * Return the rendered CA plugin changelog (HTML markdown) for the About dialog.
+ *
+ * @return void
  */
 function caChangeLog() {
 	postReturn(["changelog"=>Markdown(ca_plugin("changes","/var/log/plugins/community.applications.plg"))."<br><br>"]);
 }
 
 /**
- * Populates the category list
+ * Render the category-menu <ul> markup for the sidebar.
+ *
+ * Reads CA_PATHS['categoryList'], translates descriptions, sorts alphabetically
+ * by the translated string, builds nested <ul> for sub-categories, and appends
+ * a "PRIVATE" entry when any private template is present. Calls postReturn().
+ *
+ * @return void
  */
 function get_categories() {
 	global $sortOrder;
@@ -1598,7 +1724,9 @@ function get_categories() {
 }
 
 /**
- * Get the html for the popup
+ * Return the rendered HTML for the per-app description popup.
+ *
+ * @return void
  */
 function getPopupDescription() {
 	$appNumber = getPost("appPath","");
@@ -1606,7 +1734,9 @@ function getPopupDescription() {
 }
 
 /**
- * Get the html for a repo popup
+ * Return the rendered HTML for the per-repository description popup.
+ *
+ * @return void
  */
 function getRepoDescription() {
 	$repository = html_entity_decode(getPost("repository",""),ENT_QUOTES);
@@ -1614,7 +1744,12 @@ function getRepoDescription() {
 }
 
 /**
- * Fetch + sanitize rendered README for sidebar injection
+ * Fetch and sanitize the per-app README from GitHub for sidebar injection.
+ *
+ * Reads POST readmeId/cacheKey/url/fallback, tries primary URL then fallback,
+ * and returns sanitized HTML through postReturn().
+ *
+ * @return void
  */
 function getReadmeSection() {
 	$readmeId = trim((string)getPost("readmeId", ""));
@@ -1636,7 +1771,12 @@ function getReadmeSection() {
 }
 
 /**
- * Fetch + sanitize rendered template/plugin changes on demand
+ * Fetch and sanitize the per-app changelog on demand.
+ *
+ * Reads POST changesId/cacheKey/url/type ("plugin" or "xml") and returns
+ * sanitized HTML via postReturn().
+ *
+ * @return void
  */
 function getTemplateChanges() {
 	$changesId = trim((string)getPost("changesId", ""));
@@ -1765,11 +1905,18 @@ function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", 
 	return trim((string)$changes);
 }
 
-/* Same hardening profile as caFetchReadmeContents but without a host
-   whitelist — plugin .plg URLs and template .xml URLs come from many
-   third-party sources (GitHub, forums, custom hosts), so we lean on the
-   protocol restriction (https only, including redirects), redirect cap, and
-   1 MB size cap to constrain SSRF / DoS surface. */
+/**
+ * Hardened HTTPS fetcher for changelog/.plg/.xml content.
+ *
+ * Same hardening profile as caFetchReadmeContents() but without a host
+ * whitelist — plugin .plg URLs and template .xml URLs come from many
+ * third-party sources (GitHub, forums, custom hosts), so this leans on the
+ * protocol restriction (https only, including redirects), redirect cap (3),
+ * and 1 MB size cap to constrain SSRF / DoS surface.
+ *
+ * @param  string  $url
+ * @return string Response body (possibly empty).
+ */
 function caFetchChangelogContents(string $url): string {
 	$maxBytes = 1024 * 1024; // 1 MB
 	$buf = "";
@@ -1804,15 +1951,21 @@ function caFetchChangelogContents(string $url): string {
 	return $buf;
 }
 
-/* Dedicated hardened fetcher for README content. Doesn't go through
-   download_url() because:
-     - 1 MB cap via WRITEFUNCTION abort, so a hostile repo can't DoS us.
-     - Redirects allowed but restricted to https and capped at 3 hops, then
-       the effective URL host is rechecked against the GitHub raw whitelist
-       so a redirect can't smuggle in a different origin's content.
-     - 15s timeout / 5s connect.
-   download_url() keeps its general-purpose behavior (FOLLOWLOCATION, proxy
-   fallback, etc.) for every other caller. */
+/**
+ * Dedicated hardened fetcher for README content from raw.githubusercontent.com.
+ *
+ * Doesn't go through download_url() because:
+ *   - 1 MB cap via WRITEFUNCTION abort, so a hostile repo can't DoS us.
+ *   - Redirects allowed but restricted to https and capped at 3 hops, then
+ *     the effective URL host is rechecked against the GitHub raw whitelist
+ *     so a redirect can't smuggle in a different origin's content.
+ *   - 15s timeout / 5s connect.
+ * download_url() keeps its general-purpose behavior (FOLLOWLOCATION, proxy
+ * fallback, etc.) for every other caller.
+ *
+ * @param  string  $url
+ * @return string Response body, or "" when the host isn't whitelisted after redirects.
+ */
 function caFetchReadmeContents(string $url): string {
 	$maxBytes = 1024 * 1024; // 1 MB
 	$buf = "";
@@ -1947,7 +2100,14 @@ function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
 }
 
 /**
- * Creates the XML for a container install
+ * Build the dockerMan install XML for a container template and write it to disk.
+ *
+ * Reads POST xml (template path) and type ("second" for rename flow), looks
+ * the template up in $GLOBALS['templates'], normalizes networking/paths/ports/
+ * tailscale-state-dir, optionally auto-adjusts conflicting host ports, and
+ * writes the rendered XML to the chosen install path. Calls postReturn().
+ *
+ * @return void
  */
 function createXML() {
 
@@ -2158,7 +2318,12 @@ function createXML() {
 }
 
 /**
- * Switch to a language
+ * Apply a language-pack selection to dynamix.cfg (display.locale).
+ *
+ * Reads POST['language']; "en_US" is normalized to "" (default). Errors when
+ * the language pack isn't installed.
+ *
+ * @return void
  */
 function switchLanguage() {
 
@@ -2177,7 +2342,12 @@ function switchLanguage() {
 }
 
 /**
- * Delete multiple checked off apps from previous apps
+ * Delete multiple selected entries from Previous Apps in one request.
+ *
+ * Reads POST['apps'] (array of paths). Each path is realpath-checked to ensure
+ * it lives under /boot/config/ before being unlinked. Calls postReturn().
+ *
+ * @return void
  */
 function remove_multiApplications() {
 	$apps = getPostArray("apps");
@@ -2200,7 +2370,9 @@ function remove_multiApplications() {
 }
 
 /**
- * Get's the categories present on a search
+ * Return the unique set of categories present in the current displayed/search cache.
+ *
+ * @return void
  */
 function getCategoriesPresent() {
 
@@ -2228,7 +2400,12 @@ function getCategoriesPresent() {
 }
 
 /**
- * Set's the favourite repository
+ * Toggle the saved favourite repository on/off.
+ *
+ * Reads POST['repository']; clears the favourite when the same value is set.
+ * Persists to CA_PATHS['pluginSettings'] and calls postReturn().
+ *
+ * @return void
  */
 function toggleFavourite() {
 
@@ -2242,14 +2419,22 @@ function toggleFavourite() {
 }
 
 /**
- * Returns the favourite repository
+ * Return the currently saved favourite repository (from caSettings).
+ *
+ * @return void
  */
 function getFavourite() {
 
 	postReturn(["favourite"=>$GLOBALS['caSettings']['favourite']]);
 }
 /**
- * Changes the sort order
+ * Update the current sort order and resort every cached display JSON.
+ *
+ * Reads POST['sortOrder'], writes it via writeJsonFile() to
+ * CA_PATHS['sortOrder'], then re-sorts the displayed / search / repository
+ * caches and persists each. Mutates global $sortOrder.
+ *
+ * @return void
  */
 function changeSortOrder() {
 	global $sortOrder;
@@ -2293,7 +2478,11 @@ function changeSortOrder() {
 	postReturn(['status'=>"ok"]);
 }
 /**
- * Gets the sort order when restoring state
+ * Return the current sortBy/sortDir for the page when restoring UI state.
+ *
+ * Reads global $sortOrder.
+ *
+ * @return void
  */
 function getSortOrder() {
 	global $sortOrder;
@@ -2302,7 +2491,11 @@ function getSortOrder() {
 }
 
 /**
- * Reset the sort order to default when reloading Apps page
+ * Reset sort to Name Up and persist it before the Apps page reload.
+ *
+ * Mutates global $sortOrder and writes CA_PATHS['sortOrder'].
+ *
+ * @return void
  */
 function defaultSortOrder() {
 	global $sortOrder;
@@ -2314,7 +2507,9 @@ function defaultSortOrder() {
 }
 
 /**
- * Checks whether we're on the startup screen when restoring state
+ * Return whether the home/startup screen flag file is present.
+ *
+ * @return void
  */
 function onStartupScreen() {
 
@@ -2322,7 +2517,14 @@ function onStartupScreen() {
 }
 
 /**
- * convert_docker - called when system adds a container from dockerHub
+ * Convert a DockerHub search result into a dockerMan install XML file.
+ *
+ * Reads POST['repo'] (stable image identifier), looks up the cached search
+ * result for extras, accepts an optional base64 POST['description'] override
+ * from the click handler, writes a per-request install XML under tempFiles,
+ * and returns its path via postReturn(). Uses global $dockerManPaths.
+ *
+ * @return void
  */
 function convert_docker() {
 	global $dockerManPaths;
@@ -2380,10 +2582,16 @@ function convert_docker() {
 	postReturn(['xml' => $installXmlPath]);
 }
 
-/* Look up a DockerHub search result by Repository in the per-tab cache. The
-   cache may not have the result if the page that contained it was evicted by
-   a more recent search; the caller is expected to fall back to derived data
-   when this returns null. */
+/**
+ * Look up a DockerHub search result by Repository in the per-tab cache.
+ *
+ * The cache may not have the result if the page that contained it was evicted
+ * by a more recent search; the caller is expected to fall back to derived
+ * data when this returns null.
+ *
+ * @param  string  $repo
+ * @return array<string,mixed>|null
+ */
 function caFindDockerHubResultByRepo(string $repo): ?array {
 	if ($repo === "" || !is_file(CA_PATHS['dockerSearchResults'])) return null;
 	$file = readJsonFile(CA_PATHS['dockerSearchResults']);
@@ -2396,6 +2604,9 @@ function caFindDockerHubResultByRepo(string $repo): ?array {
 
 /**
  * Last path segment of a Docker repo string (image name without registry prefix handling).
+ *
+ * @param  string  $repo
+ * @return string
  */
 function caDockerNameFromRepo(string $repo): string {
 	$parts = explode('/', $repo);
@@ -2404,6 +2615,12 @@ function caDockerNameFromRepo(string $repo): string {
 
 /**
  * Public Docker Hub URL for a namespace/image repository string.
+ *
+ * Official library images ("library/foo" or unscoped "foo") use the
+ * /_/{name}/ path; everything else uses /r/{namespace}/{image}/.
+ *
+ * @param  string  $repo
+ * @return string
  */
 function caDockerHubUrlFromRepo(string $repo): string {
 	if (strpos($repo, '/') === false || strpos($repo, 'library/') === 0) {
@@ -2414,7 +2631,13 @@ function caDockerHubUrlFromRepo(string $repo): string {
 }
 
 /**
- * search_dockerhub - returns the results from dockerHub
+ * Search Docker Hub for containers matching the user's filter and render results.
+ *
+ * Reads POST filter/page, hits the v1 registry search API, caches results to
+ * CA_PATHS['dockerSearchResults'], and posts the rendered HTML. Side effects
+ * include touching the search-active flag and unlinking caches on no-match.
+ *
+ * @return void
  */
 function search_dockerhub() {
 
@@ -2472,7 +2695,15 @@ function search_dockerhub() {
 	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);
 }
 /**
- * Gets the last update issued to a container
+ * Look up the last-updated date of a container from registry.hub.docker.com.
+ *
+ * Skips plugins and language packs; only handles latest-tag containers and
+ * normalizes ghcr.io / lscr.io / cr.hotio.dev references to Docker Hub
+ * coordinates. Retries up to 5 times with 1s sleeps to ride out short
+ * network blips.
+ *
+ * @param  int|string  $ID  Template ID.
+ * @return string|void Formatted date, "Unknown", or void when the template can't be looked up.
  */
 function getLastUpdate($ID) {
 
@@ -2525,7 +2756,12 @@ function getLastUpdate($ID) {
 	return $lastUpdated;
 }
 /**
- * Changes the max per page displayed
+ * Update the persisted "max per page" preference when it differs from current value.
+ *
+ * Mutates $GLOBALS['caSettings']['maxPerPage'] and writes to CA_PATHS['pluginSettings'].
+ *
+ * @param  int|string  $max
+ * @return void
  */
 function changeMax($max) {
 	if ( $max !== $GLOBALS['caSettings']['maxPerPage'] ) {
@@ -2534,7 +2770,13 @@ function changeMax($max) {
 	}
 }
 /**
- * Enables if necessary the action centre Basically a duplicate of action centre code in previous apps
+ * Decide whether the Action Centre badge should be shown for the user.
+ *
+ * Waits for any in-flight update / template download to finish, then runs
+ * previous_apps(true) which checks for updates/deprecated/blacklisted installed
+ * apps. Calls postReturn() with "action"/"noaction".
+ *
+ * @return void
  */
 function enableActionCentre() {
 
@@ -2696,7 +2938,12 @@ function enableActionCentre() {
 }
 
 /**
- * Checks the requirements being met on an upgrade
+ * Verify that a template's "Requires" file exists on the running system.
+ *
+ * Reads POST['requires']; returns met=true when the field is empty or the
+ * referenced path is a file.
+ *
+ * @return void
  */
 function checkRequirements() {
 	$requiresFile = getPost("requires","");
@@ -2708,7 +2955,12 @@ function checkRequirements() {
 }
 
 /**
- * Saves the list of plugins which are pending installs
+ * Touch sentinel files under pluginPending/ for each plugin pending install.
+ *
+ * Reads POST['plugin'] (*-delimited list of plugin URLs). Only triggers when
+ * 2+ plugins are queued, since single plugins don't need coordination.
+ *
+ * @return void
  */
 function saveMultiPluginPending() {
 
@@ -2726,7 +2978,11 @@ function saveMultiPluginPending() {
 }
 
 /**
- * Downloads the stats file in the background
+ * Lazily download the appfeed statistics JSON (no-op when already cached).
+ *
+ * Writes CA_PATHS['statistics'] via download_json() when missing.
+ *
+ * @return void
  */
 function downloadStatistics() {
 
@@ -2735,7 +2991,15 @@ function downloadStatistics() {
 }
 
 /**
- * Checks to see if THIS plugin's install/update is already in progress by looking for its basename inside CA_PATHS['pluginPending']. The caller passes whatever it has (a .plg URL, /var/log/plugins/foo.plg path, etc); basename normalizes them all to "foo.plg". If no path is provided the answer is "not in progress" (we can't lock against an unknown).
+ * Report whether a specific plugin's install/update is already in progress.
+ *
+ * Checks for a basename sentinel inside CA_PATHS['pluginPending']. The caller
+ * passes whatever it has (a .plg URL, /var/log/plugins/foo.plg path, etc);
+ * basename normalizes them all to "foo.plg". If no path is provided the answer
+ * is "not in progress" (we can't lock against an unknown). Clears the stat
+ * cache for the flag path so long-lived FPM workers see fresh state.
+ *
+ * @return void
  */
 function checkPluginInProgress() {
 
@@ -2767,7 +3031,9 @@ function networkAlreadyCreated() {
 }
 
 /**
- * Clears the startup displayed flag in case of weird error
+ * Unlink the startup-displayed flag file to recover from a stuck home screen.
+ *
+ * @return void
  */
 function clearStartUpDisplayed() {
 

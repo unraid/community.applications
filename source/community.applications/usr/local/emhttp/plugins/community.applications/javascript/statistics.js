@@ -162,7 +162,19 @@ function renderModerationRepositories(payload) {
    exit path) knows to trigger a Home reload. Body-delegated so it works
    against the cloned alt-view markup that lives under #sidenavContent. */
 window.caRepoIgnoreDirty = false;
+/**
+ * On DOM ready: delegate click/keydown on `.caRepoIgnoreToggle` to flip the
+ * repository's ignored state, update the row's strike-through/icon, and POST
+ * the new full ignore list to the server (sets `window.caRepoIgnoreDirty` when
+ * the server reports an actual change so a later view transition can force a
+ * reload).
+ */
 $(function() {
+	/**
+	 * Toggle the row's ignored state and persist the full ignore list to the server.
+	 *
+	 * @param {Event} e Click or keydown event (keydown only acts on Enter/Space).
+	 */
 	$("body").on("click keydown", ".caRepoIgnoreToggle", function(e) {
 		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
 		e.preventDefault();
@@ -178,8 +190,15 @@ $(function() {
 	});
 });
 
-/* Collect the current ignore set from the live moderation table. Returns
-   null if the table isn't currently rendered. */
+/**
+ * Collect the current ignore set from the live moderation table.
+ *
+ * Walks rows marked `.caRepoIgnored` in `.caModerationRepoTable` and returns a
+ * sorted, deduplicated list of repository names. Returns `null` when the
+ * moderation table is not currently rendered.
+ *
+ * @returns {string[]|null} Sorted ignored repo names, or null if no table is present.
+ */
 function caCollectIgnoredRepos() {
 	const $table = $(".caModerationRepoTable");
 	if (!$table.length) return null;
@@ -190,10 +209,15 @@ function caCollectIgnoredRepos() {
 	return ignored.filter(Boolean).sort();
 }
 
-/* Called on transitions out of the Repository view (showStatistics() and
-   the .ca_modal_overlay close path). If any earlier toggle actually
-   changed the on-disk list, click Home so the page restarts against the
-   freshly-wiped /tmp tree. */
+/**
+ * If a prior toggle changed the on-disk ignore list, simulate a Home click to
+ * restart the page so the rebuilt feed is used.
+ *
+ * Called on transitions out of the Repository view (`showStatistics()` and the
+ * `.ca_modal_overlay` close path). Resets `window.caRepoIgnoreDirty` to false.
+ *
+ * @returns {void}
+ */
 function caRestartIfRepoIgnoreDirty() {
 	if (!window.caRepoIgnoreDirty) return;
 	window.caRepoIgnoreDirty = false;

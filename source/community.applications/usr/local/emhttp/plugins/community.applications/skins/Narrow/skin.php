@@ -20,7 +20,12 @@
 require_once __DIR__.'/skin_helpers.php';
 
 /**
- * Remove orphan and duplicate dividers from action arrays
+ * Remove orphan and duplicate dividers from action arrays.
+ *
+ * Strips leading dividers, collapses consecutive dividers into one, and trims trailing dividers.
+ *
+ * @param  array<int,array<string,mixed>> $actionsContext Raw action descriptors with optional `divider` flags.
+ * @return array<int,array<string,mixed>> Re-indexed list with stray dividers removed.
  */
 function caCompactPopupActionContext(array $actionsContext): array {
 	$compacted = [];
@@ -41,7 +46,12 @@ function caCompactPopupActionContext(array $actionsContext): array {
 }
 
 /**
- * Keep only valid support entries for popup button rendering
+ * Keep only valid support entries for popup button rendering.
+ *
+ * Filters out entries where either link or visible text is empty after trimming/stripping tags.
+ *
+ * @param  array<int,mixed> $supportContext Raw support descriptors.
+ * @return array<int,array<string,mixed>> Re-indexed, filtered support entries.
  */
 function caNormalizePopupSupportContext(array $supportContext): array {
 	return array_values(array_filter($supportContext, static function ($context) {
@@ -55,7 +65,14 @@ function caNormalizePopupSupportContext(array $supportContext): array {
 }
 
 /**
- * Remove popup shortcut actions from context and expose preferred quick action
+ * Remove popup shortcut actions from context and expose preferred quick action.
+ *
+ * Pulls Uninstall and WebUI/Settings entries out of the main actions list so the
+ * popup template can render them in dedicated slots. WebUI is preferred over Settings.
+ *
+ * @param  array<int,array<string,mixed>> $actionsContext Full action descriptors.
+ * @return array{0: array<int,array<string,mixed>>, 1: ?array<string,mixed>, 2: ?array<string,mixed>}
+ *                Tuple of [remaining actions, popup shortcut, uninstall action].
  */
 function caNormalizePopupActions(array $actionsContext): array {
 	$popupShortcutContext = [];
@@ -91,7 +108,14 @@ function caNormalizePopupActions(array $actionsContext): array {
 }
 
 /**
- * Generate the display for the popup
+ * Generate the display HTML for the application sidebar popup.
+ *
+ * Reads statistics JSON from CA_PATHS, evaluates current locale/session state, and
+ * renders the popup template using output buffering. Calls validURL() and htmlspecialchars()
+ * to harden user-supplied URLs before emitting them.
+ *
+ * @param  array<string,mixed>|mixed $template Template entry (non-arrays are coerced to []).
+ * @return string Rendered HTML markup.
  */
 function displayPopup($template) {
 
@@ -745,7 +769,15 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 }
 
 /**
- * Generate the display for the popup
+ * Build the popup payload (description + trend data) for a given application.
+ *
+ * Reads CA_PATHS JSON caches, mutates `$GLOBALS['caSettings']['NoInstalls']` when the
+ * install warning hasn't been accepted, may unlink CA_PATHS['pluginTempDownload'] on disk,
+ * and relies on the global `$DockerClient` and `$language`. Falls back to the default `?`
+ * icon for non-http(s) Icon URLs.
+ *
+ * @param  mixed $appNumber Identifier of the application to describe (Path/InstallPath).
+ * @return array{description:string,trendData?:mixed,trendLabel?:string,downloadtrend?:mixed,downloadLabel?:string,totaldown?:mixed,totaldownLabel?:string,supportContext?:array<int,mixed>,actionsContext?:array<int,mixed>,ID?:mixed}
  */
 function getPopupDescriptionSkin($appNumber) {
 	global $language, $DockerClient;
@@ -876,7 +908,12 @@ function getPopupDescriptionSkin($appNumber) {
 }
 
 /**
- * Generate the display for the repo
+ * Build the popup payload (description) for a repository profile view.
+ *
+ * Reads CA_PATHS['repositoryList'] from disk and assembles donate/media/links/stats sections.
+ *
+ * @param  string $repository Repository name (key in repositoryList).
+ * @return array{description:string} Popup payload.
  */
 function getRepoDescriptionSkin($repository) {
 
@@ -939,7 +976,14 @@ function getRepoDescriptionSkin($repository) {
 }
 
 /**
- * function that actually displays the results from dockerHub
+ * Render the Docker Hub search results page (cards + pagination).
+ *
+ * Reads CA_PATHS['dockerSearchResults'] from disk and mutates
+ * `$GLOBALS['caSettings']['NoInstalls']` based on the warning-accepted flag.
+ *
+ * @param  int  $pageNumber  1-based page index.
+ * @param  bool $returnArray When true, return a structured array instead of HTML.
+ * @return string|array{header:string,cards:array<int,string>,scripts:string,totalApps:int,pageNumber:int}
  */
 function displaySearchResults($pageNumber, $returnArray=false) {
 
@@ -974,7 +1018,14 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 }
 
 /**
- * Generate the app's card
+ * Render a single application/repository/Docker Hub card.
+ *
+ * Branches on `$template['RepositoryTemplate']`, `$template['DockerHub']`, and
+ * `$template['Language']` to pick the right CSS classes, action buttons, icon source,
+ * and overlay flag. Tabs and newlines are stripped from the final markup.
+ *
+ * @param  array<string,mixed>|mixed $template Template entry (non-arrays return "").
+ * @return string Rendered card HTML, or empty string for invalid input.
  */
 function displayCard($template) {
 
