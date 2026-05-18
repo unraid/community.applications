@@ -29,6 +29,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: Per-repository ignore list (moderation tool) so entire repositories can be hidden from the catalog
 - Added: Picture and video gallery in the sidebar — left/right arrow keys advance through items
 - Added: Hover the cursor over a video in the gallery and arrow keys go to the player (for seek); hover the area around it and arrow keys navigate between gallery items
+- Added: Cmd-K / Ctrl-K opens the search popup from anywhere in CA
+- Added: Live download progress shown while feeds and template lists load
+- Added: The per-app action buttons (Install / WebUI / Settings / Update / Edit / Uninstall / Pin) ride at the top of the sidebar and stay visible while you scroll through the app description
+- Added: Accessibility pass — improved keyboard navigation, focus handling, and screen-reader markup throughout
 - Changed: Home page now shows 6 apps per section
 - Changed: Settings, Statistics, and Change Log all open inside the sidebar instead of opening as separate pages
 - Changed: Sort controls moved into the search area for quicker access
@@ -44,6 +48,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: Mobile menu redone — survives orientation changes and works on older devices
 - Changed: Close button on popups (screenshots / videos) restyled to match the rest of the action buttons
 - Changed: Custom scrollbars throughout
+- Changed: Sidebar opens faster — README and changelog content now load on demand instead of up-front
+- Changed: Multiple CA browser tabs no longer interfere with each other — each tab tracks its own search and scroll state
+- Changed: Clearer error messages when an update or template fetch fails
 - Changed: Licence updated to GPL-2.0-or-later
 - Removed: Pagination bar at the bottom of app lists (infinite scroll replaces it)
 - Removed: Support for private repositories
@@ -65,3 +72,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: PHP 8.0+: curl_close warnings in the system log
 - Fixed: Plugin warning is now combined with the initial CYA agreement; previous-app installs are not offered until CYA is accepted
 - Fixed: Debugging tools weren't reporting which files were being read
+- Fixed: Security and reliability hardening — unsafe links stripped from rendered README and changelog content, template URLs validated before fetching, backend input handling tightened
