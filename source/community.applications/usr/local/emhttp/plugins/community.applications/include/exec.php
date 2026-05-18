@@ -38,9 +38,24 @@ require_once "$docroot/plugins/dynamix/include/publish.php";
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php"; # must be first include due to paths defined
 require_once "$docroot/plugins/community.applications/include/paths.php";
 require_once "$docroot/plugins/community.applications/include/helpers.php";
-require_once "$docroot/plugins/community.applications/skins/Narrow/skin.php";
+/* skins/Narrow/skin.php (+ skin_helpers.php it pulls in) is ~3300 lines of
+   rendering code that only 5 dispatch cases actually need (get_content,
+   display_content, getPopupDescription, getRepoDescription, search_dockerhub).
+   Lazy-load it inside those cases via caRequireSkin() below instead of paying
+   the parse cost on every POST. */
 require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
 require_once "$docroot/webGui/include/Markdown.php";
+
+/**
+ * Lazy-load the Narrow skin (skin.php + skin_helpers.php). Safe to call from
+ * any case branch — PHP's require_once dedupes by absolute path. Used by the
+ * cases that emit rendered HTML (`get_content`, `display_content`,
+ * `getPopupDescription`, `getRepoDescription`, `search_dockerhub`).
+ */
+function caRequireSkin(): void {
+	global $docroot;
+	require_once "$docroot/plugins/community.applications/skins/Narrow/skin.php";
+}
 
 ################################################################################
 # Set up any default settings (when not explicitely set by the settings module #
@@ -75,6 +90,7 @@ if ( ! $sortOrder ) {
 $GLOBALS['action'] = $_POST['action'] ?? "Unknown";
 switch ($_POST['action']) {
 	case 'get_content':
+		caRequireSkin();
 		get_content();
 		break;
 	case 'force_update':
@@ -84,6 +100,7 @@ switch ($_POST['action']) {
 		force_update_skip();
 		break;
 	case 'display_content':
+		caRequireSkin();
 		display_content();
 		break;
 	case 'dismiss_warning':
@@ -132,9 +149,11 @@ switch ($_POST['action']) {
 		get_categories();
 		break;
 	case 'getPopupDescription':
+		caRequireSkin();
 		getPopupDescription();
 		break;
 	case 'getRepoDescription':
+		caRequireSkin();
 		getRepoDescription();
 		break;
 	case 'getReadmeSection':
@@ -189,6 +208,7 @@ switch ($_POST['action']) {
 		convert_docker();
 		break;
 	case 'search_dockerhub':
+		caRequireSkin();
 		search_dockerhub();
 		break;
 	case 'getPortsInUse':
