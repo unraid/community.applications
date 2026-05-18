@@ -26,6 +26,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: Developer-mode "Diff" button in the sidebar (containers only) — compares the upstream `TemplateURL` XML against the entry in the live application feed, side-by-side, with per-character highlighting on changed lines
 - Changed: Download progress strip no longer auto-appends an Abort button to every status copy; the button is now baked into the Updating-Applications dialog only
 - Changed: Concurrent identical downloads now share a single in-flight fetch via an OS-level file lock, instead of each request kicking off its own
+- Chore: Lazy-load the Narrow skin renderer (~3300 lines) only on the dispatch cases that actually emit HTML, shaving the per-request parse cost on all data-only POSTs (pinning, statistics, force_update, etc.)
 - Added: Top Nav theme variants (azure and gray) supported in addition to the sidebar themes
 - Added: Search now opens in its own popup window with a dedicated input
 - Added: Browsing and searching use infinite scroll — keep scrolling to load more apps; no more page-number clicks
