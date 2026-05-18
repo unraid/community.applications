@@ -3,7 +3,7 @@
 Running log of changes destined for the next release. Each PR appends its
 user-visible bullets under **Unreleased** below.
 
-Format mirrors the `<CHANGES>` block in [community.applications.plg](plugins/community.applications.plg)
+Format mirrors the `<CHANGES>` block in [community.applications.plg](community.applications.plg)
 so release time is a straight copy-paste:
 
 - Keep the `- Added: …` / `- Changed: …` / `- Fixed: …` / `- Removed: …` / `- Chore: …` prefixes.
@@ -16,8 +16,8 @@ At release:
 2. Paste that block at the top of `<CHANGES>` in the .plg.
 3. Reset this file to a fresh empty `## Unreleased` section.
 
-This file lives at the repo root and is **not** included in the packaged
-plugin (`pkg_build.sh` only ships `source/community.applications/`).
+This file lives in `plugins/` next to the .plg and is **not** included in
+the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`).
 
 ---
 
