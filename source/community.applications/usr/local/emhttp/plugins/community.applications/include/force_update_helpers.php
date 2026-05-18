@@ -34,7 +34,9 @@ class ForceUpdateHelpers {
 	public static function fetchLatestUpdateMetadata(): array {
 		@unlink(CA_PATHS['lastUpdated']);
 
-		// Ensure force_update cannot hang forever if the remote is stalled.
+		/* 60-second cap — this is the tiny last-updated probe (a few hundred
+		   bytes); we don't want it pinning a force_update for longer than
+		   that before failing over to the backup endpoint. */
 		$latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated'], 60);
 
 		if (!self::isValidUpdateMetadata($latestUpdate)) {

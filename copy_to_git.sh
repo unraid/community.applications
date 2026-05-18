@@ -44,9 +44,12 @@ scp -rq "$UNRAID_HOST:$REMOTE_SRC" "$(dirname "$LOCAL_DST")/"
 
 # Belt-and-braces: scrub any mac metadata that snuck in (shouldn't with scp
 # from a linux source, but keep the cleanup so the workflow is consistent).
-echo "==> Pruning macOS metadata files"
+# Also drop any Claude/agent local state that may have been left in the live
+# install — those files have no business in the release manifest.
+echo "==> Pruning macOS metadata + local-agent state"
 find "$LOCAL_DST" -name ".DS_Store" -delete
 find "$LOCAL_DST" -name "._*"       -delete
+rm -rf "$LOCAL_DST/.claude"
 
 # Regenerate ca.md5 in Linux md5sum format (`<hash>  <relative path>`,
 # two-space separator) so `md5sum -c` works on the Unraid side.

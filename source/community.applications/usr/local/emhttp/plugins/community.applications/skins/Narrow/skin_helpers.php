@@ -250,7 +250,7 @@ function caNormalizeRequiresField($requires) {
  *
  * @param  array<string,mixed>             $template        Template entry.
  * @param  array<string,array<string,mixed>> $allRepositories Repository metadata keyed by repo name.
- * @return array<int,array{icon:string,link:string,text:string}> Support entry list.
+ * @return array<int,array{icon:string,text:string,link?:string,action?:string}> Support entry list. Each entry has either a `link` (rendered as an `<a href>`) or an `action` (rendered as an `onclick` payload — dev-mode Diff button).
  */
 function caBuildSupportContext(array $template, array $allRepositories) {
 	$supportContext = [];
@@ -278,6 +278,33 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Template")];
 		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
 			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("Plugin")];
+		}
+		/* json_encode with the JS-safety flags produces a properly-quoted JS
+		   string literal (including the outer quotes) — safer than addslashes
+		   when the value lands inside an HTML onclick attribute, since it
+		   neutralizes `<`, `>`, `&`, and `'` as well. */
+		$jsFlags  = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+		$diffPath = json_encode((string)($template['Path'] ?? ""), $jsFlags);
+		$diffName = json_encode((string)($template['Name'] ?? ""), $jsFlags);
+		/* Diff is container-only — plugin .plg payloads don't survive the
+		   array→XML round-trip cleanly and the resulting diff is more noise
+		   than signal. */
+		if (empty($template['Plugin'])) {
+			$supportContext[] = [
+				"icon"   => "ca_fa-diff",
+				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'feed')",
+				"text"   => tr("Diff"),
+			];
+		}
+		/* Internal diff (appfeed vs CA's internal templates_full.json) — only
+		   when the admin marker file exists. Available for plugins too since
+		   neither side does a source-XML round-trip. */
+		if (is_file(CA_PATHS['caAdmin'])) {
+			$supportContext[] = [
+				"icon"   => "ca_fa-diff",
+				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'internal')",
+				"text"   => tr("CA"),
+			];
 		}
 	}
 

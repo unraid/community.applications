@@ -143,6 +143,12 @@ switch ($_POST['action']) {
 	case 'getTemplateChanges':
 		getTemplateChanges();
 		break;
+	case 'getTemplateDiff':
+		/* Dev-mode Diff button only — lazy-load so day-to-day requests don't
+		   pay the parse cost for the ~320-line diff backend nobody else hits. */
+		require_once __DIR__ . "/diff.php";
+		getTemplateDiff();
+		break;
 	case 'createXML':
 		createXML();
 		break;
@@ -238,18 +244,34 @@ function DownloadApplicationFeed() {
 	} else {
 		$downloadURL = randomFile();
 		ca_publish("ca_gettingTemplates","1");
-		// With CURLOPT_MAX_RECV_SPEED_LARGE capped, allow ample time for a full feed download.
-		$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 300);
+		/* 10-minute cURL timeout (was unbounded) — the ca_downloadProgress
+		   nchan stream lets the user see and Abort a slow fetch, but the
+		   timeout caps the worst case in case the connection silently stalls
+		   without ever timing out at the socket layer.
+		   shared=false: $downloadURL is a per-request random tempfile — we
+		   don't want download_url to serialize different requests on each
+		   other since their target paths are unique anyway. */
+		$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
 		if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
 			$currentFeed = "Backup Server";
-			$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 300);
+			$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 600, false);
 		}
-		@unlink($downloadURL);
-		if ( (! is_array($ApplicationFeed['applist'])) || empty($ApplicationFeed['applist']) ) {
+		/* Null-coalesce — if both primary + backup downloads returned false,
+		   $ApplicationFeed is false here and a direct array-access would
+		   warn before the clean failure path below runs. Mirrors the same
+		   `?? false` / `?? []` pattern used in the primary check at line 255. */
+		if ( ! is_array($ApplicationFeed['applist'] ?? null) || empty($ApplicationFeed['applist'] ?? []) ) {
+			/* Don't unlink $downloadURL on failure — leave the raw bytes
+			   (preserved by download_json under $shared=false) on disk so
+			   buildDownloadFailureResponse can read them for the
+			   partial-download hint + json_last_error_msg detail. */
 			@unlink(CA_PATHS['currentServer']);
 			ca_file_put_contents(CA_PATHS['appFeedDownloadError'],$downloadURL);
 			return false;
 		}
+		/* Success — feed parsed cleanly, the per-request tempfile served its
+		   purpose. Clean it up so /tmp doesn't accumulate stale randomFile()s. */
+		@unlink($downloadURL);
 	}
 	ca_file_put_contents(CA_PATHS['currentServer'],$currentFeed);
 	$i = 0;
@@ -1793,6 +1815,7 @@ function getTemplateChanges() {
 		"message" => ($html !== "" ? "" : tr("Change log can't be loaded"))
 	]);
 }
+
 
 /**
  * Fetch changelog/markdown for a template or plugin URL and return sanitized HTML.
