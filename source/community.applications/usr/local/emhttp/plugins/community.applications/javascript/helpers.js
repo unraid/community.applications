@@ -31,10 +31,21 @@ function isValidURL(url) {
 	}
 }
 
+/**
+ * Escape HTML special characters in the string (`&`, `<`, `>`) for safe DOM insertion.
+ *
+ * @returns {string} HTML-escaped copy of the string.
+ */
 String.prototype.escapeHTML = function() {
 	return this.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+/**
+ * Return a new array containing the unique elements of this array, preserving
+ * first-seen order.
+ *
+ * @returns {Array} Deduplicated copy of this array.
+ */
 Array.prototype.uniqueArrayElements = function() {
 	var uniqueEntries = new Array();
 	$.each(this, function(i, el) {
@@ -45,6 +56,11 @@ Array.prototype.uniqueArrayElements = function() {
 	return uniqueEntries;
 }
 
+/**
+ * Return the last path segment of a `/`-separated string (filename basename).
+ *
+ * @returns {string} Final segment after the last forward slash.
+ */
 String.prototype.basename = function() {
 	return this.split('/').reverse()[0];
 }
@@ -865,6 +881,15 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
    ribbon labels (INSTALLED / UPDATED / Blacklisted / etc.) repeat across
    every page render — without caching we'd re-measure them constantly. */
 window.caFitTextCache = window.caFitTextCache || {};
+/**
+ * Shrink the font-size of each matched element in 10% steps until its contents
+ * no longer overflow (using {@link isOverflown}). Results are memoized in
+ * `window.caFitTextCache` keyed by class, text, overflow axis, and box size so
+ * repeated ribbon labels are measured only once.
+ *
+ * @param {boolean} [overFlowType=false] When truthy, check horizontal overflow; otherwise vertical.
+ * @returns {jQuery} The original jQuery collection for chaining.
+ */
 jQuery.fn.fitText = function(overFlowType=false) {
 	var el = this;
 	var cache = window.caFitTextCache;
@@ -891,6 +916,15 @@ jQuery.fn.fitText = function(overFlowType=false) {
 	return el;
 }
 
+/**
+ * Clone the matched element's contents into `#sidenavContent`, reset the
+ * sidenav scroll position, and open the alternate-view sidebar.
+ *
+ * Used to project a hidden template (e.g. settings/statistics) into the
+ * sidebar overlay. Calls the global {@link showAlternateView} after copying.
+ *
+ * @returns {jQuery} The original jQuery collection for chaining.
+ */
 jQuery.fn.showAlternateView = function() {
 	const $src = $(this);
 	const $dest = $("#sidenavContent");
@@ -904,6 +938,12 @@ jQuery.fn.showAlternateView = function() {
 	return this;
 }
 
+/**
+ * Get the rendered pixel width of the first matched element.
+ *
+ * @param {boolean} [everything=true] When true, include horizontal padding and margins; when false, content width only.
+ * @returns {number} Width in pixels.
+ */
 jQuery.fn.getWidth = function(everything=true) {
 	var width = $(this).css("width").replace("px","");
 	if ( ! everything ) {
@@ -948,7 +988,12 @@ function setupContext(menu,el) {
 	}
 }
 
-// Get a CSS variable value from the document root
+/**
+ * Read the computed value of a CSS custom property on `:root`.
+ *
+ * @param {string} varName Property name including leading `--`.
+ * @returns {string} Computed value (may include leading whitespace).
+ */
 function cssVar(varName) {
 	return window.getComputedStyle(document.documentElement).getPropertyValue(varName);
 }
@@ -967,7 +1012,14 @@ function caIsModalOverlayUp() {
 	return $overlay.length > 0 && $overlay.css("pointer-events") === "auto";
 }
 
-// Watch for class changes on an element
+/**
+ * Invoke `cb` whenever the `class` attribute of any matched element mutates.
+ *
+ * Sets up a `MutationObserver` per element scoped to `attributeFilter:['class']`.
+ *
+ * @param {function(HTMLElement, string): void} cb Callback receiving the changed element and its current `className`.
+ * @returns {jQuery} The original jQuery collection for chaining.
+ */
 $.fn.onClassChange = function(cb) {
 	return $(this).each((_, el) => {
 		new MutationObserver(mutations => {
@@ -978,7 +1030,17 @@ $.fn.onClassChange = function(cb) {
 		});
 	});
 }
-// Watch for a visibility change
+/**
+ * Invoke `callback` (bound to the element) whenever any matched element
+ * transitions to not-intersecting the viewport.
+ *
+ * Uses `IntersectionObserver` when available; logs a console warning on older
+ * browsers and silently does nothing. The observer is stashed on
+ * `$.data('visibilityObserver')` for later cleanup by callers.
+ *
+ * @param {Function} callback Called with `this` = the element that became hidden.
+ * @returns {jQuery} The original jQuery collection for chaining.
+ */
 $.fn.onVisibilityHidden = function(callback) {
 	return this.each(function() {
 		const $element = $(this);
@@ -1006,7 +1068,12 @@ $.fn.onVisibilityHidden = function(callback) {
 	});
 };
 
-// Save the state of CA if GUI Search takes us away from the page
+/**
+ * Persist CA UI state to cookies via {@link saveState}, used as the unload
+ * hook when Dynamix GUI Search navigates away from the page.
+ *
+ * @returns {void}
+ */
 function guiSearchOnUnload() {
 	saveState();
 }

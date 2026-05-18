@@ -19,7 +19,13 @@
  */
 
 /**
- * function # Convert CA markup tokens into clickable sidebar search links
+ * Convert CA markup tokens (`//term\`) into clickable sidebar search links.
+ *
+ * The visible anchor text is htmlspecialchars-escaped and the JS argument is
+ * json_encoded so feed-supplied terms cannot break out of their HTML/JS contexts.
+ *
+ * @param  mixed $text Input string (non-strings are returned unchanged).
+ * @return mixed The transformed string, or the original value if not a string.
  */
 function caApplySidebarSearchLinks($text) {
 	if (!is_string($text) || trim($text) === "") {
@@ -123,7 +129,13 @@ function caFormatTemplateChanges(array &$template) {
 }
 
 /**
- * Collect docker state used by popups (running containers and update metadata)
+ * Collect docker state used by popups (running containers and update metadata).
+ *
+ * Reads docker info via globals/helpers and the dockerUpdateStatus JSON file from disk.
+ *
+ * @param  object $DockerClient Docker client instance providing getDockerContainers().
+ * @return array{0: array<string,array<string,mixed>>, 1: array<int,array<string,mixed>>, 2: array<string,mixed>}
+ *                Tuple of [info indexed by container name, running containers, update status].
  */
 function caInitializeDockerState($DockerClient) {
 	$info = [];
@@ -145,7 +157,13 @@ function caInitializeDockerState($DockerClient) {
 }
 
 /**
- * Locate a template entry based on an app identifier within the displayed listings
+ * Locate a template entry based on an app identifier within the displayed listings.
+ *
+ * Searches first by InstallPath, then iterates by Path to find a matching index.
+ *
+ * @param  array<string,mixed> $displayed Cached displayed-templates structure (contains 'community').
+ * @param  mixed               $appNumber Identifier to match against InstallPath/Path.
+ * @return array{0: ?array<string,mixed>, 1: int|false} Tuple of [template, index] or [null, false] if not found.
  */
 function caLocateTemplate(array $displayed, $appNumber) {
 	$community = $displayed['community'] ?? [];
@@ -174,7 +192,13 @@ function caLocateTemplate(array $displayed, $appNumber) {
 }
 
 /**
- * Determine selection status and identifiers for docker/plugin templates
+ * Determine selection status and identifiers for docker/plugin templates.
+ *
+ * Mutates `$template['Repository']` to prepend `library/` when no registry slash is present.
+ *
+ * @param  array<string,mixed> $template      Template entry; modified in place.
+ * @param  array<int,array<string,mixed>> $dockerRunning Running docker containers list.
+ * @return array{0: ?bool, 1: ?string, 2: ?string} Tuple of [selected flag, container name, plugin name].
  */
 function caResolveSelectionState(array &$template, array $dockerRunning) {
 	$selected = null;
@@ -202,7 +226,12 @@ function caResolveSelectionState(array &$template, array $dockerRunning) {
 }
 
 /**
- * Normalize and format the Additional Requirements field for display
+ * Normalize and format the Additional Requirements field for display.
+ *
+ * Strips line endings, runs through Markdown, and applies sidebar search link tokens.
+ *
+ * @param  mixed $requires Raw requires field (string) or falsy.
+ * @return mixed Formatted HTML string, or the original falsy value.
  */
 function caNormalizeRequiresField($requires) {
 	if (!$requires) {
@@ -215,7 +244,13 @@ function caNormalizeRequiresField($requires) {
 }
 
 /**
- * Build the Support button context for a template card or popup
+ * Build the Support button context for a template card or popup.
+ *
+ * Reads `$GLOBALS['caSettings']['dev']` to optionally include template/plugin source links.
+ *
+ * @param  array<string,mixed>             $template        Template entry.
+ * @param  array<string,array<string,mixed>> $allRepositories Repository metadata keyed by repo name.
+ * @return array<int,array{icon:string,link:string,text:string}> Support entry list.
  */
 function caBuildSupportContext(array $template, array $allRepositories) {
 	$supportContext = [];
@@ -250,7 +285,14 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 }
 
 /**
- * Prepare trend data/markup for templates with download and usage statistics
+ * Prepare trend data/markup for templates with download and usage statistics.
+ *
+ * Mutates `$template` (Category, Icon, display_changelogMessage, trendsDate) and appends
+ * canvas markup to `$templateDescription` when trend data is available.
+ *
+ * @param  array<string,mixed> $template            Template entry; modified in place.
+ * @param  string              $templateDescription Buffer receiving chart canvas markup; modified in place.
+ * @return array{chartLabel:mixed,downloadLabel:mixed,down:array<int,int>,totalDown:array<int,int>}
  */
 function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 		$chartLabel = "";
@@ -325,7 +367,13 @@ function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 	}
 
 /**
- * Resolve pinned/unpinned state for templates based on user preferences
+ * Resolve pinned/unpinned state for templates based on user preferences.
+ *
+ * Sets `$template['pinnedClass']` to `pinned` or `unpinned`.
+ *
+ * @param  array<string,mixed> $template   Template entry; modified in place.
+ * @param  array<string,mixed> $pinnedApps Pinned-apps map keyed by `Repository&SortName`.
+ * @return void
  */
 function caResolvePinnedState(array &$template, array $pinnedApps) {
 		/* Mirrors the favourite-repo button: static label, state shown via
@@ -337,7 +385,14 @@ function caResolvePinnedState(array &$template, array $pinnedApps) {
 	}
 
 /**
- * Retrieve language pack metadata and load translation files when required
+ * Retrieve language pack metadata and load translation files when required.
+ *
+ * Downloads the requested locale file to CA_PATHS['tempFiles'] if absent (network I/O),
+ * then parses it into `$language` (modified in place).
+ *
+ * @param  array<string,mixed> $template Template entry; read-only access.
+ * @param  array<string,mixed> $language Translation map; populated in place.
+ * @return string|null Country code resolved for the template, or null if not a language pack.
  */
 function caPrepareLanguagePack(array &$template, array &$language) {
 		if (!$template['Language']) {
@@ -358,7 +413,19 @@ function caPrepareLanguagePack(array &$template, array &$language) {
 	}
 
 /**
- * Build the context menu for template actions (install/update/manage)
+ * Build the context menu for template actions (install/update/manage).
+ *
+ * Reads filesystem state (installed plugins, pending plugins, template XML files),
+ * mutates `$template['UpdateAvailable']` / `$template['Installed']`, and may invoke
+ * `@copy()` to stage plugin download into /tmp/plugins/.
+ *
+ * @param  array<string,mixed>             $template           Template entry; modified in place.
+ * @param  array<string,array<string,mixed>> $info               Docker container info keyed by name.
+ * @param  array<string,mixed>             $dockerUpdateStatus Update status keyed by Repository.
+ * @param  ?bool                           $selected           Selection state from caResolveSelectionState.
+ * @param  ?string                         $name               Resolved container name.
+ * @param  ?string                         $pluginName         Resolved plugin basename.
+ * @return array<int,array<string,mixed>> Ordered list of action descriptors.
  */
 function caBuildActionsContext(array &$template, array $info, array $dockerUpdateStatus, $selected, $name, $pluginName) {
 		$actionsContext = [];
@@ -501,7 +568,15 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 	}
 
 /**
- * Build action contexts for language pack templates within the card renderer
+ * Build action contexts for language pack templates within the card renderer.
+ *
+ * Reads /usr/local/emhttp/languages/ and checks for pending plugin files on disk;
+ * mutates `$template['Changes']` / `$template['UpdateAvailable']`.
+ *
+ * @param  array<string,mixed>             $template       Template entry; modified in place.
+ * @param  ?string                         $countryCode    Locale code (e.g. "en_US").
+ * @param  array<int,array<string,mixed>>  $actionsContext Existing actions list to extend.
+ * @return array<int,array<string,mixed>> Updated actions list.
  */
 function caBuildLanguageActions(array &$template, ?string $countryCode, array $actionsContext) {
 		if (!$template['Language']) {
@@ -554,7 +629,12 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 
 
 /**
- * Assemble docker-related context (warnings, info caches) for listings
+ * Assemble docker-related context (warnings, info caches) for listings.
+ *
+ * Reads CA_PATHS['dockerUpdateStatus'], CA_PATHS['unRaidVars'], and CA_PATHS['docker_cfg']
+ * from disk, and emits inline `<script>` markup setting `dockerNotEnabled` on the page.
+ *
+ * @return array{info:array<string,mixed>,dockerUpdateStatus:array<string,mixed>,dockerNotEnabled:int|string,dockerWarningFlag:string,displayHeader:string}
  */
 function caDockerContext(): array {
 	if ( caIsDockerRunning() ) {
@@ -601,7 +681,12 @@ function caDockerContext(): array {
 }
 
 /**
- * Normalize the structure of the multi-select payload used in CA UI
+ * Normalize the structure of the multi-select payload used in CA UI.
+ *
+ * Coerces falsy input to an empty array and ensures `docker` / `plugin` sub-keys exist.
+ *
+ * @param  mixed $selectedApps Raw selected-apps payload (array with docker/plugin sub-arrays, or falsy).
+ * @return array{0: array<string,array<int,string>>, 1: array<string,bool>} Tuple of [normalized payload, checkedOffApps map].
  */
 function caNormalizeSelectedApps($selectedApps): array {
 	if (! $selectedApps) {
@@ -617,7 +702,13 @@ function caNormalizeSelectedApps($selectedApps): array {
 }
 
 /**
- * Slice the current page worth of templates from the full listing
+ * Slice the current page worth of templates from the full listing.
+ *
+ * Reads `$GLOBALS['caSettings']['maxPerPage']` to determine page size.
+ *
+ * @param  array<int,array<string,mixed>> $file       Full ordered template list.
+ * @param  int                            $pageNumber 1-based page index.
+ * @return array<int,array<string,mixed>> Templates for the requested page.
  */
 function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
 	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
@@ -640,7 +731,12 @@ function caSliceDisplayedTemplates(array $file, int $pageNumber): array {
 }
 
 /**
- * Apply moderation overrides (blacklist/deprecation comments) to a template
+ * Apply moderation overrides (blacklist/deprecation comments) to a template.
+ *
+ * @param  array<string,mixed> $template        Template entry.
+ * @param  array<string,string> $extraBlacklist  Repository -> moderator comment map.
+ * @param  array<string,string> $extraDeprecated Repository -> moderator comment map.
+ * @return array<string,mixed> Template with Blacklist/Deprecated/ModeratorComment fields updated.
  */
 function caApplyModerationOverrides(array $template, array $extraBlacklist, array $extraDeprecated): array {
 	if (! $template['RepositoryTemplate']) {
@@ -659,7 +755,13 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
 }
 
 /**
- * Apply search-link transforms to moderator/CA comments + requires for the sidebar render. The install actions no longer carry a separate comment payload — the sidebar always shows these blocks before the install button, so a second confirm-swal would be redundant.
+ * Apply search-link transforms to moderator/CA comments + requires for the sidebar render.
+ *
+ * The install actions no longer carry a separate comment payload — the sidebar always
+ * shows these blocks before the install button, so a second confirm-swal would be redundant.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return array<string,mixed> Template with ModeratorComment, CAComment, and Requires reformatted.
  */
 function caPrepareTemplateComments(array $template): array {
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment'] ?? "");
@@ -674,7 +776,14 @@ function caPrepareTemplateComments(array $template): array {
 }
 
 /**
- * Build action contexts and flags for docker templates when rendering cards
+ * Build action contexts and flags for docker templates when rendering cards.
+ *
+ * Reads `$GLOBALS['caSettings']` and template XML files via readXmlFile() (filesystem I/O).
+ *
+ * @param  array<string,mixed>             $template           Template entry.
+ * @param  array<int,array<string,mixed>>  $info               Running docker container info.
+ * @param  array<string,mixed>             $dockerUpdateStatus Update status keyed by Repository.
+ * @return array{0: array<string,mixed>, 1: array<int,array<string,mixed>>} Tuple of [updated template, actionsContext].
  */
 function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus): array {
 	$actionsContext = [];
@@ -781,7 +890,13 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 }
 
 /**
- * Build action contexts and state for plugin templates when rendering cards
+ * Build action contexts and state for plugin templates when rendering cards.
+ *
+ * Reads plugin metadata from /var/log/plugins/ and /tmp/plugins/ on disk, and may
+ * `@copy()` the pending download into /tmp/plugins/ to stage an update.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return array{0: array<string,mixed>, 1: array<int,array<string,mixed>>} Tuple of [updated template, actionsContext].
  */
 function caProcessPluginTemplate(array $template): array {
 	$actionsContext = [];
@@ -951,7 +1066,13 @@ function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = 
 
 
 /**
- * Summarize repository statistics (counts/downloads) for repo popups
+ * Summarize repository statistics (counts/downloads) for repo popups.
+ *
+ * Reads `$GLOBALS['caSettings']` (hideDeprecated/hideIncompatible) for filter behaviour.
+ *
+ * @param  array<int,array<string,mixed>> $templates  Full template listing.
+ * @param  string                         $repository Repository name to match against `RepoName`.
+ * @return array{apps:int,languages:int,plugins:int,docker:int,downloads:int,downloadDockerCount:int,avgDownloads:int}
  */
 function caSummarizeRepositoryTemplates(array $templates, string $repository): array {
 	$totals = [
@@ -1008,7 +1129,10 @@ function caSummarizeRepositoryTemplates(array $templates, string $repository): a
 }
 
 /**
- * Build the donation section for repository popups
+ * Build the donation section for repository popups.
+ *
+ * @param  array<string,mixed> $repo Repository metadata containing DonateLink/DonateText.
+ * @return string HTML markup, or empty string if no donate link.
  */
 function caBuildRepoDonationSection(array $repo): string {
 	$donateLink = $repo['DonateLink'] ?? "";
@@ -1029,7 +1153,12 @@ function caBuildRepoDonationSection(array $repo): string {
 }
 
 /**
- * Build the media (photos/videos) section for repository popups
+ * Build the media (photos/videos) section for repository popups.
+ *
+ * Resolves YouTube thumbnails via getYoutubeThumbnail() for video tiles.
+ *
+ * @param  array<string,mixed> $repo Repository metadata containing Photo/Video entries.
+ * @return string HTML media gallery markup, or empty string if no media.
  */
 function caBuildRepoMediaSection(array $repo): string {
 	$hasPhoto = !empty($repo['Photo']);
@@ -1074,7 +1203,10 @@ function caBuildRepoMediaSection(array $repo): string {
 }
 
 /**
- * Build social/project link buttons for repository popups
+ * Build social/project link buttons for repository popups.
+ *
+ * @param  array<string,mixed> $repo Repository metadata containing WebPage/Forum/Facebook/etc.
+ * @return string HTML markup containing one anchor per valid social link.
  */
 function caBuildRepoLinkSection(array $repo): string {
 	$definitions = [
@@ -1101,7 +1233,11 @@ function caBuildRepoLinkSection(array $repo): string {
 }
 
 /**
- * Build the statistics table shown within repository popups
+ * Build the statistics table shown within repository popups.
+ *
+ * @param  array<string,mixed> $repo   Repository metadata (FirstSeen optional).
+ * @param  array<string,int>   $totals Totals from caSummarizeRepositoryTemplates().
+ * @return string HTML statistics table.
  */
 function caBuildRepoStatsSection(array $repo, array $totals): string {
 	$rows = [];
@@ -1135,14 +1271,22 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 }
 
 /**
- * Render pagination controls for Docker Hub search results
+ * Render pagination controls for Docker Hub search results.
+ *
+ * @param  int $num_pages  Total number of Docker Hub result pages (25 per page).
+ * @param  int $pageNumber Current 1-based page index.
+ * @return string Pagination `<script>` markup (from getPageNavigation).
  */
 function dockerNavigate($num_pages, $pageNumber) {
 	return getPageNavigation($pageNumber,$num_pages * 25, true);
 }
 
 /**
- * Attempt to find a template matching a repository name (with :latest fallback)
+ * Attempt to find a template matching a repository name (with :latest fallback).
+ *
+ * @param  array<int,array<string,mixed>> $templates  Full template listing.
+ * @param  string                         $repository Repository name to match.
+ * @return int|false Matching index, or false if not found.
  */
 function findTemplateMatch(array $templates, string $repository) {
 	$templateIndex = searchArray($templates, "Repository", $repository);
@@ -1155,7 +1299,15 @@ function findTemplateMatch(array $templates, string $repository) {
 }
 
 /**
- * Enrich a Docker Hub search result with CA metadata/actions
+ * Enrich a Docker Hub search result with CA metadata/actions.
+ *
+ * Merges in icon/description/actions from a matching CA template (when present),
+ * and base64-encodes the description so click-through install can survive cache eviction.
+ *
+ * @param  array<string,mixed>             $result           Raw Docker Hub search hit.
+ * @param  array<int,array<string,mixed>>  $templates        Full CA template listing for cross-reference.
+ * @param  bool                            $installsDisabled When true, omit the install action.
+ * @return array<string,mixed> Enriched result ready for displayCard().
  */
 function buildDockerHubResult(array $result, array $templates, bool $installsDisabled): array {
 	$result['Icon'] = $result['Icon'] ?? "/plugins/dynamix.docker.manager/images/question.png";
@@ -1195,7 +1347,10 @@ function buildDockerHubResult(array $result, array $templates, bool $installsDis
 }
 
 /**
- * Resolve the CA app type class/title for a template card
+ * Resolve the CA app type class/title for a template card.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return array{0:string,1:string} Tuple of [CSS class name, hover title].
  */
 function caResolveAppType(array $template): array {
 	$repositoryTemplate = !empty($template['RepositoryTemplate']);
@@ -1235,7 +1390,12 @@ function caResolveAppType(array $template): array {
 }
 
 /**
- * Normalize category labels used in cards (strip additional metadata)
+ * Normalize category labels used in cards (strip additional metadata).
+ *
+ * Keeps only the first whitespace- and colon-separated token (e.g. "Network:Proxy" -> "Network").
+ *
+ * @param  ?string $category Raw category string.
+ * @return string Normalized leading token, or empty string.
  */
 function caNormalizeCategory(?string $category): string {
 	if (!$category) {
@@ -1249,7 +1409,11 @@ function caNormalizeCategory(?string $category): string {
 }
 
 /**
- * Determine the author/maintainer label for a template card
+ * Determine the author/maintainer label for a template card.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @param  string              $repoName Default repository name to fall back to.
+ * @return string Rendered author/maintainer label.
  */
 function caResolveAuthor(array $template, string $repoName): string {
 	if (!empty($template['DockerHub'])) {
@@ -1278,7 +1442,13 @@ function caResolveAuthor(array $template, string $repoName): string {
 }
 
 /**
- * Build an inline ReadMe section placeholder for GitHub README links
+ * Build an inline ReadMe section placeholder for GitHub README links.
+ *
+ * Parses the URL and only emits a section for github.com URLs that point at a repo root,
+ * a README fragment, or a README.md file. The actual content is fetched lazily client-side.
+ *
+ * @param  array<string,mixed> $template Template entry (uses `ReadMe` field).
+ * @return string HTML markup, or empty string if URL is missing/invalid.
  */
 function caBuildReadmeSectionDiv(array $template): string {
 	$readmeUrl = trim($template['ReadMe'] ?? "");
@@ -1321,7 +1491,14 @@ function caBuildReadmeSectionDiv(array $template): string {
 }
 
 /**
- * Build repository card overrides/context when rendering repo entries
+ * Build repository card overrides/context when rendering repo entries.
+ *
+ * Produces field-clearing overrides so repo cards don't inherit per-app metadata.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @param  string              $repoName Repository name.
+ * @param  string              $author   Pre-resolved author label.
+ * @return array{holderClass:string,cardClass:string,id:string,actionsContext:array<int,mixed>,name:string,author:string,overrides:array<string,mixed>}
  */
 function caBuildRepositoryContext(array $template, string $repoName, string $author): array {
 	/* No supportContext built here — repo cards don't render support buttons.
@@ -1373,7 +1550,16 @@ function caBuildRepositoryContext(array $template, string $repoName, string $aut
 }
 
 /**
- * Build the base card container, actions, and navigation footer markup
+ * Build the base card container, actions, and navigation footer markup.
+ *
+ * @param  array<string,mixed> $template   Template entry.
+ * @param  string              $cardClass  Inner card CSS class.
+ * @param  ?string             $popupType  Popup CSS hook class, or null for DockerHub cards.
+ * @param  string              $holderClass Extra holder CSS class.
+ * @param  string              $class      Base card CSS class.
+ * @param  string              $name       App name (for data-appname).
+ * @param  string              $repoName   Repository name (for data-repository).
+ * @return array{0:string,1:string,2:string} Tuple of [cardStart HTML, card HTML, backgroundClickable class].
  */
 function caBuildBottomLineSection(
 	array $template,
@@ -1420,7 +1606,16 @@ function caBuildBottomLineSection(
 }
 
 /**
- * Render the Actions button/menu for a template card
+ * Render the Actions button/menu for a template card.
+ *
+ * Single-action Install contexts collapse to a direct-action button.
+ *
+ * @param  array<int,array<string,mixed>> $actionsContext Action descriptors.
+ * @param  string                         $pluginUrl      Plugin URL (data attribute).
+ * @param  string                         $languagePack   Language pack code (data attribute).
+ * @param  string                         $name           App name (used for sanitized DOM id).
+ * @param  string                         $id             Template ID suffix for unique DOM id.
+ * @return string HTML button markup, or empty string when no actions.
  */
 function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string $languagePack, string $name, string $id): string {
 	if (empty($actionsContext)) {
@@ -1441,7 +1636,12 @@ function caRenderActionsButtons(array $actionsContext, string $pluginUrl, string
 }
 
 /**
- * Render the favourite indicator span used on template/repo cards
+ * Render the favourite indicator span used on template/repo cards.
+ *
+ * @param  array<string,mixed> $template           Template entry (uses `ca_fav`).
+ * @param  string              $repoName           Repository name for the data attribute.
+ * @param  bool                $repositoryTemplate True when rendering a repo card.
+ * @return string HTML span markup.
  */
 function caRenderFavouriteSpan(array $template, string $repoName, bool $repositoryTemplate): string {
 	$repositoryAttr = str_replace("'", "", $repoName);
@@ -1455,7 +1655,10 @@ function caRenderFavouriteSpan(array $template, string $repoName, bool $reposito
 }
 
 /**
- * Render the pinned indicator span for template cards
+ * Render the pinned indicator span for template cards.
+ *
+ * @param  array<string,mixed> $template Template entry (uses Repository/SortName/Pinned).
+ * @return string HTML span markup (hidden when not pinned).
  */
 function caRenderPinnedSpan(array $template): string {
 	$repository = $template['Repository'] ?? "";
@@ -1467,7 +1670,10 @@ function caRenderPinnedSpan(array $template): string {
 }
 
 /**
- * Resolve the multi-select checkbox type (docker/plugin/language) for a card
+ * Resolve the multi-select checkbox type (docker/plugin/language) for a card.
+ *
+ * @param  string $appType App type class produced by caResolveAppType().
+ * @return string Checkbox type identifier (`docker`/`plugin`/`language`) or empty string.
  */
 function caResolveCheckboxType(string $appType): string {
 	switch ($appType) {
@@ -1484,7 +1690,13 @@ function caResolveCheckboxType(string $appType): string {
 }
 
 /**
- * Render the multi-select checkbox used for bulk install/update flows
+ * Render the multi-select checkbox used for bulk install/update flows.
+ *
+ * @param  array<string,mixed> $template        Template entry.
+ * @param  string              $previousAppName Identifier for previous-apps reinstall (Path/PluginURL).
+ * @param  string              $name            Human-readable app name.
+ * @param  string              $type            Checkbox type from caResolveCheckboxType().
+ * @return string HTML input markup, or empty string if no checkbox should render.
  */
 function caRenderCheckbox(array $template, string $previousAppName, string $name, string $type): string {
 	$checked = $template['checked'] ?? "";
@@ -1501,7 +1713,14 @@ function caRenderCheckbox(array $template, string $previousAppName, string $name
 }
 
 /**
- * Render the icon (image/font-awesome) for a template card
+ * Render the icon (image/font-awesome) for a template card.
+ *
+ * Only emits external `Icon` URLs when they pass validURL() to prevent same-origin
+ * GETs against the user's own GUI from a malicious template.
+ *
+ * @param  array<string,mixed> $template  Template entry.
+ * @param  bool                $dockerHub True when the card is a Docker Hub search result.
+ * @return string HTML icon markup (img or i element).
  */
 function caBuildIconMarkup(array $template, bool $dockerHub): string {
 	$imageNoClick = $dockerHub ? "noClick" : ($template['imageNoClick'] ?? "");
@@ -1526,7 +1745,15 @@ function caBuildIconMarkup(array $template, bool $dockerHub): string {
 }
 
 /**
- * Build the header section (name/author/category) for a template card
+ * Build the header section (name/author/category) for a template card.
+ *
+ * Promotes LTOfficial / Official templates to a canonical author label.
+ *
+ * @param  array<string,mixed> $template Template entry (uses LTOfficial/Official).
+ * @param  string              $name     App name.
+ * @param  string              $author   Pre-resolved author label.
+ * @param  string              $category Category label.
+ * @return string HTML header markup.
  */
 function caBuildApplicationHeader(array $template, string $name, string $author, string $category): string {
 	$header = "
@@ -1555,7 +1782,14 @@ function caBuildApplicationHeader(array $template, string $name, string $author,
 }
 
 /**
- * Normalize overview/description copy for display in template cards
+ * Normalize overview/description copy for display in template cards.
+ *
+ * Runs the overview through markdown, strips tags, and prepends an "incompatible"
+ * banner when applicable for featured but incompatible/uninstall-only templates.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @param  string              $name     App name (used in incompatibility banners).
+ * @return string Plain-text overview ready for inclusion in a card.
  */
 function caNormalizeOverview(array $template, string $name): string {
 	$overview = $template['Overview'] ?: ($template['Description'] ?: ($template['Bio']??"") ?: "");
@@ -1585,7 +1819,15 @@ function caNormalizeOverview(array $template, string $name): string {
 }
 
 /**
- * Build the status flag/banner (installed, updated, etc.) for a template card
+ * Build the status flag/banner (installed, updated, etc.) for a template card.
+ *
+ * Returns the first matching banner in priority order: UpdateAvailable, Installed,
+ * Blacklist, caTemplateExists, Incompatible, Deprecated, Official, LTOfficial, Beta, Trusted.
+ *
+ * @param  array<string,mixed> $template      Template entry.
+ * @param  string              $flagTextStart Prefix text for the banner body.
+ * @param  string              $flagTextEnd   Suffix text for the banner body.
+ * @return string HTML banner markup, or empty string if no flag applies.
  */
 function caBuildCardFlag(array $template, string $flagTextStart, string $flagTextEnd): string {
 	if (!empty($template['UpdateAvailable'])) {

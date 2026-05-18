@@ -21,6 +21,15 @@ SPDX-License-Identifier: GPL-2.0-or-later
  * Call once after DOM ready.
  */
 function caInitializeClickHandlers() {
+	/**
+	 * Install fixed-position overlay scrollbars on the main panes so they
+	 * remain visible without the Firefox-style auto-hide behavior.
+	 *
+	 * Creates per-target horizontal/vertical thumbs inside `#ca_fixed_scroll_root`,
+	 * wires drag, wheel, hover, and DOM-mutation handlers, and keeps the mainArea
+	 * vertical indicator sized against `data.totalApps` so it reflects full
+	 * virtual-list progress (not just loaded DOM rows).
+	 */
 	function caInitFirefoxFixedHorizontalOverlay() {
 		var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav";
 		var overlays = new Map();
@@ -35,6 +44,11 @@ function caInitializeClickHandlers() {
 			$root = $("<div>", { id: "ca_fixed_scroll_root" }).appendTo("body");
 		}
 
+		/**
+		 * Get the bounding rect of `.mainArea`, or null if it is missing or zero-sized.
+		 *
+		 * @returns {DOMRect|null}
+		 */
 		var getMainAreaClientRect = function() {
 			var m = document.querySelector(".mainArea");
 			if (!m) return null;
@@ -43,8 +57,17 @@ function caInitializeClickHandlers() {
 			return r;
 		};
 
-		/* Horizontal overlay is drawn along the bottom edge of the scroll target; hide it when that
-		   track does not intersect .mainArea (eg. mobile menu / other panes outside the main pane). */
+		/**
+		 * Whether the horizontal track for `elRect` intersects the `.mainArea`
+		 * rect (so the overlay should be drawn).
+		 *
+		 * Horizontal overlay is drawn along the bottom edge of the scroll target;
+		 * hide it when that track does not intersect .mainArea (eg. mobile menu /
+		 * other panes outside the main pane).
+		 *
+		 * @param {DOMRect} elRect Bounding rect of the scroll target.
+		 * @returns {boolean}
+		 */
 		var hTrackIntersectsMainArea = function(elRect) {
 			var mainRect = getMainAreaClientRect();
 			if (!mainRect) return true;
@@ -55,10 +78,22 @@ function caInitializeClickHandlers() {
 			return hLeft < mainRect.right && hRight > mainRect.left && hTop < mainRect.bottom && hBottom > mainRect.top;
 		};
 
+		/**
+		 * True when `el` is the menu items pane and the mobile menu is showing,
+		 * meaning its indicators should stay visible.
+		 *
+		 * @param {HTMLElement} el
+		 * @returns {boolean}
+		 */
 		var shouldAlwaysShowMenuIndicators = function(el) {
 			return !!(el && el.classList && el.classList.contains("menuItems") && $(".mobileMenu").hasClass("menuShowing"));
 		};
 
+		/**
+		 * Cancel a pending hide-indicator timer for `el`.
+		 *
+		 * @param {HTMLElement} el
+		 */
 		var clearHideTimer = function(el) {
 			var t = hideTimers.get(el);
 			if (t) {
@@ -67,6 +102,11 @@ function caInitializeClickHandlers() {
 			}
 		};
 
+		/**
+		 * Mark `el`'s overlay indicators as `.visible` and clear any hide timer.
+		 *
+		 * @param {HTMLElement} el
+		 */
 		var showIndicator = function(el) {
 			var entry = overlays.get(el);
 			if (!entry) return;
@@ -75,6 +115,12 @@ function caInitializeClickHandlers() {
 			if (entry.$vIndicator && entry.$vIndicator.is(":visible")) entry.$vIndicator.addClass("visible");
 		};
 
+		/**
+		 * Schedule the indicators on `el` to fade out after 250ms unless the user
+		 * is still interacting with them (dragging, hovering, or hovering the pane).
+		 *
+		 * @param {HTMLElement} el
+		 */
 		var hideIndicatorSoon = function(el) {
 			var entry = overlays.get(el);
 			if (!entry) return;
@@ -90,6 +136,15 @@ function caInitializeClickHandlers() {
 			}, 250));
 		};
 
+		/**
+		 * Reposition and resize the overlay thumbs for `el` from its current
+		 * scroll metrics and bounding rect; hides indicators when they no longer
+		 * apply. For the always-on `.mainArea` vertical track, sizes against
+		 * `data.totalApps` and `caCardCache` so the thumb tracks full-result-set
+		 * progress instead of just the DOM slice.
+		 *
+		 * @param {HTMLElement} el
+		 */
 		var updateIndicator = function(el) {
 			var entry = overlays.get(el);
 			if (!entry) return;
@@ -190,6 +245,17 @@ function caInitializeClickHandlers() {
 			}
 		};
 
+		/**
+		 * Build and wire the overlay scrollbar(s) for `el`.
+		 *
+		 * Creates horizontal/vertical thumbs (when needed), registers them in
+		 * the `overlays` Map, and binds mousedown/wheel/scroll/hover handlers
+		 * for drag, click-to-scroll, wheel forwarding, and visibility. No-op
+		 * when an overlay already exists for `el` or the element does not
+		 * actually overflow.
+		 *
+		 * @param {HTMLElement} el
+		 */
 		var attachOverlay = function(el) {
 			if (overlays.has(el)) return;
 
@@ -249,6 +315,13 @@ function caInitializeClickHandlers() {
 			}
 			$(el).addClass("ca_custom_scroll_target");
 
+			/**
+			 * Begin a thumb drag along `axis`, binding document-level mousemove/mouseup
+			 * to translate pointer delta into `el.scrollLeft`/`scrollTop`.
+			 *
+			 * @param {"x"|"y"} axis Drag axis.
+			 * @param {MouseEvent} downEvent The mousedown that started the drag.
+			 */
 			var startDrag = function(axis, downEvent) {
 				downEvent.preventDefault();
 				downEvent.stopPropagation();
@@ -268,6 +341,12 @@ function caInitializeClickHandlers() {
 				if (axis === "x" && entry.$hThumb) entry.$hThumb.addClass("dragging");
 				if (axis === "y" && entry.$vThumb) entry.$vThumb.addClass("dragging");
 
+				/**
+				 * Mousemove handler for the active drag: convert pointer delta to a
+				 * scrollLeft/scrollTop delta and update the indicator.
+				 *
+				 * @param {MouseEvent} moveEvent
+				 */
 				var onMove = function(moveEvent) {
 					if (axis === "x") {
 						var trackWidth = rect.width;
@@ -293,6 +372,10 @@ function caInitializeClickHandlers() {
 					updateIndicator(el);
 				};
 
+				/**
+				 * Mouseup handler ending the active drag: unbind move/up listeners,
+				 * restore body `user-select`, clear dragging state, and queue hide.
+				 */
 				var onUp = function() {
 					$(document).off("mousemove.caScrollOverlay", onMove);
 					$(document).off("mouseup.caScrollOverlay", onUp);
@@ -446,6 +529,11 @@ function caInitializeClickHandlers() {
 			updateIndicator(el);
 		};
 
+		/**
+		 * Attach overlays to any new matching scroll targets, remove overlays
+		 * for elements that no longer match, and update the rest. Used as the
+		 * DOM-mutation/resize tick.
+		 */
 		var refreshTargets = function() {
 			$(selector).each(function() { attachOverlay(this); });
 			overlays.forEach(function(_, el) {
@@ -466,6 +554,10 @@ function caInitializeClickHandlers() {
 			overlays.forEach(function(_, el) { updateIndicator(el); });
 		}, true);
 		var refreshQueued = false;
+		/**
+		 * Coalesce multiple DOM-mutation events into a single
+		 * `refreshTargets()` call on the next animation frame.
+		 */
 		var queueRefresh = function() {
 			if (refreshQueued) return;
 			refreshQueued = true;
@@ -502,6 +594,15 @@ function caInitializeClickHandlers() {
 	caInitFirefoxFixedHorizontalOverlay();
 
 	if (window.caEnableLegacyExternalLinkGuard) {
+		/**
+		 * Legacy external-link guard: intercept clicks on anchors, `.ca_href`,
+		 * and `.dockerPopup`, classify the destination, and either follow it,
+		 * silently open it (allowed/internal Unraid domains), or prompt the
+		 * user with a SweetAlert before opening. Remembers approved hosts in
+		 * the `allowedDomains` cookie so subsequent clicks bypass the prompt.
+		 *
+		 * @param {jQuery.Event} e
+		 */
 		$("body").on("click", "a,.ca_href,.dockerPopup", function(e) {
 			var dockerHub = false;
 			var ca_href = false;
@@ -625,11 +726,11 @@ function caInitializeClickHandlers() {
 		return true;
 	}
 
-	/* Single click handler for the unified .ca_modal_overlay scrim. Dispatches
-	   to the close action for whichever modal is currently open. Priority:
-	   nchan swal > search modal > sidenav (sidebar) > mobile menu — only one
-	   of these is ever open at a time in practice, but the order codifies the
-	   rule. */
+	/**
+	 * Dispatch a click on the unified `.ca_modal_overlay` scrim to the
+	 * close-action for whichever modal is currently open. Priority order:
+	 * nchan SweetAlert > search modal > sidebar > mobile menu.
+	 */
 	$(".ca_modal_overlay").on("click", function() {
 		if ($(".sweet-alert.showSweetAlert.nchan").length) {
 			caTryClickNchanDone();
@@ -675,6 +776,11 @@ function caInitializeClickHandlers() {
 	/* #ca_mobile_layout_probe is in-viewport iff max-width 1024px layout (--mobileDevice true); see responsive.css. */
 	if (!window.__caMobileLayoutMenuSync) {
 		window.__caMobileLayoutMenuSync = true;
+		/**
+		 * Remove `menuShowing` (and add `menuHidden`) on adjustable layout
+		 * elements when the viewport leaves the mobile breakpoint, so the
+		 * mobile menu state doesn't persist onto desktop layouts.
+		 */
 		var caClearMenuShowingForDesktopLayout = function() {
 			try {
 				$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuHidden").removeClass("menuShowing");
@@ -691,6 +797,12 @@ function caInitializeClickHandlers() {
 			}).appendTo("body");
 		}
 		if (typeof IntersectionObserver !== "undefined") {
+			/**
+			 * IntersectionObserver callback: when the mobile-layout probe leaves
+			 * the viewport (i.e. layout is desktop), clear the mobile menu state.
+			 *
+			 * @param {IntersectionObserverEntry[]} entries
+			 */
 			var ioMobileLayout = new IntersectionObserver(function(entries) {
 				entries.forEach(function(entry) {
 					if (!entry.isIntersecting) caClearMenuShowingForDesktopLayout();
@@ -699,6 +811,10 @@ function caInitializeClickHandlers() {
 			ioMobileLayout.observe($probe[0]);
 		} else {
 			var mqCaMobile = window.matchMedia("(max-width: 1024px)");
+			/**
+			 * matchMedia change handler (fallback when IntersectionObserver
+			 * isn't supported): clear mobile-menu state once layout is desktop.
+			 */
 			var caMqFallback = function() {
 				if (!mqCaMobile.matches) caClearMenuShowingForDesktopLayout();
 			};
@@ -716,6 +832,10 @@ function caInitializeClickHandlers() {
 	$(".searchButton").on("mousedown", function(e) {
 		e.preventDefault();
 	});
+	/**
+	 * Search button click: if the search modal is already open, refocus the
+	 * input and re-kick Awesomplete; otherwise open the modal.
+	 */
 	$(".searchButton").on("click", function() {
 		if ($("body").hasClass("ca_searchModalOpen")) {
 			$("#searchBox").trigger("focus");
@@ -746,6 +866,13 @@ function caInitializeClickHandlers() {
 			true
 		);
 	}
+	/**
+	 * Search modal query button: close any open Awesomplete, ensure a sort
+	 * order is enabled (defaulting to "default" via server POST when none is),
+	 * then run `doSearch()` with the current `#searchBox` value.
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$(document).on("click", ".searchModalQueryBtn", function(e) {
 		e.stopPropagation();
 		if (!$("body").hasClass("ca_searchModalOpen")) return;
@@ -783,6 +910,11 @@ function caInitializeClickHandlers() {
 	   button gets relocated into .popupCloseAreaButtons (sibling of
 	   #sidenavContent, not descendant) by caRelocatePopupActions(). */
 	$("body").on("click", ".pinPopup", function() { pinApp(this, $(this).data("repository"), $(this).data("name")); });
+	/**
+	 * Click the "favourite repository" star: clear all favourite/holder marks
+	 * across the grid, swap the clicked icon to non-favourite, refresh the
+	 * tooltip, and persist via POST `toggleFavourite`.
+	 */
 	$(".mainArea").on("click", ".ca_favouriteRepo", function() {
 		$(".ca_fav").removeClass("ca_favouriteRepo").addClass("ca_non_favouriteRepo");
 		$(".ca_holderFav").removeClass("ca_holderFav");
@@ -795,6 +927,10 @@ function caInitializeClickHandlers() {
 		});
 	});
 	$("body").on("click", ".fav,.nonfav", function() { setFavourite(this); });
+	/**
+	 * Click a repository search link: close the sidebar, ensure a sort order
+	 * is enabled (defaulting if necessary), then run `doSearch(false, repo)`.
+	 */
 	$("body").on("click", ".ca_repoSearch,.ca_repoSearchPopUp", function() {
 		caClearHomeSectionSubtitle();
 		closeSidebar();
@@ -806,6 +942,10 @@ function caInitializeClickHandlers() {
 			post({ action: "defaultSortOrder" }, function() { $("#defaultSort").addClass("enabledIcon"); doSearch(false, repo); });
 		} else doSearch(false, repo);
 	});
+	/**
+	 * Sidebar "Favourite Repo" menu item click: search for the stored
+	 * repository, enabling the default sort if no sort icon is active.
+	 */
 	$(".favouriteRepo").on("click", function() {
 		if ($(this).hasClass("caMenuDisabled")) return;
 		var repo = $(this).attr("data-repository");
@@ -819,6 +959,11 @@ function caInitializeClickHandlers() {
 	});
 
 	$("body").on("click", ".templateSearch", function() { caClearHomeSectionSubtitle(); doSearch(false); });
+	/**
+	 * Click an XML install button: POST `createXML` with the selected
+	 * template type and any pending port-adjust answer, then redirect to
+	 * the AddContainer page on success.
+	 */
 	$("body").on("click", ".xmlInstall", function() {
 		var type = $(this).data("type");
 		var xml = $(this).data("xml");
@@ -840,6 +985,13 @@ function caInitializeClickHandlers() {
 		var repository = $(this).data("repository") ? $(this).data("repository") : $(this).closest(".ca_holder").data("repository");
 		showRepoPopup(repository);
 	});
+	/**
+	 * Card click on `.ca_holder`: open the repository popup, open the sidebar
+	 * for the app, or dismiss dropdowns based on the card's classes and the
+	 * `data.actions` action-bar flag.
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$("body").on("click", ".ca_holder", function(e) {
 		if (data.actions) { data.actions = false; return; }
 		data.actions = false;
@@ -855,6 +1007,14 @@ function caInitializeClickHandlers() {
 		if (!apppath || !appname) return;
 		showSidebarApp(apppath, appname);
 	});
+	/**
+	 * Menu-item click dispatcher: route Statistics/Settings/Credits items to
+	 * their renderers; otherwise scroll to top and close the menu.
+	 * Suppresses re-clicks on the already-selected item (with a Repositories
+	 * exception so the user can leave that category).
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$("body").on("click", ".caMenuItem", function(e) {
 		if ($(this).hasClass("caMenuDisabled")) return;
 		/* Suppress re-clicks of the already-selected menu item, EXCEPT when
@@ -868,6 +1028,11 @@ function caInitializeClickHandlers() {
 		else if ($(this).hasClass("showCredits")) { e.stopPropagation(); showCredits(); }
 		else { scrollToTop(); closeMenu(); }
 	});
+	/**
+	 * Category-menu click: clear the search box (when no in-progress search),
+	 * scroll to top, ensure a sort order is selected, then `changeCategory()`
+	 * to render the new category.
+	 */
 	$(".menuItems").on("click", ".categoryMenu", function() {
 		var menu = this;
 		if ($(menu).hasClass("caMenuDisabled")) return;
@@ -897,6 +1062,11 @@ function caInitializeClickHandlers() {
 		$("#" + $(this).data("chart")).show();
 	});
 	$(".sidebar").on("click", ".popUpBack", function() { showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName")); });
+	/**
+	 * Menu-selection state: highlight the clicked `.caMenuItem` as
+	 * `selectedMenu`, slide-open its sub-menu, and collapse siblings when
+	 * appropriate (with special-case behavior for the Repositories item).
+	 */
 	$("body").on("click", ".caMenuItem", function() {
 		if ($(this).hasClass("caMenuDisabled") || $(this).hasClass("noSelect") || $(this).attr("onclick")) return;
 		if (!$(this).hasClass("startupButton")) {
@@ -921,6 +1091,11 @@ function caInitializeClickHandlers() {
 		$(this).addClass("selectedMenu");
 		if (slideFlag && !$(this).parent().hasClass("actionCentre")) $(this).next().show("fast");
 	});
+	/**
+	 * Section-menu click (Installed/Previous/Pinned/Action Centre): dispatch
+	 * to the corresponding section renderer, keyed on the element's
+	 * `data-category` attribute.
+	 */
 	$("body").on("click", ".sectionMenu", function() {
 		if ($(this).hasClass("caMenuDisabled")) return;
 		caClearHomeSectionSubtitle();
@@ -937,6 +1112,11 @@ function caInitializeClickHandlers() {
 			case "pinned_apps": pinnedApps(); break;
 		}
 	});
+	/**
+	 * "Show more" button on a Home section: change menu selection to the
+	 * section's category, set the home subtitle, clear search, scroll to top,
+	 * and POST the section's sort order before fetching its full content.
+	 */
 	$(".mainArea").on("click", ".homeMore", function() {
 		var description = $(this).data("des");
 		var category = $(this).data("category");
@@ -957,6 +1137,10 @@ function caInitializeClickHandlers() {
 		scrollToTop();
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
 	});
+	/**
+	 * "Debugging" menu click: build a timestamped filename, POST
+	 * `downloadDebugging`, and redirect the browser to the resulting zip URL.
+	 */
 	$("body").on("click", ".debugging", function() {
 		var tzoffset = (new Date()).getTimezoneOffset() * 60000;
 		var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
@@ -971,6 +1155,11 @@ function caInitializeClickHandlers() {
 	$(".multi_installClear").click(function() { clearMultiInstall(); });
 	$(".multi_deleteButton").click(function() { deleteMulti(); });
 	$(".multi_installAll").click(function() { selectAllPrevious(); enableMultiInstall(); });
+	/**
+	 * Home/Startup button click: set `data.ignoreUnload` so saveState() does
+	 * not run on the upcoming reload, clear CA-related cookies (with legacy
+	 * cookie option fallbacks), then `window.location.reload()`.
+	 */
 	$("body").on("click", ".startupButton", function() {
 		/* Home should start fresh; prevent onbeforeunload from writing saveState cookies back. */
 		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
@@ -990,6 +1179,10 @@ function caInitializeClickHandlers() {
 		window.location.reload();
 	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
+	/**
+	 * Sort-icon click: set the icon as active, reset paging/search state, and
+	 * POST the new `changeSortOrder` before refetching via `changeSortOrder()`.
+	 */
 	$(".sortIcons").click(function() {
 		$(".sortIcons").removeClass("enabledIcon");
 		$(this).addClass("enabledIcon");
@@ -1221,6 +1414,13 @@ function caInitializeEventHandlers() {
 	   replace, etc.) drifts focus to <body>. Without that, arrow keys after
 	   the first scroll would scroll the document instead of the pane. */
 	var caHoverTarget = null;
+	/**
+	 * Focus a scrollable pane on hover so the browser's native arrow / PgUp /
+	 * PgDn / Home / End keys scroll it. Skipped while an input/textarea is
+	 * focused; `preventScroll` keeps the focus call from snapping the page.
+	 *
+	 * @param {HTMLElement} el The pane element to focus.
+	 */
 	var caFocusOnHoverFn = function(el) {
 		if (!el) return;
 		caHoverTarget = el;
@@ -1247,6 +1447,12 @@ function caInitializeEventHandlers() {
 		if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
 		caFocusOnHoverFn(caHoverTarget);
 	});
+	/**
+	 * Capture-phase error handler that substitutes a placeholder image when
+	 * any `<img>` fails to load (spotlight icons get their dedicated backup).
+	 *
+	 * @param {ErrorEvent} event
+	 */
 	window.addEventListener("error", function(event) {
 		var target = event.target;
 		if (target && target.tagName === "IMG") {
@@ -1259,6 +1465,16 @@ function caInitializeEventHandlers() {
 		}
 	}, true);
 
+	/**
+	 * Global script-error handler: forward uncaught errors to the server via
+	 * POST `javascriptError` for logging.
+	 *
+	 * @param {string} msg
+	 * @param {string} url
+	 * @param {number} lineNo
+	 * @param {number} columnNo
+	 * @param {Error} error
+	 */
 	window.onerror = function(msg, url, lineNo, columnNo, error) {
 		post({ action: "javascriptError", msg: msg, url: url, lineNo: lineNo, columnNo: columnNo, error: error });
 	};
@@ -1281,6 +1497,13 @@ function caInitializeEventHandlers() {
 		caReopenSearchModalIfNeeded();
 	});
 
+	/**
+	 * Focusout from #searchFilter: when focus has actually left the filter
+	 * region (and not into the Awesomplete dropdown), close the search modal
+	 * (discarding the draft) or sync collapse state.
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$("#searchFilter").on("focusout", function(e) {
 		var rt = e.relatedTarget;
 		if (rt && $(rt).closest(".awesomplete").length) return;
@@ -1301,6 +1524,12 @@ function caInitializeEventHandlers() {
 		caRestoreCommittedSearchIfDrafted();
 	});
 
+	/**
+	 * Enter-key handler for #searchBox: close Awesomplete, ensure a sort
+	 * order is enabled (defaulting if not), then run `doSearch()`.
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$("#searchBox").keydown(function(e) {
 		if (e.which === 13) {
 			e.stopPropagation();
@@ -1321,6 +1550,12 @@ function caInitializeEventHandlers() {
 		}
 	});
 
+	/**
+	 * Body keydown: handle ESC to close (in priority order) the sidebar
+	 * popup, sidebar, mobile menu, or search modal/clear the search box.
+	 *
+	 * @param {jQuery.Event} e
+	 */
 	$("body").keydown(function(e) {
 		switch (e.which) {
 			case 27:
@@ -1376,6 +1611,11 @@ function caBindSettingsFormHandlers(initialFormState) {
 	   detect dirty fields and auto-submit when the panel is dismissed. */
 	$form.data("caInitialState", initialFormState);
 
+	/**
+	 * Submit handler for `.ca_settingsForm`: guard against re-entry, show a
+	 * banner, and reload once the progress iframe fires `load` (or after a
+	 * short fallback delay).
+	 */
 	$sidenav.off("submit.caSettings", ".ca_settingsForm").on("submit.caSettings", ".ca_settingsForm", function() {
 		var $localForm = $(this);
 		if ($localForm.data("submitting")) return false;

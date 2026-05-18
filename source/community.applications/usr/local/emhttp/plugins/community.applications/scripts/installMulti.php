@@ -27,6 +27,19 @@ require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 
 $unRaidVersion = parse_ini_file(CA_PATHS['unRaidVersion']);
 
+/**
+ * Translate a string and HTML-escape its quote characters.
+ *
+ * Runs the input through gettext (if available) and replaces double and
+ * single quotes with their numeric HTML entities so the result is safe to
+ * embed in attribute contexts. Either returns the translated string or
+ * echoes it directly, depending on $ret.
+ *
+ * @param  string $string The source phrase to translate.
+ * @param  bool   $ret    When true (default), return the translated string;
+ *                        when false, echo it and return void.
+ * @return ?string The translated/escaped string, or void when $ret is false.
+ */
 function tr($string,$ret=true) {
 	if ( function_exists("_") )
 		$string =  str_replace('"',"&#34;",str_replace("'","&#39;",_($string)));
@@ -36,6 +49,17 @@ function tr($string,$ret=true) {
 		echo $string;
 }
 
+/**
+ * Test whether $haystack ends with $needle (case-insensitive).
+ *
+ * Despite the name, this is a suffix check: the empty needle matches any
+ * haystack, otherwise the comparison uses strripos anchored at the end of
+ * the haystack.
+ *
+ * @param  string $haystack The string to inspect.
+ * @param  string $needle   The suffix to look for.
+ * @return bool   True if $haystack ends with $needle, false otherwise.
+ */
 function startsWith($haystack, $needle) {
 	return $needle === "" || strripos($haystack, $needle, -strlen($haystack)) !== FALSE;
 }

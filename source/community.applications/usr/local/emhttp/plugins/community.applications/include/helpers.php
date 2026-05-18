@@ -22,7 +22,11 @@
 require_once __DIR__ . "/paths.php";
 
 /**
- * Populate $GLOBALS['templates'] if it's not already populated
+ * Populate $GLOBALS['templates'] from the on-disk templates JSON when not already set.
+ *
+ * Also calls getSettings(). Clears the stat cache so file_exists() is fresh.
+ *
+ * @return void
  */
 function getGlobals() {
 	clearstatcache();
@@ -37,7 +41,12 @@ function getGlobals() {
 }
 
 /**
- * Get the full global templates array from the JSON file
+ * Re-populate $GLOBALS['templates'] from the heavyweight full templates JSON.
+ *
+ * Unlike getGlobals(), reads the file that retains Config/Network/etc. fields.
+ * Also calls getSettings().
+ *
+ * @return void
  */
 function getFullGlobals() {
 	$GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info-full']);
@@ -45,7 +54,13 @@ function getFullGlobals() {
 }
 
 /**
- * Gets CA's settings and auxiliary stuff
+ * Load CA + Dynamix + Unraid settings into $GLOBALS['caSettings'].
+ *
+ * Reads /etc/unraid-version, dynamix.cfg, and community.applications.cfg, then
+ * sets derived flags: dockerSearch (off when Docker isn't running) and the
+ * NoInstalls warning flag when the user hasn't accepted yet.
+ *
+ * @return void
  */
 function getSettings() {
 
@@ -69,7 +84,15 @@ function getSettings() {
 	}
 }
 /**
- * Write the global templates array to the JSON file
+ * Persist the in-memory templates array to both the slim and full on-disk JSON caches.
+ *
+ * Strips bulky container-config keys for the slim cache used by general
+ * browsing, but keeps everything in the full file for install/createXML flows.
+ * When the input is empty, both files are unlinked and $GLOBALS['templates']
+ * is cleared.
+ *
+ * @param  array<int,array<string,mixed>>  $templates
+ * @return void
  */
 function writeGlobals($templates) {
 	if ( ! is_array($templates) || empty($templates) ) {
@@ -112,7 +135,17 @@ function duplicateArrayWithoutKeys($source, $keysToRemove = []): array {
 	return $copy;
 }
 /**
- * Sanitize output from plugin function
+ * Wrapper around Unraid's plugin() that caches attribute reads and sanitizes output.
+ *
+ * For "method" calls (dump, changes, install, etc.) the response is HTML-stripped
+ * and the attribute cache is invalidated. For attribute reads, results are
+ * persisted to CA_PATHS['pluginAttributesCache'] so subsequent reads avoid
+ * re-parsing the XML.
+ *
+ * @param  string  $method       Plugin method name or attribute name.
+ * @param  string  $plugin_file  Path to the .plg.
+ * @param  bool    $dontCache    When true, bypass the attribute cache.
+ * @return mixed Cached attribute value, sanitized method output, or false.
  */
 function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 	static $attributeCache = [];
@@ -170,7 +203,9 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 	}
 }
 /**
- * Drop the attribute cache
+ * Delete the on-disk plugin attribute cache file.
+ *
+ * @return void
  */
 function dropAttributeCache() {
 
@@ -178,13 +213,25 @@ function dropAttributeCache() {
 	@unlink(CA_PATHS['pluginAttributesCache']);
 }
 /**
- * Convert Array("one","two","three") to be Array("one"=>$defaultFlag, "two"=>$defaultFlag, "three"=>$defaultFlag
+ * Convert a list array into a flag map keyed by value.
+ *
+ * Example: ["one","two"] with default true -> ["one"=>true,"two"=>true].
+ *
+ * @param  array<int,string>|mixed  $sourceArray
+ * @param  mixed                    $defaultFlag
+ * @return array<string,mixed>
  */
 function arrayEntriesToObject($sourceArray,$defaultFlag=true) {
 	return is_array($sourceArray) ? array_fill_keys($sourceArray,$defaultFlag) : [];
 }
 /**
- * Helper function to determine if a plugin has an update available or not
+ * Determine whether a queued plugin in /tmp/plugins/ is newer than the installed copy.
+ *
+ * Also honors the queued file's unRAID-min-version attribute so updates flagged
+ * for a future OS aren't reported.
+ *
+ * @param  string  $filename  Plugin filename or path; only the basename matters.
+ * @return bool
  */
 function checkPluginUpdate($filename) {
 
@@ -200,7 +247,12 @@ function checkPluginUpdate($filename) {
 	return false;
 }
 /**
- * returns a random file name (/tmp/community.applications/tempFiles/34234234.tmp)
+ * Return a unique temp filename under CA_PATHS['tempFiles'] (CA-Temp-XXXXXX).
+ *
+ * Creates the file as a side effect of tempnam(); caller is responsible for
+ * cleanup.
+ *
+ * @return string Path to the new temp file.
  */
 function randomFile() {
 
@@ -533,7 +585,13 @@ function var_dump_ret($mixed = null) {
 	return $content;
 }
 /**
- * Determine if $haystack begins with $needle
+ * Determine whether $haystack begins with $needle.
+ *
+ * When $needle is an array, returns true when any candidate matches.
+ *
+ * @param  string                       $haystack
+ * @param  string|array<int,string>     $needle
+ * @return bool
  */
 function startsWith($haystack, $needle) {
 	if ( is_array($needle) ) {
@@ -547,7 +605,13 @@ function startsWith($haystack, $needle) {
 	return $needle === "" || strripos($haystack, $needle, -strlen($haystack)) !== FALSE;
 }
 /**
- * Determine if $string ends with $endstring
+ * Determine whether $string ends with $endString.
+ *
+ * When $endString is an array, returns true when any candidate matches.
+ *
+ * @param  string                       $string
+ * @param  string|array<int,string>     $endString
+ * @return bool
  */
 function endsWith($string, $endString) {
 	if ( is_array($endString) ) {
@@ -564,21 +628,39 @@ function endsWith($string, $endString) {
 	return (substr($string, -$len) === $endString);
 }
 /**
- * Replace the first occurance in a string
+ * Replace only the first occurrence of $needle in $haystack with $replace.
+ *
+ * @param  string  $haystack
+ * @param  string  $needle
+ * @param  string  $replace
+ * @return string
  */
 function first_str_replace($haystack, $needle, $replace) {
 	$pos = strpos($haystack, $needle);
 	return ($pos !== false) ? substr_replace($haystack, $replace, $pos, strlen($needle)) : $haystack;
 }
 /**
- * Replace the last occurance in a string
+ * Replace only the last occurrence of $needle in $haystack with $replace.
+ *
+ * @param  string  $haystack
+ * @param  string  $needle
+ * @param  string  $replace
+ * @return string
  */
 function last_str_replace($haystack, $needle, $replace) {
 	$pos = strrpos($haystack, $needle);
 	return ($pos !== false) ? substr_replace($haystack, $replace, $pos, strlen($needle)) : $haystack;
 }
 /**
- * Custom sort routine
+ * usort() comparator that honors global $sortOrder (sortBy + sortDir).
+ *
+ * Numeric comparisons are used for downloads / trendDelta; everything else
+ * falls back to case-insensitive string compare. "Name" is mapped to
+ * "SortName" so " - " normalized titles sort correctly.
+ *
+ * @param  array<string,mixed>  $a
+ * @param  array<string,mixed>  $b
+ * @return int
  */
 function mySort($a, $b) {
 	global $sortOrder;
@@ -635,7 +717,16 @@ function favouriteSort($a,$b) {
 	return 0;
 }
 /**
- * Search array for a particular key and value returns the index number of the array return value === false if not found
+ * Locate the first index in $array whose [$key] equals $value.
+ *
+ * Returns the index, or `false` when not found. Iteration starts at
+ * $startingIndex which lets callers resume past previously matched rows.
+ *
+ * @param  array<int|string,array<string,mixed>>  $array
+ * @param  string                                 $key
+ * @param  mixed                                  $value
+ * @param  int                                    $startingIndex
+ * @return int|string|false
  */
 function searchArray($array,$key,$value,$startingIndex=0) {
 	if (is_array($array) && count($array) ) {
@@ -651,7 +742,14 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 	return false;
 }
 /**
- * Fix common problems (maintainer errors) in templates
+ * Repair common template authoring mistakes so the rest of the pipeline can trust the row.
+ *
+ * Fixes default MinVer, derives Date/BrandNewApp, normalizes Deprecated /
+ * Blacklist into real booleans, applies DeprecatedMaxVer, and clears
+ * boilerplate "Container Path:" descriptions from Config entries.
+ *
+ * @param  array<string,mixed>  $template
+ * @return array<string,mixed>
  */
 function fixTemplates($template) {
 
@@ -690,7 +788,13 @@ function fixTemplates($template) {
 	return $template;
 }
 /**
- * Function used to create XML's from appFeeds
+ * Build a dockerMan-compatible XML string from a CA template array.
+ *
+ * Promotes Overview into Description, normalizes Network/Config attributes,
+ * sanitizes Requires links, and delegates to Array2XML.
+ *
+ * @param  array<string,mixed>  $template
+ * @return string XML document.
  */
 function makeXML($template) {
 	# ensure its a v2 template if the Config entries exist
@@ -717,7 +821,14 @@ function makeXML($template) {
 	return $xml->saveXML();
 }
 /**
- * Function to fix differing schema in the appfeed vs what Array2XML class wants
+ * Reshape appfeed-style Network/Config entries into the Array2XML form (in place).
+ *
+ * Single-entry @attributes/value pairs get wrapped into a list; existing list
+ * entries are pivoted to @attributes/@value.
+ *
+ * @param  array<string,mixed>  $template
+ * @param  string               $attribute  Key to fix ("Network" or "Config").
+ * @return void
  */
 function fixAttributes(&$template,$attribute) {
 	if ( ! isset($template[$attribute]) ) return;
@@ -738,7 +849,13 @@ function fixAttributes(&$template,$attribute) {
 	}
 }
 /**
- * checks the Min/Max version of an app against unRaid's version Returns: TRUE if it's valid to run, FALSE if not
+ * Test a template's MinVer/MaxVer/IncompatibleVersion against the running Unraid version.
+ *
+ * Reads $GLOBALS['caSettings']['unRaidVersion']. Returns true when the app is
+ * compatible with the running OS.
+ *
+ * @param  array<string,mixed>  $template
+ * @return bool
  */
 function versionCheck($template) {
 
@@ -779,7 +896,15 @@ function removeXMLtags(&$template) {
 	}
 }
 /**
- * Function to read a template XML to an array
+ * Read a dockerMan/CA template XML into an array and apply CA-specific fixups.
+ *
+ * Strips dangerous markup, fills in missing keys, derives Author / DockerHubName /
+ * SortName, and (unless $generic) increments global $statistics counters.
+ *
+ * @param  string  $xmlfile
+ * @param  bool    $generic  When true, return the raw parsed array without CA fixups.
+ * @param  bool    $stats    When true, tally plugin/docker counts in $statistics.
+ * @return array<string,mixed>|false False when the file is missing or unparseable.
  */
 function readXmlFile($xmlfile,$generic=false,$stats=true) {
 	global $statistics;
@@ -823,7 +948,12 @@ function readXmlFile($xmlfile,$generic=false,$stats=true) {
 	return $o;
 }
 /**
- * Function To Merge Moderation into templates array (Because moderation can be updated when templates are not ) If appfeed is updated, this is done when creating the templates
+ * Reapply moderation (Compatible/Featured/Deprecated/UninstallOnly) onto the in-memory templates.
+ *
+ * Moderation can be refreshed independently of the appfeed, so this is invoked
+ * outside DownloadApplicationFeed() to keep $GLOBALS['templates'] current.
+ *
+ * @return void
  */
 function moderateTemplates() {
 
@@ -849,7 +979,14 @@ function moderateTemplates() {
 
 }
 /**
- * Function to check for a valid URL
+ * Validate that $URL is a plausibly clickable public-internet http(s) URL.
+ *
+ * Rejects non-http(s) schemes, loopback IPv4/IPv6 (including bracketed,
+ * mapped-v6, and decimal/hex bypass forms) so templates can't smuggle in
+ * file://, javascript: or local-GUI redirects.
+ *
+ * @param  string  $URL
+ * @return bool
  */
 function validURL($URL) {
 	/* filter_var alone accepts ftp:/file:/etc., so additionally require an
@@ -890,7 +1027,15 @@ function validURL($URL) {
 }
 
 /**
- * Test whether a host string resolves to a private or loopback address. Used by the README/changelog sanitizers, which need a stricter policy than validURL — every link/image must point to the public internet, not LAN hosts, link-local, ULA, etc.
+ * Test whether a host string resolves to a private or loopback address.
+ *
+ * Used by the README/changelog sanitizers, which need a stricter policy than
+ * validURL — every link/image must point to the public internet, not LAN
+ * hosts, link-local, ULA, etc. Decimal- and hex-encoded IPv4 bypasses are
+ * normalized to dotted quads first; IPv6 ULA / link-local / IPv4-mapped
+ * loopback are all recognized.
+ *
+ * @param  string  $host
  * @return bool
  */
 function caIsPrivateOrLoopbackHost(string $host): bool {
@@ -948,7 +1093,12 @@ function caIsPrivateOrLoopbackHost(string $host): bool {
 }
 
 /**
- * Stricter sibling of validURL: requires http(s) and a publicly routable host. Used in README/changelog sanitization where any pointer at a LAN host is considered hostile.
+ * Stricter sibling of validURL: requires http(s) and a publicly routable host.
+ *
+ * Used in README/changelog sanitization where any pointer at a LAN host is
+ * considered hostile.
+ *
+ * @param  string  $url
  * @return bool
  */
 function caIsPublicHttpUrl(string $url): bool {
@@ -960,7 +1110,15 @@ function caIsPublicHttpUrl(string $url): bool {
 }
 
 /**
- * Function used to determine if a search term matches
+ * Test whether a filter string matches one or more candidate strings.
+ *
+ * In exact mode every filter word must match at least one candidate; in
+ * non-exact mode any word match returns true.
+ *
+ * @param  string             $filter       Space-separated search terms.
+ * @param  array<int,?string> $searchArray  Candidate strings.
+ * @param  bool               $exact        When true, all words must match.
+ * @return bool
  */
 function filterMatch($filter,$searchArray,$exact=true) {
 	$filterwords = explode(" ",$filter);
@@ -978,7 +1136,13 @@ function filterMatch($filter,$searchArray,$exact=true) {
 	return $exact ? ($foundword == count($filterwords)) : ($foundword > 0);
 }
 /**
- * Used to figure out which plugins have duplicated names
+ * Compute and persist the set of plugin .plg filenames that occur more than once.
+ *
+ * Walks $GLOBALS['templates'] looking for plugin templates whose Repository
+ * basename collides, and writes the dupe list to CA_PATHS['pluginDupes'] for
+ * the Moderation view to surface.
+ *
+ * @return void
  */
 function pluginDupe() {
 
@@ -998,7 +1162,10 @@ function pluginDupe() {
 	writeJsonFile(CA_PATHS['pluginDupes'],$dupeList);
 }
 /**
- * Checks if a plugin is installed
+ * Determine whether a plugin template's .plg file is installed and matches its PluginURL.
+ *
+ * @param  array<string,mixed>  $template
+ * @return bool
  */
 function checkInstalledPlugin($template) {
 
@@ -1010,14 +1177,23 @@ function checkInstalledPlugin($template) {
 }
 
 /**
- * Returns a string with only alphanumeric characters only
+ * Strip every non-alphanumeric character from $string.
+ *
+ * @param  string  $string
+ * @return string
  */
 function alphaNumeric($string) {
 	return preg_replace("/[^a-zA-Z0-9]+/", "", $string);
 }
 
 /**
- * Returns the author from the Repository entry
+ * Resolve the displayed author for a template (plugin or container).
+ *
+ * Plugin templates use PluginAuthor; otherwise the namespace part of the
+ * Repository is extracted (after stripping common registry prefixes).
+ *
+ * @param  array<string,mixed>  $template
+ * @return string
  */
 function getAuthor($template) {
 	if ( isset($template['PluginURL']) ) return $template['PluginAuthor'];
@@ -1031,7 +1207,11 @@ function getAuthor($template) {
 	return strip_tags(explode(":",$repoEntry[count($repoEntry)-2])[0]);
 }
 /**
- * Trims the category lists
+ * Format a template's category string for display (translated, truncated to 2 items by default).
+ *
+ * @param  string  $cat     Comma/colon/space-separated raw categories.
+ * @param  bool    $popUp   When true, show the entire list; otherwise top-2 plus "and N more".
+ * @return string
  */
 function categoryList($cat,$popUp = false) {
 	$cat = str_replace([":,",": "," "],",",$cat);
@@ -1049,7 +1229,10 @@ function categoryList($cat,$popUp = false) {
 	return rtrim(implode(", ",$categoryList),", ");
 }
 /**
- * Trims the language author list
+ * Truncate a comma-separated language author list to the first two entries plus "and N more".
+ *
+ * @param  string  $authors
+ * @return string
  */
 function languageAuthorList($authors) {
 	$newAuthor = "";
@@ -1065,7 +1248,14 @@ function languageAuthorList($authors) {
 	return $authors;
 }
 /**
- * Gets a rounded off download count
+ * Translate a precise download count into a coarse "More than 1,000" display string.
+ *
+ * Returns "" for tiny counts unless $lowFlag is true, in which case the raw
+ * count is returned verbatim.
+ *
+ * @param  int|float|string  $downloads
+ * @param  bool              $lowFlag
+ * @return string
  */
 function getDownloads($downloads,$lowFlag=false) {
 	$downloadCount = ["10000000000","5000000000","1000000000","500000000","100000000","50000000","25000000","10000000","5000000","2500000","1000000","500000","250000","100000","50000","25000","10000","5000","1000","500","100"];
@@ -1077,7 +1267,10 @@ function getDownloads($downloads,$lowFlag=false) {
 	return ($lowFlag) ? $downloads : "";
 }
 /**
- * Stops a container
+ * Stop a running Docker container by ID via the global DockerClient.
+ *
+ * @param  string  $id
+ * @return void
  */
 function myStopContainer($id) {
 	global $DockerClient;
@@ -1085,7 +1278,13 @@ function myStopContainer($id) {
 	$DockerClient->stopContainer($id);
 }
 /**
- * Fix Descriptions on previous apps
+ * Sanitize a template's [br]/[b]/<span> markup down to plain text plus minimal HTML.
+ *
+ * Pre-processes [br]/[b] codes and HTML entities, strips remaining tags, and
+ * returns the trimmed result. Used to clean Previously Installed descriptions.
+ *
+ * @param  string|mixed  $Description
+ * @return string
  */
 function fixDescription($Description) {
 	if ( !is_string($Description) ) {
@@ -1121,7 +1320,14 @@ function fixDescription($Description) {
 	return trim(strip_tags($Description));
 }
 /**
- * displays the branch tags
+ * Render the branch-tag <table> rows for the tag picker dialog.
+ *
+ * Builds a row per branch from $GLOBALS['templates'][$leadTemplate]['BranchID'],
+ * HTML-escaping every user-controlled fragment.
+ *
+ * @param  int|string  $leadTemplate  Parent template ID.
+ * @param  string      $rename        "true" -> use the rename install path.
+ * @return string HTML <table> fragment.
  */
 function formatTags($leadTemplate,$rename="false") {
 
@@ -1186,7 +1392,13 @@ function formatTags($leadTemplate,$rename="false") {
 	return "<table>" . implode("", $rows) . "</table>";
 }
 /**
- * handles the POST return
+ * Echo the POST-response payload as JSON (or raw string) and flush.
+ *
+ * For arrays, sets the Content-Type header and merges $GLOBALS['script'] into
+ * the payload. For non-arrays the value is echoed verbatim. Always flushes.
+ *
+ * @param  array<string,mixed>|string  $retArray
+ * @return void
  */
 function postReturn($retArray) {
 	if (is_array($retArray)) {
@@ -1208,6 +1420,16 @@ function postReturn($retArray) {
 # Translation backwards compatible #
 ####################################
 if ( ! function_exists("tr") ) {
+	/**
+	 * Backwards-compatible translation wrapper.
+	 *
+	 * Calls gettext-style _() and escapes embedded quotes for HTML-attribute
+	 * safety. Falls back to the original string when no translation exists.
+	 *
+	 * @param  string  $string
+	 * @param  int     $options  Passed through to the underlying translator.
+	 * @return string
+	 */
 	function tr($string,$options=-1) {
 		$translated = _($string,$options);
 		if ( ! trim($translated) )
@@ -1222,7 +1444,13 @@ if ( ! function_exists("tr") ) {
 	}
 }
 /**
- * Check for language update
+ * Determine whether an installed language pack has an update available.
+ *
+ * Compares the installed lang-<code>.xml Version against the feed template's
+ * Version and against any /tmp/plugins/ stage file.
+ *
+ * @param  array<string,mixed>  $template
+ * @return bool
  */
 function languageCheck($template) {
 
@@ -1246,7 +1474,14 @@ function languageCheck($template) {
 	return (strcmp($template['Version'],$xmlFile['Version']) > 0) || (strcmp($OSupdates['Version'],$xmlFile['Version']) > 0);
 }
 /**
- * Writes an ini file
+ * Serialize an associative array (with optional one-level sections) to INI on disk.
+ *
+ * Values are written wrapped in double quotes. Sections are emitted as
+ * [section] headers. Uses ca_file_put_contents() with LOCK_EX.
+ *
+ * @param  string                                      $file
+ * @param  array<string,string|array<string,string>>   $array
+ * @return void
  */
 function write_ini_file($file,$array) {
 	$res = [];
@@ -1262,7 +1497,14 @@ function write_ini_file($file,$array) {
 	ca_file_put_contents($file,implode("\r\n", $res),LOCK_EX);
 }
 /**
- * Gets all the information about what's installed
+ * Read (and cache) the list of currently installed containers with their template info.
+ *
+ * On first call (or when $force is true) re-queries DockerTemplates +
+ * DockerClient and persists to CA_PATHS['info']. Subsequent calls return the
+ * cached JSON.
+ *
+ * @param  bool  $force  Bypass the on-disk cache and re-query.
+ * @return array<int,array<string,mixed>>
  */
 function getAllInfo($force=false) {
 	global $DockerTemplates, $DockerClient;
@@ -1289,7 +1531,14 @@ function getAllInfo($force=false) {
 }
 
 /**
- * Logs the debug info
+ * Append a timestamped debug line to the CA log file.
+ *
+ * On first invocation per process, primes the log with environment metadata
+ * (CA version, Unraid version, ca.md5, locale, settings) and creates the log
+ * directory.
+ *
+ * @param  string  $str
+ * @return void
  */
 function debug($str) {
 
@@ -1318,7 +1567,13 @@ function debug($str) {
 	@file_put_contents(CA_PATHS['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
 }
 /**
- * Gets the default ports in a template
+ * Return a JSON-encoded list of host ports declared in a bridge-network template.
+ *
+ * Non-bridge networks always return "[]" since host ports don't apply. Each
+ * port entry falls back from value -> Default -> Target.
+ *
+ * @param  array<string,mixed>  $template
+ * @return string JSON list of ports.
  */
 function portsUsed($template) {
 
@@ -1343,7 +1598,16 @@ function portsUsed($template) {
 }
 
 /**
- * Walk a template's Config Port entries and bump any host port that's already in use (by the system or by an earlier port within this same template) to the next free port. Edits $template in place. No-op for non-bridge networks since host ports don't apply there.
+ * Bump any host port in a bridge-network template that's already in use to the next free port.
+ *
+ * Edits $template in place. Treats $portsInUse (and any port assigned earlier
+ * within this same template) as "taken"; iterates upward until a free port is
+ * found or the 16-bit range is exhausted. No-op for non-bridge networks since
+ * host ports don't apply there.
+ *
+ * @param  array<string,mixed>     $template     Modified by reference.
+ * @param  array<int,int|string>   $portsInUse   Ports already bound on the host.
+ * @return void
  */
 function adjustTemplatePorts(array &$template, array $portsInUse): void {
 	if (!isset($template['Config'])) return;
@@ -1380,7 +1644,12 @@ function adjustTemplatePorts(array &$template, array $portsInUse): void {
 }
 
 /**
- * Get the ports in use
+ * Return the list of TCP/UDP ports currently in LISTEN state on routable interfaces.
+ *
+ * Shells out to `lsof -Pni`, filters out 127.0.0.1 / [::1], and (when the
+ * server is configured for management bind) restricts to the configured IPs.
+ *
+ * @return array<int,string|int>
  */
 function getPortsInUse() {
 	global $var;
@@ -1428,7 +1697,9 @@ function plain($ip) {
 }
 
 /**
- * Tests whether the tailscale plugin is installed
+ * Return true when either the tailscale or tailscale-preview plugin is installed.
+ *
+ * @return bool
  */
 function isTailScaleInstalled() {
 	return is_file("/var/log/plugins/tailscale-preview.plg") || is_file("/var/log/plugins/tailscale.plg");
@@ -1456,7 +1727,12 @@ function checkServerDate() {
 }
 
 /**
- * Get youtube thumbnail from URL
+ * Convert a youtu.be / youtube.com watch URL into the default thumbnail URL.
+ *
+ * Returns the original URL untouched if neither pattern matches.
+ *
+ * @param  string  $url
+ * @return string
  */
 function getYoutubeThumbnail($url) {
 	// Handle youtu.be short URLs
@@ -1475,7 +1751,12 @@ function getYoutubeThumbnail($url) {
 
 
 /**
- * Adds in all the various missing entries from the templates for PHP8 compliance
+ * Fill missing-but-expected keys on a template row with null (for PHP 8 strict array access).
+ *
+ * Reads from a static $requiredVars list so the cost is paid once per process.
+ *
+ * @param  array<string,mixed>|mixed  $o
+ * @return array<string,mixed>|mixed Unchanged when $o is not an array.
  */
 function addMissingVars($o) {
 	if (!is_array($o)) {
@@ -2122,8 +2403,10 @@ class Array2XML {
 				}
 				return $node;
 		}
-		/*
-		 * Get the root XML node, if there isn't one, create it.
+		/**
+		 * Return the root DOMDocument, creating one via init() when uninitialized.
+		 *
+		 * @return DOMDocument
 		 */
 		private static function getXMLRoot(){
 				if(empty(self::$xml)) {
@@ -2131,8 +2414,11 @@ class Array2XML {
 				}
 				return self::$xml;
 		}
-		/*
-		 * Get string representation of boolean value
+		/**
+		 * Convert PHP true/false to the XML-friendly strings "true"/"false".
+		 *
+		 * @param  mixed  $v
+		 * @return mixed Returns "true"/"false" for booleans; original value otherwise.
 		 */
 		private static function bool2str($v){
 				//convert boolean to text value.
@@ -2140,9 +2426,13 @@ class Array2XML {
 				$v = $v === false ? 'false' : $v;
 				return $v;
 		}
-		/*
-		 * Check if the tag name or attribute name contains illegal characters
+		/**
+		 * Validate that $tag is a legal XML tag/attribute name per W3C XML 1.0.
+		 *
 		 * Ref: http://www.w3.org/TR/xml/#sec-common-syn
+		 *
+		 * @param  string  $tag
+		 * @return bool
 		 */
 		private static function isValidTagName($tag){
 				$pattern = '/^[a-z_]+[a-z0-9\:\-\.\_]*[^:]*$/i';
@@ -2279,8 +2569,10 @@ class XML2Array {
 		return $output;
 		}
 
-		/*
-		 * Get the root XML node, if there isn't one, create it.
+		/**
+		 * Return the root DOMDocument, creating one via init() when uninitialized.
+		 *
+		 * @return DOMDocument
 		 */
 		private static function getXMLRoot(){
 				if(empty(self::$xml)) {

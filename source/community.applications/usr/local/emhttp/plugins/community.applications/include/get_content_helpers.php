@@ -1,5 +1,14 @@
 <?php
 class GetContentHelpers {
+	/**
+	 * Clamp the home-screen "max apps" preference to the supported range.
+	 *
+	 * Returns 4 when the value is 0 (unset), 2 when the value is below 3
+	 * (the minimum useful row), otherwise the value unchanged.
+	 *
+	 * @param  int|string  $maxHomeApps
+	 * @return int
+	 */
 	public static function normalizeMaxHomeApps($maxHomeApps) {
 		if ($maxHomeApps == 0) {
 			return 4;
@@ -12,6 +21,17 @@ class GetContentHelpers {
 		return $maxHomeApps;
 	}
 
+	/**
+	 * Translate a raw category POST value into a display-context struct.
+	 *
+	 * Handles the special categories (PRIVATE, DEPRECATED, BLACKLIST,
+	 * INCOMPATIBLE, repos, empty) and computes the regex / display-flag /
+	 * no-install-comment combination for them. For ordinary categories the
+	 * regex is built from the original string.
+	 *
+	 * @param  string|false  $category  Raw POST category.
+	 * @return array{categoryString:string|false,categoryRegex:string|false,displayBlacklisted:bool,displayDeprecated:bool,displayIncompatible:bool,displayPrivates:bool,noInstallComment:string,action:?string}
+	 */
 	public static function resolveCategoryContext($category) {
 		$context = [
 			'categoryString'      => $category,
@@ -59,6 +79,22 @@ class GetContentHelpers {
 		return $context;
 	}
 
+	/**
+	 * Render the multi-row Home startup screen (Featured / Spotlight / Trending / etc).
+	 *
+	 * Iterates the configured "startup types", calls appOfDay() per type, builds
+	 * the HTML for each row, writes the per-tab community-templates-displayed
+	 * cache, and calls postReturn() to flush JSON to the browser. Returns true
+	 * when the caller should stop further processing (response already sent).
+	 *
+	 * Side effects: mutates $GLOBALS['caSettings']['startup'] and ['maxPerPage'],
+	 * touches CA_PATHS['startupDisplayed'], writes CA_PATHS['community-templates-displayed'],
+	 * unlinks search-result caches, and calls postReturn() which echoes JSON.
+	 *
+	 * @param  array<int,array<string,mixed>>  $file         Templates list (by ref for memory).
+	 * @param  int|string                      $maxHomeApps  Per-row cap from POST.
+	 * @return bool True when the response was sent and the caller should bail; false when too few templates to render.
+	 */
 	public static function handleHomeStartupDisplay(array &$file, $maxHomeApps) {
 
 	 // getConvertedTemplates();  // Only scan for private XMLs when going HOME
@@ -204,6 +240,17 @@ class GetContentHelpers {
 		return true;
 	}
 
+	/**
+	 * Handle blacklisted / incompatible / deprecated special-category display modes.
+	 *
+	 * When any "display only X" flag is set, this function decides whether the
+	 * template matches that special bucket and pushes it into $display by ref.
+	 *
+	 * @param  array<string,mixed>             $template
+	 * @param  array<int,array<string,mixed>>  $display  Out-list, appended by reference.
+	 * @param  array<string,bool>              $flags    displayBlacklisted/displayDeprecated/displayIncompatible.
+	 * @return bool True when a special category was matched and the caller should skip normal handling.
+	 */
 	public static function handleSpecialTemplateDisplays($template, &$display, $flags) {
 		if ($flags['displayBlacklisted']) {
 			if ($template['Blacklist']) {
@@ -234,6 +281,16 @@ class GetContentHelpers {
 		return false;
 	}
 
+	/**
+	 * Apply visibility filters (deprecated/incompatible/blacklist/private/featured) for normal listings.
+	 *
+	 * Returns true when the template should be excluded from the display set.
+	 * Reads $GLOBALS['caSettings'] for hide preferences.
+	 *
+	 * @param  array<string,mixed>  $template
+	 * @param  array<string,bool>   $flags
+	 * @return bool
+	 */
 	public static function shouldSkipTemplate($template, $flags) {
 		if ( ($GLOBALS['caSettings']['hideDeprecated'] == "true") && ($template['Deprecated'] && ! $flags['displayDeprecated']) ) return true;
 		if ( $flags['displayDeprecated'] && ! $template['Deprecated'] ) return true;
@@ -245,6 +302,19 @@ class GetContentHelpers {
 		return false;
 	}
 
+	/**
+	 * Score a single template against the user's search filter and bucket it.
+	 *
+	 * Buckets are: fullNameHit, officialHit, nameHit, favNameHit, anyHit,
+	 * extraHit (latter for ExtraSearchTerms). The translated-category column is
+	 * computed in-place for downstream display. Reads
+	 * $GLOBALS['caSettings']['favourite'].
+	 *
+	 * @param  array<string,mixed>                       $template
+	 * @param  string                                    $filter         Raw filter text (may contain "/" or " Repository").
+	 * @param  array<string,array<int,array<string,mixed>>>  $searchResults  Buckets, appended by reference.
+	 * @return void
+	 */
 	public static function handleFilteredTemplate($template, $filter, &$searchResults) {
 
 		$template['translatedCategories'] = "";
@@ -300,6 +370,16 @@ class GetContentHelpers {
 		}
 	}
 
+	/**
+	 * Sort each search-result bucket via mySort and apply favouriteSort to nameHit when applicable.
+	 *
+	 * Initializes empty buckets so downstream array_merge can rely on them.
+	 * Reads $GLOBALS['caSettings']['favourite'].
+	 *
+	 * @param  array<string,array<int,array<string,mixed>>>  $searchResults  By reference.
+	 * @param  string                                        $filter
+	 * @return void
+	 */
 	public static function sortSearchResultsBuckets(&$searchResults, $filter) {
 
 		$buckets = ['fullNameHit','officialHit','nameHit','favNameHit','anyHit','extraHit'];
@@ -318,6 +398,20 @@ class GetContentHelpers {
 		}
 	}
 
+	/**
+	 * Persist the displayed-applications JSON to the appropriate per-tab cache file(s).
+	 *
+	 * - No filter -> writes community-templates-displayed and unlinks the
+	 *   search-result caches.
+	 * - Filter without category -> writes both allSearchResults and
+	 *   catSearchResults.
+	 * - Filter with category   -> writes only catSearchResults.
+	 *
+	 * @param  string|false                                     $categoryRegex
+	 * @param  string|false                                     $filter
+	 * @param  array<string,array<int,array<string,mixed>>>     $displayApplications
+	 * @return void
+	 */
 	public static function cacheDisplayApplications($categoryRegex, $filter, $displayApplications) {
 
 		if ( ! $filter ) {
