@@ -52,7 +52,17 @@ fi
 # No args -> full sync of the entire plugin dir.
 if [ "$#" -eq 0 ]; then
 	echo "==> Full sync  source$LIVE_PREFIX/  ->  $UNRAID_HOST:$LIVE_PREFIX/"
+	# Normalize local perms before sending so the on-disk git tree and the
+	# live install both end up at 0755. Keeps `git status` / future PR diffs
+	# free of permission-only noise.
+	chmod -R 0755 "$SOURCE_ROOT$LIVE_PREFIX"
 	scp -rq "$SOURCE_ROOT$LIVE_PREFIX/." "$UNRAID_HOST:$LIVE_PREFIX/"
+	# Mirror the chmod on the remote too — belt-and-braces against scp/umask
+	# combinations that don't carry the source mode across.
+	ssh "$UNRAID_HOST" sh -s -- "$LIVE_PREFIX" <<-'EOF'
+		set -e
+		chmod -R 0755 "$1"
+	EOF
 	echo "==> Done."
 	exit 0
 fi
@@ -73,7 +83,12 @@ for arg in "$@"; do
 		exit 1
 	fi
 	remote="/$rel"
+	# Force 0755 on the local path before sending — keeps the git tree and
+	# the live install consistent at 0755 so future copy_to_git / PR diffs
+	# don't surface permission-only churn. Recursive for dirs, single chmod
+	# for files.
 	if [ -d "$abs" ]; then
+		chmod -R 0755 "$abs"
 		echo "==> $arg/  ->  $UNRAID_HOST:$remote/"
 		# Trailing /. on src + trailing / on dst copies *contents* of the
 		# directory into the existing remote directory.
@@ -83,13 +98,23 @@ for arg in "$@"; do
 			mkdir -p "$1"
 		EOF
 		scp -rq "$abs/." "$UNRAID_HOST:$remote/"
+		# Mirror the chmod remotely.
+		ssh "$UNRAID_HOST" sh -s -- "$remote" <<-'EOF'
+			set -e
+			chmod -R 0755 "$1"
+		EOF
 	else
+		chmod 0755 "$abs"
 		echo "==> $arg  ->  $UNRAID_HOST:$remote"
 		ssh "$UNRAID_HOST" sh -s -- "$(dirname "$remote")" <<-'EOF'
 			set -e
 			mkdir -p "$1"
 		EOF
 		scp -q "$abs" "$UNRAID_HOST:$remote"
+		ssh "$UNRAID_HOST" sh -s -- "$remote" <<-'EOF'
+			set -e
+			chmod 0755 "$1"
+		EOF
 	fi
 done
 

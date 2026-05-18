@@ -58,5 +58,15 @@ cd "$LOCAL_DST"
 rm -f ca.md5
 find . -type f -exec md5 -r {} + | awk '{h=$1; $1=""; sub(/^ /, ""); print h"  "$0}' > ca.md5
 
+# Force every file + directory to 0755 — done AFTER the ca.md5 regen so the
+# new ca.md5 itself is included (otherwise the redirect-created file inherits
+# umask and lands at 0644). Slackware tradition (pkg_build does the same on
+# its staging dir) AND keeps git-tracked modes consistent: git stores only
+# the executable bit (100644 vs 100755), so without this the tree drifts
+# between 0644 / 0755 depending on whoever last edited a file locally (Mac
+# umask) vs over ssh (root umask), producing noisy permission diffs on PRs.
+echo "==> Normalizing permissions to 0755"
+chmod -R 0755 "$LOCAL_DST"
+
 echo "==> Done. Source tree updated at:"
 echo "    $LOCAL_DST"
