@@ -1,14 +1,15 @@
 # Community Applications — Pending Changes
 
-Running log of changes destined for the next release. Each PR appends its
-user-visible bullets under **Unreleased** below.
+Running log of changes destined for the next release. **Every PR adds at
+least one bullet to the Unreleased section — no exceptions.**
 
 Format mirrors the `<CHANGES>` block in [community.applications.plg](community.applications.plg)
 so release time is a straight copy-paste:
 
-- Keep the `- Added: …` / `- Changed: …` / `- Fixed: …` / `- Removed: …` / `- Chore: …` prefixes.
-- One bullet per change, user-facing wording.
-- Tag any 7.2+-only items explicitly (`7.2+:`).
+- Use one of the standard prefixes — `Added:` / `Changed:` / `Fixed:` / `Removed:` / `Chore:`.
+- One bullet per change, end-user wording (this text ships verbatim in the next release).
+- If a PR has no user-visible effect (build tooling, internal refactor, test-only), still add a `Chore:` line so the release notes reflect that something shipped.
+- Tag 7.2+-only items explicitly (`7.2+:`).
 
 At release:
 
@@ -65,3 +66,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: PHP 8.0+: curl_close warnings in the system log
 - Fixed: Plugin warning is now combined with the initial CYA agreement; previous-app installs are not offered until CYA is accepted
 - Fixed: Debugging tools weren't reporting which files were being read
+- Chore: PR template now prompts contributors to add a CHANGES.md bullet — every PR contributes to the next release notes
