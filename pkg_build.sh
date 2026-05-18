@@ -44,6 +44,9 @@ find "$staging" \( \
 	-name "._*"       -o \
 	-name "sftp-config.json" \
 	\) -delete
+# Local Claude/agent state has no business shipping in the release manifest.
+rm -rf "$staging"/usr/local/emhttp/plugins/community.applications/.claude
+find "$staging" -name ".claude" -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 # Slackware tradition: world-readable, executable-where-needed. Matches the
 # `chmod 0755 -R .` the legacy makepkg invocation did. installpkg preserves

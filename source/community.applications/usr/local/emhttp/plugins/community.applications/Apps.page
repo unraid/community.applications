@@ -196,6 +196,10 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/statistics.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/clickHandlers.js");?>'></script>
+<? if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
+<!-- Dev-mode-only renderer for the template Diff overlay. -->
+<script src='<?autov("/plugins/community.applications/javascript/diff.js");?>'></script>
+<?endif;?>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
@@ -445,13 +449,15 @@ $(function(){
 				$(".caDownloadProgress").removeClass("ca_hide");
 			}, 5000);
 		}
-		$(".caDownloadProgress").html(message);
+		/* Only update the text-bearing child — leaves any sibling controls
+		   (eg. the static Abort button baked into the Updating-Applications
+		   swal) untouched between ticks. .text() instead of .html() so a
+		   progress payload can't inject markup. */
+		$(".caDownloadProgressText").text(message);
 		if ( message == "" ) {
 			clearTimeout(downloadProgressTimer);
 			downloadProgressTimer = null;
 			$(".caDownloadProgress").addClass("ca_hide");
-		} else {
-			$(".caDownloadProgress").append("<div class='caButton ca_quitUpdate'>"+tr('Abort')+"</div>");
 		}
 	});
 	downloadProgress.start();
@@ -553,7 +559,7 @@ $(function(){
 			<? endif;?>
 		} else {
 			post({action:"defaultSortOrder"},function() {
-				myAlert("","<div class='ca_center caLogoIcon'></div><?tr('Community Applications');?><br><br><?tr('Updating Applications');?><br><span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'></div>","","",false,false,false,"");
+				myAlert("","<div class='ca_center caLogoIcon'></div><?tr('Community Applications');?><br><br><?tr('Updating Applications');?><br><span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span><div class='caButton ca_quitUpdate'>"+tr('Abort')+"</div></div>","","",false,false,false,"");
 
 				updateContent(false,false);
 			 // clearTimeout(downloadStatusTimer);

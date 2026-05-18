@@ -59,8 +59,12 @@ function caNormalizePopupSupportContext(array $supportContext): array {
 			return false;
 		}
 		$link = trim((string)($context['link'] ?? ""));
+		$action = trim((string)($context['action'] ?? ""));
 		$text = trim(strip_tags((string)($context['text'] ?? "")));
-		return ($link !== "" && $text !== "");
+		/* Entries are valid if they either point somewhere (link) or fire a JS
+		   action (e.g. the dev-mode Diff button) — provided they have visible
+		   text on the button. */
+		return (($link !== "" || $action !== "") && $text !== "");
 	}));
 }
 
@@ -471,7 +475,9 @@ function displayPopup($template) {
 					<?php if (!empty($supportContext)): ?>
 						<div class='popupSupportRow'>
 							<?php foreach ($supportContext as $sc): ?>
-								<?php if (validURL($sc['link'] ?? "")): ?>
+								<?php if (!empty($sc['action'])): ?>
+									<div class='caButton supportPopup' onclick="<?= htmlspecialchars($sc['action'], ENT_QUOTES) ?>"><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></div>
+								<?php elseif (validURL($sc['link'] ?? "")): ?>
 									<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
 								<?php endif; ?>
 							<?php endforeach; ?>

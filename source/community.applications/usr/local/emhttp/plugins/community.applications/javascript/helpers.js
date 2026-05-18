@@ -875,6 +875,10 @@ function myAlert(description,textdescription,textimage,imagesize, outsideClick, 
 	});
 }
 
+/* caShowTemplateDiff / caHideTemplateDiff / caRenderDiff and friends moved to
+   javascript/diff.js — loaded only when developer mode is enabled (the
+   <script> tag in Apps.page is wrapped in a caSettings['dev'] PHP guard). */
+
 /* Cache fitText results keyed by class + text content + overFlowType so each
    unique label is measured only once across the entire session. The shrink
    loop calls isOverflown which forces layout/reflow on every iteration, and

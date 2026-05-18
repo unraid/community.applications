@@ -87,6 +87,8 @@ define("CA_PATHS",[
 	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
 	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
 	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
+	'diffFeedCache'                       => "$tempFiles/diffApplicationFeed.json", /* cached copy of applicationFeed.json used only by the dev-mode Diff button */
+	'caAdmin'                             => "/boot/config/plugins/community.applications/admin", /* marker file: when present alongside dev mode, exposes the Internal diff button */
 	'categoryList'                        => "$tempFiles/categoryList.json",
 	'repositoryList'                      => "$tempFiles/repositoryList.json",
 	'extraBlacklist'                      => "$tempFiles/extraBlacklist.json",

@@ -80,7 +80,7 @@ $(function() {
 
 <!-- Status Bar.   This gets moved to the body -->
 <div class='ca_statusArea'>
-	<span class='caDownloadProgress ca_hide'></span>
+	<span class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span></span>
 	<span class='caStatusText'></span>
 </div>
 
@@ -112,6 +112,40 @@ $(function() {
 	<div class='ca_fatalReloadBanner ca_hide'></div>
 </div>
 <div id="caViewportBlocker" class="ca_viewportBlocker ca_hide" aria-hidden="true"></div>
+
+<? if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
+<!-- Dev-mode diff overlay: covers .ca_display_area + the menu while the
+     sidebar stays anchored on the right. Populated lazily by
+     caShowTemplateDiff (diff.js, only loaded in dev mode). -->
+<div id='caDiffView' class='ca_hide' role='dialog' aria-modal='true' aria-label='<?tr("Template diff");?>'>
+	<!-- Standalone close — deliberately NOT class='popUpClose' so the body
+	     delegate that calls closeSidebar() doesn't fire alongside the
+	     diff-only dismissal. Real <button> so keyboard activation works without
+	     a manual tabindex/role. -->
+	<button type='button' class='caButton caDiffClose' onclick='caHideTemplateDiff();'><?tr("CLOSE");?></button>
+	<div id='caDiffContent'></div>
+</div>
+<!-- Loading placeholder cloned into #caDiffContent while the feed JSON is
+     being downloaded / parsed. The `.caDownloadProgress` <div> below is the
+     same class the page-level nchan subscriber (Apps.page) targets — it sets
+     .html(message), and after 5s of activity it removes .ca_hide, so progress
+     text shows up inside this overlay without any z-index gymnastics.
+     Wrapped in .caDiffLoadingBox so flex auto-margins center the content
+     block inside the flex-column #caDiffContent. -->
+<div class='ca_hide'>
+	<!-- Class-based template marker (no id) so diff.js can clone the inner
+	     HTML into #caDiffContent without risking a duplicate-id DOM (the
+	     template node stays in the hidden wrapper while the clone lives in
+	     the visible overlay). -->
+	<div class='caDiffLoadingTemplate'>
+		<div class='caDiffLoadingBox'>
+			<div class='ca_center caLogoIcon'></div>
+			<div class='ca_center ca_italic'><?tr("Downloading application feed and rendering diff...")?></div>
+			<div class='ca_center caDownloadProgress caDiffDownloadProgress ca_hide'><span class='caDownloadProgressText'></span></div>
+		</div>
+	</div>
+</div>
+<?endif;?>
 <div class='mobileMenu' id='mobileMenu'>
 		<div class='menuItems menuAdjust'>
 			<ul class='caMenu '>

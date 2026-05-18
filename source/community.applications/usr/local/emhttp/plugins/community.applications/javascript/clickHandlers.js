@@ -31,7 +31,7 @@ function caInitializeClickHandlers() {
 	 * virtual-list progress (not just loaded DOM rows).
 	 */
 	function caInitFirefoxFixedHorizontalOverlay() {
-		var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav";
+		var selector = ".menuItems, .ca_homeTemplates, .mainArea, .sidenav, .ca_diffCol";
 		var overlays = new Map();
 		var hideTimers = new WeakMap();
 		var remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
@@ -159,7 +159,12 @@ function caInitializeClickHandlers() {
 			}
 
 			if (entry.$hIndicator) {
-				if (!hasHorizontal || !hTrackIntersectsMainArea(rect)) {
+				/* Skip the mainArea-intersection check for diff columns — the
+				   diff overlay covers the viewport and the cols extend below
+				   .mainArea's bottom, so the intersection test always fails
+				   and the horizontal indicator never appears. */
+				var hSkipMainAreaTest = el.classList.contains("ca_diffCol");
+				if (!hasHorizontal || (!hSkipMainAreaTest && !hTrackIntersectsMainArea(rect))) {
 					entry.$hIndicator.hide();
 				} else {
 					entry.$hIndicator
@@ -263,7 +268,11 @@ function caInitializeClickHandlers() {
 			var hasVertical = (el.scrollHeight - el.clientHeight) > 1;
 			// Sidebar should never show the horizontal overlay scrollbar.
 			var allowHorizontal = !el.classList.contains("sidenav");
-			var allowVertical = true;
+			/* Diff view: left column shares scrollTop with the right via the
+			   sync in diff.js, so we only render one vertical indicator (on
+			   the right column). Both columns still get their horizontal
+			   indicator since the lines on each side scroll independently. */
+			var allowVertical = !(el.classList.contains("ca_diffCol") && el.matches(".ca_diffCol:first-child"));
 			if ((!allowHorizontal || !hasHorizontal) && (!allowVertical || !hasVertical)) return;
 
 			var $hIndicator = null;
@@ -309,6 +318,13 @@ function caInitializeClickHandlers() {
 			if (el.classList.contains("menuItems")) {
 				if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_menuitems");
 				if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_menuitems");
+			}
+			/* Diff overlay sits at z-index 1001 — tag these indicators so the
+			   CSS lifts them above the overlay (the default #ca_fixed_scroll_root
+			   parks at 1000 alongside everything else). */
+			if (el.classList.contains("ca_diffCol")) {
+				if (entry.$hIndicator) entry.$hIndicator.addClass("ca_scroll_diff");
+				if (entry.$vIndicator) entry.$vIndicator.addClass("ca_scroll_diff");
 			}
 			if (entry && entry.alwaysShowVertical) {
 				if (entry.$vIndicator) entry.$vIndicator.addClass("ca_mainarea_v_always visible");
@@ -1558,7 +1574,22 @@ function caInitializeEventHandlers() {
 	 */
 	$("body").keydown(function(e) {
 		switch (e.which) {
-			case 27:
+			case 27: {
+				/* Diff overlay takes Esc first — it sits on top of the
+				   sidebar's normal "back" / "close" flow and we want it to
+				   dismiss without unwinding any of the sidebar state.
+				   Guard on the element being present + visible so non-dev
+				   pages (where #caDiffView and caHideTemplateDiff don't
+				   exist at all) keep their normal Esc behavior. Whole case
+				   wrapped in braces so the `var $diff` declaration is
+				   block-scoped (Biome `noSwitchDeclarations`). */
+				var $diff = $("#caDiffView");
+				if ($diff.length && !$diff.hasClass("ca_hide") && typeof caHideTemplateDiff === "function") {
+					e.preventDefault();
+					e.stopPropagation();
+					caHideTemplateDiff();
+					return;
+				}
 				if ($(".sidenav").hasClass("sidenavShow")) {
 					e.preventDefault();
 					e.stopPropagation();
@@ -1593,6 +1624,7 @@ function caInitializeEventHandlers() {
 					return;
 				}
 				break;
+			}
 		}
 	});
 }
