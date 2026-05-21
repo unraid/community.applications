@@ -609,10 +609,9 @@ $(function(){
 			});
 		}
 		setupActionCentre();
-		/* Sync the Installed / Previous submenu disable states from server-side
-		   counts on every bootstrap — covers the restoreState branch (which
-		   doesn't always route through refreshDisplay / updateContent). */
-		caRefreshInstalledMenuStates();
+		/* Submenu disable-state sync is chained inside getCategories() so it
+		   can't race with the wholesale caMenuEnabled reset there — both
+		   bootstrap branches above route through getCategories(). */
 		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
 		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
 		$.removeCookie("ca_apps_referrer", { path: "/" });
@@ -691,8 +690,7 @@ function updateContent(button,skipAppfeed=true) {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
 		}
-		getCategories();
-		caRefreshInstalledMenuStates();
+		getCategories(); /* now also re-applies count-based submenu gating */
 		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
 			var plugins = $.cookie("ca_plugininstallpending");
 			$.removeCookie("ca_plugininstallpending");
@@ -1490,8 +1488,7 @@ function postUninstallPlugin() {
 	enableSearch();
 	$(".selectedMenu").trigger("click");
 	setupActionCentre();
-	refreshDisplay();
-	caRefreshInstalledMenuStates();
+	refreshDisplay(); /* chains caRefreshInstalledMenuStates */
 }
 
 /**
@@ -2428,6 +2425,10 @@ function getCategories() {
 				$(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
 			}
 		});
+		/* Re-apply count-based gating on the Installed / Previous submenus
+		   *after* the wholesale caMenuEnabled reset above, otherwise our
+		   caMenuDisabled state gets clobbered when these two requests race. */
+		caRefreshInstalledMenuStates();
 		setFavRepoSearch();
 
 		post({action:'areAppsPinned'},function(result) {
