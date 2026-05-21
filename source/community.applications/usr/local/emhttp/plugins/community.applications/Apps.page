@@ -248,7 +248,19 @@ var caCardCache = {
    that same tab, which is exactly what we need so the server-side cache files
    (displayed.{id}.json, etc.) line up with this tab's view. */
 (function() {
-	swal.setDefaults({ customClass: "ca_sweetalert_open" });
+	/* When the page is reloading specifically to kick off a pending multi-plugin
+	   install (see updateContent → ca_openPlugin via the ca_plugininstallpending
+	   cookie), defer setting the swal `customClass` default. Unraid's openPlugin
+	   uses swal internally, and our customClass leaks our `body:has(.ca_sweetalert_open)`
+	   stacking rules into that modal, leaving it parked behind the main display.
+	   We re-arm the default right after the openPlugin call so subsequent CA
+	   swals still pick it up. */
+	var caPendingPluginInstall = document.cookie.split("; ").some(function(c){
+		return c.indexOf("ca_plugininstallpending=") === 0;
+	});
+	if ( ! caPendingPluginInstall ) {
+		swal.setDefaults({ customClass: "ca_sweetalert_open" });
+	}
 
 	var key = "ca_tabId";
 	var id = "";
@@ -658,6 +670,9 @@ function updateContent(button,skipAppfeed=true) {
 			myCloseAlert();
 			post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
 				ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
+				/* Re-arm the swal customClass default once openPlugin's modal is
+				   on screen — see the deferral note in the IIFE near line 250. */
+				setTimeout(function(){ swal.setDefaults({ customClass: "ca_sweetalert_open" }); }, 1500);
 			});
 		}
 	});
