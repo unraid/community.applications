@@ -56,6 +56,21 @@ if [ "$#" -eq 0 ]; then
 	# live install both end up at 0755. Keeps `git status` / future PR diffs
 	# free of permission-only noise.
 	chmod -R 0755 "$SOURCE_ROOT$LIVE_PREFIX"
+	# Wipe the remote install dir first so files that existed in a previous
+	# version but no longer exist in source/ don't linger (scp only writes
+	# what's in the source — it doesn't prune the destination). Safety-gate
+	# the rm to paths under /usr/local/emhttp/plugins/ in case LIVE_PREFIX
+	# ever gets mis-set, so a typo can't `rm -rf /` the box.
+	echo "==> Wiping remote $LIVE_PREFIX (clears stragglers from prior versions)"
+	ssh "$UNRAID_HOST" sh -s -- "$LIVE_PREFIX" <<-'EOF'
+		set -e
+		case "$1" in
+			/usr/local/emhttp/plugins/*) ;;
+			*) echo "Refusing to rm -rf $1 — not under /usr/local/emhttp/plugins/" >&2; exit 1 ;;
+		esac
+		rm -rf "$1"
+		mkdir -p "$1"
+	EOF
 	scp -rq "$SOURCE_ROOT$LIVE_PREFIX/." "$UNRAID_HOST:$LIVE_PREFIX/"
 	# Mirror the chmod on the remote too — belt-and-braces against scp/umask
 	# combinations that don't carry the source mode across.
