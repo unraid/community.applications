@@ -275,9 +275,13 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		$supportContext[] = ["icon"=>"ca_fa-docker","link"=>$template['Registry'],"text"=>tr("Registry")];
 	}
 	if ($GLOBALS['caSettings']['dev'] == "yes") {
-		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Template")];
+		/* Every entry below is dev-mode only. The `class` is read by the
+		   sidebar template (skin.php → displayPopup) and rendered onto the
+		   caButton so responsive CSS can hide them on phone-sized viewports
+		   (.ca_devMode { display: none } under 767px). */
+		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Template"), "class"=>"ca_devMode"];
 		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
-			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("Plugin")];
+			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("Plugin"), "class"=>"ca_devMode"];
 		}
 		/* json_encode with the JS-safety flags produces a properly-quoted JS
 		   string literal (including the outer quotes) — safer than addslashes
@@ -294,6 +298,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'feed')",
 				"text"   => tr("Diff"),
+				"class"  => "ca_devMode",
 			];
 		}
 		/* Internal diff (appfeed vs CA's internal templates_full.json) — only
@@ -304,6 +309,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'internal')",
 				"text"   => tr("CA"),
+				"class"  => "ca_devMode",
 			];
 		}
 	}
