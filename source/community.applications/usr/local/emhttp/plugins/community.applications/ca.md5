@@ -1,6 +1,6 @@
 8dc2ca6d9cd7011d3443ffbb164d7c72  ./LICENSE
 5d4bd67852f602f59d6e7da06eb97e01  ./phpstan.neon
-7757a74c7527aa2b1da5655ea76a42dc  ./Apps.page
+2fbb18b0ac6e6d2f79c90d5fa063624c  ./Apps.page
 71f911a818d88d3d567f8a2898094ee2  ./README.md
 d41d8cd98f00b204e9800998ecf8427e  ./ca.md5
 65cd44c6ab14a6e1c4d6a7e5ed628708  ./default.cfg
@@ -36,7 +36,7 @@ d2cce47ea7c6627277201239dda3f0a2  ./javascript/helpers.js
 158bd1f80bd4a1677f1b5758c99ab0e4  ./javascript/diff.js
 39c8d4d32141744a859eedb89960a0ca  ./javascript/clickHandlers.js
 3d0aab17bf29c784d9d56ff04512eb95  ./skins/Narrow/skin_helpers.php
-79298b88aacc608565d336f9d12eb5a9  ./skins/Narrow/skin.html
+fa628b69b8ba130e9efcbad72aee5ae3  ./skins/Narrow/skin.html
 58e39da29cd6a1452499a02bcc8ddecb  ./skins/Narrow/skin.php
 213e64078b3f9450a520d2b06cc3cd1f  ./skins/Narrow/styles/community.applications.responsive.css
 55ed9d68a3cda4e37dd58055b594eb67  ./skins/Narrow/styles/community.applications.css
