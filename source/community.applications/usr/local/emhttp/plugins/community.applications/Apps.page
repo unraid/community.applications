@@ -277,10 +277,13 @@ var caCardCache = {
 	data.tabId = id;
 })();
 
-var dockerNotEnabled;
+/* Mirrors the legacy $dockerWarningFlag — true only when docker is genuinely
+   off AND the user has accepted the CYA (NoInstalls clear). Used to hide the
+   Docker search tab when docker can't service it. The per-app "Docker not
+   enabled" notice now lives in the sidebar template itself. */
+var dockerNotEnabled = <?= (!caIsDockerRunning() && !($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false" ?>;
 var postCount = 0;
 var cookieWarning = false;
-var dockerWarningAdded = false;
 var restoreStateMenu = false;
 var resizeTimer;
 var portsInUse = [];
@@ -606,6 +609,9 @@ $(function(){
 			});
 		}
 		setupActionCentre();
+		/* Submenu disable-state sync is chained inside getCategories() so it
+		   can't race with the wholesale caMenuEnabled reset there — both
+		   bootstrap branches above route through getCategories(). */
 		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
 		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
 		$.removeCookie("ca_apps_referrer", { path: "/" });
@@ -684,7 +690,7 @@ function updateContent(button,skipAppfeed=true) {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
 		}
-		getCategories();
+		getCategories(); /* now also re-applies count-based submenu gating */
 		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
 			var plugins = $.cookie("ca_plugininstallpending");
 			$.removeCookie("ca_plugininstallpending");
@@ -1420,6 +1426,7 @@ function removeApp(application, humanName) {
 				var menuItem = $.find(".caMenuItem[data-category='previous_apps']");
 				$(menuItem).addClass("selectedMenu");
 				previousApps(false,true,data.previousAppsSection);
+				caRefreshInstalledMenuStates();
 			});
 		} else {
 			enableSearch();
@@ -1481,7 +1488,7 @@ function postUninstallPlugin() {
 	enableSearch();
 	$(".selectedMenu").trigger("click");
 	setupActionCentre();
-	refreshDisplay();
+	refreshDisplay(); /* chains caRefreshInstalledMenuStates */
 }
 
 /**
@@ -1515,6 +1522,7 @@ function uninstallDocker(application,humanName) {
 					myCloseAlert();
 				}
 				enableSearch();
+				caRefreshInstalledMenuStates();
 				if ( $(".selectedMenu").data("category") == "action_centre" ) {
 					post({action:'getPortsInUse'},function(data) {
 						portsInUse = data.portsInUse;
@@ -2357,39 +2365,39 @@ function caChangeLog() {
 }
 
 /**
- * Show or clear the banner + menu disable state when Docker is unavailable (`enableDisable`: 1 service off, 2 start failure, 3 array stopped).
+ * Toggle a single sidebar menu item between enabled/disabled state by adding/
+ * removing caMenuEnabled and caMenuDisabled. caMenuDisabled is what the
+ * .sectionMenu click handler checks to swallow clicks on empty submenus.
  *
- * @param {number|false|null} enableDisable Reason code from PHP, or falsey to remove warning
+ * @param {string} category Value of the menu item's `data-category` attribute
+ * @param {boolean} enabled True to enable, false to grey out and swallow clicks
  */
-function addDockerWarning(enableDisable) {
-	if (enableDisable) {
-		switch (enableDisable) {
-			case 1:
-				var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			case 2:
-				var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			case 3:
-				var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			default:
-				var msg = "Docker apps not available to install - Unknown reason why";
-				break;
-		}
-		if ( dockerWarningAdded === false) {
-			dockerWarningAdded = addBannerWarning(msg,true,false);
-			$(".dockerSpecific").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-		}
+function caToggleMenuItem(category, enabled) {
+	var $item = $(".caMenuItem[data-category='" + category + "']");
+	if ( ! $item.length) return;
+	if (enabled) {
+		$item.removeClass("caMenuDisabled").addClass("caMenuEnabled");
 	} else {
-		if ( dockerWarningAdded !== false ) {
-			removeBannerWarning(dockerWarningAdded);
-			$(".dockerSpecific").removeClass("caMenuDisabled").addClass("caMenuEnabled");
-			dockerWarningAdded = false;
-		}
+		$item.removeClass("caMenuEnabled").addClass("caMenuDisabled");
 	}
 }
 
+/**
+ * Pull the four Installed / Previous Apps submenu populations from the server
+ * and grey out the submenu items that would render nothing — e.g. Installed
+ * Apps > Docker is disabled when no containers are present (and therefore
+ * also when docker itself is off, since collectDockerApplications short-
+ * circuits to []). Cheap enough to call after every install/uninstall.
+ */
+function caRefreshInstalledMenuStates() {
+	post({action:'installedAndPreviousCounts'}, function(result) {
+		if ( ! result || ! result.counts) return;
+		caToggleMenuItem("inst_docker",  result.counts.instDocker  > 0);
+		caToggleMenuItem("inst_plugins", result.counts.instPlugins > 0);
+		caToggleMenuItem("prev_docker",  result.counts.prevDocker  > 0);
+		caToggleMenuItem("prev_plugins", result.counts.prevPlugins > 0);
+	});
+}
 
 /**
  * Fetch favourite repository name from PHP and enable/disable `.favouriteRepo` menu + `data-repository`.
@@ -2417,6 +2425,10 @@ function getCategories() {
 				$(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
 			}
 		});
+		/* Re-apply count-based gating on the Installed / Previous submenus
+		   *after* the wholesale caMenuEnabled reset above, otherwise our
+		   caMenuDisabled state gets clobbered when these two requests race. */
+		caRefreshInstalledMenuStates();
 		setFavRepoSearch();
 
 		post({action:'areAppsPinned'},function(result) {

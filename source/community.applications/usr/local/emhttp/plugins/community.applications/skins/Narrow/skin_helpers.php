@@ -656,12 +656,13 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 
 
 /**
- * Assemble docker-related context (warnings, info caches) for listings.
+ * Assemble docker-related context (running container info + update status) for listings.
  *
- * Reads CA_PATHS['dockerUpdateStatus'], CA_PATHS['unRaidVars'], and CA_PATHS['docker_cfg']
- * from disk, and emits inline `<script>` markup setting `dockerNotEnabled` on the page.
+ * Reads CA_PATHS['dockerUpdateStatus']. When docker is off both members are empty arrays —
+ * downstream renderers gracefully render no docker-specific UI in that case (the per-app
+ * "Docker Service Not Enabled" notice lives in the sidebar template itself).
  *
- * @return array{info:array<string,mixed>,dockerUpdateStatus:array<string,mixed>,dockerNotEnabled:int|string,dockerWarningFlag:string,displayHeader:string}
+ * @return array{info:array<string,mixed>,dockerUpdateStatus:array<string,mixed>}
  */
 function caDockerContext(): array {
 	if ( caIsDockerRunning() ) {
@@ -678,32 +679,9 @@ function caDockerContext(): array {
 		$dockerUpdateStatus = [];
 	}
 
-	$dockerWarningFlag = (! caIsDockerRunning() && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false";
-	$dockerNotEnabled = $dockerWarningFlag;
-
-	if ($dockerNotEnabled === "true") {
-		$unRaidVars = parse_ini_file(CA_PATHS['unRaidVars']);
-		$dockerVars = parse_ini_file(CA_PATHS['docker_cfg']);
-
-		if ($unRaidVars['mdState'] === "STARTED" && $dockerVars['DOCKER_ENABLED'] !== "yes") {
-			$dockerNotEnabled = 1; // Array started, docker not enabled
-		}
-		if ($unRaidVars['mdState'] === "STARTED" && $dockerVars['DOCKER_ENABLED'] === "yes") {
-			$dockerNotEnabled = 2; // Docker failed to start
-		}
-		if ($unRaidVars['mdState'] !== "STARTED") {
-			$dockerNotEnabled = 3; // Array not started
-		}
-	}
-
-	$displayHeader = "<script>addDockerWarning($dockerNotEnabled);var dockerNotEnabled = $dockerWarningFlag;</script>";
-
 	return [
 		'info'               => $info,
-		'dockerUpdateStatus' => $dockerUpdateStatus,
-		'dockerNotEnabled'   => $dockerNotEnabled,
-		'dockerWarningFlag'  => $dockerWarningFlag,
-		'displayHeader'      => $displayHeader
+		'dockerUpdateStatus' => $dockerUpdateStatus
 	];
 }
 
