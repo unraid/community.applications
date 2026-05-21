@@ -486,8 +486,27 @@ $(function(){
 			return;
 		}
 		if ( ! message ) return;
-		caBlockViewportForReload();
-		caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
+		/* If a plugin / docker install (or any Unraid openPlugin / openDocker
+		   dialog) is currently on screen, hold the "another session updated
+		   the feed" notice until it's done — otherwise the viewport blocker
+		   slams down over the install modal and the user can't reach Done. */
+		var fireReloadNotice = function() {
+			caBlockViewportForReload();
+			caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
+		};
+		var caInstallDialogOpen = function() {
+			return $("#sb-nav").is(":visible");
+		};
+		if (caInstallDialogOpen()) {
+			var poll = setInterval(function() {
+				if ( ! caInstallDialogOpen()) {
+					clearInterval(poll);
+					fireReloadNotice();
+				}
+			}, 1000);
+			return;
+		}
+		fireReloadNotice();
 	});
 
 	caInitializeSortMenu();
