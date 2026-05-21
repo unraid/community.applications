@@ -121,6 +121,12 @@ function refreshDisplay() {
 	   page's slice and there's nothing to restore when the user scrolls up.
 	   Bulk-load pages 1..currentpage in a single fetch, then put the viewport
 	   back where it was. Reuses post()'s callback so we don't poll. */
+	/* Most install/uninstall flows funnel through here (directly or via the
+	   openPlugin "refreshDisplay" callback string), so this is the single
+	   chokepoint where we re-sync the Installed/Previous submenu disable
+	   states from server-side counts. Guard for skin variants that don't
+	   ship the Apps.page helper. */
+	if (typeof caRefreshInstalledMenuStates === "function") caRefreshInstalledMenuStates();
 	var savedPage    = parseInt(data.currentpage, 10) || 1;
 	var savedPerPage = parseInt(data.maxPerPage, 10) || (typeof getMaxPerPage === "function" ? getMaxPerPage() : 12);
 	if (savedPage <= 1) {

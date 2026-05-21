@@ -488,6 +488,35 @@ class PreviousAppsHelpers {
 	}
 
 	/**
+	 * Tally the four Installed / Previous Apps submenu populations (docker
+	 * containers + plugins, in each of installed and "legacy" buckets) in a
+	 * single sweep so the sidebar can enable/disable the submenu items
+	 * without rendering full result pages.
+	 *
+	 * Mirrors the same context previous_apps() builds — feed array, moderation
+	 * overrides, docker info / update status — so the counts agree byte-for-byte
+	 * with what each submenu would actually render.
+	 *
+	 * @return array{instDocker:int,instPlugins:int,prevDocker:int,prevPlugins:int}
+	 */
+	public static function installedAndPreviousCounts(): array {
+		$file = &$GLOBALS['templates'];
+		$extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']) ?: [];
+		$extraDeprecated = readJsonFile(CA_PATHS['extraDeprecated']) ?: [];
+		$dockerRunning = caIsDockerRunning();
+		$info = $dockerRunning ? getAllInfo() : [];
+		$dockerUpdateStatus = self::loadDockerUpdateStatus($dockerRunning);
+		$throwaway = 0;
+
+		return [
+			'instDocker'  => count(self::collectDockerApplications($dockerRunning, "true", "", $info, $throwaway, $file, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus)),
+			'instPlugins' => count(self::collectPluginApplications("true", "", $file, $throwaway)),
+			'prevDocker'  => count(self::collectDockerApplications($dockerRunning, "", "", $info, $throwaway, $file, $extraBlacklist, $extraDeprecated, $dockerUpdateStatus)),
+			'prevPlugins' => count(self::collectPluginApplications("", "", $file, $throwaway))
+		];
+	}
+
+	/**
 	 * Plugins moved to plugins-error / plugins-removed still listed for reinstall/removal in Previous Apps.
 	 *
 	 * @return list<array<string, mixed>>
