@@ -109,6 +109,9 @@ switch ($_POST['action']) {
 	case 'previous_apps':
 		previous_apps();
 		break;
+	case 'installedAndPreviousCounts':
+		installedAndPreviousCounts();
+		break;
 	case 'remove_application':
 		remove_application();
 		break;
@@ -1414,6 +1417,17 @@ function previous_apps($enableActionCentre=false) {
 	} else {
 		postReturn(['status'=>"ok",'updateCount'=>$updateCount]);
 	}
+}
+
+/**
+ * Return the per-submenu counts used to enable/disable the Installed Apps and
+ * Previous Apps submenu items without rerendering result pages.
+ *
+ * @return void
+ */
+function installedAndPreviousCounts() {
+	require_once __DIR__ . '/previous_apps_helpers.php';
+	postReturn(['status'=>"ok", 'counts'=>PreviousAppsHelpers::installedAndPreviousCounts()]);
 }
 
 /**

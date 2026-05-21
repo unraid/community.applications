@@ -455,6 +455,13 @@ function displayPopup($template) {
 	?>
 	<div class='popup'>
 		<div class='popupContent'>
+			<?php /* Per-app docker-disabled notice — sits above the icon/name
+			         block instead of as a page-level banner so it travels with
+			         the app context. Only shown for non-plugin / non-language
+			         apps (the only kinds that need docker to install). */ ?>
+			<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
+				<div class='popupDockerDisabled'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
+			<?php endif; ?>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'><?= $display_icon ?></div>
 				<div class='popupInfo'>
@@ -462,10 +469,6 @@ function displayPopup($template) {
 
 					<?php if (! $Language): ?>
 						<div class='popupAuthorMain'><?= $Author ?></div>
-					<?php endif; ?>
-
-					<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
-						<div class='ca_red'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
 					<?php endif; ?>
 
 					<?php /* Support buttons stay in the popup body and scroll
@@ -625,7 +628,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	$count = 0;
 
 	$dockerContext = caDockerContext();
-	$displayHeader = $dockerContext['displayHeader'];
+	$displayHeader = "";
 
 	[$selectedApps, $checkedOffApps] = caNormalizeSelectedApps($selectedApps);
 	$displayedTemplates = caSliceDisplayedTemplates($file, $pageNumber);

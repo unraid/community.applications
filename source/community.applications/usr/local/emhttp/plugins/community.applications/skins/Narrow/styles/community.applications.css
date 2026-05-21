@@ -2439,6 +2439,14 @@ input[type="button"] {
 		white-space: nowrap;
 	}
 
+	/* Per-app docker-disabled notice rendered above .ca_popupIconArea — give it
+	   a touch of breathing room so it doesn't crowd the icon. Plain body text:
+	   no red, no bold (the message is informative, not an error). */
+	.popupDockerDisabled {
+		font-size: 1.4rem;
+		margin-bottom: 1rem;
+	}
+
 	.popupRepoDescription {
 		font-size: 1.5rem;
 		margin-bottom: 1rem;
