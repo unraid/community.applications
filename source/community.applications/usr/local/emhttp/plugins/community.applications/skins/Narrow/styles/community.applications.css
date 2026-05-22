@@ -2186,7 +2186,8 @@ input[type="button"] {
 		background-color: var(--ca-purple-color);
 	}
 	.LTOfficialCardBackground {
-		background-color: var(--ca-orange-color);
+		/* Unraid brand gradient: Red #e22828 → Orange #f15a2c → Gold #ff8c2f */
+		background: linear-gradient(to right, #e22828 0%, #f15a2c 50%, #ff8c2f 100%);
 	}
 	.officialCardBackground,
 	.spotlightCardBackground {

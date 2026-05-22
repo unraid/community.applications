@@ -1900,7 +1900,7 @@ function caBuildCardFlag(array $template, string $flagTextStart, string $flagTex
 	if (!empty($template['LTOfficial'])) {
 		return "
 			<div class='LTOfficialCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This is an official plugin")."'>".tr("LIMETECH")."</div>
+				<div class='installedCardText ca_center' title='".tr("This is an official plugin")."'>".tr("OFFICIAL")."</div>
 			</div>
 		";
 	}
