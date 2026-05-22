@@ -1894,11 +1894,10 @@ body,
 		margin-top: 1.5rem;
 		font-size: 2.5rem;
 	}
-	/* Align the trends/charts area, stats-note line, changelog block, and
-	   moderation/template-errors block with the other indented popup content
-	   blocks (popupDescription / popupTable etc.). */
+	/* Align the trends/charts area, changelog block, and moderation/template-
+	   errors block with the other indented popup content blocks
+	   (popupDescription / popupTable etc.). */
 	.popupChartBlock,
-	.popupStatsNote,
 	.popupChangeLogBlock,
 	.popupModerationBlock {
 		margin-left: 1rem;
@@ -3372,10 +3371,13 @@ input[type="button"] {
 		opacity: 0.65;
 		margin: 0;
 		top: 50%;
-		margin-top: -55px;
+		/* Box just big enough to hold the existing triangle visuals at their
+		   original positions — was 90×110px which made the hover brighten
+		   feel huge. Triangle margins below are unchanged. */
+		margin-top: -40px;
 		padding: 0;
-		width: 90px;
-		height: 110px;
+		width: 70px;
+		height: 80px;
 		-webkit-tap-highlight-color: transparent;
 	}
 

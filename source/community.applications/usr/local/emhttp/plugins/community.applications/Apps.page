@@ -2342,6 +2342,9 @@ function showSettings() {
  */
 function showMenu() {
 	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuShowing").removeClass("menuHidden");
+	/* Snap the menu scroll back to the top each time it opens — wherever the
+	   user left it (after a long category list, etc.) shouldn't carry over. */
+	$(".menuItems").scrollTop(0);
 }
 
 /**

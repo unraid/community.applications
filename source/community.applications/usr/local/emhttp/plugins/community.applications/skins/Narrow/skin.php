@@ -423,10 +423,6 @@ function displayPopup($template) {
 		}
 	}
 
-	$statsNote = "";
-	if (! $Plugin && ! $Language) {
-		$statsNote = "<div class='popupStatsNote'><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
-	}
 	$readmeSection = caBuildReadmeSectionDiv($template);
 	$readmeButton = "";
 	if ($readmeSection === "" && !empty($template['ReadMe']) && validURL($template['ReadMe'])) {
@@ -478,10 +474,16 @@ function displayPopup($template) {
 					<?php if (!empty($supportContext)): ?>
 						<div class='popupSupportRow'>
 							<?php foreach ($supportContext as $sc): ?>
+								<?php
+								/* Optional caller-supplied extra class (e.g. ca_devMode for
+								   dev-mode-only buttons) — appended to the static caButton +
+								   supportPopup pair so responsive CSS can target it. */
+								$scExtraClass = !empty($sc['class']) ? " ".htmlspecialchars($sc['class'], ENT_QUOTES) : "";
+								?>
 								<?php if (!empty($sc['action'])): ?>
-									<div class='caButton supportPopup' onclick="<?= htmlspecialchars($sc['action'], ENT_QUOTES) ?>"><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></div>
+									<div class='caButton supportPopup<?= $scExtraClass ?>' onclick="<?= htmlspecialchars($sc['action'], ENT_QUOTES) ?>"><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></div>
 								<?php elseif (validURL($sc['link'] ?? "")): ?>
-									<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
+									<div class='caButton supportPopup<?= $scExtraClass ?>'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
 								<?php endif; ?>
 							<?php endforeach; ?>
 						</div>
@@ -546,7 +548,6 @@ function displayPopup($template) {
 					</div>
 				</div>
 			</div>
-			<?= $statsNote ?>
 			<?= $changeLogBlock ?>
 			<?= $moderationBlock ?>
 		</div>

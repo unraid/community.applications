@@ -22,7 +22,9 @@
 		padding-left: 2rem;
 	}
 	.Theme--sidebar .searchAreaHolder {
-		margin-left: 6rem;
+		margin-left: 5rem;
+		left: 0;
+		width: 16rem;
 	}
 	.searchArea {
 		padding-left: 0;
@@ -36,6 +38,33 @@
 	}
 	#ca_mobile_layout_probe {
 		left: 0;
+	}
+
+	/* MagnificPopup gallery arrows + close button: on touch (tablet- and
+	   phone-sized viewports) the focus/active state sticks after a tap,
+	   painting the right arrow with a full unraid-orange backdrop (browser
+	   button focus rendering bleeds through despite
+	   `-webkit-tap-highlight-color: transparent`) and the close X in orange.
+	   Pin every interactive state back to the default look so a tap never
+	   leaves them lit. !important needed because the desktop close rule is
+	   also marked important. */
+	.mfp-arrow:hover,
+	.mfp-arrow:focus,
+	.mfp-arrow:focus-visible,
+	.mfp-arrow:active {
+		opacity: 0.65;
+		background: transparent !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+	.mfp-close:hover,
+	.mfp-close:focus,
+	.mfp-close:focus-visible,
+	.mfp-close:active {
+		color: inherit !important;
+		background: transparent !important;
+		outline: none !important;
+		box-shadow: none !important;
 	}
 }
 @media (max-width: 767px) {
@@ -55,11 +84,24 @@
 	#footer {
 		display: none;
 	}
+	/* Footer is gone on mobile — let the sidebar reach the viewport edge
+	   instead of reserving room for it. */
+	.sidenav {
+		bottom: 0;
+		margin-bottom: 0;
+	}
 	#header {
 		display: none;
 	}
 	.searchAreaHolder {
 		top: var(--search-area-mobile-top);
+	}
+	.Theme--nav-top .searchAreaHolder {
+		padding-left: 0;
+	}
+	/* Nav-top: narrow the search bar to make room for the open menu strip. */
+	.Theme--nav-top .searchAreaHolder.menuShowing {
+		width: 17rem;
 	}
 	.Theme--nav-top .ca_display_area {
 		top: 11rem;
@@ -77,8 +119,13 @@
 
 	:root {
 		/* Mobile slide-in menu width — referenced by the scrim offset below
-		   so the two stay in lockstep. */
-		--ca-mobile-menu-width: 20rem;
+		   so the two stay in lockstep. Default is 0rem; sidebar-style themes
+		   (azure / gray, tagged Theme--sidebar on body by Apps.page) override
+		   below to reveal an inline menu strip. */
+		--ca-mobile-menu-width: 0rem;
+	}
+	.Theme--sidebar {
+		--ca-mobile-menu-width: 23rem;
 	}
 	.mobileMenu.menuHidden{
 		display: none;
@@ -97,10 +144,25 @@
 		top: 2rem;
 	}
 	.Theme--nav-top .menuItems {
-		top: 11rem;
+		top: 10.5rem;
+		bottom: 0;
+	}
+	/* Nav-top mobile menu strip: flush left, small inner padding. */
+	.Theme--nav-top .menuItems.menuShowing {
+		left: 0;
+		padding-left: 1rem;
 	}
 	.Theme--sidebar .menuItems {
 		top: 2.5rem;
+		bottom: 0;
+	}
+	/* Sidebar themes — pull the inline menu strip flush against the rail when
+	   the mobile menu is showing. */
+	.Theme--sidebar .menuItems.menuShowing {
+		margin-left: -1rem;
+	}
+	.Theme--sidebar .mainArea {
+		top: 3rem;
 	}
 	.Theme--sidebar .ca_display_area {
 		top: 1rem;
@@ -126,6 +188,26 @@
 	#templates_content {
 		margin-bottom: 0;
 	}
+
+	/* Mobile real estate is too cramped for the floating scroll controls —
+	   they overlap cards and the search/menu chrome. Hide for all themes
+	   (rule wins over the desktop visibility defaults; the body-level pair
+	   AND the in-sidenav pair both match). */
+	.ca_back_to_top,
+	.ca_move_to_end {
+		display: none !important;
+	}
+
+	/* README on the sidebar is bulky on a phone-sized viewport — link in the
+	   popup body still points to the project's README on the web. Dev-mode
+	   buttons (Template / Plugin / Diff / CA) also hide — too much real
+	   estate next to the user-facing Support buttons. */
+	.ReadmeSection,
+	.popupChartBlock,
+	.ca_devMode {
+		display: none;
+	}
+
 }
 @media (max-height: 600px) {
 	#header {
@@ -134,11 +216,12 @@
 
 	.Theme--nav-top .ca_display_area {
 		top: 11rem;
+		bottom: 0;
 	}
 	.menuItems {
 		top: 2rem;
 	}
 	.Theme--nav-top .menuItems {
-		top: 12rem;
+		top: 10.5rem;
 	}
 }
