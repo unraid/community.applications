@@ -201,6 +201,10 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/diff.js");?>'></script>
 <?endif;?>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
+<!-- marked (named `markdown.js` inside dockerMan) — shipped by dynamix already,
+     so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
+     to render README.md client-side instead of going through PHP. -->
+<script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
 <?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
@@ -2962,6 +2966,7 @@ function showSidebarApp(apppath,appname) {
 			caInitSidebarReadmore();
 			caLoadSidebarReadmeSections();
 			caLoadSidebarTemplateChanges();
+			caRenderSidebarRequires();
 			/* Bind to the .caMediaGallery wrapper with delegate so all photos +
 			   videos inside are a single MFP gallery — MFP picks `image` vs
 			   `iframe` per item from the per-element `mfp-<type>` class. The
@@ -3045,7 +3050,11 @@ function showSidebarApp(apppath,appname) {
 }
 
 /**
- * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar (`getReadmeSection` POST per section).
+ * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar.
+ * Fetches raw README.md directly from raw.githubusercontent.com (CORS-friendly),
+ * then renders + sanitizes client-side via caSanitizeReadme (helpers.js). The
+ * URL emitted by skin_helpers.php carries a `?v={mtime}` cache-buster keyed to
+ * the appfeed refresh, so the browser HTTP cache handles re-opens for free.
  */
 function caLoadSidebarReadmeSections() {
 	var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
@@ -3059,28 +3068,77 @@ function caLoadSidebarReadmeSections() {
 		var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
 		var url = $section.attr("data-readme-url") || "";
 		var fallback = $section.attr("data-readme-url-fallback") || "";
-		postNoSpin({action:"getReadmeSection", readmeId: readmeId, url:url, fallback:fallback}, function(resp) {
-			// Late responses must only update the currently displayed placeholder for this readmeId.
-			var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
-			// If the user navigated away, the placeholder won't exist anymore: do nothing.
-			if (!$current.length) return;
-			var currentUrl = $current.attr("data-readme-url") || "";
-			// Guard against re-use / DOM replacement while request was in flight.
-			if (url && currentUrl !== url) return;
 
-			if (resp && resp.html) $current.find(".ca_readme_body").html(resp.html);
-			else $current.find(".ca_readme_body").text((resp && resp.message) ? resp.message : "README can't be loaded");
+		/* Client-side fetch + render. raw.githubusercontent.com sets
+		   Access-Control-Allow-Origin: *, so the browser allows the read.
+		   Browser HTTP cache does the work — the server-emitted URL already
+		   carries `?v={mtime}` from skin_helpers.php, so when the appfeed
+		   refreshes the cache key changes and a fresh body is pulled; in
+		   between, repeat sidebar opens are zero-network. */
+		function fetchText(u) {
+			/* Validate every URL through caIsPublicHttpUrlJs before letting
+			   the browser issue the request. Server-side caBuildReadmeSectionDiv
+			   already only emits raw.githubusercontent.com URLs, but if a
+			   future change ever lets a feed-controlled URL through the
+			   data-readme-url attribute we don't want fetch() to oblige and
+			   pull from a LAN host. */
+			if (!caIsPublicHttpUrlJs(u)) return Promise.reject(new Error("URL not allowed"));
+			return fetch(u, { credentials: "omit", redirect: "follow" })
+				.then(function(r) {
+					if (!r.ok) throw new Error("HTTP " + r.status);
+					return r.text();
+				});
+		}
+		function paint($current, html, isError) {
+			if (isError) {
+				$current.find(".ca_readme_body").text(html);
+			} else {
+				$current.find(".ca_readme_body").html(html);
+			}
 			$current.data("readmeLoaded", true);
 			$current.data("readmeLoading", false);
-
-			// Initialize readmore for this section now (don't wait for other readmes).
 			caInitSidebarReadmore($current);
-		});
+		}
+		function locateCurrent() {
+			/* Re-locate by id in case the sidebar was re-rendered mid-flight.
+			   Then verify the placeholder still points at the same URL we set
+			   out to fetch — drops the response on the floor if the user has
+			   moved on to a different app. */
+			var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
+			if (!$current.length) return null;
+			var currentUrl = $current.attr("data-readme-url") || "";
+			if (url && currentUrl !== url) return null;
+			return $current;
+		}
+
+		fetchText(url)
+			.catch(function() { return fallback ? fetchText(fallback) : Promise.reject(); })
+			.then(function(text) {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, caSanitizeReadme(text), false);
+			})
+			.catch(function() {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, tr("README can't be loaded"), true);
+			});
 	});
 }
 
 /**
- * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the sidebar (`getTemplateChanges`).
+ * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the
+ * sidebar. Client-side fetch (.plg for plugins, template XML for containers)
+ * then extract the `<CHANGES>` element via caExtractChangesFromXml and run
+ * the markdown through caSanitizeReadme (same strip+marked+DOMPurify+URL
+ * allowlist pipeline as README — both end up rendering user-supplied markdown
+ * inside the sidebar).
+ *
+ * URL carries `?v={mtime}` from caFormatTemplateChanges so the browser HTTP
+ * cache services repeat opens and the cache invalidates on every appfeed
+ * refresh. CORS: GitHub-hosted .plg / .xml sources allow it; custom-hosted
+ * sources may not — fetch failure falls through to the "Change log can't be
+ * loaded" placeholder, matching the previous server-error behavior.
  */
 function caLoadSidebarTemplateChanges() {
 	var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
@@ -3093,22 +3151,85 @@ function caLoadSidebarTemplateChanges() {
 		$section.data("changesLoading", true);
 		var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
 		var url = $section.attr("data-changes-url") || "";
-		var cacheKey = $section.attr("data-changes-cachekey") || "";
-		var type = $section.attr("data-changes-type") || "";
 
-		postNoSpin({action:"getTemplateChanges", changesId: changesId, url:url, cacheKey: cacheKey, type: type}, function(resp) {
+		function locateCurrent() {
 			var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
-			if (!$current.length) return;
+			if (!$current.length) return null;
 			var currentUrl = $current.attr("data-changes-url") || "";
-			if (url && currentUrl !== url) return;
-
-			if (resp && resp.html) $current.html(resp.html);
-			else $current.text((resp && resp.message) ? resp.message : "Change log can't be loaded");
-
+			if (url && currentUrl !== url) return null;
+			return $current;
+		}
+		function paint($current, content, isHtml) {
+			if (isHtml) $current.html(content);
+			else $current.text(content);
 			$current.data("changesLoaded", true);
 			$current.data("changesLoading", false);
 			$current.attr("data-changes-loaded", "1");
-		});
+		}
+
+		/* Gate the URL through caIsPublicHttpUrlJs before fetching so a
+		   future drift that lets a feed-controlled value land in the
+		   data-changes-url attribute can't make the browser pull from a
+		   LAN host. Same defense as the README loader above. */
+		var fetchPromise = caIsPublicHttpUrlJs(url)
+			? fetch(url, { credentials: "omit", redirect: "follow" }).then(function(r) {
+				if (!r.ok) throw new Error("HTTP " + r.status);
+				return r.text();
+			})
+			: Promise.reject(new Error("URL not allowed"));
+		fetchPromise
+			.then(function(xmlText) {
+				var $current = locateCurrent();
+				if (!$current) return;
+				var markdown = caExtractChangesFromXml(xmlText);
+				if (markdown === "") {
+					paint($current, tr("Change log can't be loaded"), false);
+					return;
+				}
+				paint($current, caSanitizeReadme(markdown), true);
+			})
+			.catch(function() {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, tr("Change log can't be loaded"), false);
+			});
+	});
+}
+
+/**
+ * Render the Additional Requirements block client-side. skin.php emits a
+ * placeholder `<div class='ca_requires_pending' data-requires='...'>` with the
+ * raw text JSON-encoded in the data attribute; this walks every such div in
+ * the freshly-loaded sidebar, pipes the text through the same
+ * strip→marked→DOMPurify chain we use for README/Changes, then applies the
+ * sidebar-search-link substitution that's unique to this field.
+ *
+ * No fetch — the data is already in the DOM payload, just deferred-render so
+ * the sanitization pipeline matches everywhere else. JSON-decode is defensive
+ * against the attribute being absent or malformed.
+ */
+function caRenderSidebarRequires() {
+	var $sections = $("#sidenavContent .ca_requires_pending[data-requires]");
+	if (!$sections.length) return;
+	$sections.each(function() {
+		var $section = $(this);
+		var raw = "";
+		try { raw = JSON.parse($section.attr("data-requires") || "\"\""); }
+		catch (e) { raw = ""; }
+		if (typeof raw !== "string" || raw === "") {
+			$section.text("");
+		} else {
+			/* Normalize newlines the way the old PHP path did before handing
+			   to markdown: drop \r and the &#xD; entity, turn \n into a
+			   markdown hard-break (two trailing spaces + newline). marked
+			   treats "  \n" as <br> regardless of the `breaks` option, which
+			   matches caSanitizeReadme's defaults. */
+			var normalized = raw.replace(/\r/g, "").replace(/&#xD;/g, "").replace(/\n/g, "  \n");
+			var html = caSanitizeReadme(normalized);
+			html = caApplySidebarSearchLinksJs(html);
+			$section.html(html);
+		}
+		$section.removeAttr("data-requires").removeClass("ca_requires_pending");
 	});
 }
 

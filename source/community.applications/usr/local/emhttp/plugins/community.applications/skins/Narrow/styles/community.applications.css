@@ -94,16 +94,18 @@ body:has(.sidenavShow) {
 }*/
 
 /* Two copies of the scroll controls live in the markup: one at body level for
-   the main view, one inside .sidenav for sidebar mode. Hide the body-level
-   pair while the sidebar is showing so only the in-sidebar pair is active.
-   Also hide them while a MagnificPopup overlay (image/video) is open so they
-   don't sit clickable on top of the dimmed page. */
+   the main view, one inside .sidenav for sidebar mode. The sidenavShow case
+   uses `>` so only the body-level pair hides (the in-sidebar pair is the
+   active one). For MagnificPopup overlays we hide BOTH copies (descendant
+   selector, no `>`) — when an image/video lightbox is up the sidebar's pair
+   would otherwise poke through the dim, and the user can't scroll the page
+   underneath anyway. Same broad hide for the diff overlay below. */
 body:has(.sidenavShow) > .ca_back_to_top,
 body:has(.sidenavShow) > .ca_move_to_end,
-body:has(.mfp-bg) > .ca_back_to_top,
-body:has(.mfp-bg) > .ca_move_to_end,
-body:has(.mfp-wrap) > .ca_back_to_top,
-body:has(.mfp-wrap) > .ca_move_to_end,
+body:has(.mfp-bg) .ca_back_to_top,
+body:has(.mfp-bg) .ca_move_to_end,
+body:has(.mfp-wrap) .ca_back_to_top,
+body:has(.mfp-wrap) .ca_move_to_end,
 /* Diff overlay sits on top of the page (z-index 1001); kill the body-level
    AND sidebar-level scroll controls so nothing pokes through the corners. */
 body:has(#caDiffView:not(.ca_hide)) .ca_back_to_top,
@@ -1673,6 +1675,12 @@ body,
 	   the same line keep the lighter line color. */
 	.ca_diffText.ca_diffDel .ca_diffCharDel { background: rgba(220, 60, 60, 0.7); }
 	.ca_diffText.ca_diffAdd .ca_diffCharAdd { background: rgba(60, 180, 75, 0.7); }
+	/* Decoded-side highlight for the Plugin button's two-column view: each span
+	   wraps the value that was substituted in for a `&name;` reference (see
+	   caBuildDecodedRows in diff.js + caExtractXmlEntities in exec.php). Amber
+	   was picked to stay distinct from the diff red/green so reading a Diff
+	   immediately after a Plugin view doesn't muddle the eye's color memory. */
+	.ca_entitySub { background: rgba(230, 200, 60, 0.4); }
 	.ca_diffEmpty {
 		text-align: center;
 		font-style: italic;
@@ -3370,13 +3378,12 @@ input[type="button"] {
 		opacity: 0.65;
 		margin: 0;
 		top: 50%;
-		/* Box just big enough to hold the existing triangle visuals at their
-		   original positions — was 90×110px which made the hover brighten
-		   feel huge. Triangle margins below are unchanged. */
-		margin-top: -40px;
+		/* Equal 19px padding on all four sides around the 17×26 caret →
+		   container 55×64. */
+		margin-top: -32px;
 		padding: 0;
-		width: 70px;
-		height: 80px;
+		width: 55px;
+		height: 64px;
 		-webkit-tap-highlight-color: transparent;
 	}
 
@@ -3386,35 +3393,52 @@ input[type="button"] {
 	   the new arrow position) the click bubbled to .mfp-wrap and the popup
 	   closed instead of advancing. Leaving the arrow stationary fixes that. */
 
+	/* Hover/focus: kill whatever orange backdrop the inherited button styling
+	   wants to paint, and tint the caret unraid-66 instead. !important needed
+	   to override the button-focus rendering bleeding through (same trick
+	   the @media (max-width: 1024px) block in responsive.css uses for touch). */
 	.mfp-arrow:hover,
 	.mfp-arrow:focus {
 		opacity: 1;
+		background: transparent !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+	.mfp-arrow-left:hover:after,
+	.mfp-arrow-left:focus:after {
+		border-right-color: var(--unraid-66-color);
+	}
+	.mfp-arrow-right:hover:after,
+	.mfp-arrow-right:focus:after {
+		border-left-color: var(--unraid-66-color);
 	}
 
-	.mfp-arrow:before,
+	/* MFP's stock styling uses a :before pseudo-element to draw a larger,
+	   darker triangle behind :after for a drop-shadow effect. We don't want
+	   the shadow, so :before is suppressed entirely (content: none) — only
+	   the white :after triangle remains. */
+	.mfp-arrow:before {
+		content: none;
+	}
+
+	/* Triangle is a 0×0 box whose colored border draws the visible shape.
+	   The element's top/left places the APEX of the resulting triangle.
+	   top:32 puts the apex at the vertical center of the 64px box; the
+	   symmetric border-top/border-bottom widths fan the triangle equally
+	   above and below (19px padding top, 19px padding bottom). Horizontal
+	   `left` is set per-variant so the visible 17×26 bbox sits with 19px
+	   padding on each side of the 55px box. For right-pointing arrows the
+	   apex is on the RIGHT of the bbox, so element_left = bbox_left + bbox_width. */
 	.mfp-arrow:after {
 		content: '';
 		display: block;
 		width: 0;
 		height: 0;
 		position: absolute;
-		left: 0;
-		top: 0;
-		margin-top: 35px;
-		margin-left: 35px;
-		border: medium inset transparent;
-	}
-
-	.mfp-arrow:after {
-		border-top-width: 13px;
-		border-bottom-width: 13px;
-		top: 8px;
-	}
-
-	.mfp-arrow:before {
-		border-top-width: 21px;
-		border-bottom-width: 21px;
-		opacity: 0.7;
+		top: 32px;
+		margin: 0;
+		border-top: 13px solid transparent;
+		border-bottom: 13px solid transparent;
 	}
 
 	.mfp-arrow-left {
@@ -3423,12 +3447,7 @@ input[type="button"] {
 
 	.mfp-arrow-left:after {
 		border-right: 17px solid var(--ca-named-white);
-		margin-left: 31px;
-	}
-
-	.mfp-arrow-left:before {
-		margin-left: 25px;
-		border-right: 27px solid var(--ca-medium-dark-color);
+		left: 19px;
 	}
 
 	.mfp-arrow-right {
@@ -3437,11 +3456,7 @@ input[type="button"] {
 
 	.mfp-arrow-right:after {
 		border-left: 17px solid var(--ca-named-white);
-		margin-left: 39px;
-	}
-
-	.mfp-arrow-right:before {
-		border-left: 27px solid var(--ca-medium-dark-color);
+		left: 36px;
 	}
 
 	.mfp-iframe-holder {

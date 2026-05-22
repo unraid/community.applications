@@ -120,9 +120,12 @@ $(function() {
 <div id='caDiffView' class='ca_hide' role='dialog' aria-modal='true' aria-label='<?tr("Template diff");?>'>
 	<!-- Standalone close — deliberately NOT class='popUpClose' so the body
 	     delegate that calls closeSidebar() doesn't fire alongside the
-	     diff-only dismissal. Real <button> so keyboard activation works without
-	     a manual tabindex/role. -->
-	<button type='button' class='caButton caDiffClose' onclick='caHideTemplateDiff();'><?tr("CLOSE");?></button>
+	     diff-only dismissal. <div> rather than <button> so .caButton styling
+	     applies without fighting the browser's UA <button> defaults — every
+	     other .caButton in CA is a <div>. Click handler bound in diff.js;
+	     the Escape-key dismiss in clickHandlers.js synthesizes a click on
+	     this element so both paths run the same code. -->
+	<div class='caButton caDiffClose'><?tr("CLOSE");?></div>
 	<div id='caDiffContent'></div>
 </div>
 <!-- Loading placeholder cloned into #caDiffContent while the feed JSON is
@@ -333,6 +336,8 @@ $(function() {
 				<div>chartjs-plugin-trendline (Marcus Alsterfjord) - MIT licence</div>
 				<div>XML2Array/Array2XML (Miles Johnson) - Apache 2.0 licence - <?tr("Modified by Andrew Zawadzki");?></div>
 				<div>Magnific-Popup (Dmytro Semenov) - MIT licence - <?tr("Modified by Andrew Zawadzki");?></div>
+				<div>DOMPurify (Cure53 and other contributors) - Apache 2.0 / MPL 2.0 licence</div>
+				<div>marked (Christopher Jeffrey) - MIT licence</div>
 			</div>
 			<br>
 			<div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2026 Lime Technology, 2015-2026 Andrew Zawadzki</div>

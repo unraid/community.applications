@@ -1181,3 +1181,375 @@ try {
 	$(caInitGlobalSearchHotkeyOverride);
 } catch (err) { /* no-op */ }
 
+/**
+ * HTML-attribute escape for sanitizer output. Single-quote-safe so it can be
+ * dropped into `attr='...'` without worrying about the source string.
+ */
+function caEscapeAttr(s) {
+	return String(s == null ? "" : s)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
+/**
+ * Browser-side mirror of PHP's caIsPublicHttpUrl (include/helpers.php). Rejects
+ * non-http(s) schemes, malformed URLs, and any host that resolves to loopback /
+ * RFC1918 / link-local / CGNAT / IPv6 ULA / IPv6 link-local — plus the
+ * decimal / hex IPv4 bypasses (`http://2130706433/` for 127.0.0.1, etc.) that
+ * some browsers still resolve. Used by caSanitizeReadme to drop README links
+ * that would point a click at the user's own GUI or LAN.
+ *
+ * DNS-rebinding-style attacks (a public hostname that resolves to a LAN IP)
+ * are out of scope here — same threat model as the PHP side.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+function caIsPublicHttpUrlJs(url) {
+	if (typeof url !== "string" || url === "") return false;
+	var u;
+	try { u = new URL(url); } catch (e) { return false; }
+	if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+	var host = u.hostname.toLowerCase();
+	if (host === "") return false;
+	/* URL.hostname already strips the brackets from IPv6 literals, but be
+	   defensive in case a non-spec input ever lands here. */
+	if (host.charAt(0) === "[" && host.charAt(host.length - 1) === "]") {
+		host = host.substring(1, host.length - 1);
+	}
+	if (host === "localhost" || host === "0" || host === "0.0.0.0" || host === "::" || host === "::1" || host === "0:0:0:0:0:0:0:1") return false;
+	/* IPv4 private/loopback/link-local/CGNAT ranges. Lifted into a reusable
+	   block so the IPv4-mapped IPv6 case below can re-run the same checks
+	   against the embedded v4. */
+	function isPrivateIPv4(v4) {
+		if (/^127(?:\.\d{1,3}){3}$/.test(v4)) return true;
+		if (/^10(?:\.\d{1,3}){3}$/.test(v4)) return true;
+		if (/^172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}$/.test(v4)) return true;
+		if (/^192\.168(?:\.\d{1,3}){2}$/.test(v4)) return true;
+		if (/^169\.254(?:\.\d{1,3}){2}$/.test(v4)) return true; // link-local
+		if (/^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2}$/.test(v4)) return true; // CGNAT 100.64/10
+		return false;
+	}
+	if (isPrivateIPv4(host)) return false;
+	/* Decimal-encoded IPv4 — a single integer that resolves to the 127/8 range. */
+	if (/^\d+$/.test(host)) {
+		var n = parseInt(host, 10);
+		if (n === 0) return false;
+		if (n >= 2130706432 && n <= 2147483647) return false;
+	}
+	/* Hex-encoded IPv4 (0x7f000001 etc.) — same 127/8 range. */
+	if (/^0x[0-9a-f]+$/i.test(host)) {
+		var hn = parseInt(host, 16);
+		if (hn >= 2130706432 && hn <= 2147483647) return false;
+	}
+	/* IPv4-mapped IPv6 — the URL constructor normalizes `::ffff:10.0.0.1` to the
+	   hex form `::ffff:a00:1` before we ever see it, so we have to match that
+	   shape and reconstruct the dotted v4 ourselves. Keep the dotted-form
+	   regex as a fallback for hosts that arrived non-normalized (other engines,
+	   manually-constructed strings, etc.). Both forms re-run isPrivateIPv4 so
+	   a hostile `http://[::ffff:10.0.0.1]/` is treated the same as `http://10.0.0.1/`. */
+	var v4mappedHex = host.match(/^::ffff(?::0)?:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+	if (v4mappedHex) {
+		var hi = parseInt(v4mappedHex[1], 16);
+		var lo = parseInt(v4mappedHex[2], 16);
+		var v4 = [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff].join(".");
+		if (isPrivateIPv4(v4)) return false;
+	}
+	var v4mappedDotted = host.match(/^::ffff(?::0)?:((?:\d{1,3}\.){3}\d{1,3})$/i);
+	if (v4mappedDotted && isPrivateIPv4(v4mappedDotted[1])) return false;
+	/* IPv6 ULA (fc00::/7 — first byte 0xfc or 0xfd) and link-local (fe80::/10
+	   — fe8x / fe9x / feax / febx). A `:` is required to distinguish from a
+	   hostname like "fc-domain.com". */
+	if (/^f[cd][0-9a-f]{0,2}:/i.test(host)) return false;
+	if (/^fe[89ab][0-9a-f]{0,2}:/i.test(host)) return false;
+	/* mDNS (.local) and the conventional "internal" pseudo-TLDs resolve to LAN
+	   hosts without DNS — same threat surface as RFC1918 above. `(^|\.)name$`
+	   anchors so both `foo.local` and the bare `local` / `internal` / etc.
+	   are blocked. Matches PHP caIsPrivateOrLoopbackHost. */
+	if (/(^|\.)local$/.test(host)) return false;
+	if (/(^|\.)(internal|intranet|lan|home|corp|private)$/.test(host)) return false;
+	return true;
+}
+
+/**
+ * Convert CA's sidebar-search markup tokens — `//term&#92;` (literal `//`,
+ * term, literal `&#92;` or `\` depending on whether marked passed the entity
+ * through) — into clickable anchors that fire `doSidebarSearch(term)`. Port
+ * of PHP `caApplySidebarSearchLinks` (skin_helpers.php), kept inline-onclick
+ * to match the convention used by ModeratorComment / CAComment which still
+ * emit server-side.
+ *
+ * Run this AFTER caSanitizeReadme — the constructed anchor is trusted markup
+ * (the term is escaped, the JS arg is JSON-encoded then attribute-escaped) so
+ * it doesn't need DOMPurify, and running before would mean DOMPurify strips
+ * the onclick.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
+function caApplySidebarSearchLinksJs(html) {
+	if (typeof html !== "string" || html === "") return html;
+	return html.replace(/\/\/(.*?)(?:&#92;|\\)/g, function(match, term) {
+		/* Sanity-check the captured term before building the anchor: empty
+		   matches and pathological lengths get left as literal text. The
+		   downstream JSON.stringify + caEscapeAttr makes XSS via term content
+		   impossible, but a real maintainer search hint is ~30 chars; 200 is
+		   generous. Control chars (incl. embedded newlines) become a confusing
+		   search filter, so reject them too — the literal pattern stays
+		   visible in the rendered text so a broken token is obvious. */
+		if (term === "" || term.length > 200) return match;
+		if (/[\x00-\x1f\x7f]/.test(term)) return match;
+		var safeText = caEscapeAttr(term);
+		/* JSON.stringify gives a valid JS string literal with surrounding
+		   double quotes; caEscapeAttr then makes the result safe inside the
+		   single-quoted onclick attribute. The browser decodes the HTML
+		   entities back to actual quote characters before handing the value
+		   to the JS engine, so doSidebarSearch sees the original term. */
+		var safeJsArg = caEscapeAttr(JSON.stringify(term));
+		/* Accessibility: an anchor with no href drops out of the tab order, so
+		   keyboard users couldn't reach this control. tabindex='0' restores
+		   tab focus and role='button' tells assistive tech what it is. The
+		   onkeydown handler fires on Enter (default for buttons) AND Space
+		   (which would otherwise scroll the page) — the `&quot;` entities
+		   decode to `"` once the browser parses the attribute, so the JS
+		   engine ends up seeing event.key === "Enter" / " ". */
+		return "<a style='cursor:pointer;' role='button' tabindex='0' onclick='doSidebarSearch(" + safeJsArg + ");' onkeydown='if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();doSidebarSearch(" + safeJsArg + ");}'>" + safeText + "</a>";
+	});
+}
+
+/**
+ * Decode the five XML predefined entities plus numeric character references.
+ * Custom DTD entities (e.g. `&name;` from a .plg DOCTYPE) are intentionally
+ * left as-is — CHANGES blocks rarely reference them and a full DTD parse
+ * would dwarf the win. If a real case shows up, mirror the dev-modal pipeline
+ * in diff.js (caExtractXmlEntities) for the same handling.
+ */
+function caXmlEntityDecode(s) {
+	if (typeof s !== "string" || s === "") return "";
+	/* String.fromCodePoint throws RangeError for values outside [0, 0x10FFFF],
+	   and malformed XML can carry `&#99999999;` or similar — one bad entity
+	   inside a remote README/CHANGES would otherwise crash the whole render.
+	   Filter to the valid Unicode codepoint range; out-of-band values drop
+	   to "" rather than propagating the exception. */
+	function safeFromCodePoint(n) {
+		if (!isFinite(n) || n < 0 || n > 0x10FFFF) return "";
+		try { return String.fromCodePoint(n); } catch (e) { return ""; }
+	}
+	return s
+		.replace(/&amp;/g, "&")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, "\"")
+		.replace(/&apos;/g, "'")
+		.replace(/&#x([0-9a-f]+);/gi, function(_, h) { return safeFromCodePoint(parseInt(h, 16)); })
+		.replace(/&#([0-9]+);/g, function(_, d) { return safeFromCodePoint(parseInt(d, 10)); });
+}
+
+/**
+ * Parse `<!ENTITY name "value">` declarations out of an XML document's DOCTYPE.
+ *
+ * Direct port of PHP `caExtractXmlEntities` (include/exec.php) — predefined
+ * entities are decoded inside the captured values, then cross-references
+ * between entities (`<!ENTITY full "&name;-&version;">`) are resolved with a
+ * 5-pass fixed-point loop so the returned table is already fully expanded by
+ * the time the caller uses it. Returns `{}` when no DOCTYPE / no declarations.
+ *
+ * Regex-based on purpose: malformed DTDs in real-world .plg files would make
+ * a strict DOMParser pass fail; we'd rather get whatever entities we can read.
+ *
+ * @param {string} xmlText
+ * @returns {Object<string,string>}
+ */
+function caExtractXmlEntitiesJs(xmlText) {
+	var entities = {};
+	if (typeof xmlText !== "string" || xmlText === "") return entities;
+	var dtMatch = xmlText.match(/<!DOCTYPE[^\[]*\[([\s\S]*?)\]\s*>/);
+	if (!dtMatch) return entities;
+	var dtd = dtMatch[1];
+	var entRe = /<!ENTITY\s+([A-Za-z_][\w.-]*)\s+(?:"([^"]*)"|'([^']*)')\s*>/g;
+	var m;
+	while ((m = entRe.exec(dtd)) !== null) {
+		var name = m[1];
+		var value = m[2] !== undefined ? m[2] : (m[3] !== undefined ? m[3] : "");
+		/* Predefined entities first — same as PHP strtr() on extraction. */
+		entities[name] = value
+			.replace(/&amp;/g, "&")
+			.replace(/&lt;/g, "<")
+			.replace(/&gt;/g, ">")
+			.replace(/&quot;/g, "\"")
+			.replace(/&apos;/g, "'");
+	}
+	/* Resolve entity-in-entity references with the same 5-pass fixed-point loop
+	   the PHP side uses. Self-references and unresolved names are left as-is. */
+	var refRe = /&([A-Za-z_][\w.-]*);/g;
+	for (var pass = 0; pass < 5; pass++) {
+		var changed = false;
+		for (var n in entities) {
+			if (!Object.prototype.hasOwnProperty.call(entities, n)) continue;
+			var current = entities[n];
+			var selfName = n;
+			var expanded = current.replace(refRe, function(match, refName) {
+				if (refName === selfName) return match;
+				return Object.prototype.hasOwnProperty.call(entities, refName) ? entities[refName] : match;
+			});
+			if (expanded !== current) {
+				entities[n] = expanded;
+				changed = true;
+			}
+		}
+		if (!changed) break;
+	}
+	return entities;
+}
+
+/**
+ * Pull the markdown text out of a .plg / template-XML CHANGES element with
+ * full DTD entity substitution — `&version;`, `&name;`, etc. get expanded
+ * using the DOCTYPE entity table before the markdown is rendered.
+ *
+ * Pipeline:
+ *   1. Build the entity table from the DOCTYPE (caExtractXmlEntitiesJs already
+ *      cross-resolves entity-in-entity refs so the values are flat).
+ *   2. Regex-extract the inner text of `<CHANGES>` / `<Changes>` — case-
+ *      insensitive so plugin (uppercase per .plg convention) and container
+ *      template (mixed-case) shapes both match.
+ *   3. Substitute custom entity references against the table; unknown names
+ *      survive verbatim so the user sees what was broken.
+ *   4. Decode predefined entities (`&amp;` → `&` etc.) via caXmlEntityDecode.
+ *      Done last so a value like `https://example.com/?a=1&amp;b=2` survives
+ *      the custom-substitution pass intact and decodes cleanly here.
+ *
+ * Regex over DOMParser everywhere — real-world .plg files sometimes have
+ * malformed DTDs that fail strict parsing, and we'd rather show *most* of a
+ * changelog than nothing.
+ *
+ * @param {string} xmlText Raw .plg or .xml content
+ * @returns {string} Inner markdown text of the CHANGES element, "" if missing
+ */
+function caExtractChangesFromXml(xmlText) {
+	if (typeof xmlText !== "string" || xmlText === "") return "";
+	var m = xmlText.match(/<CHANGES\b[^>]*>([\s\S]*?)<\/CHANGES>/i);
+	if (!m) return "";
+	var raw = m[1];
+	/* Unwrap any CDATA sections — most .plg files wrap their CHANGES markdown
+	   in `<![CDATA[...]]>` so `<`/`>`/`&` don't need entity-escaping. The
+	   server-side path used to get this for free via SimpleXML's LIBXML_NOCDATA;
+	   our regex extraction has to strip the markers explicitly or the literal
+	   `]]>` ends up in the rendered output. `g` flag handles multiple blocks. */
+	raw = raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+	var entities = caExtractXmlEntitiesJs(xmlText);
+	if (Object.keys(entities).length > 0) {
+		raw = raw.replace(/&([A-Za-z_][\w.-]*);/g, function(match, refName) {
+			return Object.prototype.hasOwnProperty.call(entities, refName) ? entities[refName] : match;
+		});
+	}
+	return caXmlEntityDecode(raw).trim();
+}
+
+/**
+ * Client-side replacement for PHP's caDownloadAndRenderReadme sanitizer.
+ *
+ * Three-pass pipeline — each layer is independently sufficient against most
+ * attacks; the chain exists so a bypass in one stage doesn't reach the user:
+ *
+ *   1. stripTags() — same regex-based tag remover the rest of CA uses. Wipes
+ *      every `<...>` construct before markdown sees it, so script/iframe/on*
+ *      attrs / javascript:-URL embeds in raw HTML never exist post-strip.
+ *      Markdown syntax can't *produce* those constructs, so what comes out of
+ *      step 2 is structurally safe.
+ *   2. marked() — render markdown to HTML. Loaded as dockerMan's markdown.js.
+ *   3. DOMPurify.sanitize() — final defense-in-depth pass via libraries.js's
+ *      bundled DOMPurify (Cure53). Catches anything an exotic markdown corner
+ *      case might've smuggled through.
+ *
+ * Then a DOM post-walk enforces caIsPublicHttpUrlJs on every `<a href>` and
+ * `<img src>` — DOMPurify's URL filtering blocks `javascript:`/`data:`/etc.
+ * but doesn't know about LAN / RFC1918 / loopback IPs, and we don't want a
+ * README link or auto-loading image pointing at the user's router admin.
+ *
+ * @param {string} rawMarkdown Raw README.md text from the source URL
+ * @returns {string} Sanitized HTML ready to drop into the sidebar
+ */
+function caSanitizeReadme(rawMarkdown) {
+	if (typeof rawMarkdown !== "string" || rawMarkdown === "") return "";
+	if (typeof window.marked !== "function" || typeof window.DOMPurify === "undefined" || typeof window.DOMPurify.sanitize !== "function") {
+		/* One of marked / DOMPurify failed to load — refuse to render anything
+		   live and fall back to pre-formatted plain text. Better to show the
+		   raw README than to ship un-sanitized HTML. */
+		return "<pre>" + caEscapeAttr(rawMarkdown) + "</pre>";
+	}
+
+	/* Strip-tags via the project's existing helper — wipes raw HTML before
+	   markdown sees it. After this, what reaches marked() is pure markdown
+	   text and can't carry script/iframe/on*= attributes through. */
+	var stripped = stripTags(rawMarkdown);
+
+	/* Compat shim for the old PHP Markdown() renderer (which we used to call
+	   server-side). That library accepted ATX headings without the required
+	   space — `###2023.04.15` rendered as an h3 — and a lot of existing .plg
+	   CHANGES blocks rely on it. marked is strict CommonMark / GFM and would
+	   show the leading `###` as literal text. Insert the missing space so
+	   those headings render the way maintainers expected. Multi-line flag is
+	   essential — the regex must anchor at every line start, not just BOF.
+
+	   The `(?!#)` is load-bearing: without it, `(#{1,6})` backtracks on input
+	   like `## 2023.04.15` (a valid h2 — already has a space) to match just
+	   the first `#` and pair it with the second `#` as the `\S` group, then
+	   replaces `##` with `# #`, breaking a valid heading into `# # 2023…`
+	   which marked renders as h1 with `#` content. The lookahead forces the
+	   run of `#`s to be exact so backtracking can't fire. */
+	stripped = stripped.replace(/^(#{1,6})(?!#)(\S)/gm, "$1 $2");
+
+	var rendered;
+	try {
+		rendered = window.marked(stripped, { gfm: true, breaks: false });
+	} catch (e) {
+		return "<pre>" + caEscapeAttr(rawMarkdown) + "</pre>";
+	}
+
+	/* DOMPurify pass with its baseline html profile. ALLOWED_URI_REGEXP locks
+	   schemes to http(s) — drops javascript:/data:/vbscript:/mailto:/etc.
+	   before our post-walk even runs. The DOMPurify result is parseable HTML
+	   (it builds a DOM internally), so we can walk it with the browser's own
+	   parser for the public-IP enforcement below. */
+	var clean = window.DOMPurify.sanitize(rendered, {
+		USE_PROFILES: { html: true },
+		ALLOWED_URI_REGEXP: /^https?:\/\//i
+	});
+
+	/* Post-walk: enforce caIsPublicHttpUrlJs on every surviving href / src and
+	   add target=_blank + rel hardening to allowed anchors. Mirrors the PHP
+	   server-side behavior — anchors get unwrapped (inner text survives) when
+	   the href fails; images get removed entirely (no useful fallback). */
+	var container = document.createElement("div");
+	container.innerHTML = clean;
+
+	$(container).find("a").each(function() {
+		var $a = $(this);
+		var href = $a.attr("href") || "";
+		if (caIsPublicHttpUrlJs(href)) {
+			$a.attr("target", "_blank").attr("rel", "noopener noreferrer");
+		} else {
+			/* Unwrap: replace the anchor with its children so the visible text
+			   stays put but the click goes nowhere. Matches PHP behavior. */
+			$a.replaceWith($a.contents());
+		}
+	});
+	$(container).find("img").each(function() {
+		var src = $(this).attr("src") || "";
+		if (!caIsPublicHttpUrlJs(src)) {
+			$(this).remove();
+			return;
+		}
+		/* Privacy: README / Changes images auto-load when the sidebar paints,
+		   and we don't want the user's Unraid URL leaking to whatever host the
+		   maintainer chose. Matches the PHP-emitted icon/screenshot/etc tags. */
+		$(this).attr("referrerpolicy", "no-referrer");
+	});
+
+	return container.innerHTML;
+}
+

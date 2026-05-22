@@ -1579,15 +1579,17 @@ function caInitializeEventHandlers() {
 				   sidebar's normal "back" / "close" flow and we want it to
 				   dismiss without unwinding any of the sidebar state.
 				   Guard on the element being present + visible so non-dev
-				   pages (where #caDiffView and caHideTemplateDiff don't
-				   exist at all) keep their normal Esc behavior. Whole case
-				   wrapped in braces so the `var $diff` declaration is
-				   block-scoped (Biome `noSwitchDeclarations`). */
+				   pages (where #caDiffView doesn't exist at all) keep their
+				   normal Esc behavior. Whole case wrapped in braces so the
+				   `var $diff` declaration is block-scoped (Biome
+				   `noSwitchDeclarations`). */
 				var $diff = $("#caDiffView");
-				if ($diff.length && !$diff.hasClass("ca_hide") && typeof caHideTemplateDiff === "function") {
+				if ($diff.length && !$diff.hasClass("ca_hide")) {
 					e.preventDefault();
 					e.stopPropagation();
-					caHideTemplateDiff();
+					/* Synthesize a click on the close button so both paths
+					   (mouse + Esc) run the same handler — bound in diff.js. */
+					$(".caDiffClose").click();
 					return;
 				}
 				if ($(".sidenav").hasClass("sidenavShow")) {

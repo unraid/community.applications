@@ -29,10 +29,10 @@
  *
  * Only available when dev mode is enabled. Locates the appfeed entry by Path /
  * InstallPath (using the full templates cache so Config/Network survive),
- * fetches the upstream source over caFetchChangelogContents' hardened curl
- * profile, parses it via TypeConverter, strips appfeed-only metadata from both
- * sides, canonicalizes (recursive ksort + pretty JSON), and renders a unified
- * diff with per-line CSS classes.
+ * fetches the upstream source via caFetchCachedSource → download_url (shared
+ * on-disk cache with the sidebar's Changes panel), parses it via TypeConverter,
+ * strips appfeed-only metadata from both sides, canonicalizes (recursive ksort
+ * + pretty JSON), and renders a unified diff with per-line CSS classes.
  */
 function getTemplateDiff() {
 	if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes") {
@@ -117,8 +117,14 @@ function getTemplateDiff() {
 			postReturn(["ok"=>false, "message"=>tr("Source URL is not allowed")]);
 			return;
 		}
-		$raw = caFetchChangelogContents($matchUrl);
-		if ($raw === "" || trim($raw) === "") {
+		/* Use the shared sidebar cache (caFetchCachedSource → download_url)
+		   so the diff and the Changes panel share one on-disk copy per URL,
+		   and so proxy.cfg users get the same support as everywhere else. */
+		$cacheName = caCacheKeyForUrl($matchUrl);
+		$raw = $cacheName !== ""
+			? caFetchCachedSource($matchUrl, $cacheName)
+			: download_url($matchUrl, "", 30);
+		if (!is_string($raw) || $raw === "" || trim($raw) === "") {
 			postReturn(["ok"=>false, "message"=>tr("Could not download source from")." ".htmlspecialchars($matchUrl, ENT_QUOTES)]);
 			return;
 		}
