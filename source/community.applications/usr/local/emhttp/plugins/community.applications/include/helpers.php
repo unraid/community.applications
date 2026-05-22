@@ -174,6 +174,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 			}
 		}
 		if ( $plugin_file) {
+			$dirty = false;
 			if ( is_file($plugin_file) ) {
 				if ( !isset($attributeCache[$plugin_file]) ) {
 					debug("CA Plugin $method $plugin_file not in attribute cache");
@@ -184,13 +185,17 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 						$attributes = false;
 					}
 					$attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
+					$dirty = true;
 				} else {
 					debug("$plugin_file already in attribute cache");
 				}
-			} else {
+			} else if ( isset($attributeCache[$plugin_file]) ) {
 				unset($attributeCache[$plugin_file]);
+				$dirty = true;
 			}
-			writeJsonFile(CA_PATHS['pluginAttributesCache'], $attributeCache);
+			if ( $dirty ) {
+				writeJsonFile(CA_PATHS['pluginAttributesCache'], $attributeCache);
+			}
 
 			// return the cached result if it exists.  If it doesn't return false;;
 			return $attributeCache[$plugin_file]['@attributes'][$method]??false;
