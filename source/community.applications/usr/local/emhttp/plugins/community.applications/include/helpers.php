@@ -1319,7 +1319,10 @@ function checkInstalledPlugin($template) {
  * @return string
  */
 function alphaNumeric($string) {
-	return preg_replace("/[^a-zA-Z0-9]+/", "", $string);
+	/* Cast through `(string)` so a null caller doesn't trip the PHP 8.1+
+	   deprecation `Passing null to parameter #3 ($subject) of type
+	   array|string is deprecated`. */
+	return preg_replace("/[^a-zA-Z0-9]+/", "", (string)($string ?? ""));
 }
 
 /**
@@ -1332,7 +1335,10 @@ function alphaNumeric($string) {
  * @return string
  */
 function getAuthor($template) {
-	if ( isset($template['PluginURL']) ) return $template['PluginAuthor'];
+	/* Plugin templates carry the author in PluginAuthor, but some legacy
+	   feed entries omit the field — return empty rather than emitting an
+	   undefined-index warning on every popup render. */
+	if ( isset($template['PluginURL']) ) return (string)($template['PluginAuthor'] ?? "");
 
 	if ( isset($template['Author']) ) return strip_tags($template['Author']);
 	$template['Repository'] = str_replace(["lscr.io/","ghcr.io/","registry.hub.docker.com/","library/"],"",$template['Repository']);

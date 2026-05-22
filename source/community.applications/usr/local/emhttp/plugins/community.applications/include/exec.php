@@ -386,7 +386,10 @@ function DownloadApplicationFeed() {
 		}
 
 		if ( $o['PluginURL'] ?? null ) {
-			$o['Author']        = $o['PluginAuthor'];
+			/* Some legacy plugin feed entries don't carry PluginAuthor; null-
+			   coalesce to "" so the assignment doesn't emit an
+			   undefined-index warning on every feed-process pass. */
+			$o['Author']        = (string)($o['PluginAuthor'] ?? "");
 			$o['Repository']    = $o['PluginURL'];
 		}
 
