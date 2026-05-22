@@ -1113,9 +1113,110 @@ function caIsPrivateOrLoopbackHost(string $host): bool {
 		return false;
 	}
 
+	/* mDNS (.local) and explicit "internal" pseudo-TLDs resolve to LAN hosts
+	   without any DNS lookup — same threat surface as RFC1918 IPs above. */
+	if (preg_match('/\.local$/', $host)) return true;
+	if (preg_match('/\.(internal|intranet|lan|home|corp|private)$/', $host)) return true;
+
 	/* Domain name — without a DNS lookup we can't know where it points, so
 	   accept it. DNS-rebinding-style attacks are a different threat model. */
 	return false;
+}
+
+/**
+ * Build a stable on-disk cache filename for a downloaded source URL.
+ *
+ * GitHub-hosted URLs (github.com, raw.githubusercontent.com,
+ * objects.githubusercontent.com, codeload.github.com) get an "owner-repo-suffix"
+ * shape so the .plg, template XML, and README for one repo land next to each
+ * other on disk and the dev can eyeball what's cached. Non-GitHub URLs fall
+ * back to a hash prefix so different hosts can't collide on the same suffix.
+ *
+ * `$suffixOverride` lets callers fix the trailing segment (eg. "readme.md" for
+ * fallback `main`/`master` README URLs that would otherwise both cache as
+ * `README.md` from the basename and step on each other). Everything is
+ * normalized to a filename-safe charset — no slashes, no traversal.
+ *
+ * @param  string  $url
+ * @param  string  $suffixOverride Optional fixed trailing segment; falls back to URL basename
+ * @return string  Cache filename, or "" if the URL couldn't be parsed
+ */
+function caCacheKeyForUrl(string $url, string $suffixOverride = ""): string {
+	$parts = @parse_url($url);
+	if (!is_array($parts)) return "";
+	$host = strtolower((string)($parts['host'] ?? ""));
+	$path = (string)($parts['path'] ?? "");
+	$segments = array_values(array_filter(explode("/", trim($path, "/"))));
+
+	$clean = static function (string $s): string {
+		$out = preg_replace('/[^A-Za-z0-9._-]/', '_', $s);
+		return is_string($out) ? $out : "";
+	};
+
+	$suffix = $suffixOverride !== "" ? $suffixOverride : (basename($path) ?: "data");
+	$suffix = $clean($suffix);
+	if ($suffix === "" || $suffix === "." || $suffix === "..") $suffix = "data";
+
+	$githubHosts = [
+		"github.com", "www.github.com",
+		"raw.githubusercontent.com", "www.raw.githubusercontent.com",
+		"objects.githubusercontent.com", "codeload.github.com",
+	];
+	if (in_array($host, $githubHosts, true) && count($segments) >= 2) {
+		$owner = $clean($segments[0]);
+		$repo  = $clean($segments[1]);
+		if ($owner !== "" && $repo !== "") {
+			return $owner . "-" . $repo . "-" . $suffix;
+		}
+	}
+
+	return substr(hash("sha256", $host . $path), 0, 16) . "-" . $suffix;
+}
+
+/**
+ * Cached wrapper for the sidebar's source-URL downloads (README, .plg, template
+ * XML, and the dev-mode Plugin/Template modal). First call for a given URL
+ * fetches over download_url() and writes the body to
+ * CA_PATHS['templates-community']/$cacheName; later calls — from any code path
+ * that asks for the same URL — short-circuit on the on-disk copy.
+ *
+ * Uses download_url() rather than a custom curl so corp-proxy users
+ * (proxy.cfg) and the existing per-URL flock all keep working — concurrent
+ * tabs racing the same .plg dedupe through download_url's lock and only one
+ * actually hits the network. The 30s timeout caps stalled fetches; default
+ * is libcurl-unbounded which we don't want on the sidebar's lazy-load path.
+ *
+ * Cache directory is wiped wholesale by DownloadApplicationFeed() (the
+ * `rm -rf $tempFiles` step on appfeed refresh), so no explicit TTL or
+ * invalidation is needed — stale-data risk caps at one feed refresh interval.
+ *
+ * @param  string  $url        Absolute https URL
+ * @param  string  $cacheName  Result of caCacheKeyForUrl()
+ * @return string Cached or freshly-fetched body, "" on failure
+ */
+function caFetchCachedSource(string $url, string $cacheName): string {
+	if ($url === "" || $cacheName === "") return "";
+	/* Defense in depth — caCacheKeyForUrl already sanitizes, but reject any
+	   cacheName that could escape templates-community before touching the FS. */
+	if (strpbrk($cacheName, "/\\") !== false || strpos($cacheName, "..") !== false) return "";
+
+	$dir  = CA_PATHS['templates-community'];
+	$path = $dir . "/" . $cacheName;
+
+	if (is_file($path)) {
+		$cached = @file_get_contents($path);
+		if (is_string($cached) && $cached !== "") return $cached;
+	}
+
+	@mkdir($dir, 0777, true);
+	$content = download_url($url, $path, 30);
+	if (!is_string($content) || $content === "" || trim($content) === "") {
+		/* download_url() already cleans up $path on failure (helpers.php
+		   download_url unlinks when $out === false). Belt-and-suspenders. */
+		@unlink($path);
+		return "";
+	}
+	return $content;
 }
 
 /**

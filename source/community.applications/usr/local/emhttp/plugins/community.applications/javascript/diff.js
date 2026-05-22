@@ -98,6 +98,15 @@ function caHideTemplateDiff() {
 	$("#caDiffContent").empty();
 }
 
+/* Bind the .caDiffClose click handler here rather than inline in skin.html.
+   diff.js is only loaded in dev mode (Apps.page guard) and #caDiffView is
+   only rendered in dev mode too, so the selector is guaranteed to match —
+   no need for delegation through body. Wrapped in $(function(){...}) so the
+   bind happens after skin.html is parsed even if diff.js loaded first. */
+$(function() {
+	$(".caDiffClose").on("click", caHideTemplateDiff);
+});
+
 /**
  * Escape `&<>"'` for safe injection into HTML text/attribute context. Small,
  * inlined here so the diff renderer doesn't depend on jQuery .text() round-trips.
@@ -264,4 +273,195 @@ function caRenderDiff(aText, bText, labelA, labelB, title) {
 	     + "<div class='ca_diffCol'><div class='ca_diffColInner'>" + leftRows + "</div></div>"
 	     + "<div class='ca_diffCol'><div class='ca_diffColInner'>" + rightRows + "</div></div>"
 	     + "</div></div>";
+}
+
+/**
+ * Dev-mode Plugin / Template button: fetch the URL server-side (getDevRawURL —
+ * see exec.php; the GitHub release CDN forces Content-Disposition: attachment
+ * on a direct <a href>, hence the proxy) and render the source into the
+ * #caDiffView overlay instead of triggering a browser download.
+ *
+ * Template mode (asPlugin=false): single column showing the raw bytes.
+ * Plugin mode (asPlugin=true): two columns — raw .plg on the left, the same
+ * document with internal `<!ENTITY name "...">` references substituted inline
+ * on the right, so the dev can see exactly what the runtime parser sees.
+ *
+ * Reuses the same #caDiffView markup, .caDiffLoadingTemplate, .ca_diffWrap /
+ * .ca_diffSplit / .ca_diffCol structure, scroll-sync, and close handlers as
+ * caShowTemplateDiff — only the row builder differs (no LCS alignment;
+ * pre-formatted source rows instead of paired diff rows).
+ *
+ * @param {string}  url      Absolute https URL to fetch (the Template / Plugin URL)
+ * @param {boolean} asPlugin When true, request + render the entity-decoded column
+ */
+function caShowDevSource(url, asPlugin) {
+	asPlugin = !!asPlugin;
+	var $content = $("#caDiffContent");
+	if (!$content.length) return;
+	$content.html($(".caDiffLoadingTemplate").html() || "");
+	$("#caDiffView").removeClass("ca_hide");
+
+	/* Monotonic sequence id — same staleness guard as caShowTemplateDiff: if
+	   the user clicks another button (or closes the overlay) before the fetch
+	   resolves, drop the late response on the floor rather than painting it
+	   over whatever's now on screen. */
+	caShowDevSource._seq = (caShowDevSource._seq || 0) + 1;
+	var myReqId = caShowDevSource._seq;
+
+	postNoSpin({ action: "getDevRawURL", url: url, decode: asPlugin ? "1" : "" }, function(result) {
+		if (myReqId !== caShowDevSource._seq) return;
+		if ($("#caDiffView").hasClass("ca_hide")) return;
+		$content.empty();
+		if (!result || !result.ok) {
+			var msg = (result && result.message) ? result.message : tr("Could not fetch URL");
+			$content.html("<div class='ca_diffEmpty'>" + caEscapeHtml(msg) + "</div>");
+			return;
+		}
+		var leftRows = caBuildSourceRows(result.content);
+		var html;
+		if (asPlugin) {
+			/* Server returns the parsed entity table (name=>value); we walk the
+			   raw content here and wrap each substitution in .ca_entitySub so
+			   the dev can see exactly which spans came from a DTD declaration.
+			   An empty/missing table just yields a no-highlight render. */
+			var entities = (result && result.entities) || {};
+			var rightRows = caBuildDecodedRows(result.content, entities);
+			html = caRenderDevSource(
+				leftRows,
+				rightRows,
+				url,
+				caEscapeHtml(tr("Raw")),
+				caEscapeHtml(tr("Decoded"))
+			);
+		} else {
+			html = caRenderDevSource(leftRows, null, url);
+		}
+		$content.html(html);
+		/* Scroll-sync only matters in plugin mode (two columns). Same lock /
+		   rAF pattern as caShowTemplateDiff so the columns can't bounce-loop
+		   into each other while the user drags a scrollbar. */
+		var cols = document.querySelectorAll("#caDiffContent .ca_diffCol");
+		if (cols.length === 2) {
+			var locked = false;
+			function bind(src, dst) {
+				src.addEventListener("scroll", function() {
+					if (locked) return;
+					locked = true;
+					dst.scrollTop = src.scrollTop;
+					requestAnimationFrame(function() { locked = false; });
+				});
+			}
+			bind(cols[0], cols[1]);
+			bind(cols[1], cols[0]);
+		}
+	});
+}
+
+/**
+ * Build the modal body for caShowDevSource. Reuses .ca_diffWrap / .ca_diffSplit
+ * / .ca_diffCol so styling, scrollbar behavior, and the overlay scroll
+ * indicators all match the diff view. When `rightRowsHtml` is null/undefined,
+ * emits a single column (Template mode) — flex `1 1 50%` on .ca_diffCol means
+ * one child grows to fill the row.
+ *
+ * Both row arguments are pre-built HTML so the caller controls per-side row
+ * construction (plain caBuildSourceRows on the raw side, caBuildDecodedRows
+ * with .ca_entitySub highlight spans on the decoded side).
+ *
+ * @param {string}  leftRowsHtml   HTML for the left (or only) column's rows
+ * @param {?string} rightRowsHtml  HTML for the right column's rows; null for single column
+ * @param {string}  titleText      Plain text title (URL) — escaped internally
+ * @param {string} [leftLabel]     Pre-escaped HTML for the left header (two-col only)
+ * @param {string} [rightLabel]    Pre-escaped HTML for the right header (two-col only)
+ * @returns {string} HTML to inject into #caDiffContent
+ */
+function caRenderDevSource(leftRowsHtml, rightRowsHtml, titleText, leftLabel, rightLabel) {
+	var titleHtml = titleText ? "<div class='ca_diffTitle'>" + caEscapeHtml(titleText) + "</div>" : "";
+	if (rightRowsHtml === null || rightRowsHtml === undefined) {
+		return "<div class='ca_diffWrap'>"
+		     + titleHtml
+		     + "<div class='ca_diffSplit'>"
+		     + "<div class='ca_diffCol'><div class='ca_diffColInner'>" + leftRowsHtml + "</div></div>"
+		     + "</div></div>";
+	}
+	var lblA = leftLabel  || "";
+	var lblB = rightLabel || "";
+	return "<div class='ca_diffWrap'>"
+	     + titleHtml
+	     + "<div class='ca_diffHeader'><div>" + lblA + "</div><div>" + lblB + "</div></div>"
+	     + "<div class='ca_diffSplit'>"
+	     + "<div class='ca_diffCol'><div class='ca_diffColInner'>" + leftRowsHtml + "</div></div>"
+	     + "<div class='ca_diffCol'><div class='ca_diffColInner'>" + rightRowsHtml + "</div></div>"
+	     + "</div></div>";
+}
+
+/**
+ * Split text on any line ending and wrap each line in a .ca_diffRow div so the
+ * existing diff CSS (white-space: pre, horizontal scroll on overflow) renders
+ * the source as a code block. Blank lines become &nbsp; to preserve row height.
+ */
+function caBuildSourceRows(text) {
+	if (text === null || text === undefined) return "";
+	var lines = String(text).split(/\r\n|\r|\n/);
+	var html = "";
+	for (var i = 0; i < lines.length; i++) {
+		html += "<div class='ca_diffRow'>"
+		     + (lines[i] === "" ? "&nbsp;" : caEscapeHtml(lines[i]))
+		     + "</div>";
+	}
+	return html;
+}
+
+/**
+ * Render rawText with each `&name;` reference replaced by the corresponding
+ * value from the server-supplied entity table, wrapping each substitution in a
+ * .ca_entitySub span so the highlight shows up exactly where the DTD value
+ * landed. References that aren't in the table (predefined &amp;/&lt;/etc. or
+ * unknown names) are passed through verbatim and rendered un-highlighted.
+ *
+ * Walks the raw text once, building rows + inline spans in a single pass.
+ * Substitution values that happen to contain newlines are split across rows
+ * with each line wrapped in its own span — keeps the column alignment intact.
+ */
+function caBuildDecodedRows(rawText, entities) {
+	if (rawText === null || rawText === undefined) return "";
+	entities = entities || {};
+	var html = "";
+	var lineBuf = "";
+	function flushRow() {
+		html += "<div class='ca_diffRow'>" + (lineBuf === "" ? "&nbsp;" : lineBuf) + "</div>";
+		lineBuf = "";
+	}
+	function appendLiteral(text) {
+		if (text === "") return;
+		var parts = text.split(/\r\n|\r|\n/);
+		for (var i = 0; i < parts.length; i++) {
+			if (i > 0) flushRow();
+			lineBuf += caEscapeHtml(parts[i]);
+		}
+	}
+	function appendSub(value) {
+		var parts = String(value).split(/\r\n|\r|\n/);
+		for (var i = 0; i < parts.length; i++) {
+			if (i > 0) flushRow();
+			lineBuf += "<span class='ca_entitySub'>" + caEscapeHtml(parts[i]) + "</span>";
+		}
+	}
+	/* Same name shape we accept server-side: starts with a letter or underscore,
+	   then letters/digits/_/./- — covers everything realistic .plg files use. */
+	var pattern = /&([A-Za-z_][\w.-]*);/g;
+	var lastIdx = 0;
+	var m;
+	while ((m = pattern.exec(rawText)) !== null) {
+		if (m.index > lastIdx) appendLiteral(rawText.substring(lastIdx, m.index));
+		if (Object.prototype.hasOwnProperty.call(entities, m[1])) {
+			appendSub(entities[m[1]]);
+		} else {
+			appendLiteral(m[0]);
+		}
+		lastIdx = m.index + m[0].length;
+	}
+	if (lastIdx < rawText.length) appendLiteral(rawText.substring(lastIdx));
+	flushRow();
+	return html;
 }

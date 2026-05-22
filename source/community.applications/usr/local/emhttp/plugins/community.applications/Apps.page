@@ -201,6 +201,10 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/diff.js");?>'></script>
 <?endif;?>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
+<!-- marked (named `markdown.js` inside dockerMan) — shipped by dynamix already,
+     so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
+     to render README.md client-side instead of going through PHP. -->
+<script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
 <?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
@@ -248,7 +252,19 @@ var caCardCache = {
    that same tab, which is exactly what we need so the server-side cache files
    (displayed.{id}.json, etc.) line up with this tab's view. */
 (function() {
-	swal.setDefaults({ customClass: "ca_sweetalert_open" });
+	/* When the page is reloading specifically to kick off a pending multi-plugin
+	   install (see updateContent → ca_openPlugin via the ca_plugininstallpending
+	   cookie), defer setting the swal `customClass` default. Unraid's openPlugin
+	   uses swal internally, and our customClass leaks our `body:has(.ca_sweetalert_open)`
+	   stacking rules into that modal, leaving it parked behind the main display.
+	   We re-arm the default right after the openPlugin call so subsequent CA
+	   swals still pick it up. */
+	var caPendingPluginInstall = document.cookie.split("; ").some(function(c){
+		return c.indexOf("ca_plugininstallpending=") === 0;
+	});
+	if ( ! caPendingPluginInstall ) {
+		swal.setDefaults({ customClass: "ca_sweetalert_open" });
+	}
 
 	var key = "ca_tabId";
 	var id = "";
@@ -265,10 +281,13 @@ var caCardCache = {
 	data.tabId = id;
 })();
 
-var dockerNotEnabled;
+/* Mirrors the legacy $dockerWarningFlag — true only when docker is genuinely
+   off AND the user has accepted the CYA (NoInstalls clear). Used to hide the
+   Docker search tab when docker can't service it. The per-app "Docker not
+   enabled" notice now lives in the sidebar template itself. */
+var dockerNotEnabled = <?= (!caIsDockerRunning() && !($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false" ?>;
 var postCount = 0;
 var cookieWarning = false;
-var dockerWarningAdded = false;
 var restoreStateMenu = false;
 var resizeTimer;
 var portsInUse = [];
@@ -474,8 +493,29 @@ $(function(){
 			return;
 		}
 		if ( ! message ) return;
-		caBlockViewportForReload();
-		caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
+		/* If a plugin / docker install (or any Unraid openPlugin / openDocker
+		   dialog) is currently on screen, hold the "another session updated
+		   the feed" notice until it's done — otherwise the viewport blocker
+		   slams down over the install modal and the user can't reach Done. */
+		if (window.caFeedReloadNoticePending) return;
+		window.caFeedReloadNoticePending = true;
+		var fireReloadNotice = function() {
+			caBlockViewportForReload();
+			caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
+		};
+		var caInstallDialogOpen = function() {
+			return $("#sb-nav").is(":visible");
+		};
+		if (caInstallDialogOpen()) {
+			var poll = setInterval(function() {
+				if ( ! caInstallDialogOpen()) {
+					clearInterval(poll);
+					fireReloadNotice();
+				}
+			}, 1000);
+			return;
+		}
+		fireReloadNotice();
 	});
 
 	caInitializeSortMenu();
@@ -573,6 +613,9 @@ $(function(){
 			});
 		}
 		setupActionCentre();
+		/* Submenu disable-state sync is chained inside getCategories() so it
+		   can't race with the wholesale caMenuEnabled reset there — both
+		   bootstrap branches above route through getCategories(). */
 		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
 		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
 		$.removeCookie("ca_apps_referrer", { path: "/" });
@@ -651,13 +694,16 @@ function updateContent(button,skipAppfeed=true) {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
 		}
-		getCategories();
+		getCategories(); /* now also re-applies count-based submenu gating */
 		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
 			var plugins = $.cookie("ca_plugininstallpending");
 			$.removeCookie("ca_plugininstallpending");
 			myCloseAlert();
 			post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
 				ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
+				/* Re-arm the swal customClass default once openPlugin's modal is
+				   on screen — see the deferral note in the IIFE near line 250. */
+				setTimeout(function(){ swal.setDefaults({ customClass: "ca_sweetalert_open" }); }, 1500);
 			});
 		}
 	});
@@ -1384,6 +1430,7 @@ function removeApp(application, humanName) {
 				var menuItem = $.find(".caMenuItem[data-category='previous_apps']");
 				$(menuItem).addClass("selectedMenu");
 				previousApps(false,true,data.previousAppsSection);
+				caRefreshInstalledMenuStates();
 			});
 		} else {
 			enableSearch();
@@ -1445,7 +1492,7 @@ function postUninstallPlugin() {
 	enableSearch();
 	$(".selectedMenu").trigger("click");
 	setupActionCentre();
-	refreshDisplay();
+	refreshDisplay(); /* chains caRefreshInstalledMenuStates */
 }
 
 /**
@@ -1479,6 +1526,7 @@ function uninstallDocker(application,humanName) {
 					myCloseAlert();
 				}
 				enableSearch();
+				caRefreshInstalledMenuStates();
 				if ( $(".selectedMenu").data("category") == "action_centre" ) {
 					post({action:'getPortsInUse'},function(data) {
 						portsInUse = data.portsInUse;
@@ -2298,6 +2346,9 @@ function showSettings() {
  */
 function showMenu() {
 	$(".menuAdjust,.hideWithMenu,.mobileMenu").addClass("menuShowing").removeClass("menuHidden");
+	/* Snap the menu scroll back to the top each time it opens — wherever the
+	   user left it (after a long category list, etc.) shouldn't carry over. */
+	$(".menuItems").scrollTop(0);
 }
 
 /**
@@ -2321,39 +2372,39 @@ function caChangeLog() {
 }
 
 /**
- * Show or clear the banner + menu disable state when Docker is unavailable (`enableDisable`: 1 service off, 2 start failure, 3 array stopped).
+ * Toggle a single sidebar menu item between enabled/disabled state by adding/
+ * removing caMenuEnabled and caMenuDisabled. caMenuDisabled is what the
+ * .sectionMenu click handler checks to swallow clicks on empty submenus.
  *
- * @param {number|false|null} enableDisable Reason code from PHP, or falsey to remove warning
+ * @param {string} category Value of the menu item's `data-category` attribute
+ * @param {boolean} enabled True to enable, false to grey out and swallow clicks
  */
-function addDockerWarning(enableDisable) {
-	if (enableDisable) {
-		switch (enableDisable) {
-			case 1:
-				var msg = "<?tr('Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			case 2:
-				var msg = "<?tr('Docker system failed to start - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			case 3:
-				var msg = "<?tr('Array not started - Only Plugins Available To Be Installed Or Managed');?>";
-				break;
-			default:
-				var msg = "Docker apps not available to install - Unknown reason why";
-				break;
-		}
-		if ( dockerWarningAdded === false) {
-			dockerWarningAdded = addBannerWarning(msg,true,false);
-			$(".dockerSpecific").removeClass("caMenuEnabled").addClass("caMenuDisabled");
-		}
+function caToggleMenuItem(category, enabled) {
+	var $item = $(".caMenuItem[data-category='" + category + "']");
+	if ( ! $item.length) return;
+	if (enabled) {
+		$item.removeClass("caMenuDisabled").addClass("caMenuEnabled");
 	} else {
-		if ( dockerWarningAdded !== false ) {
-			removeBannerWarning(dockerWarningAdded);
-			$(".dockerSpecific").removeClass("caMenuDisabled").addClass("caMenuEnabled");
-			dockerWarningAdded = false;
-		}
+		$item.removeClass("caMenuEnabled").addClass("caMenuDisabled");
 	}
 }
 
+/**
+ * Pull the four Installed / Previous Apps submenu populations from the server
+ * and grey out the submenu items that would render nothing — e.g. Installed
+ * Apps > Docker is disabled when no containers are present (and therefore
+ * also when docker itself is off, since collectDockerApplications short-
+ * circuits to []). Cheap enough to call after every install/uninstall.
+ */
+function caRefreshInstalledMenuStates() {
+	post({action:'installedAndPreviousCounts'}, function(result) {
+		if ( ! result || ! result.counts) return;
+		caToggleMenuItem("inst_docker",  result.counts.instDocker  > 0);
+		caToggleMenuItem("inst_plugins", result.counts.instPlugins > 0);
+		caToggleMenuItem("prev_docker",  result.counts.prevDocker  > 0);
+		caToggleMenuItem("prev_plugins", result.counts.prevPlugins > 0);
+	});
+}
 
 /**
  * Fetch favourite repository name from PHP and enable/disable `.favouriteRepo` menu + `data-repository`.
@@ -2381,6 +2432,10 @@ function getCategories() {
 				$(this).addClass("caMenuEnabled").removeClass("caMenuDisabled");
 			}
 		});
+		/* Re-apply count-based gating on the Installed / Previous submenus
+		   *after* the wholesale caMenuEnabled reset above, otherwise our
+		   caMenuDisabled state gets clobbered when these two requests race. */
+		caRefreshInstalledMenuStates();
 		setFavRepoSearch();
 
 		post({action:'areAppsPinned'},function(result) {
@@ -2911,6 +2966,7 @@ function showSidebarApp(apppath,appname) {
 			caInitSidebarReadmore();
 			caLoadSidebarReadmeSections();
 			caLoadSidebarTemplateChanges();
+			caRenderSidebarRequires();
 			/* Bind to the .caMediaGallery wrapper with delegate so all photos +
 			   videos inside are a single MFP gallery — MFP picks `image` vs
 			   `iframe` per item from the per-element `mfp-<type>` class. The
@@ -2994,7 +3050,11 @@ function showSidebarApp(apppath,appname) {
 }
 
 /**
- * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar (`getReadmeSection` POST per section).
+ * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar.
+ * Fetches raw README.md directly from raw.githubusercontent.com (CORS-friendly),
+ * then renders + sanitizes client-side via caSanitizeReadme (helpers.js). The
+ * URL emitted by skin_helpers.php carries a `?v={mtime}` cache-buster keyed to
+ * the appfeed refresh, so the browser HTTP cache handles re-opens for free.
  */
 function caLoadSidebarReadmeSections() {
 	var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
@@ -3008,28 +3068,70 @@ function caLoadSidebarReadmeSections() {
 		var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
 		var url = $section.attr("data-readme-url") || "";
 		var fallback = $section.attr("data-readme-url-fallback") || "";
-		postNoSpin({action:"getReadmeSection", readmeId: readmeId, url:url, fallback:fallback}, function(resp) {
-			// Late responses must only update the currently displayed placeholder for this readmeId.
-			var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
-			// If the user navigated away, the placeholder won't exist anymore: do nothing.
-			if (!$current.length) return;
-			var currentUrl = $current.attr("data-readme-url") || "";
-			// Guard against re-use / DOM replacement while request was in flight.
-			if (url && currentUrl !== url) return;
 
-			if (resp && resp.html) $current.find(".ca_readme_body").html(resp.html);
-			else $current.find(".ca_readme_body").text((resp && resp.message) ? resp.message : "README can't be loaded");
+		/* Client-side fetch + render. raw.githubusercontent.com sets
+		   Access-Control-Allow-Origin: *, so the browser allows the read.
+		   Browser HTTP cache does the work — the server-emitted URL already
+		   carries `?v={mtime}` from skin_helpers.php, so when the appfeed
+		   refreshes the cache key changes and a fresh body is pulled; in
+		   between, repeat sidebar opens are zero-network. */
+		function fetchText(u) {
+			return fetch(u, { credentials: "omit", redirect: "follow" })
+				.then(function(r) {
+					if (!r.ok) throw new Error("HTTP " + r.status);
+					return r.text();
+				});
+		}
+		function paint($current, html, isError) {
+			if (isError) {
+				$current.find(".ca_readme_body").text(html);
+			} else {
+				$current.find(".ca_readme_body").html(html);
+			}
 			$current.data("readmeLoaded", true);
 			$current.data("readmeLoading", false);
-
-			// Initialize readmore for this section now (don't wait for other readmes).
 			caInitSidebarReadmore($current);
-		});
+		}
+		function locateCurrent() {
+			/* Re-locate by id in case the sidebar was re-rendered mid-flight.
+			   Then verify the placeholder still points at the same URL we set
+			   out to fetch — drops the response on the floor if the user has
+			   moved on to a different app. */
+			var $current = readmeId ? $("#sidenavContent #" + readmeId) : $section;
+			if (!$current.length) return null;
+			var currentUrl = $current.attr("data-readme-url") || "";
+			if (url && currentUrl !== url) return null;
+			return $current;
+		}
+
+		fetchText(url)
+			.catch(function() { return fallback ? fetchText(fallback) : Promise.reject(); })
+			.then(function(text) {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, caSanitizeReadme(text), false);
+			})
+			.catch(function() {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, tr("README can't be loaded"), true);
+			});
 	});
 }
 
 /**
- * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the sidebar (`getTemplateChanges`).
+ * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the
+ * sidebar. Client-side fetch (.plg for plugins, template XML for containers)
+ * then extract the `<CHANGES>` element via caExtractChangesFromXml and run
+ * the markdown through caSanitizeReadme (same strip+marked+DOMPurify+URL
+ * allowlist pipeline as README — both end up rendering user-supplied markdown
+ * inside the sidebar).
+ *
+ * URL carries `?v={mtime}` from caFormatTemplateChanges so the browser HTTP
+ * cache services repeat opens and the cache invalidates on every appfeed
+ * refresh. CORS: GitHub-hosted .plg / .xml sources allow it; custom-hosted
+ * sources may not — fetch failure falls through to the "Change log can't be
+ * loaded" placeholder, matching the previous server-error behavior.
  */
 function caLoadSidebarTemplateChanges() {
 	var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
@@ -3042,22 +3144,79 @@ function caLoadSidebarTemplateChanges() {
 		$section.data("changesLoading", true);
 		var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
 		var url = $section.attr("data-changes-url") || "";
-		var cacheKey = $section.attr("data-changes-cachekey") || "";
-		var type = $section.attr("data-changes-type") || "";
 
-		postNoSpin({action:"getTemplateChanges", changesId: changesId, url:url, cacheKey: cacheKey, type: type}, function(resp) {
+		function locateCurrent() {
 			var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
-			if (!$current.length) return;
+			if (!$current.length) return null;
 			var currentUrl = $current.attr("data-changes-url") || "";
-			if (url && currentUrl !== url) return;
-
-			if (resp && resp.html) $current.html(resp.html);
-			else $current.text((resp && resp.message) ? resp.message : "Change log can't be loaded");
-
+			if (url && currentUrl !== url) return null;
+			return $current;
+		}
+		function paint($current, content, isHtml) {
+			if (isHtml) $current.html(content);
+			else $current.text(content);
 			$current.data("changesLoaded", true);
 			$current.data("changesLoading", false);
 			$current.attr("data-changes-loaded", "1");
-		});
+		}
+
+		fetch(url, { credentials: "omit", redirect: "follow" })
+			.then(function(r) {
+				if (!r.ok) throw new Error("HTTP " + r.status);
+				return r.text();
+			})
+			.then(function(xmlText) {
+				var $current = locateCurrent();
+				if (!$current) return;
+				var markdown = caExtractChangesFromXml(xmlText);
+				if (markdown === "") {
+					paint($current, tr("Change log can't be loaded"), false);
+					return;
+				}
+				paint($current, caSanitizeReadme(markdown), true);
+			})
+			.catch(function() {
+				var $current = locateCurrent();
+				if (!$current) return;
+				paint($current, tr("Change log can't be loaded"), false);
+			});
+	});
+}
+
+/**
+ * Render the Additional Requirements block client-side. skin.php emits a
+ * placeholder `<div class='ca_requires_pending' data-requires='...'>` with the
+ * raw text JSON-encoded in the data attribute; this walks every such div in
+ * the freshly-loaded sidebar, pipes the text through the same
+ * strip→marked→DOMPurify chain we use for README/Changes, then applies the
+ * sidebar-search-link substitution that's unique to this field.
+ *
+ * No fetch — the data is already in the DOM payload, just deferred-render so
+ * the sanitization pipeline matches everywhere else. JSON-decode is defensive
+ * against the attribute being absent or malformed.
+ */
+function caRenderSidebarRequires() {
+	var $sections = $("#sidenavContent .ca_requires_pending[data-requires]");
+	if (!$sections.length) return;
+	$sections.each(function() {
+		var $section = $(this);
+		var raw = "";
+		try { raw = JSON.parse($section.attr("data-requires") || "\"\""); }
+		catch (e) { raw = ""; }
+		if (typeof raw !== "string" || raw === "") {
+			$section.text("");
+		} else {
+			/* Normalize newlines the way the old PHP path did before handing
+			   to markdown: drop \r and the &#xD; entity, turn \n into a
+			   markdown hard-break (two trailing spaces + newline). marked
+			   treats "  \n" as <br> regardless of the `breaks` option, which
+			   matches caSanitizeReadme's defaults. */
+			var normalized = raw.replace(/\r/g, "").replace(/&#xD;/g, "").replace(/\n/g, "  \n");
+			var html = caSanitizeReadme(normalized);
+			html = caApplySidebarSearchLinksJs(html);
+			$section.html(html);
+		}
+		$section.removeAttr("data-requires").removeClass("ca_requires_pending");
 	});
 }
 

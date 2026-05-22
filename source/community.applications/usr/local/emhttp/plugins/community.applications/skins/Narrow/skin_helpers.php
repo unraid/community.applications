@@ -86,37 +86,34 @@ function caFormatOverview(array $template) {
  * @return void
  */
 function caFormatTemplateChanges(array &$template) {
-	// For plugins, always lazy-fetch from the .plg (ignore any embedded Changes field).
+	/* Cache-buster appended to the lazy-fetch URL — same `?v={mtime}` trick we
+	   use for README (caBuildReadmeSectionDiv). Stable between appfeed refreshes
+	   so the browser HTTP cache wins on repeat opens; changes whenever
+	   templates.json is rewritten so stale change logs evict naturally.
+	   Uses templates.json rather than templates_full.json — full can still be
+	   downloading in the background when this renders, mtime would be missing
+	   and the cache-buster would be empty. */
+	static $changesCacheBust = null;
+	if ($changesCacheBust === null) {
+		$mtime = @filemtime(CA_PATHS['community-templates-info']);
+		$changesCacheBust = $mtime ? ("?v=" . (int)$mtime) : "";
+	}
+
+	// For plugins, always lazy-fetch from the .plg.
 	if (!empty($template['Plugin'])) {
-		$type = "plugin";
 		$templateURL = (string)($template['PluginURL'] ?? "");
 		if (!$templateURL) return;
 
 		$cacheKey = hash("sha256", $templateURL);
 		$changesId = "ca_changes_" . $cacheKey;
-		$safeUrl = htmlspecialchars($templateURL, ENT_QUOTES);
-		$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-cachekey='{$cacheKey}' data-changes-url='{$safeUrl}' data-changes-type='{$type}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
+		$safeUrl = htmlspecialchars($templateURL . $changesCacheBust, ENT_QUOTES);
+		$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
 		return;
 	}
 
-	// If changes are already present in the template, format them immediately (no downloads).
-	if (trim((string)($template['Changes'] ?? ""))) {
-		$changes = (string)$template['Changes'];
-		$changes = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$changes);
-		$changes = str_replace(["[","]"],["<",">"],$changes);
-		$changes = Markdown(strip_tags($changes,"<br>"));
-		$template['Changes'] = $changes;
-		if (trim($changes)) {
-			$template['display_changes'] = trim($changes);
-		}
-		return;
-	}
-
-	// Otherwise, lazily fetch changes (plugin .plg or template XML) from the sidebar after render.
-	$type = "";
+	// For containers, lazy-fetch changes from the template XML after sidebar render.
 	$templateURL = "";
 	if ($template['ChangeLogPresent']) {
-		$type = "xml";
 		$templateURL = (string)($template['caTemplateURL'] ?: ($template['TemplateURL']??""));
 	}
 
@@ -124,8 +121,8 @@ function caFormatTemplateChanges(array &$template) {
 
 	$cacheKey = hash("sha256", $templateURL);
 	$changesId = "ca_changes_" . $cacheKey;
-	$safeUrl = htmlspecialchars($templateURL, ENT_QUOTES);
-	$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-cachekey='{$cacheKey}' data-changes-url='{$safeUrl}' data-changes-type='{$type}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
+	$safeUrl = htmlspecialchars($templateURL . $changesCacheBust, ENT_QUOTES);
+	$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
 }
 
 /**
@@ -226,24 +223,6 @@ function caResolveSelectionState(array &$template, array $dockerRunning) {
 }
 
 /**
- * Normalize and format the Additional Requirements field for display.
- *
- * Strips line endings, runs through Markdown, and applies sidebar search link tokens.
- *
- * @param  mixed $requires Raw requires field (string) or falsy.
- * @return mixed Formatted HTML string, or the original falsy value.
- */
-function caNormalizeRequiresField($requires) {
-	if (!$requires) {
-		return $requires;
-	}
-
-	$requires = str_replace(["\r","\n","&#xD;"],["","<br>",""],trim($requires));
-	$requires = Markdown(strip_tags($requires,"<br>"));
-	return caApplySidebarSearchLinks($requires);
-}
-
-/**
  * Build the Support button context for a template card or popup.
  *
  * Reads `$GLOBALS['caSettings']['dev']` to optionally include template/plugin source links.
@@ -275,15 +254,30 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		$supportContext[] = ["icon"=>"ca_fa-docker","link"=>$template['Registry'],"text"=>tr("Registry")];
 	}
 	if ($GLOBALS['caSettings']['dev'] == "yes") {
-		$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""), "text"=>tr("Template")];
-		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
-			$supportContext[] = ["icon"=>"ca_fa-template","link"=>$template['PluginURL'],"text"=>tr("Plugin")];
-		}
+		/* Every entry below is dev-mode only. The `class` is read by the
+		   sidebar template (skin.php → displayPopup) and rendered onto the
+		   caButton so responsive CSS can hide them on phone-sized viewports
+		   (.ca_devMode { display: none } under 767px). */
 		/* json_encode with the JS-safety flags produces a properly-quoted JS
 		   string literal (including the outer quotes) — safer than addslashes
 		   when the value lands inside an HTML onclick attribute, since it
 		   neutralizes `<`, `>`, `&`, and `'` as well. */
 		$jsFlags  = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+		/* Template / Plugin buttons route through caShowDevSource (diff.js)
+		   which reuses the #caDiffView modal — a direct <a href> on a GitHub
+		   release URL like .../releases/latest/download/foo.plg comes back
+		   with Content-Disposition: attachment and the browser saves it. The
+		   second arg is `asPlugin`: true requests the two-column raw vs.
+		   entity-decoded view, false is a single-column source dump. */
+		$templateUrl = (string)($template['caTemplateURL'] ?: ($template['TemplateURL'] ?? ""));
+		if ($templateUrl !== "") {
+			$templateUrlJs = json_encode($templateUrl, $jsFlags);
+			$supportContext[] = ["icon"=>"ca_fa-template","action"=>"caShowDevSource({$templateUrlJs},false)","text"=>tr("Template"), "class"=>"ca_devMode"];
+		}
+		if (!empty($template['Plugin']) && !empty($template['PluginURL'])) {
+			$pluginUrlJs = json_encode((string)$template['PluginURL'], $jsFlags);
+			$supportContext[] = ["icon"=>"ca_fa-template","action"=>"caShowDevSource({$pluginUrlJs},true)","text"=>tr("Plugin"), "class"=>"ca_devMode"];
+		}
 		$diffPath = json_encode((string)($template['Path'] ?? ""), $jsFlags);
 		$diffName = json_encode((string)($template['Name'] ?? ""), $jsFlags);
 		/* Diff is container-only — plugin .plg payloads don't survive the
@@ -294,6 +288,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'feed')",
 				"text"   => tr("Diff"),
+				"class"  => "ca_devMode",
 			];
 		}
 		/* Internal diff (appfeed vs CA's internal templates_full.json) — only
@@ -304,6 +299,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'internal')",
 				"text"   => tr("CA"),
+				"class"  => "ca_devMode",
 			];
 		}
 	}
@@ -537,7 +533,13 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (is_file(CA_PATHS['pluginTempDownload'])) {
 						@copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
 						$template['UpdateAvailable'] = true;
-						$actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin('$pluginName',true);"];
+						/* json_encode the string args so a hostile feed value can't break out
+					   of the JS string literal — produces a properly-quoted JS string and
+					   escapes `<`/`>`/`&`/`'`/`"` for safety in the surrounding HTML
+					   attribute. The emit-side htmlspecialchars in skin.php is the
+					   second layer; this is the first. */
+					$pluginNameJs = json_encode($pluginName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+					$actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin({$pluginNameJs},true);"];
 					}
 				} else {
 					$template['UpdateAvailable'] = false;
@@ -576,7 +578,14 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 						$installFlags = "";
 						if ( ! empty($template['Deprecated']) )      $installFlags .= "&deprecated";
 						if ( empty($template['Compatible']) )        $installFlags .= "&incompatible";
-						$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin('{$template['PluginURL']}{$installFlags}','$updateFlag','$requiresText');"];
+						/* See note at the Update emit above — json_encode each string arg
+						   so feed-controlled values (PluginURL especially) can't break
+						   out of the JS string literal. */
+						$jsFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+						$installUrlJs    = json_encode($template['PluginURL'] . $installFlags, $jsFlags);
+						$updateFlagJs    = json_encode((bool)$updateFlag, $jsFlags);
+						$requiresTextJs  = json_encode($requiresText, $jsFlags);
+						$actionsContext[] = ["icon"=>"ca_fa-install","text"=>$buttonTitle,"action"=>"installPlugin({$installUrlJs},{$updateFlagJs},{$requiresTextJs});"];
 					}
 				}
 				if ($template['InstallPath']) {
@@ -598,7 +607,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
  * Build action contexts for language pack templates within the card renderer.
  *
  * Reads /usr/local/emhttp/languages/ and checks for pending plugin files on disk;
- * mutates `$template['Changes']` / `$template['UpdateAvailable']`.
+ * mutates `$template['UpdateAvailable']`.
  *
  * @param  array<string,mixed>             $template       Template entry; modified in place.
  * @param  ?string                         $countryCode    Locale code (e.g. "en_US").
@@ -640,12 +649,6 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 			}
 		}
 
-		if ($countryCode !== "en_US") {
-			$template['Changes'] = "<center><a href='https://github.com/unraid/lang-$countryCode/commits/master' target='_blank'>".tr("Click here to view the language changelog")."</a></center>";
-		} else {
-			unset($template['Changes']);
-		}
-
 		if (file_exists(CA_PATHS['pluginPending'].$template['LanguagePack']) || file_exists(CA_PATHS['pluginPending']."lang-{$template['LanguagePack']}.xml")) {
 			$actionsContext = [["text"=>tr("Pending")]];
 		}
@@ -656,12 +659,13 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 
 
 /**
- * Assemble docker-related context (warnings, info caches) for listings.
+ * Assemble docker-related context (running container info + update status) for listings.
  *
- * Reads CA_PATHS['dockerUpdateStatus'], CA_PATHS['unRaidVars'], and CA_PATHS['docker_cfg']
- * from disk, and emits inline `<script>` markup setting `dockerNotEnabled` on the page.
+ * Reads CA_PATHS['dockerUpdateStatus']. When docker is off both members are empty arrays —
+ * downstream renderers gracefully render no docker-specific UI in that case (the per-app
+ * "Docker Service Not Enabled" notice lives in the sidebar template itself).
  *
- * @return array{info:array<string,mixed>,dockerUpdateStatus:array<string,mixed>,dockerNotEnabled:int|string,dockerWarningFlag:string,displayHeader:string}
+ * @return array{info:array<string,mixed>,dockerUpdateStatus:array<string,mixed>}
  */
 function caDockerContext(): array {
 	if ( caIsDockerRunning() ) {
@@ -678,32 +682,9 @@ function caDockerContext(): array {
 		$dockerUpdateStatus = [];
 	}
 
-	$dockerWarningFlag = (! caIsDockerRunning() && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false";
-	$dockerNotEnabled = $dockerWarningFlag;
-
-	if ($dockerNotEnabled === "true") {
-		$unRaidVars = parse_ini_file(CA_PATHS['unRaidVars']);
-		$dockerVars = parse_ini_file(CA_PATHS['docker_cfg']);
-
-		if ($unRaidVars['mdState'] === "STARTED" && $dockerVars['DOCKER_ENABLED'] !== "yes") {
-			$dockerNotEnabled = 1; // Array started, docker not enabled
-		}
-		if ($unRaidVars['mdState'] === "STARTED" && $dockerVars['DOCKER_ENABLED'] === "yes") {
-			$dockerNotEnabled = 2; // Docker failed to start
-		}
-		if ($unRaidVars['mdState'] !== "STARTED") {
-			$dockerNotEnabled = 3; // Array not started
-		}
-	}
-
-	$displayHeader = "<script>addDockerWarning($dockerNotEnabled);var dockerNotEnabled = $dockerWarningFlag;</script>";
-
 	return [
 		'info'               => $info,
-		'dockerUpdateStatus' => $dockerUpdateStatus,
-		'dockerNotEnabled'   => $dockerNotEnabled,
-		'dockerWarningFlag'  => $dockerWarningFlag,
-		'displayHeader'      => $displayHeader
+		'dockerUpdateStatus' => $dockerUpdateStatus
 	];
 }
 
@@ -776,27 +757,6 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
 			$template['Deprecated'] = true;
 			$template['ModeratorComment'] = $extraDeprecated[$template['Repository']];
 		}
-	}
-
-	return $template;
-}
-
-/**
- * Apply search-link transforms to moderator/CA comments + requires for the sidebar render.
- *
- * The install actions no longer carry a separate comment payload — the sidebar always
- * shows these blocks before the install button, so a second confirm-swal would be redundant.
- *
- * @param  array<string,mixed> $template Template entry.
- * @return array<string,mixed> Template with ModeratorComment, CAComment, and Requires reformatted.
- */
-function caPrepareTemplateComments(array $template): array {
-	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment'] ?? "");
-	$template['CAComment'] = caApplySidebarSearchLinks($template['CAComment'] ?? "");
-
-	if ($template['Requires']) {
-		$template['Requires'] = markdown(strip_tags(str_replace(["\r", "\n", "&#xD;", "'"], ["", "<br>", "", "&#39;"], trim($template['Requires'])), "<br>"));
-		$template['Requires'] = caApplySidebarSearchLinks($template['Requires']);
 	}
 
 	return $template;
@@ -947,7 +907,13 @@ function caProcessPluginTemplate(array $template): array {
 		if ((strcmp($pluginInstalledVersion, $template['pluginVersion']) < 0 || $template['UpdateAvailable']) && $template['Name'] !== "Community Applications" && (! ($template['UninstallOnly'] ?? false))) {
 			@copy(CA_PATHS['pluginTempDownload'], "/tmp/plugins/$pluginName");
 			$template['UpdateAvailable'] = true;
-			$actionsContext[] = ["icon" => "ca_fa-update", "text" => tr("Update"), "action" => "installPlugin('$pluginName',true,'','{$template['RequiresFile']}');"];
+			/* json_encode pluginName so a URL-derived basename with quotes / weird
+			   chars can't break out of the JS string. Dropped the trailing two args
+			   (empty requires sentinel + raw RequiresFile path): the JS signature
+			   is `installPlugin(pluginURL, update, requires)` — three args, the
+			   fourth was dead data and the literal source of the XSS path. */
+			$pluginNameJs = json_encode($pluginName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+			$actionsContext[] = ["icon" => "ca_fa-update", "text" => tr("Update"), "action" => "installPlugin({$pluginNameJs},true);"];
 		} else {
 			if (! $template['UpdateAvailable']) {
 				$template['UpdateAvailable'] = false;
@@ -992,7 +958,14 @@ function caProcessPluginTemplate(array $template): array {
 			)
 		);
 		if ($canInstall) {
-			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin('{$template['PluginURL']}{$installFlags}','$updateFlag','$requiresText');"];
+			/* json_encode each string arg — same defense as the sidebar Install
+			   emit above. PluginURL is feed-controlled, so the build-site safety
+			   matters here even though skin.php's onclick emit also escapes. */
+			$jsFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+			$installUrlJs    = json_encode($template['PluginURL'] . $installFlags, $jsFlags);
+			$updateFlagJs    = json_encode((bool)$updateFlag, $jsFlags);
+			$requiresTextJs  = json_encode($requiresText, $jsFlags);
+			$actionsContext[] = ["icon" => "ca_fa-install", "text" => $buttonTitle, "action" => "installPlugin({$installUrlJs},{$updateFlagJs},{$requiresTextJs});"];
 		}
 		if ($template['InstallPath']) {
 			if (! empty($actionsContext)) {
@@ -1207,7 +1180,7 @@ function caBuildRepoMediaSection(array $repo): string {
 			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
 			/* span (not <a>) so the legacy external-link click handler doesn't
 			   intercept this — magnific reads data-mfp-src for the source. */
-			$mediaHtml .= "<span class='screenshot mfp-image' data-mfp-src='{$safeShot}'><img class='screen' src='{$safeShot}' onerror='this.style.display=&quot;none&quot;'></img></span>";
+			$mediaHtml .= "<span class='screenshot mfp-image' data-mfp-src='{$safeShot}'><img class='screen' src='{$safeShot}' referrerpolicy='no-referrer' onerror='this.style.display=&quot;none&quot;'></img></span>";
 		}
 	}
 
@@ -1220,7 +1193,7 @@ function caBuildRepoMediaSection(array $repo): string {
 			}
 			$thumbnail = getYoutubeThumbnail($vid);
 			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></span>";
+			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."' referrerpolicy='no-referrer'></span>";
 		}
 	}
 
@@ -1506,15 +1479,28 @@ function caBuildReadmeSectionDiv(array $template): string {
 		return "";
 	}
 
-	$rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/README.md";
-	$rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/README.md";
+	/* Cache-buster: bumps every time the appfeed is refreshed (templates.json
+	   is rewritten by DownloadApplicationFeed). Between refreshes the URL is
+	   stable so the browser's HTTP cache serves repeat sidebar opens for free;
+	   when the feed refreshes, the URL changes and a fresh README is fetched.
+	   Uses templates.json rather than templates_full.json — the full file can
+	   still be downloading in the background when this renders, mtime would
+	   be missing and the cache-buster would silently be empty.
+	   Cached statically so we don't filemtime() once per template in a list view. */
+	static $readmeCacheBust = null;
+	if ($readmeCacheBust === null) {
+		$mtime = @filemtime(CA_PATHS['community-templates-info']);
+		$readmeCacheBust = $mtime ? ("?v=" . (int)$mtime) : "";
+	}
+	$rawMainUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/main/README.md{$readmeCacheBust}";
+	$rawMasterUrl = "https://raw.githubusercontent.com/{$org}/{$repo}/master/README.md{$readmeCacheBust}";
 	// Stable cache key derived from the template-provided README URL (avoids re-trying main/master on repeat views).
 	$cacheKey = hash("sha256", $readmeUrl);
 	$readmeId = "ca_readme_" . $cacheKey;
 	$safeReadmeUrl = htmlspecialchars($readmeUrl, ENT_QUOTES);
 	$safeRawMainUrl = htmlspecialchars($rawMainUrl, ENT_QUOTES);
 	$safeRawMasterUrl = htmlspecialchars($rawMasterUrl, ENT_QUOTES);
-	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-cachekey='{$cacheKey}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>".tr("Loading README...")."</div></div>";
+	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>".tr("Loading README...")."</div></div>";
 }
 
 /**
@@ -1753,15 +1739,15 @@ function caBuildIconMarkup(array $template, bool $dockerHub): string {
 	$imageNoClick = $dockerHub ? "noClick" : ($template['imageNoClick'] ?? "");
 
 	if (empty($template['IconFA'])) {
-		/* Same protection as the popup icon path: only emit external icon
-		   URLs when they're real http(s) — anything else falls back to the
-		   local "?" image so a malicious template can't trigger a same-origin
-		   GET against the user's GUI. */
+		/* Same protection as the popup icon path: caIsPublicHttpUrl rejects
+		   not just non-http(s) but also RFC1918, link-local, mDNS .local, etc.
+		   Icons auto-load when the card renders, so a malicious template URL
+		   pointing at a LAN device would otherwise CSRF on every page paint. */
 		$iconCandidate = (string)($template['Icon'] ?? "");
-		$safeIcon = validURL($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
+		$safeIcon = caIsPublicHttpUrl($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
 		$safeIconAttr = htmlspecialchars($safeIcon, ENT_QUOTES);
 		return "
-			<img class='ca_displayIcon {$imageNoClick}' src='{$safeIconAttr}' alt='Application Icon'></img>
+			<img class='ca_displayIcon {$imageNoClick}' src='{$safeIconAttr}' alt='Application Icon' referrerpolicy='no-referrer'></img>
 		";
 	}
 

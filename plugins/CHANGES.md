@@ -23,6 +23,20 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: Closed a stored-XSS path in the sidebar popup's Install / Update buttons — a hostile maintainer publishing a template with a crafted `RequiresFile` value could otherwise execute arbitrary JS in the user's Unraid GUI session when the user clicked the button
+- Changed: Icon, screenshot, README, and changelog image URLs now reject private-network hosts (RFC1918, link-local, CGNAT, IPv6 ULA, plus `.local` / `.internal` / `.lan` mDNS-style hostnames) — closes a CSRF surface where an auto-loaded image could fire a request at a device on the user's LAN
+- Added: `referrerpolicy='no-referrer'` on every template-supplied image (popup icon, card icon, screenshots, video thumbnails, licence, README / changelog images) so a third-party host doesn't see the user's Unraid URL on each render
+- Changed: README and change log now render client-side via marked + DOMPurify instead of server-side — browser HTTP cache services repeat sidebar opens for free between application-feed refreshes, and the same cache invalidates automatically on feed refresh
+- Changed: Additional Requirements block also runs through the new client-side sanitizer pipeline for consistency
+- Changed: Developer-mode "Plugin" / "Template" buttons (sidebar dev mode) now open the source inside the existing diff overlay — Plugin renders raw `.plg` alongside an entity-decoded column with each `&name;` substitution highlighted
+- Changed: Dev-mode close button on the diff / source overlay restyled to match the rest of the CA action buttons
+- Changed: Gallery arrows on the screenshot / video lightbox recolor the caret on hover instead of painting an orange backdrop behind it
+- Changed: Back-to-top and move-to-end floating buttons hide while a screenshot / video lightbox is open so they don't sit clickable on top of the dimmed page
+- Fixed: Markdown headings without a space after the `#`s (e.g. `###2024.01.15`) render as headings again — restores the permissive behavior of the previous server-side renderer for the many plugin change logs that rely on it
+- Fixed: `<![CDATA[...]]>` blocks inside `<CHANGES>` no longer leak the literal `]]>` marker into the rendered output
+- Fixed: `&version;` and other DTD-declared entities inside a plugin's `<CHANGES>` block now expand to their substituted values before markdown rendering, matching the prior server-side behavior
+- Chore: Bundled DOMPurify 3.2.4 (Apache 2.0 / MPL 2.0) into the CA library bundle for the client-side sanitization layer; credits updated
+- Chore: Sidebar metadata downloads (README, plugin `.plg`, container template XML, dev-mode source modal) share a single on-disk cache under `templates-community-apps`, wiped on application-feed refresh — fewer redundant downloads when re-opening apps or jumping between the sidebar and the dev-mode modal
 - Added: Developer-mode "Diff" button in the sidebar (containers only) — compares the upstream `TemplateURL` XML against the entry in the live application feed, side-by-side, with per-character highlighting on changed lines
 - Changed: Download progress strip no longer auto-appends an Abort button to every status copy; the button is now baked into the Updating-Applications dialog only
 - Changed: Concurrent identical downloads now share a single in-flight fetch via an OS-level file lock, instead of each request kicking off its own

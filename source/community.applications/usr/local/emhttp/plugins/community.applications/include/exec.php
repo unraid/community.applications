@@ -44,17 +44,21 @@ require_once "$docroot/plugins/community.applications/include/helpers.php";
    Lazy-load it inside those cases via caRequireSkin() below instead of paying
    the parse cost on every POST. */
 require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
-require_once "$docroot/webGui/include/Markdown.php";
 
 /**
  * Lazy-load the Narrow skin (skin.php + skin_helpers.php). Safe to call from
  * any case branch — PHP's require_once dedupes by absolute path. Used by the
  * cases that emit rendered HTML (`get_content`, `display_content`,
  * `getPopupDescription`, `getRepoDescription`, `search_dockerhub`).
+ *
+ * Pulls in Markdown.php alongside — skin / skin_helpers call markdown() in
+ * several spots (overview rendering, repo bio, cards-loop Requires, etc.),
+ * so every caRequireSkin consumer also needs the renderer.
  */
 function caRequireSkin(): void {
 	global $docroot;
 	require_once "$docroot/plugins/community.applications/skins/Narrow/skin.php";
+	require_once "$docroot/webGui/include/Markdown.php";
 }
 
 ################################################################################
@@ -109,6 +113,9 @@ switch ($_POST['action']) {
 	case 'previous_apps':
 		previous_apps();
 		break;
+	case 'installedAndPreviousCounts':
+		installedAndPreviousCounts();
+		break;
 	case 'remove_application':
 		remove_application();
 		break;
@@ -156,17 +163,17 @@ switch ($_POST['action']) {
 		caRequireSkin();
 		getRepoDescription();
 		break;
-	case 'getReadmeSection':
-		getReadmeSection();
-		break;
-	case 'getTemplateChanges':
-		getTemplateChanges();
-		break;
 	case 'getTemplateDiff':
 		/* Dev-mode Diff button only — lazy-load so day-to-day requests don't
 		   pay the parse cost for the ~320-line diff backend nobody else hits. */
 		require_once __DIR__ . "/diff.php";
 		getTemplateDiff();
+		break;
+	case 'getDevRawURL':
+		/* Dev-mode Plugin/Template buttons: fetch the URL server-side and feed
+		   it into the diff modal overlay (also handles LIBXML_NOENT decoding
+		   for the Plugin button's two-column raw / decoded view). */
+		getDevRawURL();
 		break;
 	case 'createXML':
 		createXML();
@@ -1417,6 +1424,17 @@ function previous_apps($enableActionCentre=false) {
 }
 
 /**
+ * Return the per-submenu counts used to enable/disable the Installed Apps and
+ * Previous Apps submenu items without rerendering result pages.
+ *
+ * @return void
+ */
+function installedAndPreviousCounts() {
+	require_once __DIR__ . '/previous_apps_helpers.php';
+	postReturn(['status'=>"ok", 'counts'=>PreviousAppsHelpers::installedAndPreviousCounts()]);
+}
+
+/**
  * Delete the user template/plugin file behind a Previously Installed row.
  *
  * Reads POST['application'], validates it resolves under /boot/config and is
@@ -1700,6 +1718,11 @@ function populateAutoComplete() {
  * @return void
  */
 function caChangeLog() {
+	/* Doesn't go through caRequireSkin (no rendered HTML), so pull Markdown.php
+	   in locally. require_once dedupes by path so this is a no-op if any other
+	   handler in the same request already loaded it. */
+	global $docroot;
+	require_once "$docroot/webGui/include/Markdown.php";
 	postReturn(["changelog"=>Markdown(ca_plugin("changes","/var/log/plugins/community.applications.plg"))."<br><br>"]);
 }
 
@@ -1786,360 +1809,100 @@ function getRepoDescription() {
 }
 
 /**
- * Fetch and sanitize the per-app README from GitHub for sidebar injection.
+ * Dev-mode Plugin/Template button backend: fetch a URL and return its bytes as
+ * JSON for the diff modal overlay (Template = single column raw; Plugin =
+ * two-column raw vs. entity-decoded so the dev can see exactly what the .plg
+ * looks like after &name; / &version; / &MD5; etc. are substituted).
  *
- * Reads POST readmeId/cacheKey/url/fallback, tries primary URL then fallback,
- * and returns sanitized HTML through postReturn().
- *
- * @return void
+ * Goes through caFetchCachedSource so the modal shares one on-disk copy with
+ * the sidebar's Changes loader (templates-community), and gates on
+ * caIsPublicHttpUrl so a stale template URL can't be coerced into an internal
+ * SSRF target. When the `decode` POST flag is set, also returns a parsed
+ * entity table in the `decoded` field — empty when the document is unparseable.
  */
-function getReadmeSection() {
-	$readmeId = trim((string)getPost("readmeId", ""));
-	$cacheKey = trim((string)getPost("cacheKey", ""));
+function getDevRawURL() {
+	if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes") {
+		postReturn(["ok"=>false, "message"=>tr("Dev mode is not enabled")]);
+		return;
+	}
 	$url = trim((string)getPost("url", ""));
-	$fallback = trim((string)getPost("fallback", ""));
-
-	$html = caDownloadAndRenderReadme($url, $cacheKey);
-	if ($html === "" && $fallback !== "") {
-		$html = caDownloadAndRenderReadme($fallback, $cacheKey);
+	if ($url === "") {
+		postReturn(["ok"=>false, "message"=>tr("Missing URL")]);
+		return;
 	}
-
-	postReturn([
-		"readmeId" => $readmeId,
-		"ok" => ($html !== ""),
-		"html" => $html,
-		"message" => ($html !== "" ? "" : tr("README can't be loaded"))
-	]);
+	if (!caIsPublicHttpUrl($url)) {
+		postReturn(["ok"=>false, "message"=>tr("URL is not allowed")]);
+		return;
+	}
+	/* Share the templates-community cache with the sidebar Changes loader so
+	   opening the modal right after the sidebar populates is a disk hit, and
+	   re-opening the modal for the same app skips the network entirely. */
+	$cacheName = caCacheKeyForUrl($url);
+	$content = $cacheName !== ""
+		? caFetchCachedSource($url, $cacheName)
+		: download_url($url, "", 30);
+	if (!is_string($content) || $content === "" || trim($content) === "") {
+		postReturn(["ok"=>false, "message"=>tr("Could not download")." ".$url]);
+		return;
+	}
+	$response = ["ok"=>true, "content"=>$content];
+	if (((string)getPost("decode", "")) === "1") {
+		/* Hand the parsed entity table to the client (rather than a pre-decoded
+		   string) so the JS can highlight each substitution site as it walks
+		   the raw text — the decoded column is built character-by-character
+		   with the replacements wrapped in <span class='ca_entitySub'>. */
+		$response['entities'] = caExtractXmlEntities($content);
+	}
+	postReturn($response);
 }
 
 /**
- * Fetch and sanitize the per-app changelog on demand.
+ * Pull `<!ENTITY name "value">` declarations out of a .plg's DOCTYPE block and
+ * return them as a name=>value array. Plugin XML uses simple internal entities
+ * (name, version, MD5, the download URL, etc.) referenced as &name; throughout
+ * the body — that's everything we need for the decoded-side highlight view.
  *
- * Reads POST changesId/cacheKey/url/type ("plugin" or "xml") and returns
- * sanitized HTML via postReturn().
+ * Regex-based on purpose: DOMDocument with LIBXML_NOENT would normalize the
+ * output (whitespace, attribute quoting) and we'd lose the line-for-line
+ * alignment with the raw column. Cross-references between entities (e.g.,
+ * `<!ENTITY full "&name;-&version;">`) are resolved with up to 5 passes so the
+ * value handed to the JS is already fully expanded.
  *
- * @return void
+ * @return array<string,string>
  */
-function getTemplateChanges() {
-	$changesId = trim((string)getPost("changesId", ""));
-	$cacheKey = trim((string)getPost("cacheKey", ""));
-	$url = trim((string)getPost("url", ""));
-	$type = trim((string)getPost("type", "")); // "plugin" or "xml"
-
-	$html = caDownloadAndRenderTemplateChanges($url, $cacheKey, $type);
-
-	postReturn([
-		"changesId" => $changesId,
-		"ok" => ($html !== ""),
-		"html" => $html,
-		"message" => ($html !== "" ? "" : tr("Change log can't be loaded"))
-	]);
-}
-
-
-/**
- * Fetch changelog/markdown for a template or plugin URL and return sanitized HTML.
- *
- * @param string $url
- * @param string $cacheKey Unused (kept for API compatibility)
- * @param string $type "plugin" or "xml" (container template)
- * @return string HTML fragment or empty string on failure
- */
-function caDownloadAndRenderTemplateChanges(string $url, string $cacheKey = "", string $type = ""): string {
-	if ($url === "") return "";
-
-	/* No on-disk caching (cacheKey was untrusted POST input flowing into a
-	   filename) and no SSRF surface — caFetchChangelogContents enforces
-	   https-only / size-capped / redirect-protocol-restricted curl. */
-	$raw = caFetchChangelogContents($url);
-	if ($raw === "" || trim($raw) === "") return "";
-
-	$changes = "";
-	if ($type === "plugin") {
-		/* ca_plugin("changes", $path) needs a file path. Use a transient
-		   tempfile in /tmp that we unlink immediately after parsing. */
-		$tmp = @tempnam(sys_get_temp_dir(), "ca_chgs_");
-		if ($tmp !== false) {
-			@file_put_contents($tmp, $raw);
-			$changes = @ca_plugin("changes", $tmp) ?: "";
-			@unlink($tmp);
+function caExtractXmlEntities(string $xml): array {
+	$entities = [];
+	if (!preg_match('/<!DOCTYPE[^\[]*\[(.*?)\]\s*>/s', $xml, $dtMatch)) {
+		return $entities;
+	}
+	$dtd = $dtMatch[1];
+	if (!preg_match_all('/<!ENTITY\s+([A-Za-z_][\w.-]*)\s+(?:"([^"]*)"|\'([^\']*)\')\s*>/s', $dtd, $matches, PREG_SET_ORDER)) {
+		return $entities;
+	}
+	$predef = ['&amp;'=>'&', '&lt;'=>'<', '&gt;'=>'>', '&quot;'=>'"', '&apos;'=>"'"];
+	foreach ($matches as $m) {
+		$name = $m[1];
+		$value = ($m[2] !== '' ? $m[2] : ($m[3] ?? ''));
+		$entities[$name] = strtr($value, $predef);
+	}
+	/* Resolve entity-in-entity references with a small fixed-point loop. Five
+	   passes covers any realistic .plg; the loop bails early when nothing
+	   changed. Self-references and unresolved names are left as-is. */
+	for ($pass = 0; $pass < 5; $pass++) {
+		$changed = false;
+		foreach ($entities as $name => $value) {
+			$expanded = preg_replace_callback('/&([A-Za-z_][\w.-]*);/', function($m) use ($entities, $name) {
+				if ($m[1] === $name) return $m[0];
+				return $entities[$m[1]] ?? $m[0];
+			}, $value);
+			if ($expanded !== $value) {
+				$entities[$name] = $expanded;
+				$changed = true;
+			}
 		}
-	} else {
-		/* Strict XML parse: LIBXML_NONET disables external network entity
-		   loading; libxml ≥ 2.9 already disables external general entities by
-		   default but the flag is belt-and-suspenders against XXE. */
-		$xml = @simplexml_load_string($raw, "SimpleXMLElement", LIBXML_NONET | LIBXML_NOCDATA);
-		if ($xml && isset($xml->Changes)) {
-			$changes = (string)$xml->Changes;
-		}
+		if (!$changed) break;
 	}
-
-	$changes = (string)$changes;
-	if ($changes === "") return "";
-
-	/* Strip any raw HTML from the source first so the markdown processor
-	   only sees plain text — markdown's own syntax can't generate dangerous
-	   tags or attributes (no onclick, no javascript: in parens, no inline
-	   styles), so once raw HTML is gone the markdown output is bounded to a
-	   safe shape. The post-render whitelist + anchor/img sanitizers below
-	   are the second-layer defense. */
-	$changes = str_replace("    ", "&nbsp;&nbsp;&nbsp;&nbsp;", $changes);
-	$changes = strip_tags($changes);
-	$changes = Markdown($changes);
-
-	/* Match the whole anchor element so we can drop the wrapper entirely (not
-	   just the href) when the link points anywhere other than http(s). Relative
-	   paths like /Main/... or /Settings/... would otherwise survive as styled
-	   pseudo-links and trick users into clicking through to local GUI pages. */
-	$changes = preg_replace_callback(
-		"/<a\\b([^>]*)>(.*?)<\\/a>/is",
-		static function ($matches) {
-			$attrs = $matches[1];
-			$inner = $matches[2];
-			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
-				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
-				if (caIsPublicHttpUrl($href)) {
-					$safeHref = htmlspecialchars($href, ENT_QUOTES);
-					$titleHtml = "";
-					if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
-						$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
-						if ($title !== "") {
-							$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
-						}
-					}
-					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'{$titleHtml}>{$inner}</a>";
-				}
-			}
-			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
-			return $inner;
-		},
-		$changes
-	);
-
-	$changes = preg_replace_callback(
-		"/<(img)\\b([^>]*)>/i",
-		static function ($matches) {
-			$attrs = $matches[2];
-			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
-				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
-				if (!caIsPublicHttpUrl($src)) {
-					return "";
-				}
-				$safeSrc = htmlspecialchars($src, ENT_QUOTES);
-				$alt = "Changelog image";
-				if (preg_match("/\\balt\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $altMatch)) {
-					$altRaw = ($altMatch[2] ?? "") ?: (($altMatch[3] ?? "") ?: ($altMatch[4] ?? ""));
-					if ($altRaw !== "") $alt = $altRaw;
-				}
-				$titleHtml = "";
-				if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
-					$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
-					if ($title !== "") {
-						$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
-					}
-				}
-				return "<img src='{$safeSrc}' alt='".htmlspecialchars($alt, ENT_QUOTES)."'{$titleHtml}>";
-			}
-			return "";
-		},
-		$changes
-	);
-
-	return trim((string)$changes);
-}
-
-/**
- * Hardened HTTPS fetcher for changelog/.plg/.xml content.
- *
- * Same hardening profile as caFetchReadmeContents() but without a host
- * whitelist — plugin .plg URLs and template .xml URLs come from many
- * third-party sources (GitHub, forums, custom hosts), so this leans on the
- * protocol restriction (https only, including redirects), redirect cap (3),
- * and 1 MB size cap to constrain SSRF / DoS surface.
- *
- * @param  string  $url
- * @return string Response body (possibly empty).
- */
-function caFetchChangelogContents(string $url): string {
-	$maxBytes = 1024 * 1024; // 1 MB
-	$buf = "";
-
-	$ch = curl_init();
-	curl_setopt_array($ch, [
-		CURLOPT_URL            => $url,
-		CURLOPT_RETURNTRANSFER => true,
-		CURLOPT_FOLLOWLOCATION => true,
-		CURLOPT_MAXREDIRS      => 3,
-		CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
-		CURLOPT_REDIR_PROTOCOLS=> CURLPROTO_HTTPS,
-		CURLOPT_TIMEOUT        => 15,
-		CURLOPT_CONNECTTIMEOUT => 5,
-		CURLOPT_FAILONERROR    => true,
-		CURLOPT_SSL_VERIFYPEER => true,
-		CURLOPT_SSL_VERIFYHOST => 2,
-		CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$buf, $maxBytes) {
-			$len = strlen($data);
-			if (strlen($buf) + $len > $maxBytes) {
-				return -1;
-			}
-			$buf .= $data;
-			return $len;
-		},
-	]);
-	@curl_exec($ch);
-	if (PHP_MAJOR_VERSION < 8) {
-		call_user_func('curl_close', $ch);
-	}
-
-	return $buf;
-}
-
-/**
- * Dedicated hardened fetcher for README content from raw.githubusercontent.com.
- *
- * Doesn't go through download_url() because:
- *   - 1 MB cap via WRITEFUNCTION abort, so a hostile repo can't DoS us.
- *   - Redirects allowed but restricted to https and capped at 3 hops, then
- *     the effective URL host is rechecked against the GitHub raw whitelist
- *     so a redirect can't smuggle in a different origin's content.
- *   - 15s timeout / 5s connect.
- * download_url() keeps its general-purpose behavior (FOLLOWLOCATION, proxy
- * fallback, etc.) for every other caller.
- *
- * @param  string  $url
- * @return string Response body, or "" when the host isn't whitelisted after redirects.
- */
-function caFetchReadmeContents(string $url): string {
-	$maxBytes = 1024 * 1024; // 1 MB
-	$buf = "";
-
-	$ch = curl_init();
-	curl_setopt_array($ch, [
-		CURLOPT_URL            => $url,
-		CURLOPT_RETURNTRANSFER => true,
-		CURLOPT_FOLLOWLOCATION => true,
-		CURLOPT_MAXREDIRS      => 3,
-		CURLOPT_PROTOCOLS      => CURLPROTO_HTTPS,
-		CURLOPT_REDIR_PROTOCOLS=> CURLPROTO_HTTPS,
-		CURLOPT_TIMEOUT        => 15,
-		CURLOPT_CONNECTTIMEOUT => 5,
-		CURLOPT_FAILONERROR    => true,
-		CURLOPT_SSL_VERIFYPEER => true,
-		CURLOPT_SSL_VERIFYHOST => 2,
-		CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$buf, $maxBytes) {
-			$len = strlen($data);
-			if (strlen($buf) + $len > $maxBytes) {
-				return -1; // abort transfer
-			}
-			$buf .= $data;
-			return $len;
-		},
-	]);
-	@curl_exec($ch);
-	$finalUrl = (string)curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-	if (PHP_MAJOR_VERSION < 8) {
-		call_user_func('curl_close', $ch);
-	}
-
-	// Make sure a redirect didn't smuggle us off-host before content-trust.
-	$finalHost = strtolower((string)parse_url($finalUrl, PHP_URL_HOST));
-	if (!in_array($finalHost, ["raw.githubusercontent.com", "www.raw.githubusercontent.com"], true)) {
-		return "";
-	}
-	return $buf;
-}
-
-/**
- * Fetch README.md from raw.githubusercontent.com and return HTML via markdown().
- *
- * @param string $url
- * @param string $cacheKey Unused (kept for API compatibility)
- * @return string
- */
-function caDownloadAndRenderReadme(string $url, string $cacheKey = ""): string {
-	if ($url === "") return "";
-	$parts = @parse_url($url);
-	if (!is_array($parts)) return "";
-	$host = strtolower($parts['host'] ?? "");
-	$path = (string)($parts['path'] ?? "");
-	if (!in_array($host, ["raw.githubusercontent.com", "www.raw.githubusercontent.com"], true)) return "";
-	if (!preg_match("/\\/README\\.md$/i", $path)) return "";
-
-	/* No caching: README is an at-render thing — user can hit the GitHub URL
-	   directly for the live copy. Avoids cacheKey path-traversal concerns and
-	   keeps disk usage bounded. */
-	$readmeContents = caFetchReadmeContents($url);
-	if ($readmeContents === "" || trim($readmeContents) === "") {
-		return "";
-	}
-
-	/* Strip any raw HTML up front so markdown only sees plain text — markdown
-	   syntax can't produce dangerous tags or attributes (no onclick, no
-	   javascript: in href parens, no inline styles), so the output is
-	   bounded to a safe shape. The whitelist + anchor/img sanitizers below
-	   are the second-layer defense. */
-	$readmeContents = strip_tags((string)$readmeContents);
-	$readmeContents = Markdown($readmeContents);
-
-	/* Match the whole anchor element so we can drop the wrapper entirely (not
-	   just the href) when the link points anywhere other than http(s). Relative
-	   paths like /Main/... or /Settings/... would otherwise survive as styled
-	   pseudo-links and trick users into clicking through to local GUI pages. */
-	$readmeContents = preg_replace_callback(
-		"/<a\\b([^>]*)>(.*?)<\\/a>/is",
-		static function ($matches) {
-			$attrs = $matches[1];
-			$inner = $matches[2];
-			if (preg_match("/\\bhref\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $hrefMatch)) {
-				$href = ($hrefMatch[2] ?? "") ?: (($hrefMatch[3] ?? "") ?: ($hrefMatch[4] ?? ""));
-				if (caIsPublicHttpUrl($href)) {
-					$safeHref = htmlspecialchars($href, ENT_QUOTES);
-					$titleHtml = "";
-					if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
-						$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
-						if ($title !== "") {
-							$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
-						}
-					}
-					return "<a href='{$safeHref}' target='_blank' rel='noopener noreferrer'{$titleHtml}>{$inner}</a>";
-				}
-			}
-			/* No href / non-http(s) href — strip the anchor wrapper, keep text. */
-			return $inner;
-		},
-		$readmeContents
-	);
-
-	$readmeContents = preg_replace_callback(
-		"/<(img)\\b([^>]*)>/i",
-		static function ($matches) {
-			$attrs = $matches[2];
-			if (preg_match("/\\bsrc\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $srcMatch)) {
-				$src = ($srcMatch[2] ?? "") ?: (($srcMatch[3] ?? "") ?: ($srcMatch[4] ?? ""));
-				if (!caIsPublicHttpUrl($src)) {
-					return "";
-				}
-				$safeSrc = htmlspecialchars($src, ENT_QUOTES);
-				$alt = "README image";
-				if (preg_match("/\\balt\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $altMatch)) {
-					$altRaw = ($altMatch[2] ?? "") ?: (($altMatch[3] ?? "") ?: ($altMatch[4] ?? ""));
-					if ($altRaw !== "") $alt = $altRaw;
-				}
-				$titleHtml = "";
-				if (preg_match("/\\btitle\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s>]+))/i", $attrs, $titleMatch)) {
-					$title = ($titleMatch[2] ?? "") ?: (($titleMatch[3] ?? "") ?: ($titleMatch[4] ?? ""));
-					if ($title !== "") {
-						$titleHtml = " title='".htmlspecialchars($title, ENT_QUOTES)."'";
-					}
-				}
-				return "<img src='{$safeSrc}' alt='".htmlspecialchars($alt, ENT_QUOTES)."'{$titleHtml}>";
-			}
-			return "";
-		},
-		$readmeContents
-	);
-
-	return (string)$readmeContents;
+	return $entities;
 }
 
 /**

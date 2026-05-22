@@ -221,7 +221,15 @@ function displayPopup($template) {
 
 	if ($Requires && ! is_file($RequiresFile ?? "")) {
 		$notMet = $requiresFileNotMet ? " <span class='ca_bold'>- ".tr("Not met")."</span>" : "";
-		$RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")."$notMet</div><div class='additionalRequirements'>{$template['Requires']}</div>";
+		/* Emit a placeholder with the RAW Requires text JSON-encoded in the
+		   data attribute. caRenderSidebarRequires() in Apps.page picks it up
+		   right after the sidebar paints and runs it through the same
+		   strip→marked→DOMPurify→search-link pipeline as README/Changes —
+		   one renderer everywhere, plus the DOMPurify defense-in-depth pass. */
+		$rawRequires    = (string)$template['Requires'];
+		$requiresJson   = (string)json_encode($rawRequires, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+		$requiresAttr   = htmlspecialchars($requiresJson, ENT_QUOTES);
+		$RequiresMessage = "<div class='additionalRequirementsHeader'>".tr("Additional Requirements")."$notMet</div><div class='additionalRequirements ca_requires_pending' data-requires='{$requiresAttr}'>".tr("Loading requirements...")."</div>";
 	} else {
 		$RequiresMessage = "";
 	}
@@ -311,7 +319,7 @@ function displayPopup($template) {
 				$safeShot = htmlspecialchars($shot, ENT_QUOTES);
 				/* span (not <a>) so the legacy external-link click handler doesn't
 				   intercept this — magnific uses data-mfp-src as the source. */
-				$mediaSections[] = "<span class='screenshot mfp-image' data-mfp-src='$safeShot'><img class='screen' src='$safeShot'></img></span>";
+				$mediaSections[] = "<span class='screenshot mfp-image' data-mfp-src='$safeShot'><img class='screen' src='$safeShot' referrerpolicy='no-referrer'></img></span>";
 			}
 		}
 		if ($Video) {
@@ -322,7 +330,7 @@ function displayPopup($template) {
 				}
 				$thumbnail = getYoutubeThumbnail($vid);
 				$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."'></span>";
+				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."' referrerpolicy='no-referrer'></span>";
 			}
 		}
 		if ($mediaSections) {
@@ -381,7 +389,7 @@ function displayPopup($template) {
 	if ($Licence) {
 		if (validURL($Licence)) {
 			$safeLicence = htmlspecialchars($Licence, ENT_QUOTES);
-			$Licence = "<img class='licence' src='$safeLicence' onerror='this.outerHTML=&quot;<a href=$safeLicence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
+			$Licence = "<img class='licence' src='$safeLicence' referrerpolicy='no-referrer' onerror='this.outerHTML=&quot;<a href=$safeLicence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
 		}
 		$detailsRows[] = "<tr><td class='popupTableLeft'>".tr("Licence")."</td><td class='popupTableRight'>$Licence</td></tr>";
 	}
@@ -423,10 +431,6 @@ function displayPopup($template) {
 		}
 	}
 
-	$statsNote = "";
-	if (! $Plugin && ! $Language) {
-		$statsNote = "<div class='popupStatsNote'><br><span class='ca_note ca_bold'><span class='ca_fa-asterisk'></span> ".tr("Note: All statistics are only gathered every 30 days")."</span></div>";
-	}
 	$readmeSection = caBuildReadmeSectionDiv($template);
 	$readmeButton = "";
 	if ($readmeSection === "" && !empty($template['ReadMe']) && validURL($template['ReadMe'])) {
@@ -455,6 +459,13 @@ function displayPopup($template) {
 	?>
 	<div class='popup'>
 		<div class='popupContent'>
+			<?php /* Per-app docker-disabled notice — sits above the icon/name
+			         block instead of as a page-level banner so it travels with
+			         the app context. Only shown for non-plugin / non-language
+			         apps (the only kinds that need docker to install). */ ?>
+			<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
+				<div class='popupDockerDisabled'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
+			<?php endif; ?>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'><?= $display_icon ?></div>
 				<div class='popupInfo'>
@@ -464,10 +475,6 @@ function displayPopup($template) {
 						<div class='popupAuthorMain'><?= $Author ?></div>
 					<?php endif; ?>
 
-					<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
-						<div class='ca_red'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
-					<?php endif; ?>
-
 					<?php /* Support buttons stay in the popup body and scroll
 					         with the rest of the content. Action buttons live
 					         in .popupStickyActions below this block and get
@@ -475,10 +482,16 @@ function displayPopup($template) {
 					<?php if (!empty($supportContext)): ?>
 						<div class='popupSupportRow'>
 							<?php foreach ($supportContext as $sc): ?>
+								<?php
+								/* Optional caller-supplied extra class (e.g. ca_devMode for
+								   dev-mode-only buttons) — appended to the static caButton +
+								   supportPopup pair so responsive CSS can target it. */
+								$scExtraClass = !empty($sc['class']) ? " ".htmlspecialchars($sc['class'], ENT_QUOTES) : "";
+								?>
 								<?php if (!empty($sc['action'])): ?>
-									<div class='caButton supportPopup' onclick="<?= htmlspecialchars($sc['action'], ENT_QUOTES) ?>"><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></div>
+									<div class='caButton supportPopup<?= $scExtraClass ?>' onclick="<?= htmlspecialchars($sc['action'], ENT_QUOTES) ?>"><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></div>
 								<?php elseif (validURL($sc['link'] ?? "")): ?>
-									<div class='caButton supportPopup'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
+									<div class='caButton supportPopup<?= $scExtraClass ?>'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
 								<?php endif; ?>
 							<?php endforeach; ?>
 						</div>
@@ -497,19 +510,28 @@ function displayPopup($template) {
 			<div class='popupStickyActions'>
 				<?php /* Primary action row: Install / WebUI / Settings, then
 				         Update / Edit / Uninstall / Pin. */ ?>
+				<?php /* Always htmlspecialchars(..., ENT_QUOTES) the action onclick — these
+				         strings get built with interpolated template data (RequiresFile,
+				         pluginName, paths, etc.) and an unescaped emit lets a hostile
+				         maintainer break out of the JS string literal and execute
+				         arbitrary JS in the user's GUI session. The support context
+				         block above (line 492) already escapes; this block needs to
+				         match. The browser decodes the entities back to literal quotes
+				         when parsing the onclick attribute, so the resulting JS is
+				         identical to the un-escaped form for legitimate inputs. */ ?>
 				<?php if (!empty($installFirstAction['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= $installFirstAction['action'] ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
+					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($installFirstAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
 				<?php endif; ?>
 
 				<?php if (!empty($popupShortcut['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= $popupShortcut['action'] ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
+					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($popupShortcut['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
 				<?php endif; ?>
 				<?= $readmeButton ?>
 
 				<?php if ($actionsButtonItems): ?>
 					<?php foreach ($actionsButtonItems as $actionItem): ?>
 						<?php if (!empty($actionItem['action'])): ?>
-							<div class='caButton actionsPopup'><span onclick="<?= $actionItem['action'] ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+							<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
 						<?php else: ?>
 							<div class='caButton actionsPopup'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
 						<?php endif; ?>
@@ -517,7 +539,7 @@ function displayPopup($template) {
 				<?php endif; ?>
 
 				<?php if (!empty($popupUninstallAction['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= $popupUninstallAction['action'] ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
+					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
 				<?php endif; ?>
 
 				<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
@@ -543,7 +565,6 @@ function displayPopup($template) {
 					</div>
 				</div>
 			</div>
-			<?= $statsNote ?>
 			<?= $changeLogBlock ?>
 			<?= $moderationBlock ?>
 		</div>
@@ -625,7 +646,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	$count = 0;
 
 	$dockerContext = caDockerContext();
-	$displayHeader = $dockerContext['displayHeader'];
+	$displayHeader = "";
 
 	[$selectedApps, $checkedOffApps] = caNormalizeSelectedApps($selectedApps);
 	$displayedTemplates = caSliceDisplayedTemplates($file, $pageNumber);
@@ -655,8 +676,6 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 			}
 			continue;
 		}
-
-		$template = caPrepareTemplateComments($template);
 
 		$actionsContext = [];
 		$canInstall = ! $template['NoInstall'] && ! ($GLOBALS['caSettings']['NoInstalls'] ?? false);
@@ -861,19 +880,22 @@ function getPopupDescriptionSkin($appNumber) {
 		$template['display_icon'] = "<i class='$templateIcon popupIcon'></i>";
 	} else {
 		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? $template['Icon'];
-		/* Only emit an external icon URL when it's a real http(s) link;
-		   anything else (relative paths like /Settings/X, javascript:, etc.)
-		   falls back to the local "?" icon so a malicious template can't
-		   trigger a same-origin GET against the user's own GUI. */
+		/* Stricter than validURL: caIsPublicHttpUrl additionally rejects
+		   RFC1918 / link-local / CGNAT / IPv6 ULA / .local (mDNS) hosts. The
+		   icon URL is fetched automatically by the browser when the popup
+		   renders — no click required — so a malicious template specifying
+		   `Icon=http://192.168.1.1/admin/reboot` could otherwise CSRF a LAN
+		   device. Anything that fails falls back to the local "?" image. */
 		$iconCandidate = (string)$template['Icon'];
-		$safeIcon = validURL($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
+		$safeIcon = caIsPublicHttpUrl($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
 		$safeIconAttr = htmlspecialchars($safeIcon, ENT_QUOTES);
-		$template['display_icon'] = "<img class='popupIcon screenshot' href='{$safeIconAttr}' src='{$safeIconAttr}' alt='Application Icon'>";
+		$template['display_icon'] = "<img class='popupIcon screenshot' href='{$safeIconAttr}' src='{$safeIconAttr}' alt='Application Icon' referrerpolicy='no-referrer'>";
 	}
 
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment']);
 	$template['CAComment'] = caApplySidebarSearchLinks($template['CAComment']);
-	$template['Requires'] = caNormalizeRequiresField($template['Requires']);
+	/* Requires is no longer server-rendered — emitted raw + JSON-encoded into
+	   the popup HTML (above) and processed client-side by caRenderSidebarRequires. */
 
 	$actionsContext = caBuildActionsContext($template, $info, $dockerUpdateStatus, $selected, $name ?? null, $pluginName ?? null);
 
@@ -957,7 +979,7 @@ function getRepoDescriptionSkin($repository) {
 		<div class='popupContent'>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'>
-					$iconPrefix<img class='popupIcon' src='{$repoIcon}'>$iconPostfix
+					$iconPrefix<img class='popupIcon' src='{$repoIcon}' referrerpolicy='no-referrer'>$iconPostfix
 				</div>
 				<div class='popupInfo'>
 					<div class='popupName ellipsis'>$repository</div>
