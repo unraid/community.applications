@@ -91,3 +91,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: Plugin warning is now combined with the initial CYA agreement; previous-app installs are not offered until CYA is accepted
 - Fixed: Debugging tools weren't reporting which files were being read
 - Fixed: Security and reliability hardening — unsafe links stripped from rendered README and changelog content, template URLs validated before fetching, backend input handling tightened
+- Fixed: Plugin-install dialog after a mixed Docker + plugin multi-install no longer opens parked behind the main display
+- Fixed: A feed update from another browser session while an install dialog is open now waits until the install finishes before showing the reload notice
+- Changed: Mobile layout pass — sidebar README, trend charts, and floating scroll buttons hide on phone-sized viewports; menu strip alignment and chrome positions tightened across nav-top and sidebar themes
+- Changed: Opening the mobile menu now scrolls the menu back to the top instead of leaving it wherever it was last
+- Removed: "All statistics are only gathered every 30 days" note from the sidebar
