@@ -313,7 +313,12 @@ function displayPopup($template) {
 		if ($pictures) {
 			foreach ($pictures as $shot) {
 				$shot = trim($shot);
-				if ($shot === "" || !validURL($shot)) {
+				/* caIsPublicHttpUrl instead of validURL — popup images auto-fetch
+				   on render, so the stricter LAN/.local/RFC1918 rejection that
+				   guards the popup icon at line 873 has to apply here too.
+				   referrerpolicy='no-referrer' only hides the referrer; it
+				   doesn't stop the request itself. */
+				if ($shot === "" || !caIsPublicHttpUrl($shot)) {
 					continue;
 				}
 				$safeShot = htmlspecialchars($shot, ENT_QUOTES);
@@ -325,12 +330,20 @@ function displayPopup($template) {
 		if ($Video) {
 			foreach ($Video as $vid) {
 				$vid = trim($vid);
-				if ($vid === "" || !validURL($vid)) {
+				if ($vid === "" || !caIsPublicHttpUrl($vid)) {
 					continue;
 				}
-				$thumbnail = getYoutubeThumbnail($vid);
+				$thumbnail = trim((string)getYoutubeThumbnail($vid));
+				/* The youtube thumbnail comes from a fixed-format helper, but it's
+				   still derived from a feed-supplied URL — gate it with the same
+				   public-URL check so an attacker-controlled video URL can't
+				   produce a thumbnail src pointing at a LAN host. */
+				if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
+					continue;
+				}
 				$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."' referrerpolicy='no-referrer'></span>";
+				$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
+				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='$safeThumb' referrerpolicy='no-referrer'></span>";
 			}
 		}
 		if ($mediaSections) {
@@ -387,7 +400,9 @@ function displayPopup($template) {
 	}
 
 	if ($Licence) {
-		if (validURL($Licence)) {
+		/* Same stricter check as the popup icon + media gallery above — a
+		   licence URL pointing at a LAN host would auto-fetch on popup open. */
+		if (caIsPublicHttpUrl($Licence)) {
 			$safeLicence = htmlspecialchars($Licence, ENT_QUOTES);
 			$Licence = "<img class='licence' src='$safeLicence' referrerpolicy='no-referrer' onerror='this.outerHTML=&quot;<a href=$safeLicence target=_blank>".tr("Click Here")."</a>&quot;;this.onerror=null;' ></img>";
 		}
@@ -950,7 +965,10 @@ function getRepoDescriptionSkin($repository) {
 
 	$repo = $repositories[$repository] ?? [];
 	$iconUrl = $repo['icon'] ?? null;
-	$safeIconUrl = ($iconUrl && validURL($iconUrl)) ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
+	/* caIsPublicHttpUrl, not validURL — repo icon auto-fetches on popup open
+	   so the same LAN-host rejection that guards the popup / card icons has
+	   to apply here too. */
+	$safeIconUrl = ($iconUrl && caIsPublicHttpUrl($iconUrl)) ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
 	$iconPrefix = $safeIconUrl ? "<span class='screenshot mfp-image' data-mfp-src='{$safeIconUrl}'>" : "";
 	$iconPostfix = $safeIconUrl ? "</span>" : "";
 	$repoIcon = $safeIconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";

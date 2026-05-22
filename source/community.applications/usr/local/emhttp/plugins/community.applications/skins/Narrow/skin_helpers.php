@@ -1174,7 +1174,9 @@ function caBuildRepoMediaSection(array $repo): string {
 		$photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
 		foreach ($photos as $shot) {
 			$shot = trim($shot);
-			if ($shot === "" || !validURL($shot)) {
+			/* caIsPublicHttpUrl, not validURL — these images auto-fetch on
+			   render, same threat surface as the popup gallery in skin.php. */
+			if ($shot === "" || !caIsPublicHttpUrl($shot)) {
 				continue;
 			}
 			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
@@ -1188,12 +1190,19 @@ function caBuildRepoMediaSection(array $repo): string {
 		$videos = is_array($repo['Video']) ? $repo['Video'] : [$repo['Video']];
 		foreach ($videos as $vid) {
 			$vid = trim($vid);
-			if ($vid === "" || !validURL($vid)) {
+			if ($vid === "" || !caIsPublicHttpUrl($vid)) {
 				continue;
 			}
-			$thumbnail = getYoutubeThumbnail($vid);
+			$thumbnail = trim((string)getYoutubeThumbnail($vid));
+			/* Gate the thumbnail too — derived from a feed-supplied video URL,
+			   so a hostile maintainer could otherwise smuggle a LAN host through
+			   the thumbnail src even though the video URL passed the public check. */
+			if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
+				continue;
+			}
 			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='".trim($thumbnail)."' referrerpolicy='no-referrer'></span>";
+			$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
+			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='{$safeThumb}' referrerpolicy='no-referrer'></span>";
 		}
 	}
 

@@ -1221,8 +1221,19 @@ function caIsPublicHttpUrlJs(url) {
 		host = host.substring(1, host.length - 1);
 	}
 	if (host === "localhost" || host === "0" || host === "0.0.0.0" || host === "::" || host === "::1" || host === "0:0:0:0:0:0:0:1") return false;
-	if (/^127(?:\.\d{1,3}){3}$/.test(host)) return false;
-	if (/^::ffff:127(?:\.\d{1,3}){3}$/.test(host)) return false;
+	/* IPv4 private/loopback/link-local/CGNAT ranges. Lifted into a reusable
+	   block so the IPv4-mapped IPv6 case below can re-run the same checks
+	   against the embedded v4. */
+	function isPrivateIPv4(v4) {
+		if (/^127(?:\.\d{1,3}){3}$/.test(v4)) return true;
+		if (/^10(?:\.\d{1,3}){3}$/.test(v4)) return true;
+		if (/^172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}$/.test(v4)) return true;
+		if (/^192\.168(?:\.\d{1,3}){2}$/.test(v4)) return true;
+		if (/^169\.254(?:\.\d{1,3}){2}$/.test(v4)) return true; // link-local
+		if (/^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2}$/.test(v4)) return true; // CGNAT 100.64/10
+		return false;
+	}
+	if (isPrivateIPv4(host)) return false;
 	/* Decimal-encoded IPv4 — a single integer that resolves to the 127/8 range. */
 	if (/^\d+$/.test(host)) {
 		var n = parseInt(host, 10);
@@ -1234,21 +1245,32 @@ function caIsPublicHttpUrlJs(url) {
 		var hn = parseInt(host, 16);
 		if (hn >= 2130706432 && hn <= 2147483647) return false;
 	}
-	if (/^10(?:\.\d{1,3}){3}$/.test(host)) return false;
-	if (/^172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}$/.test(host)) return false;
-	if (/^192\.168(?:\.\d{1,3}){2}$/.test(host)) return false;
-	if (/^169\.254(?:\.\d{1,3}){2}$/.test(host)) return false; // link-local
-	if (/^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2}$/.test(host)) return false; // CGNAT 100.64/10
+	/* IPv4-mapped IPv6 — the URL constructor normalizes `::ffff:10.0.0.1` to the
+	   hex form `::ffff:a00:1` before we ever see it, so we have to match that
+	   shape and reconstruct the dotted v4 ourselves. Keep the dotted-form
+	   regex as a fallback for hosts that arrived non-normalized (other engines,
+	   manually-constructed strings, etc.). Both forms re-run isPrivateIPv4 so
+	   a hostile `http://[::ffff:10.0.0.1]/` is treated the same as `http://10.0.0.1/`. */
+	var v4mappedHex = host.match(/^::ffff(?::0)?:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+	if (v4mappedHex) {
+		var hi = parseInt(v4mappedHex[1], 16);
+		var lo = parseInt(v4mappedHex[2], 16);
+		var v4 = [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff].join(".");
+		if (isPrivateIPv4(v4)) return false;
+	}
+	var v4mappedDotted = host.match(/^::ffff(?::0)?:((?:\d{1,3}\.){3}\d{1,3})$/i);
+	if (v4mappedDotted && isPrivateIPv4(v4mappedDotted[1])) return false;
 	/* IPv6 ULA (fc00::/7 — first byte 0xfc or 0xfd) and link-local (fe80::/10
 	   — fe8x / fe9x / feax / febx). A `:` is required to distinguish from a
 	   hostname like "fc-domain.com". */
 	if (/^f[cd][0-9a-f]{0,2}:/i.test(host)) return false;
 	if (/^fe[89ab][0-9a-f]{0,2}:/i.test(host)) return false;
 	/* mDNS (.local) and the conventional "internal" pseudo-TLDs resolve to LAN
-	   hosts without DNS — same threat surface as RFC1918 above. Matches PHP
-	   caIsPrivateOrLoopbackHost. */
-	if (/\.local$/.test(host)) return false;
-	if (/\.(internal|intranet|lan|home|corp|private)$/.test(host)) return false;
+	   hosts without DNS — same threat surface as RFC1918 above. `(^|\.)name$`
+	   anchors so both `foo.local` and the bare `local` / `internal` / etc.
+	   are blocked. Matches PHP caIsPrivateOrLoopbackHost. */
+	if (/(^|\.)local$/.test(host)) return false;
+	if (/(^|\.)(internal|intranet|lan|home|corp|private)$/.test(host)) return false;
 	return true;
 }
 
@@ -1287,7 +1309,14 @@ function caApplySidebarSearchLinksJs(html) {
 		   entities back to actual quote characters before handing the value
 		   to the JS engine, so doSidebarSearch sees the original term. */
 		var safeJsArg = caEscapeAttr(JSON.stringify(term));
-		return "<a style='cursor:pointer;' onclick='doSidebarSearch(" + safeJsArg + ");'>" + safeText + "</a>";
+		/* Accessibility: an anchor with no href drops out of the tab order, so
+		   keyboard users couldn't reach this control. tabindex='0' restores
+		   tab focus and role='button' tells assistive tech what it is. The
+		   onkeydown handler fires on Enter (default for buttons) AND Space
+		   (which would otherwise scroll the page) — the `&quot;` entities
+		   decode to `"` once the browser parses the attribute, so the JS
+		   engine ends up seeing event.key === "Enter" / " ". */
+		return "<a style='cursor:pointer;' role='button' tabindex='0' onclick='doSidebarSearch(" + safeJsArg + ");' onkeydown='if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();doSidebarSearch(" + safeJsArg + ");}'>" + safeText + "</a>";
 	});
 }
 
@@ -1300,20 +1329,23 @@ function caApplySidebarSearchLinksJs(html) {
  */
 function caXmlEntityDecode(s) {
 	if (typeof s !== "string" || s === "") return "";
+	/* String.fromCodePoint throws RangeError for values outside [0, 0x10FFFF],
+	   and malformed XML can carry `&#99999999;` or similar — one bad entity
+	   inside a remote README/CHANGES would otherwise crash the whole render.
+	   Filter to the valid Unicode codepoint range; out-of-band values drop
+	   to "" rather than propagating the exception. */
+	function safeFromCodePoint(n) {
+		if (!isFinite(n) || n < 0 || n > 0x10FFFF) return "";
+		try { return String.fromCodePoint(n); } catch (e) { return ""; }
+	}
 	return s
 		.replace(/&amp;/g, "&")
 		.replace(/&lt;/g, "<")
 		.replace(/&gt;/g, ">")
 		.replace(/&quot;/g, "\"")
 		.replace(/&apos;/g, "'")
-		.replace(/&#x([0-9a-f]+);/gi, function(_, h) {
-			var n = parseInt(h, 16);
-			return isFinite(n) ? String.fromCodePoint(n) : "";
-		})
-		.replace(/&#([0-9]+);/g, function(_, d) {
-			var n = parseInt(d, 10);
-			return isFinite(n) ? String.fromCodePoint(n) : "";
-		});
+		.replace(/&#x([0-9a-f]+);/gi, function(_, h) { return safeFromCodePoint(parseInt(h, 16)); })
+		.replace(/&#([0-9]+);/g, function(_, d) { return safeFromCodePoint(parseInt(d, 10)); });
 }
 
 /**

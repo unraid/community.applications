@@ -1114,9 +1114,12 @@ function caIsPrivateOrLoopbackHost(string $host): bool {
 	}
 
 	/* mDNS (.local) and explicit "internal" pseudo-TLDs resolve to LAN hosts
-	   without any DNS lookup — same threat surface as RFC1918 IPs above. */
-	if (preg_match('/\.local$/', $host)) return true;
-	if (preg_match('/\.(internal|intranet|lan|home|corp|private)$/', $host)) return true;
+	   without any DNS lookup — same threat surface as RFC1918 IPs above.
+	   `(^|\.)name$` anchors so both `foo.local` and the bare `local` /
+	   `internal` / etc. hostnames are blocked — a typed `http://internal/`
+	   would otherwise reach a hosts-file or search-domain alias. */
+	if (preg_match('/(^|\.)local$/', $host)) return true;
+	if (preg_match('/(^|\.)(internal|intranet|lan|home|corp|private)$/', $host)) return true;
 
 	/* Domain name — without a DNS lookup we can't know where it points, so
 	   accept it. DNS-rebinding-style attacks are a different threat model. */
@@ -1146,6 +1149,7 @@ function caCacheKeyForUrl(string $url, string $suffixOverride = ""): string {
 	if (!is_array($parts)) return "";
 	$host = strtolower((string)($parts['host'] ?? ""));
 	$path = (string)($parts['path'] ?? "");
+	$query = (string)($parts['query'] ?? "");
 	$segments = array_values(array_filter(explode("/", trim($path, "/"))));
 
 	$clean = static function (string $s): string {
@@ -1166,11 +1170,16 @@ function caCacheKeyForUrl(string $url, string $suffixOverride = ""): string {
 		$owner = $clean($segments[0]);
 		$repo  = $clean($segments[1]);
 		if ($owner !== "" && $repo !== "") {
-			return $owner . "-" . $repo . "-" . $suffix;
+			/* Include the query string when present so URLs that differ only by
+			   `?v=…` / `?ref=…` etc. don't collide on the same cache file.
+			   Hashed (not appended raw) so the resulting filename stays bounded
+			   and filename-safe regardless of query length. */
+			$qHash = $query !== "" ? "-" . substr(hash("sha256", $query), 0, 8) : "";
+			return $owner . "-" . $repo . $qHash . "-" . $suffix;
 		}
 	}
 
-	return substr(hash("sha256", $host . $path), 0, 16) . "-" . $suffix;
+	return substr(hash("sha256", $host . $path . "?" . $query), 0, 16) . "-" . $suffix;
 }
 
 /**

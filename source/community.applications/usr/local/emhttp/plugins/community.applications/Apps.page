@@ -3076,6 +3076,13 @@ function caLoadSidebarReadmeSections() {
 		   refreshes the cache key changes and a fresh body is pulled; in
 		   between, repeat sidebar opens are zero-network. */
 		function fetchText(u) {
+			/* Validate every URL through caIsPublicHttpUrlJs before letting
+			   the browser issue the request. Server-side caBuildReadmeSectionDiv
+			   already only emits raw.githubusercontent.com URLs, but if a
+			   future change ever lets a feed-controlled URL through the
+			   data-readme-url attribute we don't want fetch() to oblige and
+			   pull from a LAN host. */
+			if (!caIsPublicHttpUrlJs(u)) return Promise.reject(new Error("URL not allowed"));
 			return fetch(u, { credentials: "omit", redirect: "follow" })
 				.then(function(r) {
 					if (!r.ok) throw new Error("HTTP " + r.status);
@@ -3160,11 +3167,17 @@ function caLoadSidebarTemplateChanges() {
 			$current.attr("data-changes-loaded", "1");
 		}
 
-		fetch(url, { credentials: "omit", redirect: "follow" })
-			.then(function(r) {
+		/* Gate the URL through caIsPublicHttpUrlJs before fetching so a
+		   future drift that lets a feed-controlled value land in the
+		   data-changes-url attribute can't make the browser pull from a
+		   LAN host. Same defense as the README loader above. */
+		var fetchPromise = caIsPublicHttpUrlJs(url)
+			? fetch(url, { credentials: "omit", redirect: "follow" }).then(function(r) {
 				if (!r.ok) throw new Error("HTTP " + r.status);
 				return r.text();
 			})
+			: Promise.reject(new Error("URL not allowed"));
+		fetchPromise
 			.then(function(xmlText) {
 				var $current = locateCurrent();
 				if (!$current) return;
