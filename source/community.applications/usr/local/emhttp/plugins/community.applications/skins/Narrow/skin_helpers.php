@@ -1851,7 +1851,7 @@ function caBuildCardFlag(array $template, string $flagTextStart, string $flagTex
 	if ((!empty($template['Installed']) || !empty($template['Uninstall'])) && empty($template['actionCentre'])) {
 		return "
 			<div class='installedCardBackground'>
-				<div class='installedCardText ca_center'>&nbsp;&nbsp;".tr("INSTALLED")."&nbsp;&nbsp;</div>
+				<div class='installedCardText ca_center'>".tr("INSTALLED")."</div>
 			</div>";
 	}
 

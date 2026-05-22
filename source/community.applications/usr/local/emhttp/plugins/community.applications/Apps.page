@@ -2186,7 +2186,7 @@ function updateDisplay(content, append) {
 	if (typeof caUpdateScrollControls === "function") caUpdateScrollControls();
 	enableSearch();
 
-	$(".betaPopupText,.installedCardText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
+	$(".betaPopupText,.upgradePopupText,.LTOfficialPopupText").fitText(true);
 
 	if ( $("html").hasClass("translated-ltr") || $("html").hasClass("translated-rtl") || $("head").hasClass("translated-ltr") || $("head").hasClass("translated-rtl") ) {
 		data.translationBanner = addBannerWarning("<?=tr("Browser translation detected.  Display issues may result");?>");

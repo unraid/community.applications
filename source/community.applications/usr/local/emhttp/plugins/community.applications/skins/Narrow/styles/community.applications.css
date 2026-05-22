@@ -2159,7 +2159,7 @@ input[type="button"] {
 		margin-top: 0px;
 	}
 
-	/* 3.11) Corner ribbons, pagination, and popup details */
+	/* 3.11) Corner badges, pagination, and popup details */
 	.officialCardBackground,
 	.LTOfficialCardBackground,
 	.spotlightCardBackground,
@@ -2167,13 +2167,20 @@ input[type="button"] {
 	.betaCardBackground,
 	.greenCardBackground,
 	.installedCardBackground {
-		clip-path: polygon(0 0, 100% 0, 100% 100%);
 		position: absolute;
-		top: 0;
-		right: 0;
-		height: 9rem;
-		width: 9rem;
+		top: 0.75rem;
+		right: 0.75rem;
+		padding: 0.35rem 0.75rem;
+		border-radius: 0.4rem;
+		font-size: 1.1rem;
+		line-height: 1;
+		letter-spacing: 0.05rem;
+		text-transform: uppercase;
+		font-weight: 600;
+		color: var(--ca-named-white);
 		pointer-events: none;
+		z-index: 2;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 	}
 	.installedCardBackground {
 		background-color: var(--ca-purple-color);
@@ -2196,20 +2203,11 @@ input[type="button"] {
 	}
 
 	.installedCardText {
-		position: absolute;
-		transform: rotate(45deg);
-		-webkit-transform: rotate(45deg);
-		-moz-transform: rotate(45deg);
-		-o-transform: rotate(45deg);
-		color: var(--ca-named-white);
-		font-size: 1.1rem;
-		position: absolute;
-		top: 2rem;
-		right: 0rem;
-		width: 6rem;
-		overflow: hidden;
-		height: 2.5rem;
-		display: inline;
+		display: inline-block;
+		color: inherit;
+		font-size: inherit;
+		line-height: inherit;
+		white-space: nowrap;
 	}
 
 	.LTOfficialPopupText {

@@ -1125,11 +1125,11 @@ function displayCard($template) {
 	}
 
 	if (!empty($template['Installed']) || !empty($template['Uninstall'])) {
-		$flagTextStart = tr("Installed")."<br>";
+		$flagTextStart = tr("Installed")." · ";
 		$flagTextEnd = "";
 	} else {
-		$flagTextStart = "&nbsp;";
-		$flagTextEnd = "&nbsp;";
+		$flagTextStart = "";
+		$flagTextEnd = "";
 	}
 
 	$cardFlag = caBuildCardFlag($template, $flagTextStart, $flagTextEnd);
