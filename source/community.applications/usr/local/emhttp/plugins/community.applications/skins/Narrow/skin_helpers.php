@@ -280,10 +280,18 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		}
 		$diffPath = json_encode((string)($template['Path'] ?? ""), $jsFlags);
 		$diffName = json_encode((string)($template['Name'] ?? ""), $jsFlags);
+		/* Both Diff buttons go through caGetCachedApplicationFeed which reads
+		   the raw appfeed snapshot DownloadApplicationFeed() stashes to
+		   diffFeedCache (dev-mode only). Until that file lands on disk the
+		   buttons can't do anything useful — hide them entirely rather than
+		   render an option that errors out on click. Handles the edge case
+		   of opening a sidebar before the background feed download finishes
+		   on a slow connection. */
+		$diffFeedReady = is_file(CA_PATHS['diffFeedCache']);
 		/* Diff is container-only — plugin .plg payloads don't survive the
 		   array→XML round-trip cleanly and the resulting diff is more noise
 		   than signal. */
-		if (empty($template['Plugin'])) {
+		if ($diffFeedReady && empty($template['Plugin'])) {
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'feed')",
@@ -294,7 +302,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		/* Internal diff (appfeed vs CA's internal templates_full.json) — only
 		   when the admin marker file exists. Available for plugins too since
 		   neither side does a source-XML round-trip. */
-		if (is_file(CA_PATHS['caAdmin'])) {
+		if ($diffFeedReady && is_file(CA_PATHS['caAdmin'])) {
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
 				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'internal')",
