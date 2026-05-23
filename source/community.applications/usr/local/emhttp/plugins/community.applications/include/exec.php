@@ -175,6 +175,13 @@ switch ($_POST['action']) {
 		   for the Plugin button's two-column raw / decoded view). */
 		getDevRawURL();
 		break;
+	case 'caFetchSidebarSource':
+		/* Sidebar README/Changes loader: fetch over PHP (avoids client-side
+		   CORS failures from repo hosts that don't set Access-Control-Allow-
+		   Origin) and cache to templates-community keyed by RepoName so
+		   repeat opens are a disk hit. */
+		caFetchSidebarSource();
+		break;
 	case 'createXML':
 		createXML();
 		break;
@@ -1867,6 +1874,79 @@ function getDevRawURL() {
 		$response['entities'] = caExtractXmlEntities($content);
 	}
 	postReturn($response);
+}
+
+/**
+ * Sidebar README/Changes loader backend.
+ *
+ * The browser used to fetch README.md / .plg / template XML directly from
+ * raw.githubusercontent.com etc. via fetch(). Repo hosts that don't set
+ * Access-Control-Allow-Origin (anything other than raw.github.* basically)
+ * broke under CORS. Routing the fetch through PHP avoids that — and reusing
+ * caFetchCachedSource means concurrent sidebar opens dedupe through its
+ * per-URL flock and repeat opens skip the network on a disk hit.
+ *
+ * Inputs (POST):
+ *   url       Absolute https URL to fetch
+ *   repoName  RepoName from the template entry (drives the cache file name)
+ *   kind      "readme" or "changes"
+ *
+ * Cache file naming (under CA_PATHS['templates-community']):
+ *   readme  → {alphaNumeric(repoName)}-README.md
+ *   changes → {alphaNumeric(repoName)}-{sanitisedBasename(url)}   (preserves .plg / .xml)
+ *
+ * Response: { ok: true, content: "<file contents>" }
+ *           { ok: false, message: "<reason>" }
+ *
+ * @return void
+ */
+function caFetchSidebarSource() {
+	$url      = trim((string)getPost("url", ""));
+	$repoName = trim((string)getPost("repoName", ""));
+	$kind     = (string)getPost("kind", "");
+
+	if ($url === "" || !caIsPublicHttpUrl($url)) {
+		postReturn(["ok"=>false, "message"=>tr("URL is not allowed")]);
+		return;
+	}
+	if (!in_array($kind, ["readme", "changes"], true)) {
+		postReturn(["ok"=>false, "message"=>tr("Unknown source kind")]);
+		return;
+	}
+
+	$safeRepo = alphaNumeric($repoName);
+	if ($safeRepo === "") {
+		/* No usable RepoName — fall back to a URL hash so we still cache rather
+		   than re-fetching every open. Keeps behaviour graceful if a future
+		   feed entry forgets RepoName. */
+		$safeRepo = substr(hash("sha256", $url), 0, 16);
+	}
+
+	if ($kind === "readme") {
+		$cacheName = $safeRepo . "-README.md";
+	} else {
+		$path = (string)parse_url($url, PHP_URL_PATH);
+		$base = basename($path);
+		/* Allow letters, digits, dot, dash, underscore; everything else (incl.
+		   slashes, query bits that slipped through parse_url, traversal dots)
+		   collapses to underscore. caFetchCachedSource also rejects "/", "\\"
+		   and ".." — this is the first line of defense. */
+		$base = preg_replace('/[^A-Za-z0-9._-]+/', '_', $base);
+		if ($base === "" || $base === "." || $base === "..") {
+			$base = "source";
+		}
+		$cacheName = $safeRepo . "-" . $base;
+	}
+
+	// No spaces in the on-disk filename — annoying to handle at the console.
+	$cacheName = str_replace(' ', '', $cacheName);
+
+	$content = caFetchCachedSource($url, $cacheName);
+	if ($content === "") {
+		postReturn(["ok"=>false, "message"=>tr("Could not download")." ".htmlspecialchars($url, ENT_QUOTES)]);
+		return;
+	}
+	postReturn(["ok"=>true, "content"=>$content]);
 }
 
 /**

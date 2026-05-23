@@ -99,6 +99,15 @@ function caFormatTemplateChanges(array &$template) {
 		$changesCacheBust = $mtime ? ("?v=" . (int)$mtime) : "";
 	}
 
+	$safeRepoName = htmlspecialchars((string)($template['RepoName'] ?? ""), ENT_QUOTES);
+	/* Loading placeholder rendered inside the lazy-fetch div. JS replaces the
+	   whole inner DOM via .html(content) / .text("Change log can't be loaded")
+	   once the postNoSpin call completes, so we don't need to hide or remove
+	   it explicitly — it self-evicts on first paint. */
+	$loadingChanges =
+		"<div class='ca_center caLogoIcon'></div>".
+		"<div class='ca_center ca_italic'>".tr("Loading change log...")."</div>";
+
 	// For plugins, always lazy-fetch from the .plg.
 	if (!empty($template['Plugin'])) {
 		$templateURL = (string)($template['PluginURL'] ?? "");
@@ -107,7 +116,7 @@ function caFormatTemplateChanges(array &$template) {
 		$cacheKey = hash("sha256", $templateURL);
 		$changesId = "ca_changes_" . $cacheKey;
 		$safeUrl = htmlspecialchars($templateURL . $changesCacheBust, ENT_QUOTES);
-		$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
+		$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-repo='{$safeRepoName}' data-changes-loaded='0'>{$loadingChanges}</div>";
 		return;
 	}
 
@@ -122,7 +131,7 @@ function caFormatTemplateChanges(array &$template) {
 	$cacheKey = hash("sha256", $templateURL);
 	$changesId = "ca_changes_" . $cacheKey;
 	$safeUrl = htmlspecialchars($templateURL . $changesCacheBust, ENT_QUOTES);
-	$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-loaded='0'>".tr("Loading change log...")."</div>";
+	$template['display_changes'] = "<div id='{$changesId}' class='ca_template_changes {$changesId}' data-changes-id='{$changesId}' data-changes-url='{$safeUrl}' data-changes-repo='{$safeRepoName}' data-changes-loaded='0'>{$loadingChanges}</div>";
 }
 
 /**
@@ -1517,7 +1526,14 @@ function caBuildReadmeSectionDiv(array $template): string {
 	$safeReadmeUrl = htmlspecialchars($readmeUrl, ENT_QUOTES);
 	$safeRawMainUrl = htmlspecialchars($rawMainUrl, ENT_QUOTES);
 	$safeRawMasterUrl = htmlspecialchars($rawMasterUrl, ENT_QUOTES);
-	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>".tr("Loading README...")."</div></div>";
+	$safeRepoName = htmlspecialchars((string)($template['RepoName'] ?? ""), ENT_QUOTES);
+	/* Loading placeholder rendered inside .ca_readme_body. JS replaces the
+	   whole inner DOM via .html(text) once the postNoSpin call completes, so
+	   it self-evicts on first paint and we don't have to hide it. */
+	$loadingReadme =
+		"<div class='ca_center caLogoIcon'></div>".
+		"<div class='ca_center ca_italic'>".tr("Loading README...")."</div>";
+	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}' data-readme-repo='{$safeRepoName}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>{$loadingReadme}</div></div>";
 }
 
 /**
