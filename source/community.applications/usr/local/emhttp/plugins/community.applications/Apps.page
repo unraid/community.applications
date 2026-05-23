@@ -286,6 +286,9 @@ var caCardCache = {
    Docker search tab when docker can't service it. The per-app "Docker not
    enabled" notice now lives in the sidebar template itself. */
 var dockerNotEnabled = <?= (!caIsDockerRunning() && !($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false" ?>;
+/* Dev-mode flag — consumed by caDebug() (helpers.js) to gate diagnostic
+   chatter. When false (the default), caDebug is a no-op. */
+window.caDev = <?= (($GLOBALS['caSettings']['dev'] ?? "no") === "yes") ? "true" : "false" ?>;
 var postCount = 0;
 var cookieWarning = false;
 var restoreStateMenu = false;
@@ -388,7 +391,7 @@ $(function(){
 	// don't run this through the wrapper so that if it hangs up it won't delay anything else
 	$.post(execURL,{action:'getPortsInUse'},function(ret) {
 		portsInUse = ret.portsInUse;
-		console.log("Ports In Use:" + portsInUse);
+		caDebug("Ports In Use:" + portsInUse);
 	});
 
 	if ( "<?=$killCookie?>" == "true" ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
@@ -2234,7 +2237,7 @@ function saveState(legacy=true) {
 		$.removeCookie("ca_data", { path: "/" });
 		return;
 	}
-	console.log("Save State");
+	caDebug("Save State");
 	//$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
 	/* Strip out fields that re-derive from a fresh server fetch — the card
 	   cache + virt offsets can be 100s of KB which would blow past the 4KB
@@ -2264,7 +2267,7 @@ function saveState(legacy=true) {
  * Rehydrate cookies into `data`, search box, and menu; fetch sort order, autocomplete, and clear multi-select before the user continues.
  */
 function restoreState() {
-	console.log("Restore State");
+	caDebug("Restore State");
 	$.removeCookie("ca_languageSwitch",{path:'/'});
 
 	//$(".category").html($.cookie("ca_categoryText"));
@@ -2285,7 +2288,7 @@ function restoreState() {
 		data.loadingMore = false;
 		$.removeCookie("ca_data");
 	} catch (e) {
-		console.log("Unable to restore state - reloading to clear errors");
+		caDebug("Unable to restore state - reloading to clear errors");
 		$.removeCookie("ca_data");
 		post({action:"clearStartUpDisplayed"},function(result) {
 			window.location.reload();
@@ -2449,7 +2452,7 @@ function getCategories() {
 		if ( ! restoreStateMenu )
 			restoreStateMenu = $.cookie("ca_startupButton");
 
-		console.log(restoreStateMenu);
+		caDebug(restoreStateMenu);
 		var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
 		$(".caMenuItem").each(function(){
 			$(this).removeClass("selectedMenu");

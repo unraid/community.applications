@@ -177,7 +177,6 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 			$dirty = false;
 			if ( is_file($plugin_file) ) {
 				if ( !isset($attributeCache[$plugin_file]) ) {
-					debug("CA Plugin $method $plugin_file not in attribute cache");
 					$xml = @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA);
 					if ( $xml ) {
 						$attributes = $xml->attributes();
@@ -186,8 +185,6 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 					}
 					$attributeCache[$plugin_file] = (array)$attributes ?: ["error" => "no attributes present"];
 					$dirty = true;
-				} else {
-					debug("$plugin_file already in attribute cache");
 				}
 			} else if ( isset($attributeCache[$plugin_file]) ) {
 				unset($attributeCache[$plugin_file]);
