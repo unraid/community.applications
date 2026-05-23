@@ -17,6 +17,25 @@ SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 /**
+ * Dev-gated console.log. No-op unless CA's dev mode is enabled.
+ *
+ * Apps.page sets `window.caDev` to `true` / `false` from
+ * $GLOBALS['caSettings']['dev'] before this is ever called. Wrapped in a
+ * try/catch so a broken console (e.g. swal-modal sandboxing) never throws
+ * out of a caller's middle.
+ *
+ * Use this instead of console.log() for diagnostic chatter you only want
+ * end users to see when they've explicitly turned dev mode on.
+ *
+ * @param {...*} _args Forwarded to console.log
+ * @returns {void}
+ */
+function caDebug() {
+	if (!window.caDev) return;
+	try { console.log.apply(console, arguments); } catch (e) { /* no-op */ }
+}
+
+/**
  * Parse `url` with the URL API; returns a `URL` instance or `false` if invalid.
  *
  * @param {string} url
@@ -724,7 +743,7 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
  */
 function postNoSpin(options,callback) {
 	var msg = "No Spin Post: ";
-	console.log(msg+JSON.stringify(options));
+	caDebug(msg+JSON.stringify(options));
 	if ( typeof options === "function" ) {
 		callback = options;
 		options = {};
@@ -745,7 +764,7 @@ function post(options,callback) {
 		options = {};
 	} else {
 		var msg = postCount > 0 ? "Embedded Post: " : "Post: ";
-		console.log(msg+JSON.stringify(options));
+		caDebug(msg+JSON.stringify(options));
 	}
 	if ( ! options || typeof options !== "object" ) {
 		options = {};
