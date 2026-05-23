@@ -3051,10 +3051,18 @@ function showSidebarApp(apppath,appname) {
 
 /**
  * Lazy-load README fragments for `.ReadmeSection` placeholders in the open sidebar.
- * Fetches raw README.md directly from raw.githubusercontent.com (CORS-friendly),
- * then renders + sanitizes client-side via caSanitizeReadme (helpers.js). The
- * URL emitted by skin_helpers.php carries a `?v={mtime}` cache-buster keyed to
- * the appfeed refresh, so the browser HTTP cache handles re-opens for free.
+ *
+ * Goes through the PHP backend (`caFetchSidebarSource` action) rather than
+ * fetch()ing the upstream README directly. Two reasons:
+ *   1. CORS — some repo hosts don't set Access-Control-Allow-Origin, which
+ *      broke the old client-side path with a console error and no fallback.
+ *   2. Shared on-disk cache — the backend stores the body under
+ *      templates-community as `{RepoName}-README.md`, so repeat opens (and
+ *      concurrent tabs) reuse one copy. Cache lives until the next appfeed
+ *      refresh, same window the old browser HTTP cache was valid for.
+ *
+ * Falls through to the existing `data-readme-url-fallback` (master branch
+ * variant) on first-call failure.
  */
 function caLoadSidebarReadmeSections() {
 	var $sections = $("#sidenavContent .ReadmeSection[data-readme-url]");
@@ -3068,26 +3076,23 @@ function caLoadSidebarReadmeSections() {
 		var readmeId = $section.attr("data-readme-id") || $section.attr("id") || "";
 		var url = $section.attr("data-readme-url") || "";
 		var fallback = $section.attr("data-readme-url-fallback") || "";
+		var repoName = $section.attr("data-readme-repo") || "";
 
-		/* Client-side fetch + render. raw.githubusercontent.com sets
-		   Access-Control-Allow-Origin: *, so the browser allows the read.
-		   Browser HTTP cache does the work — the server-emitted URL already
-		   carries `?v={mtime}` from skin_helpers.php, so when the appfeed
-		   refreshes the cache key changes and a fresh body is pulled; in
-		   between, repeat sidebar opens are zero-network. */
+		/* Server-side fetch + cache. caIsPublicHttpUrlJs is still applied as
+		   a belt-and-braces gate — the backend re-validates with the stricter
+		   caIsPublicHttpUrl, but failing fast here avoids a round-trip on a
+		   URL we already know is unusable. */
 		function fetchText(u) {
-			/* Validate every URL through caIsPublicHttpUrlJs before letting
-			   the browser issue the request. Server-side caBuildReadmeSectionDiv
-			   already only emits raw.githubusercontent.com URLs, but if a
-			   future change ever lets a feed-controlled URL through the
-			   data-readme-url attribute we don't want fetch() to oblige and
-			   pull from a LAN host. */
 			if (!caIsPublicHttpUrlJs(u)) return Promise.reject(new Error("URL not allowed"));
-			return fetch(u, { credentials: "omit", redirect: "follow" })
-				.then(function(r) {
-					if (!r.ok) throw new Error("HTTP " + r.status);
-					return r.text();
+			return new Promise(function(resolve, reject) {
+				postNoSpin({action:"caFetchSidebarSource", url:u, repoName:repoName, kind:"readme"}, function(result) {
+					if (result && result.ok && typeof result.content === "string" && result.content !== "") {
+						resolve(result.content);
+					} else {
+						reject(new Error((result && result.message) ? result.message : "fetch failed"));
+					}
 				});
+			});
 		}
 		function paint($current, html, isError) {
 			if (isError) {
@@ -3128,17 +3133,18 @@ function caLoadSidebarReadmeSections() {
 
 /**
  * Lazy-load template change-log HTML for `.ca_template_changes` blocks in the
- * sidebar. Client-side fetch (.plg for plugins, template XML for containers)
- * then extract the `<CHANGES>` element via caExtractChangesFromXml and run
- * the markdown through caSanitizeReadme (same strip+marked+DOMPurify+URL
- * allowlist pipeline as README — both end up rendering user-supplied markdown
- * inside the sidebar).
+ * sidebar.
  *
- * URL carries `?v={mtime}` from caFormatTemplateChanges so the browser HTTP
- * cache services repeat opens and the cache invalidates on every appfeed
- * refresh. CORS: GitHub-hosted .plg / .xml sources allow it; custom-hosted
- * sources may not — fetch failure falls through to the "Change log can't be
- * loaded" placeholder, matching the previous server-error behavior.
+ * The body (a .plg for plugins or a template XML for containers) is fetched
+ * by the PHP backend (`caFetchSidebarSource` with kind=changes) so we don't
+ * trip CORS on custom-hosted repos, and so the on-disk cache under
+ * templates-community is shared across tabs. Cache file is named
+ * `{RepoName}-{basename(url)}` which keeps the .plg / .xml suffix from the
+ * source URL for debuggability.
+ *
+ * The `<CHANGES>` element is then extracted via caExtractChangesFromXml and
+ * the markdown run through caSanitizeReadme (same strip+marked+DOMPurify+
+ * URL allowlist pipeline as README).
  */
 function caLoadSidebarTemplateChanges() {
 	var $sections = $("#sidenavContent .ca_template_changes[data-changes-url]");
@@ -3151,6 +3157,7 @@ function caLoadSidebarTemplateChanges() {
 		$section.data("changesLoading", true);
 		var changesId = $section.attr("data-changes-id") || $section.attr("id") || "";
 		var url = $section.attr("data-changes-url") || "";
+		var repoName = $section.attr("data-changes-repo") || "";
 
 		function locateCurrent() {
 			var $current = changesId ? $("#sidenavContent #" + changesId) : $section;
@@ -3167,14 +3174,19 @@ function caLoadSidebarTemplateChanges() {
 			$current.attr("data-changes-loaded", "1");
 		}
 
-		/* Gate the URL through caIsPublicHttpUrlJs before fetching so a
+		/* Gate the URL through caIsPublicHttpUrlJs before posting so a
 		   future drift that lets a feed-controlled value land in the
-		   data-changes-url attribute can't make the browser pull from a
-		   LAN host. Same defense as the README loader above. */
+		   data-changes-url attribute can't make the server pull from a
+		   LAN host. The backend re-validates anyway. */
 		var fetchPromise = caIsPublicHttpUrlJs(url)
-			? fetch(url, { credentials: "omit", redirect: "follow" }).then(function(r) {
-				if (!r.ok) throw new Error("HTTP " + r.status);
-				return r.text();
+			? new Promise(function(resolve, reject) {
+				postNoSpin({action:"caFetchSidebarSource", url:url, repoName:repoName, kind:"changes"}, function(result) {
+					if (result && result.ok && typeof result.content === "string" && result.content !== "") {
+						resolve(result.content);
+					} else {
+						reject(new Error((result && result.message) ? result.message : "fetch failed"));
+					}
+				});
 			})
 			: Promise.reject(new Error("URL not allowed"));
 		fetchPromise

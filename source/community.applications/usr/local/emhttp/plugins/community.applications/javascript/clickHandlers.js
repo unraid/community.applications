@@ -1172,9 +1172,12 @@ function caInitializeClickHandlers() {
 	$(".multi_deleteButton").click(function() { deleteMulti(); });
 	$(".multi_installAll").click(function() { selectAllPrevious(); enableMultiInstall(); });
 	/**
-	 * Home/Startup button click: set `data.ignoreUnload` so saveState() does
-	 * not run on the upcoming reload, clear CA-related cookies (with legacy
-	 * cookie option fallbacks), then `window.location.reload()`.
+	 * Home/Startup button click (also the Clear Search variant of this button):
+	 * set `data.ignoreUnload` so saveState() does not run on the upcoming
+	 * navigation, clear CA-related cookies (with legacy cookie option
+	 * fallbacks), then navigate to /Apps. We navigate rather than reload so
+	 * any GET arguments in the current URL (e.g. ?search=, ?category=) are
+	 * dropped — a true "Home" should land on the clean Apps URL.
 	 */
 	$("body").on("click", ".startupButton", function() {
 		/* Home should start fresh; prevent onbeforeunload from writing saveState cookies back. */
@@ -1192,7 +1195,7 @@ function caInitializeClickHandlers() {
 			/* Some legacy calls used a non-standard cookie options string; clear that too just in case. */
 			try { $.removeCookie(name, { path: "/;SameSite=Lax" }); } catch (e2) { /* no-op */ }
 		});
-		window.location.reload();
+		window.location.assign("/Apps");
 	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	/**
