@@ -91,7 +91,12 @@ else
 
 $date = (date("n/d"));
 
-$ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
+/* Strict-boolean coercion: this variable is interpolated raw into a JS
+   expression below (`|| <?=$ca_apps_referrer?>`), so any value other than
+   literal "true" or "false" would either be a JS parse error or — worst
+   case if the cookie store gets clobbered — a script-injection surface.
+   Force one of the two canonical tokens. */
+$ca_apps_referrer = (($_COOKIE['ca_apps_referrer'] ?? "false") === "true") ? "true" : "false";
 $startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
 	$killCookie = "true";
@@ -657,8 +662,11 @@ $(function(){
 				   skipped (the home view has no .ca_templatesDisplay grid to
 				   restore into — see saveState()). But the user was looking at
 				   an app in the sidebar when they navigated away, so reopen it
-				   once the home paint settles. */
-				if ( caSavedState && caSavedState.sidebarAppPath && caCameFromAppsChild && ("<?=$dockerConvertFlag?>" != "true") ) {
+				   once the home paint settles. Gated on caSavedState.wasHome so
+				   we only reopen for an *explicit* home snapshot — not for
+				   non-home snapshots that happened to skip the if-branch for
+				   other reasons (dockerConvertFlag, mismatched referrer, etc.). */
+				if ( caSavedState && caSavedState.wasHome && caSavedState.sidebarAppPath && caCameFromAppsChild && ("<?=$dockerConvertFlag?>" != "true") ) {
 					showSidebarApp(caSavedState.sidebarAppPath, caSavedState.sidebarAppName);
 				}
 			});
