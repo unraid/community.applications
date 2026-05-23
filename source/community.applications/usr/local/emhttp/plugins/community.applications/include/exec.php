@@ -296,6 +296,16 @@ function DownloadApplicationFeed() {
 			ca_file_put_contents(CA_PATHS['appFeedDownloadError'],$downloadURL);
 			return false;
 		}
+		/* Dev mode: stash the raw applicationFeed.json before deleting the
+		   per-request tempfile so the Diff/Plugin/Template modals don't have
+		   to re-download it. tempFiles was wiped at the top of this function
+		   so the cache file is always fresh; outside dev mode we never write
+		   it, which keeps the steady-state footprint identical for normal
+		   users. caGetCachedApplicationFeed() reads this on every Diff
+		   click. */
+		if (($GLOBALS['caSettings']['dev'] ?? null) === "yes") {
+			@copy($downloadURL, CA_PATHS['diffFeedCache']);
+		}
 		/* Success — feed parsed cleanly, the per-request tempfile served its
 		   purpose. Clean it up so /tmp doesn't accumulate stale randomFile()s. */
 		@unlink($downloadURL);
