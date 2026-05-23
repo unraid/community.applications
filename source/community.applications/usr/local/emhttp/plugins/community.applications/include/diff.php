@@ -82,12 +82,13 @@ function getTemplateDiff() {
 		return;
 	}
 
-	/* Both modes need the appfeed entry — download (or reuse cached) the
-	   applicationFeed.json and locate the matching entry by TemplateURL /
-	   PluginURL. See caGetCachedApplicationFeed for the lock / cache flow. */
+	/* Both modes need the appfeed entry — read the raw snapshot stashed by
+	   DownloadApplicationFeed() when dev mode is on, and locate the matching
+	   entry by TemplateURL / PluginURL. Snapshot is rewritten on every feed
+	   refresh; cold start (dev mode just enabled) returns null. */
 	$applicationFeed = caGetCachedApplicationFeed();
 	if (!is_array($applicationFeed)) {
-		postReturn(["ok"=>false, "message"=>tr("Could not download application feed")]);
+		postReturn(["ok"=>false, "message"=>tr("Application feed snapshot not available — refresh the application feed first")]);
 		return;
 	}
 	$appfeedEntry = null;
@@ -225,47 +226,28 @@ function caRenderAsJson(array $entry): string {
 }
 
 /**
- * Fetch (or reuse cached) applicationFeed.json for the dev-mode Diff buttons.
- * Returns the decoded array on success or null on any failure / invalid JSON.
- * Uses download_url's flock-based serializer so concurrent Diff clicks share
- * a single download instead of stacking up.
+ * Read the raw applicationFeed.json snapshot that DownloadApplicationFeed()
+ * stashes whenever dev mode is enabled (exec.php — the `@copy($downloadURL,
+ * CA_PATHS['diffFeedCache'])` line just before the per-request tempfile is
+ * unlinked). Returns the decoded array on success or null on any failure.
+ *
+ * No download / no flock: the file is rewritten on every feed refresh so in
+ * steady state it's always current. Cold start — dev mode was just turned on
+ * and the user hasn't hit Refresh yet — returns null and the caller surfaces
+ * "Could not download application feed", which is the cue to refresh.
  */
 function caGetCachedApplicationFeed(): ?array {
 	$cachePath = CA_PATHS['diffFeedCache'];
-	if (is_file($cachePath)) {
-		$decoded = json_decode((string)@file_get_contents($cachePath), true);
-		/* Require a non-empty applist — DownloadApplicationFeed validates the
-		   same way (exec.php:251). An empty applist from a transient bad
-		   primary response would otherwise poison the cache and break every
-		   subsequent Diff click with "app not found". */
-		if (is_array($decoded) && !empty($decoded['applist'] ?? null) && is_array($decoded['applist'])) {
-			return $decoded;
-		}
-		@unlink($cachePath);
+	if (!is_file($cachePath)) return null;
+	$decoded = json_decode((string)@file_get_contents($cachePath), true);
+	/* Require a non-empty applist — same shape DownloadApplicationFeed
+	   validates against. Anything else and we treat the snapshot as
+	   unusable rather than handing the diff code a malformed feed and
+	   watching it explode on a missing key downstream. */
+	if (is_array($decoded) && !empty($decoded['applist'] ?? null) && is_array($decoded['applist'])) {
+		return $decoded;
 	}
-	/* 10-minute cURL timeout — the ca_downloadProgress nchan stream lets
-	   the user see (and Abort) a long-running fetch, but the timeout caps
-	   the worst case if the connection silently stalls. download_json
-	   forwards $path to download_url so the flock-based serializer engages. */
-	$applicationFeed = download_json(CA_PATHS['application-feed'], $cachePath, 600);
-	$ok = is_array($applicationFeed)
-		&& is_array($applicationFeed['applist'] ?? null)
-		&& !empty($applicationFeed['applist']);
-	if (!$ok) {
-		/* Primary returned malformed / empty — mirror DownloadApplicationFeed
-		   and fall through to the GitHub mirror so a flaky CDN doesn't take
-		   the Diff feature offline. */
-		@unlink($cachePath);
-		$applicationFeed = download_json(CA_PATHS['pluginProxy'] . CA_PATHS['application-feedBackup'], $cachePath, 600);
-		$ok = is_array($applicationFeed)
-			&& is_array($applicationFeed['applist'] ?? null)
-			&& !empty($applicationFeed['applist']);
-	}
-	if (!$ok) {
-		@unlink($cachePath);
-		return null;
-	}
-	return $applicationFeed;
+	return null;
 }
 
 /**
