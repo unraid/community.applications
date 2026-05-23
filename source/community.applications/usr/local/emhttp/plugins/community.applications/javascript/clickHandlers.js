@@ -988,7 +988,8 @@ function caInitializeClickHandlers() {
 		   createXML so the server can rewrite conflicting host ports. */
 		var adjustPorts = !!window.caPendingAdjustPorts;
 		window.caPendingAdjustPorts = false;
-		saveState();
+		/* saveState() is intentionally not called here — by the time this click
+		   handler fires, showSidebarApp() has already taken the snapshot. */
 		post({ action: "createXML", xml: xml, type: type, adjustPorts: adjustPorts }, function(result) {
 			if (result.status == "ok") {
 				if (type == "second") type = "default";
@@ -1180,8 +1181,14 @@ function caInitializeClickHandlers() {
 	 * dropped — a true "Home" should land on the clean Apps URL.
 	 */
 	$("body").on("click", ".startupButton", function() {
-		/* Home should start fresh; prevent onbeforeunload from writing saveState cookies back. */
+		/* Home should start fresh — block saveState from re-writing on the way
+		   out via showSidebarApp() or guiSearchOnUnload(). */
 		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
+		try { sessionStorage.removeItem("ca_state"); } catch (e) { /* no-op */ }
+		/* Pre-refactor cookie names — kept in the wipe list one release so any
+		   user upgrading from the cookie model gets their stale entries
+		   evicted. Drop in a future cleanup once the snapshot has fully moved
+		   to sessionStorage. */
 		[
 			"ca_data",
 			"ca_searchActive",
