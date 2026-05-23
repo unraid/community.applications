@@ -91,12 +91,7 @@ else
 
 $date = (date("n/d"));
 
-/* Strict-boolean coercion: this variable is interpolated raw into a JS
-   expression below (`|| <?=$ca_apps_referrer?>`), so any value other than
-   literal "true" or "false" would either be a JS parse error or — worst
-   case if the cookie store gets clobbered — a script-injection surface.
-   Force one of the two canonical tokens. */
-$ca_apps_referrer = (($_COOKIE['ca_apps_referrer'] ?? "false") === "true") ? "true" : "false";
+$ca_apps_referrer = $_COOKIE['ca_apps_referrer'] ?? "false";
 $startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
 	$killCookie = "true";
@@ -294,16 +289,6 @@ var dockerNotEnabled = <?= (!caIsDockerRunning() && !($GLOBALS['caSettings']['No
 /* Dev-mode flag — consumed by caDebug() (helpers.js) to gate diagnostic
    chatter. When false (the default), caDebug is a no-op. */
 window.caDev = <?= (($GLOBALS['caSettings']['dev'] ?? "no") === "yes") ? "true" : "false" ?>;
-/* Upstream `last_updated_timestamp` from lastUpdated.json — emitted into
-   saveState so restoreState can detect a real feed rotation (vs. a benign
-   filemtime bump from checkForUpdates.php just re-touching things) between
-   save and restore. The timestamp only moves when the upstream feed
-   actually publishes new content. */
-<?php
-	$_caFeedLastUpdated = readJsonFile(CA_PATHS['lastUpdated']);
-	$_caFeedTs = (is_array($_caFeedLastUpdated) ? (int)($_caFeedLastUpdated['last_updated_timestamp'] ?? 0) : 0);
-?>
-window.caFeedMtime = <?= $_caFeedTs ?>;
 var postCount = 0;
 var cookieWarning = false;
 var restoreStateMenu = false;
@@ -571,41 +556,10 @@ $(function(){
 		   install pages, etc.). document.referrer covers the "Done" button case;
 		   the ca_apps_referrer cookie — set by CA_notices.page on every Unraid
 		   page load while the URL is under /Apps/ and cleared as soon as it
-		   isn't — covers the browser-back case where the referrer is empty.
-		   State now lives in sessionStorage (was cookies); saveState() writes
-		   it at the top of showSidebarApp, so the snapshot is guaranteed to be
-		   present whenever the user took an action that could navigate away. */
-		var caSavedState = caReadSavedState();
-		/* On a browser reload (F5 / Cmd-R / address-bar Enter), the saveState
-		   snapshot still carries the last sidebarAppPath/Name from the install
-		   round-trip — but a reload is the user explicitly asking for a fresh
-		   page, so don't auto-reopen the sidebar to an app they may have
-		   already closed. Blank just the sidebar fields; filter / sort /
-		   category / scroll stay intact. */
-		try {
-			var _navEntries = performance.getEntriesByType && performance.getEntriesByType("navigation");
-			if (caSavedState && _navEntries && _navEntries[0] && _navEntries[0].type === "reload") {
-				caSavedState.sidebarAppPath = "";
-				caSavedState.sidebarAppName = "";
-				try {
-					sessionStorage.setItem("ca_state", JSON.stringify(caSavedState));
-				} catch (e) { /* no-op */ }
-			}
-		} catch (e) { /* no-op */ }
-		var caCameFromAppsChild = (
-			(document.referrer.indexOf("/Apps/") > 1)
-			|| <?=$ca_apps_referrer?>
-		);
-		var caCanRestore = (
-			"<?=$startupDisplayed?>" != "true"
-			&& caCameFromAppsChild
-			&& ("<?=$dockerConvertFlag?>" != "true")
-			&& caSavedState
-			&& !caSavedState.wasHome
-		);
-		if ( caCanRestore ) {
+		   isn't — covers the browser-back case where the referrer is empty. */
+		if ( "<?=$startupDisplayed?>" != "true" && ( ((document.referrer.indexOf("/Apps/") > 1) && (document.referrer.indexOf("/Apps/ca_settings") < 1)) || <?=$ca_apps_referrer?> ) && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") && $.cookie("ca_data") || $.cookie("ca_languageSwitch") ) {
 			getCategories();
-			restoreState(caSavedState);
+			restoreState();
 			<? if ( $dockerSearchActive ):?>
 				dockerSearch(data.currentpage);
 			<? else:?>
@@ -619,37 +573,31 @@ $(function(){
 					data.maxPerPage = _restoreSavedPage * _restorePerPage;
 					data.currentpage = 1;
 					changePage(1, false);
+					var _restoreTarget = (_restoreSavedPage - 1) * _restorePerPage;
+					var _restoreAttempts = 0;
+					var _restoreScroll = function() {
+						if ($.isArray(caCardCache.cache) && caCardCache.cache.length > _restoreTarget) {
+							var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
+							var perRow = $cards.length ? caVirtCardsPerRow($cards) : 0;
+							var rowH   = (perRow > 0) ? caVirtRowHeight($cards, perRow) : 0;
+							if (perRow > 0 && rowH > 0) {
+								var ma = $(".mainArea")[0];
+								if (ma) ma.scrollTop = Math.floor(_restoreTarget / perRow) * rowH;
+							}
+							return;
+						}
+						if (++_restoreAttempts > 60) return;
+						setTimeout(_restoreScroll, 100);
+					};
+					setTimeout(_restoreScroll, 200);
 				} else {
 					refreshDisplay();
 				}
-				/* Scroll restore — independent of the page>1 bulk-fetch path so it
-				   handles both. Targets the literal pixel scrollY saved at
-				   sidebar-open (vs. the old card-boundary approximation that
-				   landed users at the start of their saved page instead of the
-				   actual position). Polls until .mainArea is tall enough that
-				   scrolling to scrollY is meaningful, then sets scrollTop. Capped
-				   at ~6s of polling so we don't loop forever if rendering never
-				   reaches the saved depth (rare, but possible if filter results
-				   shrunk between save and restore). */
-				var _scrollTarget = parseInt(caSavedState.scrollY, 10) || 0;
-				if (_scrollTarget > 0) {
-					var _scrollAttempts = 0;
-					var _scrollRestore = function() {
-						var ma = $(".mainArea")[0];
-						if (!ma) return;
-						/* Either we have enough DOM height to honour the target,
-						   or we've polled enough — apply and exit either way. */
-						if (ma.scrollHeight >= _scrollTarget + ma.clientHeight || ++_scrollAttempts > 60) {
-							ma.scrollTop = _scrollTarget;
-							return;
-						}
-						setTimeout(_scrollRestore, 100);
-					};
-					setTimeout(_scrollRestore, 200);
-				}
 				searchBoxAwesomplete.close();
-				if ( caSavedState.sidebarAppPath ) {
-					showSidebarApp(caSavedState.sidebarAppPath, caSavedState.sidebarAppName);
+				var apppath = $.cookie("sidebarAppPath");
+				var appname = $.cookie("sidebarAppName");
+				if ( $.trim(apppath) ) {
+					showSidebarApp(apppath,appname);
 				}
 			<? endif;?>
 		} else {
@@ -658,16 +606,12 @@ $(function(){
 
 				updateContent(false,false);
 			 // clearTimeout(downloadStatusTimer);
-				/* Home / wasHome case: the templates-view restore is intentionally
-				   skipped (the home view has no .ca_templatesDisplay grid to
-				   restore into — see saveState()). But the user was looking at
-				   an app in the sidebar when they navigated away, so reopen it
-				   once the home paint settles. Gated on caSavedState.wasHome so
-				   we only reopen for an *explicit* home snapshot — not for
-				   non-home snapshots that happened to skip the if-branch for
-				   other reasons (dockerConvertFlag, mismatched referrer, etc.). */
-				if ( caSavedState && caSavedState.wasHome && caSavedState.sidebarAppPath && caCameFromAppsChild && ("<?=$dockerConvertFlag?>" != "true") ) {
-					showSidebarApp(caSavedState.sidebarAppPath, caSavedState.sidebarAppName);
+				if ("<?=$startupDisplayed?>" == "true" && <?=$ca_apps_referrer?> && cookiesEnabled() && ("<?=$dockerConvertFlag?>" != "true") || $.cookie("ca_languageSwitch") ) {
+					var apppath = $.cookie("sidebarAppPath");
+					var appname = $.cookie("sidebarAppName");
+					if ( $.trim(apppath) ) {
+						showSidebarApp(apppath,appname);
+					}
 				}
 			});
 		}
@@ -1188,27 +1132,6 @@ function closeSidebar(cookie=false,visible=false) {
 	if ( ! cookie ) {
 		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
 		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
-		/* Also clear the in-memory sidebar identity — without this, a later
-		   saveState() call in the same tab (e.g. another sidebar opening, or
-		   guiSearchOnUnload) would persist the dismissed app back into the
-		   snapshot and the next restore would auto-reopen it. */
-		data.sidebarapppath = "";
-		data.sidebarappname = "";
-		/* Also wipe the sidebar identity from the saveState snapshot so a
-		   later browser reload doesn't auto-reopen the sidebar to an app the
-		   user just explicitly closed. Filter / sort / category / scroll stay
-		   intact — only the two sidebar fields are blanked. */
-		try {
-			var _raw = sessionStorage.getItem("ca_state");
-			if (_raw) {
-				var _s = JSON.parse(_raw);
-				if (_s && typeof _s === "object") {
-					_s.sidebarAppPath = "";
-					_s.sidebarAppName = "";
-					sessionStorage.setItem("ca_state", JSON.stringify(_s));
-				}
-			}
-		} catch (e) { /* no-op */ }
 	}
 	context.destroy("#actionsPopup");
 	/* Drop the relocated per-app action strip so a stale row from the
@@ -2288,115 +2211,103 @@ function updateDisplay(content, append) {
 	}
 	myCloseAlert(true);
 }
-/* No `window.onbeforeunload` save hook. Two reasons:
-   1. Unreliable — modern browsers throttle/skip unload events on mobile and
-      during bfcache transitions; saves get cut off mid-write.
-   2. Registering a beforeunload listener at all disables bfcache for this
-      page, which makes the back button slow.
-   We instead save proactively at the one place that matters: the top of
-   showSidebarApp(). Sidebar-open is the gateway to every install /
-   uninstall / update / xmlInstall path. */
-
-/**
- * Read and validate the sessionStorage state snapshot. Returns the parsed
- * object on success or null when:
- *   - sessionStorage is unavailable (Safari private mode, etc.)
- *   - no snapshot has been taken yet
- *   - JSON.parse fails
- *   - schema version doesn't match (forwards-compat guard)
- *   - feed timestamp is missing on either side or has changed since the
- *     snapshot (stale render risk — templates may have been added/removed/
- *     recategorised under us). The strict "both present and equal" check
- *     stops a snapshot with feedMtime=0 (e.g. from a save taken before
- *     lastUpdated.json was readable) from bypassing the freshness gate.
- *
- * @returns {object|null}
- */
-function caReadSavedState() {
-	var raw;
-	try { raw = sessionStorage.getItem("ca_state"); } catch (e) { return null; }
-	if (!raw) return null;
-	var s;
-	try { s = JSON.parse(raw); } catch (e) { return null; }
-	if (!s || s.v !== 1) return null;
-	var savedMtime = parseInt(s.feedMtime, 10) || 0;
-	var currentMtime = parseInt(window.caFeedMtime, 10) || 0;
-	if (savedMtime <= 0 || currentMtime <= 0 || savedMtime !== currentMtime) {
-		try { sessionStorage.removeItem("ca_state"); } catch (e) { /* no-op */ }
-		return null;
+window.onbeforeunload = function() {
+	if ( data.ignoreUnload ) {
+		return;
 	}
-	return s;
+	saveState(false);
+}
+/**
+ * Serialize lightweight CA navigation state to cookies for GUI-search / cross-page restore (skips large `cardCache` fields; legacy path short-circuits when `legacy` is true).
+ *
+ * When `legacy` is false: persists trimmed `data`, search flags, multi-install visibility, active menu, filter text, and category name.
+ *
+ * @param {boolean} [legacy=true] Original early-return gate (Dynamix compatibility)
+ */
+function saveState(legacy=true) {
+	if (legacy) {
+		return;
+	}
+	/* On the home/spotlight view there's no .ca_templatesDisplay — its content
+	   comes from .ca_homeTemplates rows that don't line up with the displayed
+	   cache restoreState relies on. Skip saving (and drop any stale ca_data
+	   cookie) so restoreState doesn't repaint a mismatched earlier view when
+	   the user comes back from /Apps/Docker etc. */
+	if (!$("#templates_content .ca_templatesDisplay").length) {
+		$.removeCookie("ca_data", { path: "/" });
+		return;
+	}
+	caDebug("Save State");
+	//$.cookie("ca_categoryText",$(".categoryLine").html(),{path:"/;SameSite=Lax"});
+	/* Strip out fields that re-derive from a fresh server fetch — the card
+	   cache + virt offsets can be 100s of KB which would blow past the 4KB
+	   cookie cap and cause restoreState's JSON.parse to fail (which
+	   triggered window.location.reload() in the catch). */
+	var _saveData = Object.assign({}, data);
+	delete _saveData.cardCache;
+	delete _saveData.firstInDom;
+	delete _saveData.cardCacheOffset;
+	$.cookie("ca_data", JSON.stringify(_saveData), { path: "/;SameSite=Lax" });
+	$.cookie("ca_searchActive",data.searchActive,{path:"/;SameSite=Lax"});
+	$.cookie("ca_installMulti",$(".multi_installDiv").is(":visible"),{path:"/;SameSite=Lax"});
+	var selectedMenu = $(".selectedMenu").data("category");
+	if ( ! selectedMenu ) {
+		selectedMenu = "";
+	}
+	var categoriesEnabled = new Array();
+	$(".caMenuEnabled").each(function(){
+		categoriesEnabled.push($(this).data("category"));
+	});
+	$.cookie("ca_selectedMenu",selectedMenu,{path:"/;SameSite=Lax"});
+	$.cookie("ca_filter",$("#searchBox").val(),{path:"/;SameSite=Lax"});
+	$.cookie("ca_categoryName",$(".categoryMenuName").html(),{path:"/;SameSite=Lax"});
 }
 
 /**
- * Serialize CA UI state into sessionStorage so the user lands on the same
- * search / filter / category / scroll position when they come back from
- * /Apps/AddContainer, plugin install, etc. Always called at the top of
- * showSidebarApp() — the one gateway every state-mutating action funnels
- * through.
- *
- * On the home / spotlight view there's no .ca_templatesDisplay grid to
- * meaningfully restore (content comes from .ca_homeTemplates rows which
- * don't line up with the templates_displayed cache refreshDisplay relies
- * on). For that case we save a `wasHome: true` marker plus the sidebar app
- * identity only — the bootstrap detects the marker and takes the
- * fresh-startup branch, then reopens the sidebar after the home paint
- * settles.
- *
- * @returns {void}
+ * Rehydrate cookies into `data`, search box, and menu; fetch sort order, autocomplete, and clear multi-select before the user continues.
  */
-function saveState() {
-	if (data.ignoreUnload) return;
-	var isHome = !$("#templates_content .ca_templatesDisplay").length;
-	var state = {
-		v: 1,
-		feedMtime: window.caFeedMtime || 0,
-		wasHome: isHome,
-		sidebarAppPath: data.sidebarapppath || "",
-		sidebarAppName: data.sidebarappname || "",
-	};
-	if (!isHome) {
-		state.filter        = $("#searchBox").val() || "";
-		state.installMulti  = $(".multi_installDiv").is(":visible");
-		state.selectedMenu  = $(".selectedMenu").data("category") || "";
-		state.categoryName  = $(".categoryMenuName").html() || "";
-		state.currentpage   = parseInt(data.currentpage, 10) || 1;
-		var _ma = $(".mainArea")[0];
-		state.scrollY       = _ma ? (_ma.scrollTop || 0) : 0;
+function restoreState() {
+	caDebug("Restore State");
+	$.removeCookie("ca_languageSwitch",{path:'/'});
+
+	//$(".category").html($.cookie("ca_categoryText"));
+	if ( $.cookie("ca_installMulti") == "true" ) {
+		$(".multi_installDiv").show();
+	} else {
+		$(".multi_installDiv").hide();
 	}
-	try { sessionStorage.setItem("ca_state", JSON.stringify(state)); } catch (e) { /* no-op */ }
-}
-
-/**
- * Rehydrate the templates-view (search / filter / category / sort / scroll)
- * from a previously-saved state object. Only called by the bootstrap when
- * it's already decided we're in the templates-restore branch — the home
- * branch is handled inline at the bootstrap.
- *
- * @param {object} s validated state from caReadSavedState()
- * @returns {void}
- */
-function restoreState(s) {
-	$.removeCookie("ca_languageSwitch", { path: "/" });
-
-	$(".multi_installDiv").toggle(!!s.installMulti);
-	caCardCache.cache = [];
-	caCardCache.firstInDom = 0;
-	caCardCache.offset = 0;
-	data.loadingMore = false;
-	data.ignoreUnload = false;
-
-	$("#searchBox").val(s.filter || "");
-	data.committedSearchFilter = $.trim(s.filter || "");
-	data.searchActive = (s.filter || "") !== "";
-	$(".categoryMenuName").html(s.categoryName || "");
-	restoreStateMenu = s.selectedMenu || "";
-	data.currentpage = parseInt(s.currentpage, 10) || 1;
+	$.removeCookie("ca_categoryText");
+	try {
+		data = JSON.parse($.cookie("ca_data"));
+		data.ignoreUnload = false;
+		/* These were intentionally stripped before saving; re-init so the next
+		   render path (refreshDisplay → updateDisplay) repopulates cleanly. */
+		caCardCache.cache = [];
+		caCardCache.firstInDom = 0;
+		caCardCache.offset = 0;
+		data.loadingMore = false;
+		$.removeCookie("ca_data");
+	} catch (e) {
+		caDebug("Unable to restore state - reloading to clear errors");
+		$.removeCookie("ca_data");
+		post({action:"clearStartUpDisplayed"},function(result) {
+			window.location.reload();
+		});
+	}
+	data.searchActive = evaluateBoolean($.cookie("ca_searchActive"));
+	restoreStateMenu = $.cookie("ca_selectedMenu");
+	$(".categoryMenuName").html($.cookie("ca_categoryName"));
+	var filter = $.cookie("ca_filter");
+	$("#searchBox").val(filter);
+	data.committedSearchFilter = $.trim(filter || "");
 	data.maxPerPage = getMaxPerPage();
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
 
-	post({action:"getSortOrder"}, function(sortOrder) {
+	var ca_sortIcon = $.cookie("ca_sortIcon");
+//	enableIcon("#sortIcon",ca_sortIcon);
+	var restoreDone = false;
+	post({action:"getSortOrder"},function(sortOrder) {
 		$(".sortIcons").removeClass("enabledIcon");
 		$(".sortIcons").each(function() {
 			if ( ($(this).attr("data-sortBy") == sortOrder.sortBy) && ($(this).attr("data-sortDir") == sortOrder.sortDir) ) {
@@ -2404,10 +2315,12 @@ function restoreState(s) {
 			}
 		});
 		populateAutoComplete();
-		if (!s.installMulti) clearMultiInstall();
+		clearMultiInstall();
+		restoreDone = true;
 		caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
 	});
+
 }
 
 
@@ -2547,13 +2460,6 @@ function getCategories() {
 		$(menuItem).addClass("selectedMenu");
 		$(menuItem).parent().show();
 		$(menuItem).next().show();
-		/* If the restored item is a sub-item nested inside a `<li class='subCategory'>`
-		   wrapper (e.g. Media Servers → Photos), the immediate parent is the inner
-		   `<ul>` — but the .subCategory wrapper is what's hidden by the wholesale
-		   $(".subCategory").hide() above, and a visible `<ul>` inside a hidden
-		   `<li>` still renders nothing. Show the wrapper so the branch the leaf
-		   belongs to opens up. */
-		$(menuItem).closest(".subCategory").show();
 		restoreStateMenu = false;
 
 		if ( $("#searchBox").val() ) {
@@ -3050,10 +2956,6 @@ function showSidebarApp(apppath,appname) {
 	$.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
 	data.sidebarapppath = apppath;
 	data.sidebarappname = appname;
-	/* Sidebar-open is the canonical save trigger. Every install / uninstall /
-	   update / xmlInstall path lives behind a sidebar button, so the snapshot
-	   is guaranteed to be fresh before any navigation away from /Apps. */
-	saveState();
 
 	$(".popUpBack").addClass("ca_hide");
 	$(".sidenav").removeClass("sidenavHide");
