@@ -1935,7 +1935,14 @@ function caFetchSidebarSource() {
 		if ($base === "" || $base === "." || $base === "..") {
 			$base = "source";
 		}
-		$cacheName = $safeRepo . "-" . $base;
+		/* Short URL hash between repo name and basename so distinct source
+		   URLs that happen to share a basename (e.g. two branches of the
+		   same .plg in the same repo, or any two templates named the same
+		   way under different paths) don't collide on disk and return
+		   each other's bodies. 8 hex chars = 32 bits; vanishingly small
+		   collision risk for the handful of templates per repo. */
+		$urlHash = substr(hash("sha256", $url), 0, 8);
+		$cacheName = $safeRepo . "-" . $urlHash . "-" . $base;
 	}
 
 	// No spaces in the on-disk filename — annoying to handle at the console.
