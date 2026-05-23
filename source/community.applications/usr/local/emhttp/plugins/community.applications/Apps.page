@@ -3087,14 +3087,29 @@ function caLoadSidebarReadmeSections() {
 		   URL we already know is unusable. */
 		function fetchText(u) {
 			if (!caIsPublicHttpUrlJs(u)) return Promise.reject(new Error("URL not allowed"));
+			/* $.post directly (not postNoSpin) so the Promise also rejects on
+			   transport failures — non-2xx responses, XHR aborts, JSON parse
+			   errors. postNoSpin only fires its callback on the success path,
+			   which would leave the README section stuck in "Loading…" forever
+			   on any backend hiccup. tabId stamped manually since we're
+			   bypassing post()'s auto-stamping. */
 			return new Promise(function(resolve, reject) {
-				postNoSpin({action:"caFetchSidebarSource", url:u, repoName:repoName, kind:"readme"}, function(result) {
+				$.post(execURL, {
+					action: "caFetchSidebarSource",
+					url: u,
+					repoName: repoName,
+					kind: "readme",
+					noSpinner: true,
+					tabId: (typeof data !== "undefined" && data.tabId) ? data.tabId : ""
+				})
+				.done(function(result) {
 					if (result && result.ok && typeof result.content === "string" && result.content !== "") {
 						resolve(result.content);
 					} else {
 						reject(new Error((result && result.message) ? result.message : "fetch failed"));
 					}
-				});
+				})
+				.fail(function() { reject(new Error("transport failure")); });
 			});
 		}
 		function paint($current, html, isError) {
@@ -3181,15 +3196,29 @@ function caLoadSidebarTemplateChanges() {
 		   future drift that lets a feed-controlled value land in the
 		   data-changes-url attribute can't make the server pull from a
 		   LAN host. The backend re-validates anyway. */
+		/* $.post directly (not postNoSpin) so the Promise also rejects on
+		   transport failures — non-2xx, XHR aborts, JSON parse errors. The
+		   postNoSpin callback only fires on the success path, which would
+		   leave the Changes section stuck in "Loading…" on any backend
+		   hiccup. See the README block above for the same pattern. */
 		var fetchPromise = caIsPublicHttpUrlJs(url)
 			? new Promise(function(resolve, reject) {
-				postNoSpin({action:"caFetchSidebarSource", url:url, repoName:repoName, kind:"changes"}, function(result) {
+				$.post(execURL, {
+					action: "caFetchSidebarSource",
+					url: url,
+					repoName: repoName,
+					kind: "changes",
+					noSpinner: true,
+					tabId: (typeof data !== "undefined" && data.tabId) ? data.tabId : ""
+				})
+				.done(function(result) {
 					if (result && result.ok && typeof result.content === "string" && result.content !== "") {
 						resolve(result.content);
 					} else {
 						reject(new Error((result && result.message) ? result.message : "fetch failed"));
 					}
-				});
+				})
+				.fail(function() { reject(new Error("transport failure")); });
 			})
 			: Promise.reject(new Error("URL not allowed"));
 		fetchPromise
