@@ -1098,10 +1098,8 @@ $.fn.onVisibilityHidden = function(callback) {
 };
 
 /**
- * Persist CA UI state via {@link saveState}, used as the unload hook when
- * Dynamix GUI Search navigates away from the page. saveState() writes to
- * sessionStorage (was cookies pre-refactor); this is the only place where
- * a save fires off-flow from showSidebarApp.
+ * Persist CA UI state to cookies via {@link saveState}, used as the unload
+ * hook when Dynamix GUI Search navigates away from the page.
  *
  * @returns {void}
  */
