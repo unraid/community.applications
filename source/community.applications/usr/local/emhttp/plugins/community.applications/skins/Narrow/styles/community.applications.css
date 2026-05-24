@@ -491,6 +491,121 @@ body,
 		text-decoration: none;
 	}
 
+	/* === Reusable button-style modifiers ==================================
+	   Composable utility classes intended to be stacked onto .caButton-like
+	   elements (or anywhere else that wants the same visual). Kept as two
+	   independent classes — size and color — so each can be used on its
+	   own; the MFP close button currently uses both, future callers can
+	   pick whichever they need.
+
+	   `!important` on the visual declarations is intentional: these are
+	   utility modifiers whose whole job is to win over context-specific
+	   button styling (eg. `.magnificPopup.caButton` sets font-size:1.5rem
+	   and color via --magnificCloseColor; the point of dropping caButtonLarge
+	   / caButtonRed onto a button is to override exactly those choices).
+	   Position-related declarations are deliberately NOT here — layout
+	   stays in the context-specific rule for whichever element uses these. */
+
+	.caButtonLarge {
+		font-size: 2.1rem !important;    /* ~75% larger than the .magnificPopup.caButton default of 1.5rem */
+		line-height: 2.6rem !important;
+		padding: 2px 16px !important;
+	}
+
+	.caButtonRed {
+		background: var(--ca-button-red) !important;
+		color: var(--ca-white-color) !important;
+	}
+	.caButtonRed:hover {
+		background: var(--ca-button-red-hover) !important;
+		color: var(--ca-white-color) !important;
+	}
+
+	/* Native red-paint for known close-action buttons that already have a
+	   distinct hook class (sidebar CLOSE, dev-mode diff overlay CLOSE).
+	   Compound selectors are 0,2,0 / 0,2,1 — naturally outrank `.caButton`
+	   (0,1,0) and `.caButton:hover` (0,1,1) without needing !important or
+	   touching the markup. The .caButtonRed utility above is still the
+	   right tool when a button doesn't have a stable class hook (eg. the
+	   per-call MFP closeMarkup string) or when red is being stacked with
+	   other modifiers like .caButtonLarge. */
+	.popUpClose.caButton,
+	.caDiffClose.caButton {
+		background: var(--ca-button-red);
+		color: var(--ca-white-color);
+	}
+	.popUpClose.caButton:hover,
+	.caDiffClose.caButton:hover {
+		background: var(--ca-button-red-hover);
+		color: var(--ca-white-color);
+	}
+
+	/* Sidebar action-row coloring. .actionsInstall = primary install-family
+	   (Install / Update / Reinstall / Install second instance) in blue;
+	   .actionsUninstall = destructive (Uninstall / Remove) in red. Both
+	   classes are applied by skin.php when the matching text is detected.
+	   Compound selectors are 0,2,0 / 0,2,1 — naturally outrank `.caButton`
+	   (0,1,0) and `.caButton:hover` (0,1,1) without needing !important. */
+	.popupStickyActions > .actionsInstall {
+		background: var(--ca-button-blue);
+		color: var(--ca-white-color);
+	}
+	.popupStickyActions > .actionsInstall:hover {
+		background: var(--ca-button-blue-hover);
+		color: var(--ca-white-color);
+	}
+	.popupStickyActions > .actionsUpdate {
+		background: var(--ca-button-green);
+		color: var(--ca-white-color);
+	}
+	.popupStickyActions > .actionsUpdate:hover {
+		background: var(--ca-button-green-hover);
+		color: var(--ca-white-color);
+	}
+	.popupStickyActions > .actionsUninstall {
+		background: var(--ca-button-red);
+		color: var(--ca-white-color);
+	}
+	.popupStickyActions > .actionsUninstall:hover {
+		background: var(--ca-button-red-hover);
+		color: var(--ca-white-color);
+	}
+	/* Push the right-group buttons (install-family + uninstall) to the far
+	   right of the action row while keeping the same wrap/gap behavior.
+	   Two-rule trick:
+	     1. Give every right-group button margin-left:auto. If we stopped
+	        here, the auto-margins would distribute evenly between siblings
+	        (like justify-content:space-between for the subset) and the
+	        right group would spread out across the row instead of packing.
+	     2. Strip the auto-margin from any right-group item that is preceded
+	        by another right-group sibling. Only the FIRST one in DOM order
+	        keeps margin-left:auto and consumes the available row space;
+	        the rest sit next to it with the container's normal column-gap.
+	   Requires the PHP markup to emit LEFT items first, then RIGHT items
+	   — see skin.php's .popupStickyActions block.
+
+	   Selector includes `.caButton` (0,3,0) to outrank the existing
+	   `.popupStickyActions > .caButton { margin: 0 }` margin-reset further
+	   down in this file (0,2,0, same specificity but later in source order)
+	   — without the extra class the reset zeroes out our auto-margin and
+	   the right group ends up packed immediately after the left group. */
+	.popupStickyActions > .actionsInstall.caButton,
+	.popupStickyActions > .actionsUpdate.caButton,
+	.popupStickyActions > .actionsUninstall.caButton {
+		margin-left: auto;
+	}
+	.popupStickyActions > .actionsInstall.caButton ~ .actionsInstall.caButton,
+	.popupStickyActions > .actionsInstall.caButton ~ .actionsUpdate.caButton,
+	.popupStickyActions > .actionsInstall.caButton ~ .actionsUninstall.caButton,
+	.popupStickyActions > .actionsUpdate.caButton ~ .actionsInstall.caButton,
+	.popupStickyActions > .actionsUpdate.caButton ~ .actionsUpdate.caButton,
+	.popupStickyActions > .actionsUpdate.caButton ~ .actionsUninstall.caButton,
+	.popupStickyActions > .actionsUninstall.caButton ~ .actionsInstall.caButton,
+	.popupStickyActions > .actionsUninstall.caButton ~ .actionsUpdate.caButton,
+	.popupStickyActions > .actionsUninstall.caButton ~ .actionsUninstall.caButton {
+		margin-left: 0;
+	}
+
 	/* Awesomplete suggestions: use caButton styling, force precedence */
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
 		display: inline-block !important;
@@ -2392,12 +2507,91 @@ input[type="button"] {
 	   caRelocatePopupActions() moves them there at popup-load time.
 	   .popupCloseArea is already position:fixed, so this row is naturally
 	   pinned to the top of the sidebar for the entire scroll. */
+	/* FontAwesome icons attached directly via ::before to buttons that have
+	   a stable semantic class. The left-group action items (Edit, WebUI,
+	   TS WebUI, etc.) all share .caButton.actionsPopup with no per-action
+	   differentiator, so those still get their icon class threaded from
+	   PHP ($context['icon']) — see skin.php's left group render. The right-
+	   group / close / back / pin buttons all have a unique semantic class,
+	   so the icon lives entirely in CSS — no PHP class threading or markup
+	   change needed when the glyph changes. */
+	.popUpClose::before,
+	.caDiffClose::before,
+	.actionsUninstall::before {
+		content: "\f00d";              /* fa-times — close / destructive */
+		font-family: fontAwesome;
+	}
+	.popUpBack::before,
+	.popUpStat::before {
+		content: "\f060";              /* fa-arrow-left — back navigation */
+		font-family: fontAwesome;
+	}
+	.actionsInstall::before {
+		content: "\f019";              /* fa-download — install / reinstall / install second */
+		font-family: fontAwesome;
+	}
+	.actionsUpdate::before {
+		content: "\f0ed";              /* fa-arrow-circle-o-down — update */
+		font-family: fontAwesome;
+	}
+	.pinPopup::before {
+		content: "\f08d";              /* fa-thumb-tack — pin */
+		font-family: fontAwesome;
+	}
+
+	/* Small gap between the FontAwesome icon (rendered as ::before either
+	   directly or via the ca_fa-* helper class) and the button label, so
+	   the icon doesn't sit flush against the first character of the text.
+	   Scoped to the action-row and the close-area pill buttons so unrelated
+	   ::before pseudo-elements elsewhere in the app (which don't have a
+	   `content` set on the matching element) aren't affected — ::before
+	   only renders when `content` is provided, so this is a no-op on
+	   icon-less buttons. */
+	.popupCloseAreaButtons .popUpClose::before,
+	.popupCloseAreaButtons .caButton::before,
+	#caDiffView .caDiffClose::before {
+		margin-right: 0.5rem;
+	}
+
+	/* Pipe separator between CLOSE and the relocated action row. Without
+	   it the wide column-gap between CLOSE and the first action button
+	   reads as random spacing; the pipe punctuates the gap so it looks
+	   deliberate. Scoped to `.popupCloseAreaButtons .popupStickyActions`
+	   so the pseudo only renders AFTER caRelocatePopupActions() has moved
+	   the strip into the close area — before relocation the strip lives
+	   inside .popupContent (no CLOSE alongside it) and a stray pipe at
+	   the start of the row would look like a glitch. */
+	.popupCloseAreaButtons .popupStickyActions::before {
+		content: "|";
+		color: var(--sidebar-text);
+		opacity: 0.4;
+		font-size: 1.8rem;
+		line-height: 1;
+		align-self: center;
+	}
 	.popupStickyActions {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		row-gap: 0.5rem;
 		column-gap: 1rem;
+		/* Grow to fill the remaining width inside .popupCloseAreaButtons
+		   (after CLOSE / BACK / popUpStat), so the margin-left:auto trick
+		   on .actionsInstall / .actionsUninstall has actual slack to
+		   consume — without this, .popupStickyActions is sized to its
+		   children (default flex: 0 1 auto), the auto-margin has zero
+		   remaining space to eat, and the right group ends up packed
+		   immediately after the left group instead of pushed to the far
+		   edge. Harmless before caRelocatePopupActions() runs because
+		   .popupContent isn't a flex container. */
+		flex-grow: 1;
+		/* Mirror the CLOSE button's left inset (`.popupCloseArea >
+		   div:first-child { margin-left: 2rem }`) so the right group ends
+		   the same distance from the sidebar's right edge as CLOSE does
+		   from the left. The padding shrinks the available row space, so
+		   the auto-margin push above still snaps the right group to the
+		   (now-2rem-inset) right edge. */
+		padding-right: 2rem;
 	}
 	/* CLOSE / BACK sit on the left, then a big gap, then the relocated
 	   per-app action row. Wrap so a wide button row can drop to the next
@@ -3328,10 +3522,6 @@ input[type="button"] {
 		font-family: Arial, Baskerville, monospace;
 	}
 
-	.mfp-close:hover {
-		color: var(--unraid-66-color) !important;
-	}
-
 	.mfp-close:active {
 		top: 1px;
 	}
@@ -3341,29 +3531,27 @@ input[type="button"] {
 	}
 
 	/* Our custom MFP close button carries .mfp-close (so the lib's
-	   _checkIfClose detection fires + position rules below apply) AND
-	   .caButton (so it visually matches the rest of CA's pill buttons).
-	   Use the holder-scoped selector so specificity (0,3,0) beats the
-	   `.mfp-image-holder .mfp-close` / `.mfp-iframe-holder .mfp-close`
-	   rule below that otherwise paints the close text red. Hover override
-	   uses 0,3,1 to outrank `.mfp-close:hover` (0,1,1 with !important). */
+	   _checkIfClose detection fires + the MagnificPopup library's own
+	   positioning hooks still apply) AND .caButton (so it picks up CA's
+	   pill styling), plus the .caButtonLarge / .caButtonRed utility
+	   modifiers for size + color (defined above near .caButton).
+
+	   This rule keeps only layout + library-default resets — sizing,
+	   color, and hover are now owned by the utility modifiers. Pinning
+	   position:fixed at top/right=1.5rem floats the button in a fixed
+	   spot regardless of which MFP content type (image / iframe) is up
+	   and how far the user has scrolled the lightbox. */
 	.mfp-image-holder .mfp-close.caButton,
 	.mfp-iframe-holder .mfp-close.caButton {
+		position: fixed;
+		top: 1.5rem;
+		right: 1.5rem;
 		height: auto;
-		line-height: 2rem;
-		padding: 1px 10px;
-		font-size: 1.2rem;
-		color: var(--support-popup-text);
+		width: auto;
 		font-family: inherit;
 		font-weight: normal;
 		opacity: 1;
-		width: auto;
 		text-align: center;
-		right: 0;
-	}
-	.mfp-image-holder .mfp-close.caButton:hover,
-	.mfp-iframe-holder .mfp-close.caButton:hover {
-		color: var(--ca-white-color) !important;
 	}
 
 	.mfp-image-holder .mfp-close,
