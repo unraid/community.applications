@@ -1000,6 +1000,18 @@ body,
 		width: 90%;
 		max-width: 70rem;
 	}
+
+	/* slideInSidebar() programmatically focuses .sidenav (tabindex=-1) so the
+	   first tap on mobile / first click on desktop hits its intended target
+	   instead of being eaten by the browser establishing focus on the new
+	   pane. The panel itself is a focus *container*, not a focus target the
+	   user cares to see ringed — suppress the default outline. Controls
+	   inside still get their normal :focus-visible styling when the user
+	   tabs to them. */
+	.sidebar .sidenav:focus,
+	.sidebar .sidenav:focus-visible {
+		outline: none;
+	}
 	.sidebar .sidenav,
 	.popupCloseArea {
 		transform: translateX(100%);          /* default: off-screen right */
