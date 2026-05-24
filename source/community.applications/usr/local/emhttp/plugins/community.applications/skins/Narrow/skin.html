@@ -217,7 +217,16 @@ $(function() {
 			<span class="popUpStat caButton"><?tr("BACK");?></span>
 		</div>
 	</div>
-	<div class='sidenav sidenavHide'>
+	<!-- tabindex='-1' so slideInSidebar() can move focus into the dialog on
+	     open. Without this, focus stays on whatever opened the sidebar (an app
+	     card on desktop, or nothing in particular after a touch on mobile) and
+	     the first interaction inside the sidebar gets eaten by the browser
+	     establishing focus/touch-target on the new pane instead of firing the
+	     handler under the click. The most visible symptom was needing to tap
+	     a video thumbnail twice on mobile to open it. The outline-suppression
+	     lives in CSS — we don't want a focus ring on the panel itself, only
+	     on the controls inside it when the user tabs through. -->
+	<div class='sidenav sidenavHide' tabindex='-1'>
 		<div id='sidenavContent'></div>
 	</div>
 	<!-- Sidebar copy of the scroll controls. Sibling of .sidenav, not child,
