@@ -320,7 +320,11 @@ var ca_done_override = false;
 /* MagnificPopup iframe URL patterns for the media gallery. The lib's defaults
    only match `youtube.com/watch?v=...` (so `youtu.be/...` short links never
    get rewritten to the embed URL with autoplay). Override to handle both
-   forms and add `mute=1` so the autoplay rule isn't blocked by the browser. */
+   forms and add `mute=1` so the autoplay rule isn't blocked by the browser
+   when the user has opted in to autoplay via settings. */
+var caAutoplayVideos = <?= (($GLOBALS['caSettings']['autoplayVideos'] ?? "no") === "yes") ? "true" : "false" ?>;
+var caYtParams    = caAutoplayVideos ? "?autoplay=1&mute=1&playsinline=1" : "?playsinline=1";
+var caVimeoParams = caAutoplayVideos ? "?autoplay=1&muted=1" : "";
 var caMfpIframePatterns = {
 	youtube: {
 		index: "youtube.com/",
@@ -328,7 +332,7 @@ var caMfpIframePatterns = {
 			var m = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
 			return m ? m[1] : url;
 		},
-		src: "//www.youtube.com/embed/%id%?autoplay=1&mute=1&playsinline=1"
+		src: "//www.youtube.com/embed/%id%" + caYtParams
 	},
 	youtubeShort: {
 		index: "youtu.be/",
@@ -336,7 +340,7 @@ var caMfpIframePatterns = {
 			var m = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
 			return m ? m[1] : url;
 		},
-		src: "//www.youtube.com/embed/%id%?autoplay=1&mute=1&playsinline=1"
+		src: "//www.youtube.com/embed/%id%" + caYtParams
 	},
 	vimeo: {
 		index: "vimeo.com/",
@@ -344,7 +348,7 @@ var caMfpIframePatterns = {
 			var m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
 			return m ? m[1] : url;
 		},
-		src: "//player.vimeo.com/video/%id%?autoplay=1&muted=1"
+		src: "//player.vimeo.com/video/%id%" + caVimeoParams
 	}
 };
 
@@ -1189,19 +1193,28 @@ function clearSearchBox() {
  * @param {boolean} [cookie=false] When false, clear `sidebarAppPath` / `sidebarAppName` cookies
  * @param {boolean} [visible=false] Legacy visibility hint (unused)
  */
-function closeSidebar(cookie=false,visible=false) {
-	if ( ! cookie ) {
+/* keepIdentity (true) → callers that intend to reopen the sidebar to the same
+   app right after closing it (post-install refresh, MagnificPopup gallery's
+   beforeOpen → afterClose round-trip, etc). Keep the cookies, the in-memory
+   data.sidebarapp{path,name}, AND the sessionStorage ca_state sidebar fields
+   so the reopen has somewhere to point. Default (false) is the normal user-
+   initiated close: wipe all three so a later saveState / page reload doesn't
+   silently auto-reopen the app the user just dismissed. The legacy parameter
+   name `cookie` is kept as an alias because external callers (helpers.js, the
+   install/update paths) still use it positionally. */
+function closeSidebar(keepIdentity=false,visible=false) {
+	if ( ! keepIdentity ) {
 		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
 		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
-		/* Also clear the in-memory sidebar identity — without this, a later
+		/* Clear the in-memory sidebar identity — without this, a later
 		   saveState() call in the same tab (e.g. another sidebar opening, or
 		   guiSearchOnUnload) would persist the dismissed app back into the
 		   snapshot and the next restore would auto-reopen it. */
 		data.sidebarapppath = "";
 		data.sidebarappname = "";
-		/* Also wipe the sidebar identity from the saveState snapshot so a
-		   later browser reload doesn't auto-reopen the sidebar to an app the
-		   user just explicitly closed. Filter / sort / category / scroll stay
+		/* Wipe the sidebar identity from the saveState snapshot so a later
+		   browser reload doesn't auto-reopen the sidebar to an app the user
+		   just explicitly closed. Filter / sort / category / scroll stay
 		   intact — only the two sidebar fields are blanked. */
 		try {
 			var _raw = sessionStorage.getItem("ca_state");
@@ -1749,7 +1762,12 @@ function pins() {
  */
 function displayTags(leadTemplate,rename=false,ports="") {
 	event.stopPropagation();
-	closeSidebar();
+	/* Deliberately do NOT closeSidebar() here — the swal modal floats over the
+	   sidebar (same as popupInstallXML's port-conflict prompt), which both
+	   keeps the look-and-feel consistent and avoids the cancel/install reopen
+	   gymnastics of explicitly tearing it down and restoring identity. The
+	   install path (.xmlInstall → actuallyInstallPlugin) handles its own
+	   closeSidebar(true) when the user picks a branch. */
 	var conflictingPorts = [];
 
 	if ( ports ) {
@@ -3093,7 +3111,12 @@ function showSidebarApp(apppath,appname) {
 				iframe: { patterns: caMfpIframePatterns },
 				callbacks: {
 					beforeOpen: function() {
-						closeSidebar();
+						/* keepIdentity=true: afterClose below reopens the same
+						   sidebar via data.sidebarapp{path,name}, which the
+						   default closeSidebar() path would have nuked → the
+						   reopen would silently fall through to the first app
+						   in displayed.json. */
+						closeSidebar(true);
 						/* MFP binds keydown(left/right) to gallery.next/prev
 						   regardless of item count. With the default loop:true,
 						   a single-item gallery wraps back to itself on each
@@ -3478,7 +3501,13 @@ function showRepoPopup(repository) {
 			iframe: { patterns: caMfpIframePatterns },
 			callbacks: {
 				beforeOpen: function() {
-					closeSidebar();
+					/* keepIdentity=true so afterClose's showRepoPopup() reopens
+					   to the same repo; without this, closeSidebar() would
+					   clear data.sidebarapp{path,name} and the cookies, and
+					   the explicit cookie restore in afterClose would be the
+					   only thing holding identity together (the in-memory copy
+					   used by saveState() would already be gone). */
+					closeSidebar(true);
 					/* See app-popup gallery: disable loop for 1-item galleries
 					   so arrow keys can't re-trigger updateItemHTML() and
 					   restart the autoplay iframe. */
