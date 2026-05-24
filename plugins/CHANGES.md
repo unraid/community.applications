@@ -23,6 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Sidebar action buttons restyled — Install / Reinstall / Install second are blue, Update is green, Uninstall / Remove are red, all right-aligned and icon-prefixed; secondary buttons (WebUI / Edit / Pin / etc.) stay on the left with a visual separator between the two groups
+- Changed: Screenshot / video popup close button now floats at a fixed position top-right, larger and red
+- Changed: "Install second instance" button label shortened to "Install second"; "Tailscale WebUI" shortened to "TS WebUI"
 - Fixed: Closed a stored-XSS path in the sidebar popup's Install / Update buttons — a hostile maintainer publishing a template with a crafted `RequiresFile` value could otherwise execute arbitrary JS in the user's Unraid GUI session when the user clicked the button
 - Changed: Icon, screenshot, README, and changelog image URLs now reject private-network hosts (RFC1918, link-local, CGNAT, IPv6 ULA, plus `.local` / `.internal` / `.lan` mDNS-style hostnames) — closes a CSRF surface where an auto-loaded image could fire a request at a device on the user's LAN
 - Added: `referrerpolicy='no-referrer'` on every template-supplied image (popup icon, card icon, screenshots, video thumbnails, licence, README / changelog images) so a third-party host doesn't see the user's Unraid URL on each render
