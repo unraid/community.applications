@@ -23,6 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Sidebar action buttons restyled — Install / Reinstall / Install second are blue, Update is green, Uninstall / Remove are red, all right-aligned and icon-prefixed; secondary buttons (WebUI / Edit / Pin / etc.) stay on the left with a visual separator between the two groups
+- Changed: Screenshot / video popup close button now floats at a fixed position top-right, larger and red
+- Changed: "Install second instance" button label shortened to "Install second"; "Tailscale WebUI" shortened to "TS WebUI"
 - Added: "Autoplay videos" setting (Settings panel, default off) — controls whether YouTube / Vimeo videos in the sidebar's screenshot gallery start playing automatically when opened
 - Fixed: First tap on a sidebar button or video thumbnail now registers immediately — most visible on mobile, where the first tap used to be wasted "waking up" the sidebar
 - Fixed: Closing a screenshot or video popup now returns the sidebar to the originating app instead of falling through to whichever app happened to be first in the list

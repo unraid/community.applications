@@ -470,6 +470,50 @@ function displayPopup($template) {
 		$actionsButtonItems[] = $context;
 	}
 
+	/* Partition $actionsButtonItems into three visual groups so the popup
+	   action row can right-align primary install actions (blue) and
+	   destructive actions (red) while keeping secondary actions (Edit,
+	   Pin, etc.) on the left. The CSS uses a margin-left:auto trick on
+	   .actionsInstall / .actionsUninstall to push the right group to the
+	   far edge, which requires the DOM order to be LEFT first then RIGHT
+	   — render the three buckets in sequence below in .popupStickyActions.
+
+	   Matching on `strip_tags`-stripped text because some labels arrive
+	   wrapped in <span class='ca_red'> (eg. plugin "Remove", "Reinstall
+	   From Previous Apps") that gets stripped later for visual display
+	   anyway. Also accepts the untranslated English variants so the
+	   detection survives a missing/partial locale file. */
+	$installFamilyTexts = [
+		tr("Install"), tr("Reinstall"),
+		tr("Install second"), tr("Reinstall From Previous Apps"),
+		"Install", "Reinstall",
+		"Install second", "Reinstall From Previous Apps",
+	];
+	$updateFamilyTexts = [
+		tr("Update"),
+		"Update",
+	];
+	$uninstallFamilyTexts = [
+		tr("Uninstall"), tr("Remove"),
+		"Uninstall", "Remove",
+	];
+	$leftActionItems = [];
+	$rightInstallActionItems = [];
+	$rightUpdateActionItems = [];
+	$rightUninstallActionItems = [];
+	foreach ($actionsButtonItems as $actionItem) {
+		$itemText = trim(strip_tags((string)($actionItem['text'] ?? "")));
+		if (in_array($itemText, $installFamilyTexts, true)) {
+			$rightInstallActionItems[] = $actionItem;
+		} elseif (in_array($itemText, $updateFamilyTexts, true)) {
+			$rightUpdateActionItems[] = $actionItem;
+		} elseif (in_array($itemText, $uninstallFamilyTexts, true)) {
+			$rightUninstallActionItems[] = $actionItem;
+		} else {
+			$leftActionItems[] = $actionItem;
+		}
+	}
+
 	ob_start();
 	?>
 	<div class='popup'>
@@ -521,10 +565,17 @@ function displayPopup($template) {
 				</div>
 			</div>
 			<?php /* Action buttons only — gets relocated to .popupCloseAreaButtons
-			         by Apps.page's caRelocatePopupActions() at popup-load time. */ ?>
+			         by Apps.page's caRelocatePopupActions() at popup-load time.
+
+			         Emission order matters: LEFT items first (WebUI shortcut,
+			         Read Me First, other secondary actions, Pin), then RIGHT
+			         BLUE (install-family — Install / Reinstall / Install
+			         second instance), then RIGHT GREEN (Update), then RIGHT
+			         RED (Uninstall / Remove). The CSS's `margin-left:auto`
+			         push on .actionsInstall / .actionsUpdate / .actionsUninstall
+			         (community.applications.css) relies on this DOM order to
+			         right-align the right group as one contiguous block. */ ?>
 			<div class='popupStickyActions'>
-				<?php /* Primary action row: Install / WebUI / Settings, then
-				         Update / Edit / Uninstall / Pin. */ ?>
 				<?php /* Always htmlspecialchars(..., ENT_QUOTES) the action onclick — these
 				         strings get built with interpolated template data (RequiresFile,
 				         pluginName, paths, etc.) and an unescaped emit lets a hostile
@@ -534,31 +585,75 @@ function displayPopup($template) {
 				         match. The browser decodes the entities back to literal quotes
 				         when parsing the onclick attribute, so the resulting JS is
 				         identical to the un-escaped form for legitimate inputs. */ ?>
-				<?php if (!empty($installFirstAction['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($installFirstAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
-				<?php endif; ?>
 
+				<?php /* Two icon paths in this block:
+				         - LEFT GROUP buttons (popupShortcut, leftActionItems)
+				           all share .caButton.actionsPopup with no per-action
+				           differentiator, so their FontAwesome glyph is
+				           attached by threading $context['icon'] (a
+				           ca_fa-XXX class set by skin_helpers.php) into the
+				           outer class list. htmlspecialchars on every
+				           interpolation because the strings come from the
+				           template feed.
+				         - RIGHT GROUP / pin buttons have unique semantic
+				           classes (.actionsInstall / .actionsUpdate /
+				           .actionsUninstall / .pinPopup), so their icons
+				           are attached purely in CSS via ::before — see
+				           community.applications.css. No class threading
+				           needed here for those. */ ?>
+
+				<?php /* === LEFT GROUP ============================================ */ ?>
 				<?php if (!empty($popupShortcut['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($popupShortcut['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
+					<div class='caButton actionsPopup <?= htmlspecialchars($popupShortcut['icon'] ?? '', ENT_QUOTES) ?>'><span onclick="<?= htmlspecialchars($popupShortcut['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($popupShortcut['text'] ?? tr("WebUI")))), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
 				<?= $readmeButton ?>
 
-				<?php if ($actionsButtonItems): ?>
-					<?php foreach ($actionsButtonItems as $actionItem): ?>
-						<?php if (!empty($actionItem['action'])): ?>
-							<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
-						<?php else: ?>
-							<div class='caButton actionsPopup'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
-						<?php endif; ?>
-					<?php endforeach; ?>
-				<?php endif; ?>
-
-				<?php if (!empty($popupUninstallAction['action'])): ?>
-					<div class='caButton actionsPopup'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
-				<?php endif; ?>
+				<?php foreach ($leftActionItems as $actionItem): ?>
+					<?php $iconClass = htmlspecialchars($actionItem['icon'] ?? '', ENT_QUOTES); ?>
+					<?php if (!empty($actionItem['action'])): ?>
+						<div class='caButton actionsPopup <?= $iconClass ?>'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php else: ?>
+						<div class='caButton actionsPopup <?= $iconClass ?>'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php endif; ?>
+				<?php endforeach; ?>
 
 				<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
-					<div class='caButton pinPopup <?= $pinnedClass ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= tr("Pin") ?></span></div>
+					<div class='caButton pinPopup <?= htmlspecialchars((string)$pinnedClass, ENT_QUOTES) ?>' data-repository='<?= htmlspecialchars((string)$Repository, ENT_QUOTES) ?>' data-name='<?= htmlspecialchars((string)$SortName, ENT_QUOTES) ?>'><span><?= tr("Pin") ?></span></div>
+				<?php endif; ?>
+
+				<?php /* === RIGHT BLUE GROUP — install-family ===================== */ ?>
+				<?php if (!empty($installFirstAction['action'])): ?>
+					<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($installFirstAction['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)$installFirstAction['text'])), ENT_QUOTES) ?></span></div>
+				<?php endif; ?>
+
+				<?php foreach ($rightInstallActionItems as $actionItem): ?>
+					<?php if (!empty($actionItem['action'])): ?>
+						<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php else: ?>
+						<div class='caButton actionsPopup actionsInstall'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php endif; ?>
+				<?php endforeach; ?>
+
+				<?php /* === RIGHT GREEN GROUP — Update ============================ */ ?>
+				<?php foreach ($rightUpdateActionItems as $actionItem): ?>
+					<?php if (!empty($actionItem['action'])): ?>
+						<div class='caButton actionsPopup actionsUpdate'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php else: ?>
+						<div class='caButton actionsPopup actionsUpdate'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php endif; ?>
+				<?php endforeach; ?>
+
+				<?php /* === RIGHT RED GROUP — destructive ========================= */ ?>
+				<?php foreach ($rightUninstallActionItems as $actionItem): ?>
+					<?php if (!empty($actionItem['action'])): ?>
+						<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php else: ?>
+						<div class='caButton actionsPopup actionsUninstall'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php endif; ?>
+				<?php endforeach; ?>
+
+				<?php if (!empty($popupUninstallAction['action'])): ?>
+					<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($popupUninstallAction['text'] ?? tr("Uninstall")))), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
 			</div>
 

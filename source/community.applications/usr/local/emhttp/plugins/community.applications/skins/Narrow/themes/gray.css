@@ -15,6 +15,22 @@
 		--support-popup-text: #1b1d1b;
 		--support-popup-background: #ffffff;
 		--unraid-66-color: var(--orange-500,#FF8C2F);
+		/* Red-button palette (.caButtonRed). Base is a strong, readable close-
+		   action red shared across themes; hover lifts to the brand orange for
+		   the same affordance as the default .caButton:hover. Defined per-
+		   theme so individual themes can tweak later without disturbing the
+		   default contract. */
+		--ca-button-red: #cc1f1f;
+		--ca-button-red-hover: var(--unraid-66-color);
+		/* Blue-button palette (.actionsInstall and any future install-family
+		   button). Hover lifts to the brand orange for the same affordance
+		   as the default .caButton:hover. */
+		--ca-button-blue: #2870c3;
+		--ca-button-blue-hover: var(--unraid-66-color);
+		/* Green-button palette (.actionsUpdate). Same hover contract as
+		   the blue/red variants — lifts to brand orange. */
+		--ca-button-green: #2ca22c;
+		--ca-button-green-hover: var(--unraid-66-color);
 		--ca-legacy-background-color: var(--background-color,#1d1b1b);
 		--ca-search-modal-background: var(--ca-legacy-background-color);
 		--search-area-top: 0;

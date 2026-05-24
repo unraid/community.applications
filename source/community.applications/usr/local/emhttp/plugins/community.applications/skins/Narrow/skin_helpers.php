@@ -484,7 +484,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (($info[$name]['url'] ?? false) && ($info[$name]['running'] ?? false)) {
 						$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("WebUI"),"action"=>"openNewWindow('{$info[$name]['url']}','_blank');"];
 						if ($info[$name]['TSurl'] ?? false) {
-							$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("Tailscale WebUI"),"action"=>"openNewWindow('{$info[$name]['TSurl']}','_blank');"];
+							$actionsContext[] = ["icon"=>"ca_fa-globe","text"=>tr("TS WebUI"),"action"=>"openNewWindow('{$info[$name]['TSurl']}','_blank');"];
 						}
 					}
 					/* Detect image tag presence by checking for `:` AFTER the last `/`
@@ -504,9 +504,9 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					}
 					if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && !$template['Blacklist'] && $template['ID'] !== false) {
 						if ($template['BranchID'] ?? false) {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second"),"action"=>"displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
 						} else {
-							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second instance"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
+							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
 						}
 					}
 					if (is_file($info[$name]['template'])) {
@@ -816,7 +816,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			if ($info[$ind]['url'] && $info[$ind]['running']) {
 				$actionsContext[] = ["icon" => "ca_fa-globe", "text" => tr("WebUI"), "action" => "openNewWindow('{$info[$ind]['url']}','_blank');"];
 				if ($info[$ind]['TSurl'] ?? false) {
-					$actionsContext[] = ["icon" => "ca_fa-globe", "text" => tr("Tailscale WebUI"), "action" => "openNewWindow('{$info[$ind]['TSurl']}','_blank');"];
+					$actionsContext[] = ["icon" => "ca_fa-globe", "text" => tr("TS WebUI"), "action" => "openNewWindow('{$info[$ind]['TSurl']}','_blank');"];
 				}
 			}
 
@@ -838,9 +838,9 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 			if ($GLOBALS['caSettings']['defaultReinstall'] == "true" && ! $template['Blacklist']) {
 				if ($template['ID'] !== false) {
 					if ($template['BranchID'] ?? false) {
-						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second"), "action" => "displayTags('{$template['ID']}',true,'".$template['PortsUsed']."');"];
 					} else {
-						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second instance"), "action" => "popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
+						$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install second"), "action" => "popupInstallXML('".addslashes($template['Path'])."','second','".$template['PortsUsed']."');"];
 					}
 				}
 			}
