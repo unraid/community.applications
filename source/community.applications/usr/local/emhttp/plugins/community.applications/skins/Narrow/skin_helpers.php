@@ -514,7 +514,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					}
 					$actionsContext[] = ["divider"=>true];
 					if ($info[$name]['template']) {
-						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Uninstall")."</span>","action"=>"uninstallDocker('".addslashes($info[$name]['template'])."','{$template['Name']}');"];
+						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallDocker('".addslashes($info[$name]['template'])."','{$template['Name']}');"];
 						$template['Installed'] = true;
 					}
 				} elseif (!$template['Blacklist']) {
@@ -524,7 +524,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Reinstall"),"action"=>"popupInstallXML('".addslashes($template['InstallPath'])."','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider"=>true];
 						}
-						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove")."</span>","action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
+						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove"),"action"=>"removeApp('{$template['InstallPath']}','{$template['Name']}');"];
 					} else {
 						if (!$template['Blacklist']) {
 							if ($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") {
@@ -570,7 +570,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (!empty($actionsContext)) {
 						$actionsContext[] = ["divider"=>true];
 					}
-					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Uninstall")."</span>","action"=>"uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ","&nbsp;",$template['Name'])."');"];
+					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallApp('/var/log/plugins/$pluginName','".str_replace(" ","&nbsp;",$template['Name'])."');"];
 				}
 			} elseif (!$template['Blacklist']) {
 				if (($template['Compatible'] || $GLOBALS['caSettings']['hideIncompatible'] !== "true") && !($template['UninstallOnly'] ?? false)) {
@@ -609,7 +609,7 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 					if (!empty($actionsContext)) {
 						$actionsContext[] = ["divider"=>true];
 					}
-					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Remove")."</span>","action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
+					$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Remove"),"action"=>"removeApp('{$template['InstallPath']}','$pluginName');"];
 				}
 			}
 			if (is_file(CA_PATHS['pluginPending'].$pluginName)) {
@@ -662,7 +662,7 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 				if (!empty($actionsContext)) {
 					$actionsContext[] = ["divider"=>true];
 				}
-				$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>"<span class='ca_red'>".tr("Uninstall")."</span>","action"=>"removeLanguage('$countryCode');"];
+				$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"removeLanguage('$countryCode');"];
 			}
 		}
 
@@ -874,7 +874,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 						$test = readXmlFile($previousTemplatePath, true);
 						if ($template['Repository'] == $test['Repository']) {
 							$userTemplate = readXmlFile($previousTemplatePath, false, false);
-							$actionsContext[] = ["icon" => "ca_fa-install", "text" => "<span class='ca_red'>".tr("Reinstall From Previous Apps")."</span>", "action" => "popupInstallXML('".addslashes($previousTemplatePath)."','user','".portsUsed($userTemplate)."');"];
+							$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Reinstall From Previous Apps"), "action" => "popupInstallXML('".addslashes($previousTemplatePath)."','user','".portsUsed($userTemplate)."');"];
 							$actionsContext[] = ["divider" => true];
 						}
 					}
