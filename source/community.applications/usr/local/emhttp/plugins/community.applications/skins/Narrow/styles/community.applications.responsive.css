@@ -16,16 +16,21 @@
 	contain: strict;
 }
 
+/* Body never scrolls — all scrolling happens inside the inner panes
+   (.mainArea, .sidenav, .ca_homeTemplates, .menuItems). On mobile this
+   stops touch-drag from rubber-banding the body and yanking the fixed-
+   position header / search bar / sidebar around; on desktop it's a no-op
+   since nothing overflows the body there anyway. `scrollbar-width: none`
+   strips the now-pointless scrollbar track from the body's right edge for
+   browsers that would otherwise reserve space for it. Rule lives in the
+   responsive stylesheet (alongside the related mobile-layout tweaks) but
+   sits outside the @media block so it applies on every viewport. */
+body {
+	overflow-y: hidden;
+	scrollbar-width: none;
+}
+
 @media (max-width: 1024px) {
-	/* Lock body scrolling on responsive viewports — touch drag was rubber-
-	   banding the body and yanking the fixed-position header / search bar
-	   / sidebar around. Inner panes (.mainArea, .sidenav, etc.) keep their
-	   own scroll. Desktop and legacy non-responsive OS versions are left
-	   alone since the body never actually scrolls there — it would just
-	   bounce back immediately if you tried. */
-	body {
-		overflow-y: hidden !important;
-	}
 	.searchAreaHolder {
 		height:4rem;
 		padding-left: 2rem;
