@@ -16,7 +16,68 @@
 	contain: strict;
 }
 
+/* Body never scrolls — all scrolling happens inside the inner panes
+   (.mainArea, .sidenav, .ca_homeTemplates, .menuItems). On mobile this
+   stops touch-drag from rubber-banding the body and yanking the fixed-
+   position header / search bar / sidebar around; on desktop it's a no-op
+   since nothing overflows the body there anyway. `scrollbar-width: none`
+   strips the now-pointless scrollbar track from the body's right edge for
+   browsers that would otherwise reserve space for it. Rule lives in the
+   responsive stylesheet (alongside the related mobile-layout tweaks) but
+   sits outside the @media block so it applies on every viewport. */
+body {
+	overflow-y: hidden;
+	scrollbar-width: none;
+}
+
+/* Full-height mode — three condition contexts that need the same set of
+   tweaks (hide the Unraid OS #header, shift various tops up by the
+   reclaimed chrome height). The source of truth is the
+   `@media (max-height: 600px)` block further down — these two contexts
+   just mirror the same `top:` values:
+
+     1. user opted in via Settings ("Use whole display window" — class
+        `ca_useWholeDisplayWindow` on the #caSettingsFlags hidden div)
+     2. viewport is the mobile breakpoint (≤1024px)
+
+   Heads-up: this file is conditionally loaded only on $responsiveOS, so
+   neither rule reaches a legacy pre-7.2 install. */
+
+/* Condition 1: setting opt-in. */
+body:has(.ca_useWholeDisplayWindow) #header {
+	display: none !important;
+}
+.Theme--nav-top body:has(.ca_useWholeDisplayWindow) .ca_display_area {
+	top: 11rem;
+}
+.Theme--sidebar body:has(.ca_useWholeDisplayWindow) .ca_display_area {
+	top: 2rem;
+}
+.Theme--nav-top body:has(.ca_useWholeDisplayWindow) .menuItems {
+	top: 10.5rem;
+}
+.Theme--sidebar body:has(.ca_useWholeDisplayWindow) .menuItems {
+	top: 4rem;
+}
+
 @media (max-width: 1024px) {
+	/* Condition 2: automatic on mobile width. */
+	#header {
+		display: none !important;
+	}
+	.Theme--nav-top .ca_display_area {
+		top: 11rem;
+	}
+	.Theme--sidebar .ca_display_area {
+		top: 2rem;
+	}
+	.Theme--nav-top .menuItems {
+		top: 10.5rem;
+	}
+	.Theme--sidebar .menuItems {
+		top: 4rem;
+	}
+
 	.searchAreaHolder {
 		height:4rem;
 		padding-left: 2rem;
@@ -68,6 +129,55 @@
 	}
 }
 @media (max-width: 767px) {
+	/* On very narrow viewports the top-bar action buttons (SEARCH /
+	   DockerHub / Apps / Sort) drop their text label and show as icon-
+	   only. The icon ::before margin-right also gets zeroed since
+	   there's no label following it that needs the gap. .showMenuButton
+	   / .closeMenuButton aren't listed here because they have no label
+	   in the markup to begin with (the button only renders at this
+	   breakpoint, never on desktop). */
+	.searchButton .caBtnLabel,
+	.dockerSearch .caBtnLabel,
+	.templateSearch .caBtnLabel,
+	#sortByButton .caBtnLabel {
+		display: none;
+	}
+	.searchButton::before,
+	.dockerSearch::before,
+	.templateSearch::before,
+	#sortByButton::before {
+		margin-right: 0;
+	}
+
+	/* "Displaying x of N results" — drop on narrow viewports where the
+	   top-bar real estate is tight and the count isn't worth the row. */
+	.ca_displayCount {
+		display: none;
+	}
+
+	/* Nav-top theme on narrow viewports — small left inset so the search
+	   row doesn't sit flush against the viewport edge. */
+	.Theme--nav-top .searchArea {
+		margin-left: 1rem;
+	}
+
+	/* Sidebar action row at this width: drop the pipe separator and the
+	   right-align push so install / update / uninstall buttons just flow
+	   naturally left-to-right with the rest. The pipe + right-align
+	   pattern only makes sense when there's enough horizontal room for
+	   two visual groups; at this width everything has to wrap anyway. */
+	.popupCloseAreaButtons .popupStickyActions::before {
+		display: none;
+	}
+	.popupStickyActions {
+		padding-right: 0;
+	}
+	.popupStickyActions > .actionsInstall.caButton,
+	.popupStickyActions > .actionsUpdate.caButton,
+	.popupStickyActions > .actionsUninstall.caButton {
+		margin-left: 0;
+	}
+
 	:root {
 		/* Mobile: overlays should appear/disappear instantly (search/sidebar/SweetAlert). */
 		--ca-scrim-transition-duration: 0s;
@@ -102,9 +212,6 @@
 	/* Nav-top: narrow the search bar to make room for the open menu strip. */
 	.Theme--nav-top .searchAreaHolder.menuShowing {
 		width: 17rem;
-	}
-	.Theme--nav-top .ca_display_area {
-		top: 11rem;
 	}
 	.upgrade_notice {
 		position: absolute;
@@ -141,10 +248,8 @@
 	}
 	.menuItems {
 		padding-right: 2rem;
-		top: 2rem;
 	}
 	.Theme--nav-top .menuItems {
-		top: 10.5rem;
 		bottom: 0;
 	}
 	/* Nav-top mobile menu strip: flush left, small inner padding. */
@@ -215,13 +320,6 @@
 	}
 
 	.Theme--nav-top .ca_display_area {
-		top: 11rem;
 		bottom: 0;
-	}
-	.menuItems {
-		top: 2rem;
-	}
-	.Theme--nav-top .menuItems {
-		top: 10.5rem;
 	}
 }

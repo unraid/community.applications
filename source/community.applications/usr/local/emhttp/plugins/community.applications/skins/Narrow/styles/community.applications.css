@@ -202,6 +202,15 @@ body:has(.ca_sweetalert_open) :is(#sortIconArea, .dockerSearch, .templateSearch,
 body:has(.mfp-bg) :is(#sortIconArea, .dockerSearch, .templateSearch, .ca_displayCount) {
 	z-index: -1;
 }
+
+/* When the search modal is up, drop the sort button and the result-count
+   line entirely — they sit in the same row as the search trigger and
+   otherwise crowd the modal's input field on narrow widths. The z-index
+   push-back above handles overlap with the modal scrim; this hide is
+   the dedicated rule for the search-modal case. */
+body.ca_searchModalOpen :is(#sortByButton, .dockerSearch, .templateSearch, .ca_displayCount) {
+	display: none;
+}
 /* When the multi-install bar is showing in Theme--sidebar layouts, give the
    main display area extra bottom padding so the bar doesn't overlap the last
    row of cards. .multi_installDiv is toggled via jQuery .show()/.hide() which
@@ -1205,6 +1214,23 @@ body,
 		margin-top: 0.8rem;
 		font-size: 1.2rem;
 		line-height: 1.55rem;
+	}
+
+	/* Inline version tag inside .ca_settingDescription (e.g. "(7.2+ only)")
+	   — visually de-emphasized so it reads as metadata, not body copy. */
+	.ca_settingDescription .caVersionTag {
+		opacity: 0.65;
+		font-style: italic;
+	}
+
+	/* Greyed-out, non-interactive setting card — applied by
+	   caBindSettingsFormHandlers when a feature isn't available on the
+	   current OS (eg. "Use whole display window" without .Theme--responsive
+	   on <html>). Toggle itself also gets the `disabled` prop so a submit
+	   can't carry a stale value. */
+	.ca_settingCard.ca_settingDisabled {
+		opacity: 0.45;
+		pointer-events: none;
 	}
 
 	.ca_settingsButtons {
@@ -2778,7 +2804,7 @@ input[type="button"] {
 	}
 	.searchArea {
 		padding-left: var(--search-area-left);
-		background-color: var(--ca-legacy-background-color);
+		background-color: revert;
 		display: flex;
 		flex-direction: row;
 		justify-content: flex-start;
@@ -3083,6 +3109,41 @@ input[type="button"] {
 		left: 0;
 		flex: 0 0 auto;
 		margin-top: 0.5rem;
+	}
+
+	/* FontAwesome icon glyphs on the two top-bar action buttons. Same 0.5rem
+	   gap pattern as the action-row buttons in the sidebar header. */
+	.searchButton::before {
+		content: "\f002";              /* fa-search */
+		font-family: fontAwesome;
+		margin-right: 0.5rem;
+	}
+	#sortByButton::before {
+		content: "\f0dc";              /* fa-sort */
+		font-family: fontAwesome;
+		margin-right: 0.5rem;
+	}
+	.dockerSearch::before {
+		content: "\e90b";              /* Unraid icon font — docker, same glyph .appDocker uses */
+		font-family: Unraid;
+		margin-right: 0.5rem;
+	}
+	.templateSearch::before {
+		content: "\f0c0";              /* fa-server-stack, same glyph .caLogoIcon uses */
+		font-family: fontAwesome;
+		margin-right: 0.5rem;
+	}
+	/* No margin-right on these two — the buttons only render at <767px
+	   anyway (responsive.css mobileMenuButton rule) and never carry a
+	   text label, so the icon is the sole content of the button and
+	   doesn't need a trailing gap. */
+	.showMenuButton::before {
+		content: "\f03c";              /* fa-indent — "expand menu out" (lines + right arrow) */
+		font-family: fontAwesome;
+	}
+	.closeMenuButton::before {
+		content: "\f03b";              /* fa-outdent — "collapse menu back" (lines + left arrow) */
+		font-family: fontAwesome;
 	}
 
 	.showMenuButton,

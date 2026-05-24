@@ -1651,6 +1651,20 @@ function caBindSettingsFormHandlers(initialFormState) {
 	var $form = $sidenav.find(".ca_settingsForm");
 	if (!$form.length) return;
 
+	/* "Use whole display window" only applies on a 7.2+ responsive OS —
+	   detected by the .Theme--responsive class that Apps.page puts on
+	   <html> only when $responsiveOS is true. On legacy chrome the
+	   feature has no meaning, so grey the card and disable the toggle
+	   so the user can't flip a setting that wouldn't do anything.
+	   Re-checked every time the settings panel opens (not just once at
+	   page load) so a future OS upgrade is reflected without a refresh. */
+	if (!$("html").hasClass("Theme--responsive")) {
+		$form.find(".caUseWholeDisplayWindowCard")
+			.addClass("ca_settingDisabled")
+			.find("input[name='useWholeDisplayWindow']")
+				.prop("disabled", true);
+	}
+
 	/* Stash the initial serialized state on the form so closeSidebar() can
 	   detect dirty fields and auto-submit when the panel is dismissed. */
 	$form.data("caInitialState", initialFormState);

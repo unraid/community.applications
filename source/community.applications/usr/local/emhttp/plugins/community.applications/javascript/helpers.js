@@ -17,22 +17,51 @@ SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 /**
- * Dev-gated console.log. No-op unless CA's dev mode is enabled.
+ * Dev-gated console.log. No-op unless CA's dev mode is enabled
+ * (default.cfg's `dev` key flipped from `no` to `yes`).
  *
- * Apps.page sets `window.caDev` to `true` / `false` from
- * $GLOBALS['caSettings']['dev'] before this is ever called. Wrapped in a
- * try/catch so a broken console (e.g. swal-modal sandboxing) never throws
- * out of a caller's middle.
+ * Reads the live setting via `caHasSetting("dev")` (single source of truth
+ * = the #caSettingsFlags hidden div emitted by Apps.page) instead of a
+ * page-load-time snapshot — flipping dev mode in another tab and coming
+ * back to /Apps stays correctly reflected without a hard reload of this
+ * tab's JS bundle.
  *
- * Use this instead of console.log() for diagnostic chatter you only want
- * end users to see when they've explicitly turned dev mode on.
+ * Wrapped in try/catch so a broken console (e.g. swal-modal sandboxing)
+ * never throws out of a caller's middle. Use this instead of console.log()
+ * for diagnostic chatter you only want end users to see when they've
+ * explicitly turned dev mode on.
  *
  * @param {...*} _args Forwarded to console.log
  * @returns {void}
  */
 function caDebug() {
-	if (!window.caDev) return;
+	if (!caHasSetting("dev")) return;
 	try { console.log.apply(console, arguments); } catch (e) { /* no-op */ }
+}
+
+/**
+ * True when the named CA setting currently differs from its shipped
+ * default.cfg value, false otherwise.
+ *
+ * Backed by the `#caSettingsFlags` hidden div that Apps.page emits at page
+ * render time — it carries a `ca_<key>` class for every default.cfg key
+ * whose runtime value in $GLOBALS['caSettings'] doesn't match the default.
+ * So `caHasSetting("dev")` is shorthand for "the user has flipped dev
+ * mode away from the shipped default", which for dev (default `no`) means
+ * "dev is on", and for hideIncompatible (default `true`) means
+ * "hideIncompatible has been turned off". The semantic is *differs*, not
+ * *truthy* — the class name is the key, not the value.
+ *
+ * Uses an attribute selector + length so the answer doesn't depend on the
+ * div existing in any particular spot — if a future caller moves or dupes
+ * the flag div, the lookup still works.
+ *
+ * @param {string} name Setting key from default.cfg (eg. "dev", "autoplayVideos").
+ * @returns {boolean}
+ */
+function caHasSetting(name) {
+	if (!name) return false;
+	return $("#caSettingsFlags.ca_" + name).length > 0;
 }
 
 /**

@@ -49,13 +49,13 @@ $(function() {
 <div class="searchAreaHolder menuAdjust">
 	<div class='searchArea onlyShowWithFeed'>
 		<div class='mobileMenuButton'>
-			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"><?tr("Menu");?></div>
-			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"><?tr("Hide");?></div>
+			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
+			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
 		</div>
 		<div class="caSearchModalToolbarSpacer" id="caSearchModalToolbarSpacer" aria-hidden="true"></div>
 		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
 			<div class='caSearchModalTopRow'>
-				<div class="searchButton caButton"><?tr('SEARCH');?></div>
+				<div class="searchButton caButton"><span class='caBtnLabel'><?tr('SEARCH');?></span></div>
 				<div class="caSearchModalIconControls">
 					<span class="searchModalQueryBtn" title="<?tr('Search');?>"><i class="fa fa-question fa-lg" aria-hidden="true"></i></span>
 					<span class="searchModalClearBtn ca_hide" title="<?tr('Clear search');?>"><i class="fa fa-remove fa-lg" aria-hidden="true"></i></span>
@@ -72,8 +72,8 @@ $(function() {
 				<button type='button' class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></button>
 			</div>
 		</div>
-		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><?tr("DockerHub");?></div>
-		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><?tr("Apps")?></div>
+		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><span class='caBtnLabel'><?tr("DockerHub");?></span></div>
+		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><span class='caBtnLabel'><?tr("Apps");?></span></div>
 		<div class='ca_displayCount hideWithMenu' aria-live='polite'></div>
 	</div>
 </div>
@@ -539,6 +539,21 @@ $(function() {
 							<input type='checkbox' class='switch caSettingSwitch' name='autoplayVideos' value='yes' <?=($GLOBALS['caSettings']['autoplayVideos'] ?? "no") == "yes" ? "checked" : ""; ?>>
 						</div>
 						<div class='ca_settingDescription'><?tr("Automatically start playing videos when opened from an application sidebar.");?></div>
+					</div>
+
+					<?php /* Always rendered; caBindSettingsFormHandlers() in
+					         clickHandlers.js checks for `.Theme--responsive` on
+					         <html> at panel-open time and applies the disabled
+					         class + sets the checkbox disabled when the OS
+					         isn't 7.2+ responsive (since the feature has no
+					         meaning on legacy display chrome). */ ?>
+					<div class='ca_settingCard caUseWholeDisplayWindowCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Use whole display window");?></span>
+							<input type='hidden' name='useWholeDisplayWindow' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='useWholeDisplayWindow' value='yes' <?=($GLOBALS['caSettings']['useWholeDisplayWindow'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Use the entire height — automatically done on mobile.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
 
 					<div class='ca_settingCard'>
