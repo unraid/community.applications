@@ -17,6 +17,15 @@
 }
 
 @media (max-width: 1024px) {
+	/* Lock body scrolling on responsive viewports — touch drag was rubber-
+	   banding the body and yanking the fixed-position header / search bar
+	   / sidebar around. Inner panes (.mainArea, .sidenav, etc.) keep their
+	   own scroll. Desktop and legacy non-responsive OS versions are left
+	   alone since the body never actually scrolls there — it would just
+	   bounce back immediately if you tried. */
+	body {
+		overflow-y: hidden !important;
+	}
 	.searchAreaHolder {
 		height:4rem;
 		padding-left: 2rem;
