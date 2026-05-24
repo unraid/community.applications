@@ -26,6 +26,15 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: Sidebar action buttons restyled — Install / Reinstall / Install second are blue, Update is green, Uninstall / Remove are red, all right-aligned and icon-prefixed; secondary buttons (WebUI / Edit / Pin / etc.) stay on the left with a visual separator between the two groups
 - Changed: Screenshot / video popup close button now floats at a fixed position top-right, larger and red
 - Changed: "Install second instance" button label shortened to "Install second"; "Tailscale WebUI" shortened to "TS WebUI"
+- Added: "Autoplay videos" setting (Settings panel, default off) — controls whether YouTube / Vimeo videos in the sidebar's screenshot gallery start playing automatically when opened
+- Fixed: First tap on a sidebar button or video thumbnail now registers immediately — most visible on mobile, where the first tap used to be wasted "waking up" the sidebar
+- Fixed: Closing a screenshot or video popup now returns the sidebar to the originating app instead of falling through to whichever app happened to be first in the list
+- Fixed: The "Choose A Branch To Install" picker no longer closes the sidebar — it now floats over the sidebar the same way the port-conflict prompt does, and the sidebar stays put whether you pick a branch or cancel
+- Fixed: README and changelog content in the sidebar loads reliably for repos hosted on sites without permissive CORS headers — the fetch now goes through the Unraid backend
+- Fixed: Clicking the Home button consistently returns to the Apps view
+- Fixed: Card flag badges (incompatible / deprecated / blacklisted) render reliably again
+- Changed: Sidebar / scroll / search / category state now stored per-tab in sessionStorage instead of cookies — each browser tab tracks its own state without interfering with other tabs, and the sidebar is restored to the same app you had open when returning to the Apps page
+- Chore: Plugin cache is no longer rewritten on every load when nothing has changed
 - Fixed: Closed a stored-XSS path in the sidebar popup's Install / Update buttons — a hostile maintainer publishing a template with a crafted `RequiresFile` value could otherwise execute arbitrary JS in the user's Unraid GUI session when the user clicked the button
 - Changed: Icon, screenshot, README, and changelog image URLs now reject private-network hosts (RFC1918, link-local, CGNAT, IPv6 ULA, plus `.local` / `.internal` / `.lan` mDNS-style hostnames) — closes a CSRF surface where an auto-loaded image could fire a request at a device on the user's LAN
 - Added: `referrerpolicy='no-referrer'` on every template-supplied image (popup icon, card icon, screenshots, video thumbnails, licence, README / changelog images) so a third-party host doesn't see the user's Unraid URL on each render
