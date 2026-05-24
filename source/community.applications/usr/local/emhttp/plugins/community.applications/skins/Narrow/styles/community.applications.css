@@ -3129,7 +3129,7 @@ input[type="button"] {
 		margin-right: 0.5rem;
 	}
 	.templateSearch::before {
-		content: "\f0c0";              /* fa-server-stack, same glyph .caLogoIcon uses */
+		content: "\f0c0";              /* fa-users — same glyph .caLogoIcon uses (FA 4.7 ships fa-users at this code; fa-server-stack is FA 6 only) */
 		font-family: fontAwesome;
 		margin-right: 0.5rem;
 	}
