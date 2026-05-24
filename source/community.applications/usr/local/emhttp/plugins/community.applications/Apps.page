@@ -3419,17 +3419,14 @@ function caInitSidebarReadmore($scope) {
  * thumbnail twice to open it. On desktop the same race occasionally appears
  * when focus didn't transfer cleanly from the opener.
  *
- * `preventScroll:true` avoids the panel jumping to top when focus lands on it
- * (the sidebar starts at scrollTop=0 anyway, but matters when reopening).
- * Wrapped in try/catch because IE/old-Safari throw if the element is not yet
- * focusable; we don't care if the focus call no-ops, only that we tried.
+ * `preventScroll:true` avoids the panel jumping when focus lands on it
+ * mid-transition (it's still partway off-screen during the 500ms slide).
+ * Supported in every browser we target (Chrome 64+, Firefox 68+, Safari 15+).
  */
 function slideInSidebar() {
 	$(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
-	try {
-		var el = document.querySelector(".sidenav.sidenavShow");
-		if (el) el.focus({ preventScroll: true });
-	} catch (e) { /* no-op */ }
+	var el = document.querySelector(".sidenav.sidenavShow");
+	if (el) el.focus({ preventScroll: true });
 }
 /**
  * Open sidebar with repository metadata (`getRepoDescription`): restores cookies when opened from a card vs nested navigation; sets up same media popup pattern as {@link showSidebarApp}.
