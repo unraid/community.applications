@@ -166,10 +166,6 @@ a {
 	font-size: 1.4rem !important;
 }
 
-.ca_red {
-	color: var(--ca-red-color);
-}
-
 .ca_green {
 	color: var(--ca-green-color);
 }

@@ -478,10 +478,9 @@ function displayPopup($template) {
 	   far edge, which requires the DOM order to be LEFT first then RIGHT
 	   — render the three buckets in sequence below in .popupStickyActions.
 
-	   Matching on `strip_tags`-stripped text because some labels arrive
-	   wrapped in <span class='ca_red'> (eg. plugin "Remove", "Reinstall
-	   From Previous Apps") that gets stripped later for visual display
-	   anyway. Also accepts the untranslated English variants so the
+	   Matching on `strip_tags`-stripped text as defense-in-depth against
+	   hostile template feed data — legitimate labels are plain strings
+	   from `tr()`. Also accepts the untranslated English variants so the
 	   detection survives a missing/partial locale file. */
 	$installFamilyTexts = [
 		tr("Install"), tr("Reinstall"),
