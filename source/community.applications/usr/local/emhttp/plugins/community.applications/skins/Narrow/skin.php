@@ -604,56 +604,56 @@ function displayPopup($template) {
 
 				<?php /* === LEFT GROUP ============================================ */ ?>
 				<?php if (!empty($popupShortcut['action'])): ?>
-					<div class='caButton actionsPopup <?= htmlspecialchars($popupShortcut['icon'] ?? '', ENT_QUOTES) ?>'><span onclick="<?= htmlspecialchars($popupShortcut['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupShortcut['text'] ?? tr("WebUI")) ?></span></div>
+					<div class='caButton actionsPopup <?= htmlspecialchars($popupShortcut['icon'] ?? '', ENT_QUOTES) ?>'><span onclick="<?= htmlspecialchars($popupShortcut['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($popupShortcut['text'] ?? tr("WebUI")))), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
 				<?= $readmeButton ?>
 
 				<?php foreach ($leftActionItems as $actionItem): ?>
 					<?php $iconClass = htmlspecialchars($actionItem['icon'] ?? '', ENT_QUOTES); ?>
 					<?php if (!empty($actionItem['action'])): ?>
-						<div class='caButton actionsPopup <?= $iconClass ?>'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup <?= $iconClass ?>'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php else: ?>
-						<div class='caButton actionsPopup <?= $iconClass ?>'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup <?= $iconClass ?>'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 
 				<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
-					<div class='caButton pinPopup <?= $pinnedClass ?>' data-repository='<?= $Repository ?>' data-name='<?= $SortName ?>'><span><?= tr("Pin") ?></span></div>
+					<div class='caButton pinPopup <?= htmlspecialchars((string)$pinnedClass, ENT_QUOTES) ?>' data-repository='<?= htmlspecialchars((string)$Repository, ENT_QUOTES) ?>' data-name='<?= htmlspecialchars((string)$SortName, ENT_QUOTES) ?>'><span><?= tr("Pin") ?></span></div>
 				<?php endif; ?>
 
 				<?php /* === RIGHT BLUE GROUP — install-family ===================== */ ?>
 				<?php if (!empty($installFirstAction['action'])): ?>
-					<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($installFirstAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $installFirstAction['text']) ?></span></div>
+					<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($installFirstAction['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)$installFirstAction['text'])), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
 
 				<?php foreach ($rightInstallActionItems as $actionItem): ?>
 					<?php if (!empty($actionItem['action'])): ?>
-						<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php else: ?>
-						<div class='caButton actionsPopup actionsInstall'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsInstall'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 
 				<?php /* === RIGHT GREEN GROUP — Update ============================ */ ?>
 				<?php foreach ($rightUpdateActionItems as $actionItem): ?>
 					<?php if (!empty($actionItem['action'])): ?>
-						<div class='caButton actionsPopup actionsUpdate'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsUpdate'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php else: ?>
-						<div class='caButton actionsPopup actionsUpdate'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsUpdate'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 
 				<?php /* === RIGHT RED GROUP — destructive ========================= */ ?>
 				<?php foreach ($rightUninstallActionItems as $actionItem): ?>
 					<?php if (!empty($actionItem['action'])): ?>
-						<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php else: ?>
-						<div class='caButton actionsPopup actionsUninstall'><span><?= str_replace("ca_red", "", $actionItem['text'] ?? "") ?></span></div>
+						<div class='caButton actionsPopup actionsUninstall'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 
 				<?php if (!empty($popupUninstallAction['action'])): ?>
-					<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= str_replace("ca_red", "", $popupUninstallAction['text'] ?? tr("Uninstall")) ?></span></div>
+					<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($popupUninstallAction['text'] ?? tr("Uninstall")))), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
 			</div>
 
