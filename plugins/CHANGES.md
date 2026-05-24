@@ -23,6 +23,14 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Added: "Use whole display window" setting (Settings panel, default off, 7.2+ only) — reclaims the Unraid OS header strip so the app browsing area fills the full browser window
+- Changed: Top bar buttons (Menu / Search / Sort / Apps / DockerHub) now carry FontAwesome icons; on narrow viewports they collapse to icon-only to free horizontal room
+- Changed: Sort button shortened from "Sort By: <selection>" to just "Sort" with a sort icon — the active sort is already highlighted in the icon row beneath it
+- Changed: Page body never scrolls — keeps the header / search bar / sidebar pinned in place on mobile instead of letting touch-drag yank the layout around
+- Changed: When the search popup is open, the Sort / Apps / DockerHub / "Displaying x of N" controls hide so the search input has the whole top row
+- Changed: Sidebar action row tidies itself on narrow viewports — the install / update / uninstall colored buttons drop their right-align push and visual separator so everything just flows naturally
+- Changed: Tap-stuck orange highlight on the screenshot/video popup's close button and arrows is no longer visible after a touch on mobile
+- Changed: Settings panel's body description for "Use whole display window" and similar version-gated options now flag "(7.2+ only)" inline; controls grey out and disable themselves on older OS versions
 - Changed: Sidebar action buttons restyled — Install / Reinstall / Install second are blue, Update is green, Uninstall / Remove are red, all right-aligned and icon-prefixed; secondary buttons (WebUI / Edit / Pin / etc.) stay on the left with a visual separator between the two groups
 - Changed: Screenshot / video popup close button now floats at a fixed position top-right, larger and red
 - Changed: "Install second instance" button label shortened to "Install second"; "Tailscale WebUI" shortened to "TS WebUI"

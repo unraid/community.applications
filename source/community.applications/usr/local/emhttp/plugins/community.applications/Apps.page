@@ -178,6 +178,26 @@ $classList[] = "Theme--fontSize".intval($fontSize);
 
 $htmlClasses = implode(" ",$classList);
 
+/* Settings-difference class list. For every key defined in default.cfg,
+   compare its default value against the current $GLOBALS['caSettings']
+   entry; if the user has flipped it from the shipped default, emit a
+   `ca_<key>` class. Keys not present in default.cfg are skipped (so
+   runtime-only keys like unRaidVersion / dynamixTheme / favourite don't
+   leak in). Lets CSS / future JS branch on user-configured deviations
+   without re-reading the cfg files. The list rides on a hidden div near
+   the top of the page body — never displayed, queried via JS or scoped
+   selectors. */
+$caSettingsClasses = [];
+$caDefaults = @parse_ini_file("$docroot/plugins/$plugin/default.cfg") ?: [];
+foreach ($caDefaults as $caDefaultKey => $caDefaultValue) {
+	if ( ! preg_match('/^[A-Za-z0-9_]+$/', (string)$caDefaultKey) ) continue;   // skip anything that wouldn't be a safe class name
+	if ( ! array_key_exists($caDefaultKey, $GLOBALS['caSettings']) ) continue;
+	if ( (string)$GLOBALS['caSettings'][$caDefaultKey] !== (string)$caDefaultValue ) {
+		$caSettingsClasses[] = "ca_" . $caDefaultKey;
+	}
+}
+$caSettingsClasses = implode(" ", $caSettingsClasses);
+
 /**
  * Escape and translate a string for output in this page (early bootstrap before JS).
  *
@@ -215,6 +235,15 @@ function tr($string,$ret=false) {
      so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
      to render README.md client-side instead of going through PHP. -->
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
+
+<!-- Settings-difference flags. Class list is `ca_<key>` for every key in
+     default.cfg whose runtime value in $GLOBALS['caSettings'] differs from
+     the shipped default — built up top in PHP. Never displayed; queried via
+     JS or scoped CSS selectors when something needs to branch on a user-
+     configured deviation. htmlspecialchars on the interpolation as a
+     belt-and-braces hygiene pass (the keys are filtered to [A-Za-z0-9_]
+     above, so they're already safe). -->
+<div id='caSettingsFlags' class='ca_hide <?= htmlspecialchars($caSettingsClasses, ENT_QUOTES) ?>' aria-hidden='true'></div>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
 <?include "/usr/local/emhttp/plugins/$plugin/skins/Narrow/skin.html"?>
@@ -296,9 +325,6 @@ var caCardCache = {
    Docker search tab when docker can't service it. The per-app "Docker not
    enabled" notice now lives in the sidebar template itself. */
 var dockerNotEnabled = <?= (!caIsDockerRunning() && !($GLOBALS['caSettings']['NoInstalls'] ?? false)) ? "true" : "false" ?>;
-/* Dev-mode flag — consumed by caDebug() (helpers.js) to gate diagnostic
-   chatter. When false (the default), caDebug is a no-op. */
-window.caDev = <?= (($GLOBALS['caSettings']['dev'] ?? "no") === "yes") ? "true" : "false" ?>;
 /* Upstream `last_updated_timestamp` from lastUpdated.json — emitted into
    saveState so restoreState can detect a real feed rotation (vs. a benign
    filemtime bump from checkForUpdates.php just re-touching things) between
@@ -322,7 +348,7 @@ var ca_done_override = false;
    get rewritten to the embed URL with autoplay). Override to handle both
    forms and add `mute=1` so the autoplay rule isn't blocked by the browser
    when the user has opted in to autoplay via settings. */
-var caAutoplayVideos = <?= (($GLOBALS['caSettings']['autoplayVideos'] ?? "no") === "yes") ? "true" : "false" ?>;
+var caAutoplayVideos = caHasSetting("autoplayVideos");
 var caYtParams    = caAutoplayVideos ? "?autoplay=1&mute=1&playsinline=1" : "?playsinline=1";
 var caVimeoParams = caAutoplayVideos ? "?autoplay=1&muted=1" : "";
 var caMfpIframePatterns = {
@@ -3684,19 +3710,14 @@ function caRefreshSortMenu() {
 	if (!$("#sortByButton").length) {
 		return;
 	}
-	var $selectedSort = $(".sortIcons.enabledIcon").not(".startupMore").first();
-	if (!$selectedSort.length) {
-		$selectedSort = $("#defaultSort");
-	}
-	var selectedText = $.trim($selectedSort.text());
-	/* On mobile layouts (max-width 1024 — see #ca_mobile_layout_probe / --mobileDevice
-	   in responsive.css) drop the ": <selection>" suffix to keep the button compact. */
-	var isMobileLayout = $.trim(cssVar("--mobileDevice")) === "true";
-	$("#sortByButton").html(
-		isMobileLayout
-			? "<?tr("Sort");?>"
-			: sprintf("<?tr("Sort By: %s");?>", selectedText)
-	);
+	/* Label is always just "Sort" with a sort glyph supplied by CSS via
+	   #sortByButton::before — the previous "Sort By: <selection>" form
+	   was redundant with the active highlight already visible in the
+	   sort-icons row, and made the button overflow on cramped layouts.
+	   Wrapped in .caBtnLabel so the @media (max-width: 767px) icon-only
+	   rule in community.applications.responsive.css can hide it on
+	   narrow viewports alongside the other top-bar buttons. */
+	$("#sortByButton").html("<span class='caBtnLabel'><?tr("Sort");?></span>");
 	context.destroy("#sortByButton");
 	context.attach("#sortByButton", getSortOpts());
 }
