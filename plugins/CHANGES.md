@@ -23,6 +23,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Initial application-feed download now grabs a slimmed-down feed (no Config blocks) for a faster first paint — the full feed loads in the background so install-time port-conflict detection is ready by the time the user clicks Install
+- Changed: If the primary application feed is unreachable, CA now falls back to a slim copy hosted on GitHub instead of pulling the full feed as a second try
+- Fixed: Reloading Apps without a feed update no longer rewrites the small templates cache with the full-cache contents
+- Fixed: The tab that triggered a feed refresh no longer surfaces its own "another instance updated the feed" reload banner — the publish now carries the originating tab's id and the subscriber skips messages it sent itself
+- Fixed: CA's search-modal autocomplete styling no longer leaks onto other Unraid plugins' awesomplete dropdowns elsewhere on the page
+- Changed: Developer-mode template Diff button now passes the template URL straight to the server instead of looking it up by Path — drops two huge in-memory copies of the templates array and keeps the diff under PHP's 256M memory limit on large feeds
 - Added: "Use whole display window" setting (Settings panel, default off, 7.2+ only) — reclaims the Unraid OS header strip so the app browsing area fills the full browser window
 - Changed: Top bar buttons (Menu / Search / Sort / Apps / DockerHub) now carry FontAwesome icons; on narrow viewports they collapse to icon-only to free horizontal room
 - Changed: Sort button shortened from "Sort By: <selection>" to just "Sort" with a sort icon — the active sort is already highlighted in the icon row beneath it
