@@ -141,26 +141,40 @@ function signalFeedReady() {
  * Create/refresh the per-tab registration marker for the calling tab.
  *
  * Idempotent. Reads tabId from $_POST (the JS `post()` helper stamps it
- * on every request). No-op when tabId is missing or empty.
+ * on every request). Validates against the same shape paths.php uses for
+ * per-tab cache file suffixes (`^[A-Za-z0-9_-]{8,64}$`) — anything outside
+ * that range (empty, ".", "..", overlong, contains `/`) is rejected.
+ *
+ * Returns true when the marker is provably on disk after the call, false
+ * if any step failed (validation, mkdir, touch). Callers that need to
+ * acknowledge a successful registration to the client (the `registerTab`
+ * action handler) inspect this return so the client doesn't arm
+ * caFeedTrackingArmed against a marker that doesn't actually exist.
  *
  * Called from:
  *  - the `registerTab` action handler (initial registration on tab boot)
- *  - DownloadApplicationFeed (the calling tab wiped tempFiles, but it's
- *    now in sync with the feed it just pulled — re-register it so the
- *    pre-switch guard doesn't false-positive on this tab's next request)
+ *  - the successful exit of force_update() (the calling tab's marker was
+ *    wiped along with tempFiles by DownloadApplicationFeed; the re-
+ *    register confirms this tab is in sync with the freshly-pulled feed —
+ *    other tabs stay unregistered so their next caFeedCheck surfaces
+ *    the reload banner)
  *
- * basename() on the tabId is defence-in-depth against path traversal —
- * tabIds are crypto.randomUUID() in normal flow, but the marker filename
- * comes straight from user-controlled POST so it gets sanitized.
+ * @return bool
  */
-function ensureTabRegistered() {
+function ensureTabRegistered(): bool {
 	$tabId = (string)($_POST['tabId'] ?? '');
-	if ($tabId === '') return;
-	$dir = CA_PATHS['registeredTabs'];
-	if (!is_dir($dir)) {
-		@mkdir($dir, 0777, true);
+	if (!preg_match('/^[A-Za-z0-9_-]{8,64}$/', $tabId)) {
+		return false;
 	}
-	@touch($dir . '/' . basename($tabId));
+	$dir = CA_PATHS['registeredTabs'];
+	if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+		return false;
+	}
+	$path = $dir . '/' . $tabId;
+	if (!@touch($path)) {
+		return false;
+	}
+	return is_file($path);
 }
 
 /**

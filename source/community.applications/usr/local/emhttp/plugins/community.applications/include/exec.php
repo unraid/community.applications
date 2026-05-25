@@ -116,9 +116,12 @@ switch ($_POST['action']) {
 	case 'registerTab':
 		/* Bootstrap-time tab registration. JS calls this once after the
 		   tab finishes its initial load and before arming the feedCheck
-		   flag. Creates the marker file the pre-switch guard checks. */
-		ensureTabRegistered();
-		postReturn(['status' => 'ok']);
+		   flag. Creates the marker file the pre-switch guard checks.
+		   Reports back whether the marker is actually on disk so the
+		   client only arms its caFeedCheck flag against a real
+		   registration — ensureTabRegistered rejects malformed tabIds
+		   and mkdir/touch failures otherwise. */
+		postReturn(['status' => ensureTabRegistered() ? 'ok' : 'failed']);
 		break;
 	case 'get_content':
 		caRequireSkin();
@@ -342,15 +345,7 @@ function DownloadApplicationFeed() {
 	}
 	@unlink($downloadURL);
 
-	$result = processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
-	/* tempFiles got wiped at the top of this function, which took the
-	   registeredID/* markers with it. The tab that drove this request
-	   is now in sync with the freshly-pulled feed — register it again
-	   so the pre-switch guard doesn't false-positive on this tab's next
-	   request. Other tabs stay unregistered intentionally, so they get
-	   the "another browser updated" banner on their next action. */
-	ensureTabRegistered();
-	return $result;
+	return processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
 }
 
 /**
@@ -1394,6 +1389,12 @@ function get_content() {
 function force_update_skip() {
 	clearstatcache();
 	if ( ! is_file(CA_PATHS['gettingTemplates']) && is_file(CA_PATHS['community-templates-info']) ) {
+		/* Tab is exiting with the slim cache it walked in expecting. If
+		   another tab's DownloadApplicationFeed wiped the registry while
+		   this request was in flight (or between the tab's registerTab
+		   and this call), the marker is gone — re-register here so a
+		   subsequent caFeedCheck doesn't false-positive as stale. */
+		ensureTabRegistered();
 		postReturn(['status' => "ok"]);
 		return;
 	}
@@ -1420,7 +1421,12 @@ function force_update() {
 			sleep(1);
 			clearstatcache();
 		}
-		// Another process should have refreshed templates; return.
+		/* The other tab's DownloadApplicationFeed wiped tempFiles
+		   (including this tab's marker) during the wait. The wait-
+		   then-ok path is now in sync with that fresh feed, so
+		   re-register here — otherwise a subsequent caFeedCheck on
+		   this tab would falsely surface the stale-feed banner. */
+		ensureTabRegistered();
 		postReturn(['status' => "ok"]);
 		return;
 	}
@@ -1473,6 +1479,15 @@ function force_update() {
 		moderateTemplates();
 		writeGlobals($GLOBALS['templates']);
 	}
+	/* Re-register the calling tab. If this invocation triggered
+	   DownloadApplicationFeed, the wipe took the marker with it and we
+	   need to restore it. If this was a no-download cycle, the marker
+	   either still exists from registerTab (re-touch is a no-op) or
+	   was wiped by ANOTHER tab's concurrent download since registerTab
+	   — in which case this tab is now in sync with that fresh feed
+	   (templates were just re-read from the post-download cache) and
+	   should be re-registered. Either way, idempotent. */
+	ensureTabRegistered();
 	postReturn(['status' => "ok", 'script' => $script]);
 }
 

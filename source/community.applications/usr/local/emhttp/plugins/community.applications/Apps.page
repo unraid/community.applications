@@ -638,15 +638,23 @@ $(function(){
 		/* Register this tab with the server before any other request. The
 		   server creates a marker file at CA_PATHS['registeredTabs']/{tabId}
 		   that gets wiped by DownloadApplicationFeed when another tab
-		   triggers a fresh feed pull. Arming caFeedTrackingArmed only
-		   after the registration response means subsequent posts can
-		   safely carry caFeedCheck=true without false-positiving on the
-		   pre-switch guard before the marker exists. Both restore and
-		   non-restore bootstrap branches below fire in parallel — they
-		   don't need the flag armed yet (their initial calls happen
-		   unguarded since flag is still false at that point). */
-		postNoSpin({action:'registerTab'}, function() {
-			window.caFeedTrackingArmed = true;
+		   triggers a fresh feed pull.
+
+		   Arming caFeedTrackingArmed is gated on TWO events both completing:
+		     1. registerTab acked — the marker exists server-side
+		     2. bootstrap settled — downloadStatistics returned, which both
+		        the restore and non-restore boot paths fire as their last
+		        sequential step
+		   Without (2), in-flight bootstrap requests (force_update_skip,
+		   hydrateFullFeed, getCategories) would start carrying caFeedCheck
+		   mid-load — a concurrent feed refresh in another tab could then
+		   pop the "another browser updated" banner during page load
+		   instead of on the next user action. */
+		postNoSpin({action:'registerTab'}, function(result) {
+			if (result && result.status === 'ok') {
+				window.caRegisterTabAcked = true;
+				caMaybeArmFeedCheck();
+			}
 		});
 		if ( caCanRestore ) {
 			getCategories();
@@ -821,12 +829,22 @@ function updateContent(button,skipAppfeed=true) {
 			if (hydrateResult && hydrateResult.status === 'failed') return;
 			if (!data.sidebarapppath) return;
 			if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
-			postNoSpin({action:'getPopupDescription', appName: data.sidebarappname, appPath: data.sidebarapppath}, function(popResult) {
+			/* Snapshot the app identity we're about to fetch, so the
+			   callback can verify the same app is still in the sidebar
+			   when the response arrives. Without this, a fast user opening
+			   a different (also pending) sidebar between request and
+			   response would have the new sidebar's action row clobbered
+			   with the PREVIOUS app's buttons. */
+			var requestedAppName = data.sidebarappname;
+			var requestedAppPath = data.sidebarapppath;
+			postNoSpin({action:'getPopupDescription', appName: requestedAppName, appPath: requestedAppPath}, function(popResult) {
 				if (!popResult || !popResult.description) return;
 				/* Sidebar might have closed or navigated to a different app
-				   while the popup re-fetch was in flight — re-check before
-				   touching the DOM. */
+				   while the popup re-fetch was in flight — re-check both
+				   the pending notice AND that the open sidebar is still
+				   the same app we requested before touching the DOM. */
 				if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
+				if (data.sidebarappname !== requestedAppName || data.sidebarapppath !== requestedAppPath) return;
 				var $tmp = $('<div>').html(popResult.description);
 				var $newActions = $tmp.find('.popupStickyActions').first();
 				if ($newActions.length) {
@@ -1167,10 +1185,26 @@ function getContent(init,category,description,newApp,startupDisplay) {
 }
 
 /**
- * Trigger background statistics/template fetch.
+ * Trigger background statistics/template fetch. Also marks bootstrap as
+ * settled — see caMaybeArmFeedCheck — since both boot paths (restore and
+ * non-restore) fire this as their last sequential step.
  */
 function downloadStatistics() {
-	postNoSpin({action:'downloadStatistics'});
+	postNoSpin({action:'downloadStatistics'}, function() {
+		window.caBootstrapSettled = true;
+		caMaybeArmFeedCheck();
+	});
+}
+
+/**
+ * Arms `window.caFeedTrackingArmed` once both registerTab has acked AND
+ * bootstrap has settled. Idempotent. See the registerTab block in the
+ * IIFE near the top of this file for the rationale.
+ */
+function caMaybeArmFeedCheck() {
+	if (window.caRegisterTabAcked && window.caBootstrapSettled) {
+		window.caFeedTrackingArmed = true;
+	}
 }
 
 /**
