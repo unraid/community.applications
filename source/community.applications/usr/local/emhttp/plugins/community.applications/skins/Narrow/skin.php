@@ -541,6 +541,11 @@ function displayPopup($template) {
 			<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
 				<div class='popupDockerDisabled'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
 			<?php endif; ?>
+			<?php /* Status badges sit above the icon/name block — same supersession
+			         rules as the card corner badges (caBuildSidebarFlag → shared
+			         caCollectBadges helper). Returns empty string when no badges
+			         apply, so the row collapses cleanly on plain templates. */ ?>
+			<?= caBuildSidebarFlag($template) ?>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'><?= $display_icon ?></div>
 				<div class='popupInfo'>
@@ -1309,20 +1314,14 @@ function displayCard($template) {
 		";
 	}
 
-	if (!empty($template['Installed']) || !empty($template['Uninstall'])) {
-		$flagTextStart = tr("Installed")." · ";
-		$flagTextEnd = "";
-	} else {
-		$flagTextStart = "";
-		$flagTextEnd = "";
-	}
-
-	$cardFlag = caBuildCardFlag($template, $flagTextStart, $flagTextEnd);
+	$cardFlag = caBuildCardFlag($template);
 
 	$cardEnd = "</div>";
-	/* The corner-ribbon flag is rendered inside .ca_holder so it can position
+	/* The corner-badge stack is rendered inside .ca_holder so it can position
 	   absolutely against the card itself rather than relying on negative-margin
-	   sibling tricks against an outer wrapper. */
+	   sibling tricks against an outer wrapper. Stack renders all applicable
+	   badges, not just the highest-priority one — see caBuildCardFlag for the
+	   priority ordering and wrap behavior. */
 	$cardFinish = "{$cardStart}{$cardFlag}{$card}{$cardEnd}";
 
 	return str_replace(["\t", "\n"], "", $cardFinish);

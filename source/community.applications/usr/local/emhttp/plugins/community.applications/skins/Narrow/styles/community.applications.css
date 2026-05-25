@@ -2326,7 +2326,47 @@ input[type="button"] {
 		margin-top: 0px;
 	}
 
-	/* 3.11) Corner badges, pagination, and popup details */
+	/* 3.11) Corner badges, pagination, and popup details
+
+	   `.cardFlagStack` is the absolute-positioned wrapper that anchors the
+	   whole badge group in the card's top-right corner. Individual badges
+	   are flex items inside it — `row-reverse` keeps the highest-priority
+	   badge (first in DOM order) at the corner, with lower-priority badges
+	   filling leftward along the row. `flex-wrap: wrap` lets the stack drop
+	   to a new row BELOW when more badges than fit in `max-width` accumulate
+	   (rather than letting them slide left over the card icon).
+
+	   `max-width: 20rem` on a 36rem card leaves ~16rem of icon-safe space on
+	   the left. Anything beyond that wraps. */
+	.cardFlagStack {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+		max-width: 20rem;
+		display: flex;
+		flex-direction: row-reverse;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		gap: 0.4rem;
+		z-index: 2;
+		pointer-events: none;
+	}
+	/* Sidebar variant: in-flow row above the icon/name block. No
+	   position:absolute (cards put the stack in the corner; sidebar
+	   wants it stacked vertically with the rest of the popup body),
+	   no max-width clamp (sidebar is wide enough that a single row
+	   handles the realistic badge count — wrap is just insurance for
+	   the rare case of many concurrent flags). Left-to-right reading
+	   order matches the rest of the sidebar typography. */
+	.sidebarFlagStack {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		gap: 0.4rem;
+		margin-bottom: 0.75rem;
+		pointer-events: none;
+	}
 	.officialCardBackground,
 	.LTOfficialCardBackground,
 	.spotlightCardBackground,
@@ -2334,9 +2374,6 @@ input[type="button"] {
 	.betaCardBackground,
 	.greenCardBackground,
 	.installedCardBackground {
-		position: absolute;
-		top: 0.75rem;
-		right: 0.75rem;
 		padding: 0.35rem 0.75rem;
 		border-radius: 0.4rem;
 		font-size: 1.1rem;
@@ -2346,8 +2383,8 @@ input[type="button"] {
 		font-weight: 600;
 		color: var(--ca-named-white);
 		pointer-events: none;
-		z-index: 2;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+		white-space: nowrap;
 	}
 	.installedCardBackground {
 		background-color: var(--ca-purple-color);

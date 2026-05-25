@@ -1876,96 +1876,118 @@ function caNormalizeOverview(array $template, string $name): string {
 }
 
 /**
- * Build the status flag/banner (installed, updated, etc.) for a template card.
+ * Collect all applicable status badges for a template, in priority order.
  *
- * Returns the first matching banner in priority order: UpdateAvailable, Installed,
- * Blacklist, caTemplateExists, Incompatible, Deprecated, Official, LTOfficial, Beta, Trusted.
+ * Shared helper backing both the card corner-badge stack and the sidebar
+ * header badge row — same supersession rules, same DOM order, different
+ * wrapper / positioning. Callers wrap the returned strings in whatever
+ * container suits their layout (`.cardFlagStack` for cards,
+ * `.sidebarFlagStack` for the sidebar).
  *
- * @param  array<string,mixed> $template      Template entry.
- * @param  string              $flagTextStart Prefix text for the banner body.
- * @param  string              $flagTextEnd   Suffix text for the banner body.
- * @return string HTML banner markup, or empty string if no flag applies.
+ * Priority order: UpdateAvailable, Installed, (Blacklist OR Deprecated),
+ * caTemplateExists, Incompatible, (LTOfficial OR Official), Beta, Trusted.
+ * Supersession pairs (`OR`) emit at most one badge each — Blacklist hides
+ * Deprecated, LTOfficial hides Official (LT-branded variant trumps plain).
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return array<int,string> Ordered list of badge `<div>` HTML strings;
+ *                           empty array when no badges apply.
  */
-function caBuildCardFlag(array $template, string $flagTextStart, string $flagTextEnd): string {
+function caCollectBadges(array $template): array {
+	$badges = [];
+
 	if (!empty($template['UpdateAvailable'])) {
-		return "
-			<div class='betaCardBackground'>
-				<div class='installedCardText ca_center'>".tr("UPDATED")."</div>
-			</div>";
+		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center'>".tr("UPDATED")."</div></div>";
 	}
 
 	if ((!empty($template['Installed']) || !empty($template['Uninstall'])) && empty($template['actionCentre'])) {
-		return "
-			<div class='installedCardBackground'>
-				<div class='installedCardText ca_center'>".tr("INSTALLED")."</div>
-			</div>";
+		$badges[] = "<div class='installedCardBackground'><div class='installedCardText ca_center'>".tr("INSTALLED")."</div></div>";
 	}
 
+	/* Blacklist supersedes Deprecated — Blacklisted is the stronger
+	   moderator action (active removal-worthy) and Deprecated is the
+	   weaker "no longer maintained" signal. A Blacklisted app is
+	   implicitly past the point of "just deprecated", so showing both
+	   chips is noise. Incompatible can co-occur with either since it's
+	   an OS-version mismatch, not a maintainer judgement. */
 	if (!empty($template['Blacklist'])) {
-		return "
-			<div class='warningCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This application template has been blacklisted")."'>".tr("Blacklisted")."{$flagTextEnd}</div>
-			</div>
-		";
+		$badges[] = "<div class='warningCardBackground'><div class='installedCardText ca_center' title='".tr("This application template has been blacklisted")."'>".tr("Blacklisted")."</div></div>";
+	} elseif (!empty($template['Deprecated'])) {
+		$badges[] = "<div class='warningCardBackground'><div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."</div></div>";
 	}
 
 	if (!empty($template['caTemplateExists'])) {
-		return "
-			<div class='greenCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div>
-			</div>
-		";
+		$badges[] = "<div class='greenCardBackground'><div class='installedCardText ca_center' title='".tr("Template already exists in Apps")."'>".tr("Template")."</div></div>";
 	}
 
 	if (isset($template['Compatible']) && ! $template['Compatible']) {
 		$verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
-
-		return "
-			<div class='warningCardBackground'>
-				<div class='installedCardText ca_center' title='{$verMsg}'>{$flagTextStart}".tr("Incompatible")."{$flagTextEnd}</div>
-			</div>
-		";
+		$badges[] = "<div class='warningCardBackground'><div class='installedCardText ca_center' title='{$verMsg}'>".tr("Incompatible")."</div></div>";
 	}
 
-	if (!empty($template['Deprecated'])) {
-		return "
-			<div class='warningCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This application template has been deprecated")."'>".tr("Deprecated")."{$flagTextEnd}</div>
-			</div>
-		";
-	}
-
-	if (!empty($template['Official'])) {
-		return "
-			<div class='officialCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This is an official container")."'>".tr("OFFICIAL")."</div>
-			</div>
-		";
-	}
-
+	/* LTOfficial supersedes Official — the LT (Lime Technology) variant
+	   carries the brand gradient and is a stronger claim than the plain
+	   "Official" purple chip. Showing both would just be redundant
+	   "OFFICIAL OFFICIAL" with no useful distinction. */
 	if (!empty($template['LTOfficial'])) {
-		return "
-			<div class='LTOfficialCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This is an official plugin")."'>".tr("OFFICIAL")."</div>
-			</div>
-		";
+		$badges[] = "<div class='LTOfficialCardBackground'><div class='installedCardText ca_center' title='".tr("This is an official plugin")."'>".tr("OFFICIAL")."</div></div>";
+	} elseif (!empty($template['Official'])) {
+		$badges[] = "<div class='officialCardBackground'><div class='installedCardText ca_center' title='".tr("This is an official container")."'>".tr("OFFICIAL")."</div></div>";
 	}
 
 	if (!empty($template['Beta'])) {
-		return "
-			<div class='betaCardBackground'>
-				<div class='installedCardText ca_center'>".tr("BETA")."</div>
-			</div>
-		";
+		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center'>".tr("BETA")."</div></div>";
 	}
 
 	if (!empty($template['Trusted'])) {
-		return "
-			<div class='spotlightCardBackground'>
-				<div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div>
-			</div>
-		";
+		$badges[] = "<div class='spotlightCardBackground'><div class='installedCardText ca_center' title='".tr("This container is digitally signed")."'>".tr("Digitally Signed")."</div></div>";
 	}
 
-	return "";
+	return $badges;
+}
+
+/**
+ * Build the corner-badge stack for a template card.
+ *
+ * Emits ALL applicable badges (see {@link caCollectBadges} for the rules)
+ * inside `.cardFlagStack`, which positions the group top-right and flows
+ * additional badges leftward via `flex-direction: row-reverse` +
+ * `flex-wrap: wrap` in CSS. When the stack would overflow the card's safe
+ * zone (i.e. the icon's horizontal footprint), the remaining badges wrap
+ * to a new row below instead of disappearing behind the icon.
+ *
+ * DOM order = visual priority: first child sits in the top-right corner,
+ * lower-priority badges fill leftward.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return string HTML for `.cardFlagStack` wrapper + zero-or-more badges,
+ *                or empty string if no badges apply.
+ */
+function caBuildCardFlag(array $template): string {
+	$badges = caCollectBadges($template);
+	if (empty($badges)) return "";
+
+	return "<div class='cardFlagStack'>".implode("", $badges)."</div>";
+}
+
+/**
+ * Build the sidebar header badge row for a template popup.
+ *
+ * Same badge set / supersession rules as the card corner stack
+ * ({@link caCollectBadges}), but rendered as an in-flow row ABOVE the
+ * sidebar's icon/name block. Sidebar is wider than a card so the full
+ * width is available — single row by default, wraps to a second row if
+ * the user somehow accumulates enough concurrent flags (rare in practice).
+ *
+ * DOM order = visual priority: badges flow left-to-right.
+ *
+ * @param  array<string,mixed> $template Template entry.
+ * @return string HTML for `.sidebarFlagStack` wrapper + zero-or-more
+ *                badges, or empty string if no badges apply.
+ */
+function caBuildSidebarFlag(array $template): string {
+	$badges = caCollectBadges($template);
+	if (empty($badges)) return "";
+
+	return "<div class='sidebarFlagStack'>".implode("", $badges)."</div>";
 }
