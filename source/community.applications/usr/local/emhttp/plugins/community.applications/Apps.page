@@ -2807,10 +2807,21 @@ function postLanguageRefresh() {
 }
 
 /**
- * Simulate a menu click to repaint the current section after language removal.
+ * Refresh the current view after a language pack uninstall.
+ *
+ * The `trigger("click")` on selectedMenu re-fires the Action Centre handler
+ * (its `.sectionMenu` binding has no already-selected guard, so it re-runs
+ * actionCentre()). For every other category the `.caMenuItem`/`.categoryMenu`
+ * handlers early-return on the already-selected item, so the click is a
+ * no-op there — `refreshDisplay()` is what actually re-pulls
+ * `display_content` and re-evaluates `Installed` server-side. Matches
+ * postUninstallPlugin so card state stops going stale after uninstall.
  */
 function postLanguageRemove() {
+	enableSearch();
 	$(".selectedMenu").trigger("click");
+	setupActionCentre();
+	refreshDisplay(); /* chains caRefreshInstalledMenuStates */
 }
 
 /**
