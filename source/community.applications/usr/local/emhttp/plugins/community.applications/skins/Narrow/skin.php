@@ -482,11 +482,16 @@ function displayPopup($template) {
 	   hostile template feed data — legitimate labels are plain strings
 	   from `tr()`. Also accepts the untranslated English variants so the
 	   detection survives a missing/partial locale file. */
+	/* "Reinstall" intentionally NOT here — for already-installed apps the
+	   primary action is Update (or Edit), and Reinstall is an auxiliary
+	   "rebuild from template" path. It lives in the LEFT group with Edit /
+	   WebUI / etc. so it doesn't visually compete with the primary blue
+	   install button. "Reinstall From Previous Apps" DOES stay on the
+	   right because in the Previous Apps section it IS the primary install
+	   action — only thing you can do on those cards besides Remove. */
 	$installFamilyTexts = [
-		tr("Install"), tr("Reinstall"),
-		tr("Install second"), tr("Reinstall From Previous Apps"),
-		"Install", "Reinstall",
-		"Install second", "Reinstall From Previous Apps",
+		tr("Install"), tr("Install second"), tr("Reinstall From Previous Apps"),
+		"Install", "Install second", "Reinstall From Previous Apps",
 	];
 	$updateFamilyTexts = [
 		tr("Update"),
