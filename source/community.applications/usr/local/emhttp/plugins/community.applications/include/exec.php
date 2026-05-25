@@ -92,7 +92,34 @@ if ( ! $sortOrder ) {
 ##                                        ##
 ############################################
 $GLOBALS['action'] = $_POST['action'] ?? "Unknown";
+
+/* Cross-tab feed-update detection. JS sets caFeedCheck=true on every
+   request from a tab that has previously called `registerTab` (which
+   creates a per-tab marker file at CA_PATHS['registeredTabs']/{tabId}).
+   If the marker is now missing, another tab has triggered a feed
+   download (which wipes the entire tempFiles directory, including the
+   registered-tabs subfolder) and this tab is operating on stale state —
+   short-circuit the action and tell JS to throw up the reload banner.
+   Cheap is_file check on every request, no nchan, no buffered-message
+   race. The tab that initiated the download re-registers itself inside
+   DownloadApplicationFeed before returning, so the driving tab stays
+   in sync. */
+if ( ! empty($_POST['caFeedCheck']) ) {
+	$_caTabIdForCheck = (string)($_POST['tabId'] ?? '');
+	if ($_caTabIdForCheck === '' || ! file_exists(CA_PATHS['registeredTabs'] . '/' . basename($_caTabIdForCheck))) {
+		postReturn(['feedUpdated' => true]);
+		return;
+	}
+}
+
 switch ($_POST['action']) {
+	case 'registerTab':
+		/* Bootstrap-time tab registration. JS calls this once after the
+		   tab finishes its initial load and before arming the feedCheck
+		   flag. Creates the marker file the pre-switch guard checks. */
+		ensureTabRegistered();
+		postReturn(['status' => 'ok']);
+		break;
 	case 'get_content':
 		caRequireSkin();
 		get_content();
@@ -315,7 +342,15 @@ function DownloadApplicationFeed() {
 	}
 	@unlink($downloadURL);
 
-	return processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
+	$result = processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
+	/* tempFiles got wiped at the top of this function, which took the
+	   registeredID/* markers with it. The tab that drove this request
+	   is now in sync with the freshly-pulled feed — register it again
+	   so the pre-switch guard doesn't false-positive on this tab's next
+	   request. Other tabs stay unregistered intentionally, so they get
+	   the "another browser updated" banner on their next action. */
+	ensureTabRegistered();
+	return $result;
 }
 
 /**
@@ -1408,6 +1443,8 @@ function force_update() {
 		ForceUpdateHelpers::resetTemplatesCache();
 	}
 
+	/* Track whether THIS invocation actually pulled a fresh feed. */
+	$freshlyDownloaded = false;
 	if (!ForceUpdateHelpers::templatesAvailable()) {
 		if (!DownloadApplicationFeed()) {
 			@unlink(CA_PATHS['gettingTemplates']);
@@ -1415,18 +1452,27 @@ function force_update() {
 			postReturn(ForceUpdateHelpers::buildDownloadFailureResponse());
 			return;
 		}
+		$freshlyDownloaded = true;
 	}
 
-	//getConvertedTemplates();
-	moderateTemplates();
 	@unlink(CA_PATHS['gettingTemplates']);
 	$script = ForceUpdateHelpers::buildUpdateScript();
 
-	/* writeGlobals writes the slim cache (and fires the feed-ready signal).
-	   The full cache is filled in by hydrateFullFeedWork — there is no
-	   full-feed fallback in DownloadApplicationFeed anymore, so nothing
-	   here writes community-templates-info-full directly. */
-	writeGlobals($GLOBALS['templates']);
+	/* Only moderate + write back when we actually downloaded a fresh feed.
+	   On a no-download cycle the cache already on disk is the output of
+	   the last download's moderation pass — re-running moderateTemplates +
+	   writeGlobals would write identical bytes back, and only fires the
+	   cross-tab "feed updated" banner unnecessarily. The one input that
+	   could legitimately change moderation results between cycles without
+	   a download is the Unraid version (Compatible / Deprecated / Featured
+	   flags depend on it), and an OS-version change requires a reboot —
+	   which wipes /tmp, including the templates cache, so the next
+	   force_update reaches DownloadApplicationFeed and rebuilds anyway.
+	   The full cache is filled in by hydrateFullFeedWork separately. */
+	if ($freshlyDownloaded) {
+		moderateTemplates();
+		writeGlobals($GLOBALS['templates']);
+	}
 	postReturn(['status' => "ok", 'script' => $script]);
 }
 

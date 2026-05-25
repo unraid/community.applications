@@ -23,6 +23,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Sidebar "Pin" button moved from the action button row to the support button row (right before any dev-mode buttons) — declutters the action row and groups the toggle with the other passive on/off buttons
+- Changed: Sidebar action buttons show "Unavailable until feed downloads" when opened before the background full-feed hydrate completes — buttons appear in place automatically the moment the hydrate finishes
+- Changed: When an app has an Update available, the "Install second" button is hidden in the sidebar — installing a second instance while an update is pending would have copied the old image anyway
+- Fixed: Another browser tab updating the application feed no longer requires the current tab to be lucky with timing to see the reload banner — the check now runs the next time the user does anything on the stale tab, instead of relying on a real-time push that could be missed
 - Changed: Search suggestion buttons in the search popup are about 50% larger — easier to read and click, especially on a phone-sized viewport
 - Changed: Initial application-feed download now grabs a slimmed-down feed (no Config blocks) for a faster first paint — the full feed loads in the background so install-time port-conflict detection is ready by the time the user clicks Install
 - Changed: If the primary application feed is unreachable, CA now falls back to a slim copy hosted on GitHub instead of pulling the full feed as a second try

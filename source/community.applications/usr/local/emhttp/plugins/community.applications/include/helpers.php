@@ -84,12 +84,16 @@ function getSettings() {
 	}
 }
 /**
- * Persist the in-memory templates array to both the slim and full on-disk JSON caches.
+ * Persist the in-memory templates array to the slim on-disk JSON cache.
  *
- * Strips bulky container-config keys for the slim cache used by general
- * browsing, but keeps everything in the full file for install/createXML flows.
- * When the input is empty, both files are unlinked and $GLOBALS['templates']
- * is cleared.
+ * Called only from force_update after a fresh DownloadApplicationFeed —
+ * no-download cycles intentionally skip the moderate+write step (the
+ * cache already reflects the last download's moderation output, and the
+ * only thing that could legitimately invalidate it without a fresh
+ * feed is an Unraid OS version change which reboots and wipes /tmp).
+ *
+ * Empty-input branch left in as a safety net for explicit cache-clear
+ * callers; not currently exercised by the live code paths.
  *
  * @param  array<int,array<string,mixed>>  $templates
  * @return void
@@ -107,34 +111,56 @@ function writeGlobals($templates) {
 	   via writeJsonFile() so we don't reiterate the array here. */
 	writeJsonFile(CA_PATHS['community-templates-info'], $templates);
 	$GLOBALS['templates'] = $templates;
-	/* Feed-ready signal fires here — the slim cache is what the UI reads
-	   for card rendering, so the moment it's on disk other open CA tabs can
-	   safely reload. The background full-feed hydrate only writes the full
-	   cache (via writeJsonFile directly, bypassing writeGlobals), so it
-	   doesn't re-fire the signal — install-time data hydrates silently. */
+	/* Feed-ready signal: the slim cache just landed on disk, other CA
+	   tabs can safely reload to pick up the new content. The background
+	   full-feed hydrate writes only the full cache (via writeJsonFile
+	   directly, bypassing writeGlobals), so it doesn't re-fire the
+	   signal — install-time data hydrates silently. */
 	signalFeedReady();
 }
 
 /**
  * Mark the templates feed as fully ready: touch the haveTemplates sentinel
- * (gates enableActionCentre's wait loop) and publish on the
- * `/sub/ca_gettingTemplates` nchan channel so other open CA tabs surface
- * the reload banner. Should fire ONLY after the full templates cache has
- * been written — slim-only state must keep this signal absent so background
- * tabs aren't told the feed is ready before install-time Config data is
- * actually on disk.
+ * (gates enableActionCentre's wait loop) so background subscribers can
+ * tell when a download has completed.
  *
- * The publish payload is the originating browser tab's id (from
- * $_POST['tabId']) so the tab that triggered this update doesn't fire its
- * own reload banner — the JS subscriber compares to its local tab id and
- * skips when they match. Falls back to "1" if no tab id is on the request
- * (e.g. when called from a sync safety-net path that wasn't POSTed by JS),
- * which makes EVERY subscriber treat it as foreign and reload.
+ * Cross-tab "another browser updated the feed" used to also publish on
+ * an nchan channel here, but that was replaced with a polling-style
+ * check in exec.php's pre-switch guard (see the `caFeedCheck` block
+ * near the top of exec.php). The displayed-{tabId}.json file's
+ * existence on disk is the canonical "this tab is still in sync"
+ * signal; another tab's DownloadApplicationFeed wipes tempFiles
+ * including that file, and the guard catches it on the stale tab's
+ * next request.
  */
 function signalFeedReady() {
 	touch(CA_PATHS['haveTemplates']);
-	$originTabId = (string)($_POST['tabId'] ?? "");
-	ca_publish("ca_gettingTemplates", $originTabId !== "" ? $originTabId : "1");
+}
+
+/**
+ * Create/refresh the per-tab registration marker for the calling tab.
+ *
+ * Idempotent. Reads tabId from $_POST (the JS `post()` helper stamps it
+ * on every request). No-op when tabId is missing or empty.
+ *
+ * Called from:
+ *  - the `registerTab` action handler (initial registration on tab boot)
+ *  - DownloadApplicationFeed (the calling tab wiped tempFiles, but it's
+ *    now in sync with the feed it just pulled — re-register it so the
+ *    pre-switch guard doesn't false-positive on this tab's next request)
+ *
+ * basename() on the tabId is defence-in-depth against path traversal —
+ * tabIds are crypto.randomUUID() in normal flow, but the marker filename
+ * comes straight from user-controlled POST so it gets sanitized.
+ */
+function ensureTabRegistered() {
+	$tabId = (string)($_POST['tabId'] ?? '');
+	if ($tabId === '') return;
+	$dir = CA_PATHS['registeredTabs'];
+	if (!is_dir($dir)) {
+		@mkdir($dir, 0777, true);
+	}
+	@touch($dir . '/' . basename($tabId));
 }
 
 /**

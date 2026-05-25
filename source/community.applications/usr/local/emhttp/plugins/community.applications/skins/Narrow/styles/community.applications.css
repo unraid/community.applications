@@ -611,6 +611,16 @@ body,
 		margin-left: 0;
 	}
 
+	/* Shown in place of the action buttons when the sidebar is opened
+	   before the background full-feed hydrate finishes — Install / Update
+	   / Edit etc. need Config blocks that only live in the full feed.
+	   Plain notice text, no button styling. */
+	.popupStickyActions > .caFeedPending {
+		font-style: italic;
+		opacity: 0.75;
+		padding: 0.4rem 0.5rem;
+	}
+
 	/* Awesomplete suggestions: use caButton styling, force precedence */
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
 		display: inline-block !important;
@@ -2571,7 +2581,8 @@ input[type="button"] {
 	   icon-less buttons. */
 	.popupCloseAreaButtons .popUpClose::before,
 	.popupCloseAreaButtons .caButton::before,
-	#caDiffView .caDiffClose::before {
+	#caDiffView .caDiffClose::before,
+	.popupSupportRow .pinPopup::before {
 		margin-right: 0.5rem;
 	}
 

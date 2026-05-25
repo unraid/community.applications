@@ -531,17 +531,17 @@ $(function(){
 	});
 	downloadProgress.start();
 
-	/* Subscribe but defer the .start() until downloadStatistics() runs so the
-	   tab doing the initial force_update doesn't connect early and pile up
-	   spurious connect events. Messages are filtered by tab id: signalFeedReady
-	   publishes the originating tab's data.tabId so the tab that triggered the
-	   update skips its own message — only foreign tabs surface the banner. */
-	window.caGettingTemplatesSubStarted = false;
-	window.caGettingTemplatesSub = new NchanSubscriber('/sub/ca_gettingTemplates',{subscriber:'websocket'});
-	window.caGettingTemplatesSub.on('message', function(message) {
-		if ( ! message ) return;
-		// Originating tab id from the server — skip if it's us.
-		if (data && data.tabId && message === data.tabId) return;
+	/* Cross-tab feed-update reload banner — pulled from the nchan-based
+	   subscriber that used to live here. The new flow polls server-side:
+	   once this tab has rendered its first content, post() in helpers.js
+	   attaches caFeedCheck=true to every subsequent request. exec.php's
+	   pre-switch guard checks for the displayed-{tabId}.json sentinel; if
+	   another tab triggered a feed download (which wipes tempFiles), the
+	   file is gone and the server returns {feedUpdated:true}. helpers.js's
+	   post() done callback then calls this function. No nchan, no buffered-
+	   message race; the banner only fires when the user actually does
+	   something on a stale tab. */
+	function caHandleForeignFeedUpdate() {
 		/* If a plugin / docker install (or any Unraid openPlugin / openDocker
 		   dialog) is currently on screen, hold the "another session updated
 		   the feed" notice until it's done — otherwise the viewport blocker
@@ -565,7 +565,8 @@ $(function(){
 			return;
 		}
 		fireReloadNotice();
-	});
+	}
+	window.caHandleForeignFeedUpdate = caHandleForeignFeedUpdate;
 
 	caInitializeSortMenu();
 	caInitializeClickHandlers();
@@ -634,6 +635,19 @@ $(function(){
 			&& caSavedState
 			&& !caSavedState.wasHome
 		);
+		/* Register this tab with the server before any other request. The
+		   server creates a marker file at CA_PATHS['registeredTabs']/{tabId}
+		   that gets wiped by DownloadApplicationFeed when another tab
+		   triggers a fresh feed pull. Arming caFeedTrackingArmed only
+		   after the registration response means subsequent posts can
+		   safely carry caFeedCheck=true without false-positiving on the
+		   pre-switch guard before the marker exists. Both restore and
+		   non-restore bootstrap branches below fire in parallel — they
+		   don't need the flag armed yet (their initial calls happen
+		   unguarded since flag is still false at that point). */
+		postNoSpin({action:'registerTab'}, function() {
+			window.caFeedTrackingArmed = true;
+		});
 		if ( caCanRestore ) {
 			getCategories();
 			restoreState(caSavedState);
@@ -795,8 +809,31 @@ function updateContent(button,skipAppfeed=true) {
 		   port-conflict detection and createXML have Config available by
 		   the time the user clicks Install. Server short-circuits with
 		   `already_fresh` when the full cache is already on disk, so this
-		   is safe to call unconditionally. */
-		postNoSpin({action:'hydrateFullFeed'});
+		   is safe to call unconditionally.
+
+		   On completion, if a sidebar happens to be open and showing the
+		   "Unavailable until feed downloads" notice (the slim-only render
+		   from skin.php's full-cache guard), surgically swap just the
+		   .popupStickyActions block with the freshly-rendered version
+		   from the server — no full sidebar reload, no spinner flicker,
+		   just the buttons appearing in place. */
+		postNoSpin({action:'hydrateFullFeed'}, function(hydrateResult) {
+			if (hydrateResult && hydrateResult.status === 'failed') return;
+			if (!data.sidebarapppath) return;
+			if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
+			postNoSpin({action:'getPopupDescription', appName: data.sidebarappname, appPath: data.sidebarapppath}, function(popResult) {
+				if (!popResult || !popResult.description) return;
+				/* Sidebar might have closed or navigated to a different app
+				   while the popup re-fetch was in flight — re-check before
+				   touching the DOM. */
+				if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
+				var $tmp = $('<div>').html(popResult.description);
+				var $newActions = $tmp.find('.popupStickyActions').first();
+				if ($newActions.length) {
+					$('.popupCloseAreaButtons .popupStickyActions').replaceWith($newActions);
+				}
+			});
+		});
 		getCategories(); /* now also re-applies count-based submenu gating */
 		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
 			var plugins = $.cookie("ca_plugininstallpending");
@@ -1130,15 +1167,9 @@ function getContent(init,category,description,newApp,startupDisplay) {
 }
 
 /**
- * Trigger background statistics/template fetch: starts the optional nchan feed when configured, then `postNoSpin` `downloadStatistics`.
+ * Trigger background statistics/template fetch.
  */
 function downloadStatistics() {
-	try {
-		if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
-			window.caGettingTemplatesSub.start();
-			window.caGettingTemplatesSubStarted = true;
-		}
-	} catch(e) {}
 	postNoSpin({action:'downloadStatistics'});
 }
 
