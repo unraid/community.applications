@@ -1921,7 +1921,19 @@ function caCollectBadges(array $template): array {
 	}
 
 	if (isset($template['Compatible']) && ! $template['Compatible']) {
-		$verMsg = $template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid");
+		/* VerMessage is feed-derived (set by the appfeed for templates with
+		   custom incompatibility text). Every other badge title here is a
+		   static `tr()` string, so this is the one spot in the function that
+		   takes external input — and it lands inside a single-quoted HTML
+		   attribute. A hostile maintainer publishing `VerMessage="' onerror='..."`
+		   would otherwise close the attribute and inject script when the
+		   browser parses the badge. ENT_QUOTES so both `'` and `"` are escaped
+		   regardless of which delimiter the surrounding markup happens to use. */
+		$verMsg = htmlspecialchars(
+			(string)($template['VerMessage'] ?? tr("This application is not compatible with your version of Unraid")),
+			ENT_QUOTES,
+			"UTF-8"
+		);
 		$badges[] = "<div class='warningCardBackground'><div class='installedCardText ca_center' title='{$verMsg}'>".tr("Incompatible")."</div></div>";
 	}
 
