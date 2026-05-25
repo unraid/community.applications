@@ -482,11 +482,16 @@ function displayPopup($template) {
 	   hostile template feed data — legitimate labels are plain strings
 	   from `tr()`. Also accepts the untranslated English variants so the
 	   detection survives a missing/partial locale file. */
+	/* "Reinstall" intentionally NOT here — for already-installed apps the
+	   primary action is Update (or Edit), and Reinstall is an auxiliary
+	   "rebuild from template" path. It lives in the LEFT group with Edit /
+	   WebUI / etc. so it doesn't visually compete with the primary blue
+	   install button. "Reinstall From Previous Apps" DOES stay on the
+	   right because in the Previous Apps section it IS the primary install
+	   action — only thing you can do on those cards besides Remove. */
 	$installFamilyTexts = [
-		tr("Install"), tr("Reinstall"),
-		tr("Install second"), tr("Reinstall From Previous Apps"),
-		"Install", "Reinstall",
-		"Install second", "Reinstall From Previous Apps",
+		tr("Install"), tr("Install second"), tr("Reinstall From Previous Apps"),
+		"Install", "Install second", "Reinstall From Previous Apps",
 	];
 	$updateFamilyTexts = [
 		tr("Update"),
@@ -541,6 +546,11 @@ function displayPopup($template) {
 			<?php if (! caIsDockerRunning() && (! $Plugin && ! $Language)): ?>
 				<div class='popupDockerDisabled'><?= tr("Docker Service Not Enabled - Only Plugins Available To Be Installed Or Managed") ?></div>
 			<?php endif; ?>
+			<?php /* Status badges sit above the icon/name block — same supersession
+			         rules as the card corner badges (caBuildSidebarFlag → shared
+			         caCollectBadges helper). Returns empty string when no badges
+			         apply, so the row collapses cleanly on plain templates. */ ?>
+			<?= caBuildSidebarFlag($template) ?>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'><?= $display_icon ?></div>
 				<div class='popupInfo'>
@@ -1309,20 +1319,14 @@ function displayCard($template) {
 		";
 	}
 
-	if (!empty($template['Installed']) || !empty($template['Uninstall'])) {
-		$flagTextStart = tr("Installed")." · ";
-		$flagTextEnd = "";
-	} else {
-		$flagTextStart = "";
-		$flagTextEnd = "";
-	}
-
-	$cardFlag = caBuildCardFlag($template, $flagTextStart, $flagTextEnd);
+	$cardFlag = caBuildCardFlag($template);
 
 	$cardEnd = "</div>";
-	/* The corner-ribbon flag is rendered inside .ca_holder so it can position
+	/* The corner-badge stack is rendered inside .ca_holder so it can position
 	   absolutely against the card itself rather than relying on negative-margin
-	   sibling tricks against an outer wrapper. */
+	   sibling tricks against an outer wrapper. Stack renders all applicable
+	   badges, not just the highest-priority one — see caBuildCardFlag for the
+	   priority ordering and wrap behavior. */
 	$cardFinish = "{$cardStart}{$cardFlag}{$card}{$cardEnd}";
 
 	return str_replace(["\t", "\n"], "", $cardFinish);

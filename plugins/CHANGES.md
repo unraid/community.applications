@@ -23,6 +23,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Cards show every applicable status badge (Installed + Updated, Incompatible + Deprecated, etc.) instead of only the highest-priority one — extra badges wrap to a second row inside the top-right corner without crossing the icon. Blacklist supersedes Deprecated and the LT-branded "Official" supersedes the plain "Official" so duplicate chips don't pile up
+- Added: Sidebar header now shows the same status badge row above the app icon — surfaces Installed / Updated / Incompatible / etc. without having to scroll the sidebar body
 - Fixed: Plugin sidebar now shows the "Update" button when an update is available — the previous build silently dropped it on every sidebar open after the first
 - Fixed: Uninstalling a language pack now refreshes the application list immediately — cards were stuck showing "Installed" until you navigated away and back (Action Centre was unaffected)
 - Changed: Sidebar "Pin" button moved from the action button row to the support button row (right before any dev-mode buttons) — declutters the action row and groups the toggle with the other passive on/off buttons
