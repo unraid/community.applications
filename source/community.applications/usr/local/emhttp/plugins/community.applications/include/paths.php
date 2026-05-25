@@ -82,12 +82,21 @@ define("CA_PATHS",[
 	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
 	'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
 	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
+	/* Slimmed-down feed: same shape as the full feed, just with each template's
+	   Config entries stripped out. Primary-only — GitHub backup serves only the
+	   full feed. CA tries this first for a faster initial render and then
+	   background-hydrates the full feed afterwards. */
+	'application-feed-small'              => "https://ca.unraid.net/assets/feed/applicationFeed-small.json",
 	'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
 	'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",
+	/* GitHub backup of the slim feed. Both initial-load tiers download
+	   applicationFeed-small.json; if both fail we error out rather than
+	   pulling the full feed as a third try. */
+	'application-feed-smallBackup'        => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-small.json",
 	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
 	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
 	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
-	'diffFeedCache'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by DownloadApplicationFeed() ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
+	'rawAppFeed'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by hydrateFullFeedWork() (and the localONLY branch of DownloadApplicationFeed) ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
 	'caAdmin'                             => "/boot/config/plugins/community.applications/admin", /* marker file: when present alongside dev mode, exposes the Internal diff button */
 	'categoryList'                        => "$tempFiles/categoryList.json",
 	'repositoryList'                      => "$tempFiles/repositoryList.json",

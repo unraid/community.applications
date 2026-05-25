@@ -39,11 +39,11 @@ function getTemplateDiff() {
 		postReturn(["ok"=>false, "message"=>tr("Dev mode is not enabled")]);
 		return;
 	}
-	$appPath = trim((string)getPost("appPath", ""));
-	$mode    = trim((string)getPost("mode", "feed"));
+	$templateUrl = trim((string)getPost("templateUrl", ""));
+	$mode        = trim((string)getPost("mode", "feed"));
 	if ($mode !== "feed" && $mode !== "internal") $mode = "feed";
-	if ($appPath === "") {
-		postReturn(["ok"=>false, "message"=>tr("Missing app path")]);
+	if ($templateUrl === "") {
+		postReturn(["ok"=>false, "message"=>tr("Missing template URL")]);
 		return;
 	}
 	/* Internal mode is gated by the admin marker file — both client and server
@@ -53,58 +53,36 @@ function getTemplateDiff() {
 		return;
 	}
 
-	/* The slim templates cache (loaded by getGlobals() at request start) is
-	   enough to find the entry's TemplateURL / PluginURL — used to match
-	   against the freshly-downloaded applicationFeed.json. */
-	$templates = $GLOBALS['templates'] ?? [];
-	if (!is_array($templates) || !$templates) {
-		postReturn(["ok"=>false, "message"=>tr("Appfeed not available")]);
-		return;
-	}
-	$localEntry = null;
-	foreach ($templates as $t) {
-		if (!is_array($t)) continue;
-		if (($t['Path'] ?? null) === $appPath || ($t['InstallPath'] ?? null) === $appPath) {
-			$localEntry = $t;
-			break;
-		}
-	}
-	if (!$localEntry) {
-		postReturn(["ok"=>false, "message"=>tr("App not found in appfeed")]);
-		return;
-	}
+	/* The slim templates cache loaded by getGlobals() at request start gives
+	   us nothing — we already know the URL of the app from the button's POST.
+	   Drop it before reading the raw feed snapshot so peak memory stays
+	   bounded to one huge array at a time. */
+	unset($GLOBALS['templates']);
 
-	$isPlugin   = !empty($localEntry['Plugin']);
-	$matchField = $isPlugin ? "PluginURL" : "TemplateURL";
-	$matchUrl   = (string)($localEntry[$matchField] ?? "");
-	if ($matchUrl === "") {
-		postReturn(["ok"=>false, "message"=>tr("No {$matchField} available for this app")]);
-		return;
-	}
-
-	/* Both modes need the appfeed entry — read the raw snapshot stashed by
-	   DownloadApplicationFeed() when dev mode is on, and locate the matching
-	   entry by TemplateURL / PluginURL. Snapshot is rewritten on every feed
-	   refresh; cold start (dev mode just enabled) returns null. */
-	$applicationFeed = caGetCachedApplicationFeed();
-	if (!is_array($applicationFeed)) {
+	/* Look the entry up directly in the raw appfeed snapshot
+	   (DownloadApplicationFeed / hydrateFullFeed write this in dev mode).
+	   Search by TemplateURL first, then PluginURL — the button passes
+	   whichever the source app carries. */
+	$rawFeed = readJsonFile(CA_PATHS['rawAppFeed']);
+	if (!is_array($rawFeed['applist'] ?? null) || empty($rawFeed['applist'])) {
 		postReturn(["ok"=>false, "message"=>tr("Application feed snapshot not available — refresh the application feed first")]);
 		return;
 	}
-	$appfeedEntry = null;
-	foreach ($applicationFeed['applist'] as $candidate) {
-		if (!is_array($candidate)) continue;
-		if ((string)($candidate[$matchField] ?? "") === $matchUrl) {
-			$appfeedEntry = $candidate;
-			break;
-		}
+	$idx = searchArray($rawFeed['applist'], 'TemplateURL', $templateUrl);
+	if ($idx === false) {
+		$idx = searchArray($rawFeed['applist'], 'PluginURL', $templateUrl);
 	}
-	if (!$appfeedEntry) {
+	if ($idx === false) {
 		postReturn(["ok"=>false, "message"=>tr("Could not find this app in the downloaded application feed")]);
 		return;
 	}
+	$appfeedEntry = $rawFeed['applist'][$idx];
+	/* Free the raw appfeed — we only need the one entry from here on. */
+	unset($rawFeed);
 
-	$appName = (string)($localEntry['Name'] ?? "");
+	$isPlugin = !empty($appfeedEntry['Plugin']);
+	$matchUrl = $templateUrl;
+	$appName  = (string)($appfeedEntry['Name'] ?? "");
 	$rootName = $isPlugin ? "PLUGIN" : "Container";
 
 	if ($mode === "feed") {
@@ -157,21 +135,19 @@ function getTemplateDiff() {
 		   LEFT  = appfeed entry (server's view)
 		   RIGHT = CA's internal templates_full.json entry, reordered to the
 		           appfeed's key order so the CA-pipeline additions surface at
-		           the bottom of the right column. */
+		           the bottom of the right column.
+		   Now we need the full templates cache — find the entry by the same
+		   URL, extract it, then drop the big array so it doesn't sit in
+		   memory alongside the eventual diff output. */
 		getFullGlobals();
-		$fullTemplates = $GLOBALS['templates'] ?? [];
-		$internalEntry = null;
-		foreach ($fullTemplates as $t) {
-			if (!is_array($t)) continue;
-			if (($t['Path'] ?? null) === $appPath || ($t['InstallPath'] ?? null) === $appPath) {
-				$internalEntry = $t;
-				break;
-			}
-		}
-		if (!$internalEntry) {
+		$matchField = $isPlugin ? 'PluginURL' : 'TemplateURL';
+		$idx = searchArray($GLOBALS['templates'], $matchField, $matchUrl);
+		if ($idx === false) {
 			postReturn(["ok"=>false, "message"=>tr("App not found in internal templates cache")]);
 			return;
 		}
+		$internalEntry = $GLOBALS['templates'][$idx];
+		unset($GLOBALS['templates']);
 		$leftArr    = $appfeedEntry;
 		$rightArr   = caReorderByReference($internalEntry, $appfeedEntry);
 		$leftLabel  = htmlspecialchars(tr("appfeed"), ENT_QUOTES);
@@ -228,7 +204,7 @@ function caRenderAsJson(array $entry): string {
 /**
  * Read the raw applicationFeed.json snapshot that DownloadApplicationFeed()
  * stashes whenever dev mode is enabled (exec.php — the `@copy($downloadURL,
- * CA_PATHS['diffFeedCache'])` line just before the per-request tempfile is
+ * CA_PATHS['rawAppFeed'])` line just before the per-request tempfile is
  * unlinked). Returns the decoded array on success or null on any failure.
  *
  * No download / no flock: the file is rewritten on every feed refresh so in
@@ -237,7 +213,7 @@ function caRenderAsJson(array $entry): string {
  * "Could not download application feed", which is the cue to refresh.
  */
 function caGetCachedApplicationFeed(): ?array {
-	$cachePath = CA_PATHS['diffFeedCache'];
+	$cachePath = CA_PATHS['rawAppFeed'];
 	if (!is_file($cachePath)) return null;
 	$decoded = json_decode((string)@file_get_contents($cachePath), true);
 	/* Require a non-empty applist — same shape DownloadApplicationFeed

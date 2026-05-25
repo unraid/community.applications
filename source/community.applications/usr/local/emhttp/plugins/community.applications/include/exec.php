@@ -97,6 +97,9 @@ switch ($_POST['action']) {
 		caRequireSkin();
 		get_content();
 		break;
+	case 'hydrateFullFeed':
+		hydrateFullFeed();
+		break;
 	case 'force_update':
 		force_update();
 		break;
@@ -264,7 +267,19 @@ switch ($_POST['action']) {
 /**
  * Download and merge the application feed into local template caches.
  *
+ * Initial-load is slim only — tries `applicationFeed-small.json` on the
+ * primary server, then on the GitHub backup. If both fail the user sees
+ * the standard download-failed response; we never fall back to the full
+ * `applicationFeed.json` here. The full feed is fetched asynchronously by
+ * the `hydrateFullFeed` action (triggered from JS post-`force_update`),
+ * which fills in the on-disk full cache so install-time port-conflict
+ * detection and createXML have Config available.
+ *
+ * Returns 'slim' on success, false on failure.
+ *
  * DownloadApplicationFeed() must run before community template merge so private repos apply correctly.
+ *
+ * @return false|string
  */
 function DownloadApplicationFeed() {
 	exec("rm -rf ".escapeshellarg(CA_PATHS['tempFiles']));
@@ -272,54 +287,70 @@ function DownloadApplicationFeed() {
 	@unlink(CA_PATHS['downloadLocks']);
 	@mkdir(CA_PATHS['templates-community'],0777,true);
 
-	$currentFeed = "Primary Server";
 	if ( CA_PATHS['localONLY'] ) {
 		$ApplicationFeed = json_decode(file_get_contents(CA_PATHS['application-feed-local']),true);
-	} else {
-		$downloadURL = randomFile();
-		ca_publish("ca_gettingTemplates","1");
-		/* 10-minute cURL timeout (was unbounded) — the ca_downloadProgress
-		   nchan stream lets the user see and Abort a slow fetch, but the
-		   timeout caps the worst case in case the connection silently stalls
-		   without ever timing out at the socket layer.
-		   shared=false: $downloadURL is a per-request random tempfile — we
-		   don't want download_url to serialize different requests on each
-		   other since their target paths are unique anyway. */
-		$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
-		if ( (! is_array($ApplicationFeed['applist']??false)) || (empty($ApplicationFeed['applist']??[])) ) {
-			$currentFeed = "Backup Server";
-			$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 600, false);
-		}
-		/* Null-coalesce — if both primary + backup downloads returned false,
-		   $ApplicationFeed is false here and a direct array-access would
-		   warn before the clean failure path below runs. Mirrors the same
-		   `?? false` / `?? []` pattern used in the primary check at line 255. */
-		if ( ! is_array($ApplicationFeed['applist'] ?? null) || empty($ApplicationFeed['applist'] ?? []) ) {
-			/* Don't unlink $downloadURL on failure — leave the raw bytes
-			   (preserved by download_json under $shared=false) on disk so
-			   buildDownloadFailureResponse can read them for the
-			   partial-download hint + json_last_error_msg detail. */
-			@unlink(CA_PATHS['currentServer']);
-			ca_file_put_contents(CA_PATHS['appFeedDownloadError'],$downloadURL);
+		if ( ! is_array($ApplicationFeed['applist'] ?? null) || empty($ApplicationFeed['applist']) ) {
 			return false;
 		}
-		/* Dev mode: stash the raw applicationFeed.json before deleting the
-		   per-request tempfile so the Diff/Plugin/Template modals don't have
-		   to re-download it. tempFiles was wiped at the top of this function
-		   so the cache file is always fresh; outside dev mode we never write
-		   it, which keeps the steady-state footprint identical for normal
-		   users. caGetCachedApplicationFeed() reads this on every Diff
-		   click. */
-		if (($GLOBALS['caSettings']['dev'] ?? null) === "yes") {
-			@copy($downloadURL, CA_PATHS['diffFeedCache']);
+		/* Local feed IS the full applicationFeed.json (no slim/full split in
+		   localONLY mode), so stash it as the raw-feed snapshot for the
+		   dev-mode Diff button. Mirrors the @copy in hydrateFullFeedWork's
+		   remote path — without it, dev-mode diff is unreachable in localONLY. */
+		if ( ($GLOBALS['caSettings']['dev'] ?? null) === "yes" ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
 		}
-		/* Success — feed parsed cleanly, the per-request tempfile served its
-		   purpose. Clean it up so /tmp doesn't accumulate stale randomFile()s. */
-		@unlink($downloadURL);
+		return processApplicationFeed($ApplicationFeed, "Local") ? 'slim' : false;
 	}
+
+	$downloadURL = randomFile();
+	/* ca_gettingTemplates publish (the "other tab updated the feed" trigger)
+	   has moved into writeGlobals via signalFeedReady() — fires when the
+	   small cache lands. The background full-feed hydrate writes only the
+	   full cache and stays silent so it doesn't double-fire. */
+
+	/* Primary slim. 10-minute cURL timeout / shared=false: per-request
+	   tempfile, so we don't want download_url to serialize unrelated calls. */
+	$smallFeed = download_json(CA_PATHS['application-feed-small'], $downloadURL, 600, false);
+	$currentFeed = "Primary Server (slim)";
+	if ( ! is_array($smallFeed['applist'] ?? null) || empty($smallFeed['applist']) ) {
+		/* Primary slim unavailable — try the GitHub backup of the slim feed.
+		   No fallback to the full feed beyond this; if both slim tiers fail
+		   the user gets the standard download-failed response and retries. */
+		$smallFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feed-smallBackup'], $downloadURL, 600, false);
+		$currentFeed = "Backup Server (slim)";
+	}
+	if ( ! is_array($smallFeed['applist'] ?? null) || empty($smallFeed['applist']) ) {
+		/* Don't unlink $downloadURL on failure — leave the raw bytes
+		   (preserved by download_json under $shared=false) on disk so
+		   buildDownloadFailureResponse can read them for the
+		   partial-download hint + json_last_error_msg detail. */
+		@unlink(CA_PATHS['currentServer']);
+		ca_file_put_contents(CA_PATHS['appFeedDownloadError'],$downloadURL);
+		return false;
+	}
+	@unlink($downloadURL);
+
+	return processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
+}
+
+/**
+ * Apply CA's per-template transformations to a freshly-downloaded feed and
+ * persist the auxiliary files (categoryList / repositoryList / extraBlacklist
+ * / extraDeprecated / lastUpdated-old / invalidXML / currentServer). Sets
+ * `$GLOBALS['templates']` to the processed array so the caller can run
+ * moderation and writeGlobals afterwards.
+ *
+ * Used by both `DownloadApplicationFeed()` (initial load) and
+ * `hydrateFullFeedWork()` (background full-feed pull after a slim-feed success).
+ *
+ * @param array $ApplicationFeed Decoded JSON: applist, categories, repositories, blacklisted, deprecated, last_updated_timestamp
+ * @param string $currentFeed Label written to currentServer (Primary / Backup / Local / slim)
+ * @return bool
+ */
+function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bool {
 	ca_file_put_contents(CA_PATHS['currentServer'],$currentFeed);
 	$i = 0;
-	$lastUpdated['last_updated_timestamp'] = $ApplicationFeed['last_updated_timestamp'];
+	$lastUpdated['last_updated_timestamp'] = $ApplicationFeed['last_updated_timestamp'] ?? null;
 	writeJsonFile(CA_PATHS['lastUpdated-old'],$lastUpdated);
 
 	/* User-curated ignore list (set in the moderation Repository view) — any
@@ -526,9 +557,98 @@ function DownloadApplicationFeed() {
 	writeJsonFile(CA_PATHS['extraDeprecated'],$ApplicationFeed['deprecated']);
 
 	updatePluginSupport($myTemplates);
-	touch(CA_PATHS['haveTemplates']);
+	/* haveTemplates touch + ca_publish are handled by signalFeedReady()
+	   inside writeGlobals — fires the moment the small cache is on disk
+	   so other tabs can reload, regardless of whether the slim path or
+	   the full-feed fallback ran. The hydrate path writes only the full
+	   cache and stays silent so we don't double-fire. */
 
 	return true;
+}
+
+/**
+ * Inner worker for the background hydrate. Pulls the full `applicationFeed.json`
+ * (primary then GitHub backup), runs the same per-template pipeline
+ * `DownloadApplicationFeed()` runs, applies moderation, and writes both
+ * templates caches so install-time port-conflict detection and createXML
+ * have Config available.
+ *
+ * Returns one of "already_fresh" | "ok" | "failed" without touching the
+ * HTTP response, so it's safe to call from createXML's synchronous
+ * safety-net path as well as from the `hydrateFullFeed` action handler.
+ */
+function hydrateFullFeedWork(): string {
+	clearstatcache();
+	$devMode = ($GLOBALS['caSettings']['dev'] ?? null) === "yes";
+	/* tempFiles gets wiped on every DownloadApplicationFeed() entry, so the
+	   full cache file's mere existence means it was written by either a
+	   full-feed download or a prior hydrate — no stale state to worry about. */
+	if ( is_file(CA_PATHS['community-templates-info-full']) ) {
+		/* Backfill the dev-mode raw-feed snapshot in localONLY mode if dev
+		   mode got toggled on after the prior hydrate wrote the full cache
+		   without it. Cheap file copy — keeps the Diff button reachable
+		   without forcing a redownload. */
+		if ( CA_PATHS['localONLY'] && $devMode && ! is_file(CA_PATHS['rawAppFeed']) ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
+		}
+		return 'already_fresh';
+	}
+
+	if ( CA_PATHS['localONLY'] ) {
+		$ApplicationFeed = json_decode(file_get_contents(CA_PATHS['application-feed-local']), true);
+		$label = "Local (hydrate)";
+		/* Stash the local feed as the raw-feed snapshot for the dev-mode
+		   Diff button — same intent as the remote-path @copy below. */
+		if ( $devMode && is_array($ApplicationFeed['applist'] ?? null) && ! empty($ApplicationFeed['applist']) ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
+		}
+	} else {
+		$downloadURL = randomFile();
+		$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
+		$label = "Primary Server (hydrate)";
+		if ( (! is_array($ApplicationFeed['applist'] ?? null)) || empty($ApplicationFeed['applist']) ) {
+			$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 600, false);
+			$label = "Backup Server (hydrate)";
+		}
+		/* Dev mode: stash the raw applicationFeed.json snapshot before
+		   deleting the per-request tempfile so the Diff/Plugin/Template
+		   modals don't have to re-download it. The slim-feed download in
+		   DownloadApplicationFeed() never produced this cache (it grabs
+		   the slimmed-down file), so the full-feed hydrate is the
+		   responsible writer in the slim-first path. */
+		if ( is_array($ApplicationFeed['applist'] ?? null) && ! empty($ApplicationFeed['applist']) && $devMode ) {
+			@copy($downloadURL, CA_PATHS['rawAppFeed']);
+		}
+		@unlink($downloadURL);
+	}
+
+	if ( ! is_array($ApplicationFeed['applist'] ?? null) || empty($ApplicationFeed['applist']) ) {
+		return 'failed';
+	}
+
+	if ( ! processApplicationFeed($ApplicationFeed, $label) ) {
+		return 'failed';
+	}
+
+	/* Run moderation on the freshly-downloaded full templates so the
+	   on-disk full cache mirrors what force_update's full-feed branch
+	   would produce. The small cache was already written by the slim
+	   path that preceded us — don't overwrite it here. No feed-ready
+	   signal: that fired when writeGlobals wrote the small cache; the
+	   full-cache hydrate is silent so subscribers don't double-reload. */
+	moderateTemplates();
+	writeJsonFile(CA_PATHS['community-templates-info-full'], $GLOBALS['templates']);
+	return 'ok';
+}
+
+/**
+ * Background hydrate action — wraps hydrateFullFeedWork() with the standard
+ * postReturn payload. Triggered by JS once `force_update` returns success.
+ * Safe to call unconditionally; the worker short-circuits with
+ * "already_fresh" when the full cache is already on disk.
+ */
+function hydrateFullFeed() {
+	postReturn(['status' => hydrateFullFeedWork()]);
 }
 
 /**
@@ -1303,7 +1423,13 @@ function force_update() {
 	}
 	touch(CA_PATHS['gettingTemplates']);
 
-	getFullGlobals();
+	/* Load the slim cache, not the full one — moderateTemplates and
+	   buildUpdateScript only touch fields present in the slim copy, and
+	   writeGlobals at the end writes $GLOBALS['templates'] as-is to the
+	   small cache. Loading the full cache here would make the no-download
+	   path write the full templates (Config and all) back to the small
+	   cache, defeating the whole point of having two caches. */
+	getGlobals();
 
 	if (!empty(CA_PATHS['localONLY'])) {
 		ForceUpdateHelpers::resetTemplatesCache(true);
@@ -1329,10 +1455,13 @@ function force_update() {
 
 	//getConvertedTemplates();
 	moderateTemplates();
-	touch(CA_PATHS['haveTemplates']);
 	@unlink(CA_PATHS['gettingTemplates']);
 	$script = ForceUpdateHelpers::buildUpdateScript();
 
+	/* writeGlobals writes the slim cache (and fires the feed-ready signal).
+	   The full cache is filled in by hydrateFullFeedWork — there is no
+	   full-feed fallback in DownloadApplicationFeed anymore, so nothing
+	   here writes community-templates-info-full directly. */
 	writeGlobals($GLOBALS['templates']);
 	postReturn(['status' => "ok", 'script' => $script]);
 }
@@ -2016,6 +2145,18 @@ function caExtractXmlEntities(string $xml): array {
  * @return void
  */
 function createXML() {
+
+	/* Slim-feed path leaves the full cache absent — only the slim-feed
+	   download wrote the small cache; the full-cache write is deferred
+	   to hydrateFullFeedWork (kicked off by JS) or the fallback full-feed
+	   branch of force_update. If a fast-clicker hits Install before the
+	   background hydrate completes, run hydration synchronously here so
+	   adjustTemplatePorts() and the rest of the install pipeline have
+	   Config + Network. The tempFiles directory is wiped on every feed
+	   refresh, so file existence is a sufficient freshness signal. */
+	if ( ! is_file(CA_PATHS['community-templates-info-full']) ) {
+		hydrateFullFeedWork();
+	}
 
 	getFullGlobals();
 

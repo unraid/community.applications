@@ -3275,8 +3275,18 @@ input[type="button"] {
 	4) Third Party Components
 	========================================================================== */
 
-	/* Awesomplete Autocomplete Component */
-	.awesomplete {
+	/* Awesomplete Autocomplete Component.
+
+	   EVERY rule in this block is gated by `body.ca_searchModalOpen
+	   #searchFilter ...` so:
+	     - it only matches when CA's own search modal is open
+	     - it only matches OUR awesomplete instance (the one inside
+	       #searchFilter), never some other plugin's awesomplete
+	       elsewhere on the Unraid page
+	   Previously these were plain `.awesomplete ...` selectors and were
+	   trashing other plugins' awesomplete dropdowns by bleeding our
+	   colors / list styling / pointer-events rules onto them. */
+	body.ca_searchModalOpen #searchFilter .awesomplete {
 		/* Layout */
 		display: inline-block;
 		position: relative;
@@ -3284,11 +3294,11 @@ input[type="button"] {
 		color: inherit;
 	}
 
-	.awesomplete > input {
+	body.ca_searchModalOpen #searchFilter .awesomplete > input {
 		display: block;
 	}
 
-	.awesomplete > ul {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul {
 		/* Layout */
 		position: absolute;
 		left: 0;
@@ -3307,56 +3317,61 @@ input[type="button"] {
 		font-size: 1.5rem;
 	}
 
-	.awesomplete > ul:empty {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:empty {
 		display: none;
 	}
 
-	.awesomplete [hidden] {
+	body.ca_searchModalOpen #searchFilter .awesomplete [hidden] {
 		display: none;
 	}
 
 	/* While the Awesomplete dropdown is open, prevent the menu from scrolling (wheel events can
-	otherwise scroll the menu under the dropdown, causing scrollbars/indicators to appear). */
-	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems {
+	otherwise scroll the menu under the dropdown, causing scrollbars/indicators to appear). The
+	body:has() walks the subtree so the awesomplete inside #searchFilter still triggers it. */
+	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems {
 		overflow: hidden !important;
 	}
 
-	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:vertical,
-	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:horizontal {
+	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:vertical,
+	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:horizontal {
 		width: 0px !important;
 		height: 0px !important;
 	}
 
-	body:has(.awesomplete > ul:not([hidden]):not(:empty)) .ca_scroll_menuitems {
+	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .ca_scroll_menuitems {
 		display: none !important;
 	}
 
-	/* When Awesomplete is open, block clicks except the dropdown, toolbar SEARCH, and modal ? / X. */
-	body.ca_awesomplete_open * {
+	/* When Awesomplete is open, block clicks except the dropdown, toolbar SEARCH, and modal ? / X.
+	   `ca_awesomplete_open` is CA's own state class (only set by our code), so this block isn't
+	   bleeding into other plugins' awesomplete — but pair the search-modal gate alongside it for
+	   defense-in-depth: if `ca_awesomplete_open` ever lingers without `ca_searchModalOpen` due to
+	   a future bug, we don't silently disable pointer events on the entire page. */
+	body.ca_searchModalOpen.ca_awesomplete_open * {
 		pointer-events: none;
 	}
-	body.ca_awesomplete_open .awesomplete,
-	body.ca_awesomplete_open .awesomplete *,
-	body.ca_awesomplete_open .searchButton,
-	body.ca_awesomplete_open .caSearchModalIconControls,
-	body.ca_awesomplete_open .caSearchModalIconControls * {
+	body.ca_searchModalOpen.ca_awesomplete_open #searchFilter .awesomplete,
+	body.ca_searchModalOpen.ca_awesomplete_open #searchFilter .awesomplete *,
+	body.ca_searchModalOpen.ca_awesomplete_open .searchButton,
+	body.ca_searchModalOpen.ca_awesomplete_open .caSearchModalIconControls,
+	body.ca_searchModalOpen.ca_awesomplete_open .caSearchModalIconControls * {
 		pointer-events: auto;
 	}
 
-	.awesomplete .visually-hidden {
+	body.ca_searchModalOpen #searchFilter .awesomplete .visually-hidden {
 		position: absolute;
 		clip: rect(0, 0, 0, 0);
 	}
 
 	/* Awesomplete Animations */
 	@supports (transform: scale(0)) {
-		.awesomplete > ul {
+		body.ca_searchModalOpen #searchFilter .awesomplete > ul {
 			transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.5, 1.4);
 			transform-origin: 1.43em -0.43em;
 		}
 
-		.awesomplete > ul[hidden],
-		.awesomplete > ul:empty {
+		body.ca_searchModalOpen #searchFilter .awesomplete > ul[hidden],
+		body.ca_searchModalOpen #searchFilter .awesomplete > ul:empty {
 			opacity: 0;
 			transform: scale(0);
 			display: block;
@@ -3365,7 +3380,7 @@ input[type="button"] {
 	}
 
 	/* Awesomplete Dropdown Pointer */
-	.awesomplete > ul:before {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul:before {
 		content: "";
 		position: absolute;
 		top: -0.43em;
@@ -3381,31 +3396,31 @@ input[type="button"] {
 	}
 
 	/* Awesomplete List Items */
-	.awesomplete > ul > li {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li {
 		position: relative;
 		padding: 0.2em 0.5em;
 		cursor: pointer;
 	}
 
-	.awesomplete > ul > li:hover {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li:hover {
 		background: var(--ca-hsl-light-blue);
 		color: var(--ca-named-black);
 	}
 
-	.awesomplete > ul > li[aria-selected="true"] {
+	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li[aria-selected="true"] {
 		background: var(--ca-hsl-dark-blue);
 		color: var(--ca-named-white);
 	}
 
-	.awesomplete mark {
+	body.ca_searchModalOpen #searchFilter .awesomplete mark {
 		background: var(--ca-hsl-yellow);
 	}
 
-	.awesomplete li:hover mark {
+	body.ca_searchModalOpen #searchFilter .awesomplete li:hover mark {
 		background: var(--ca-hsl-light-yellow);
 	}
 
-	.awesomplete li[aria-selected="true"] mark {
+	body.ca_searchModalOpen #searchFilter .awesomplete li[aria-selected="true"] mark {
 		background: var(--ca-hsl-green);
 		color: inherit;
 	}

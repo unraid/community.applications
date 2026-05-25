@@ -534,18 +534,17 @@ $(function(){
 	});
 	downloadProgress.start();
 
-	// Start this subscriber only after the initial force_update has completed
-	// (we start it lazily from downloadStatistics()) so the tab doing the update
-	// never reloads itself, but other open CA tabs will.
+	/* Subscribe but defer the .start() until downloadStatistics() runs so the
+	   tab doing the initial force_update doesn't connect early and pile up
+	   spurious connect events. Messages are filtered by tab id: signalFeedReady
+	   publishes the originating tab's data.tabId so the tab that triggered the
+	   update skips its own message — only foreign tabs surface the banner. */
 	window.caGettingTemplatesSubStarted = false;
-	window.caGettingTemplatesSubIgnoreFirst = true;
 	window.caGettingTemplatesSub = new NchanSubscriber('/sub/ca_gettingTemplates',{subscriber:'websocket'});
 	window.caGettingTemplatesSub.on('message', function(message) {
-		if (window.caGettingTemplatesSubIgnoreFirst) {
-			window.caGettingTemplatesSubIgnoreFirst = false;
-			return;
-		}
 		if ( ! message ) return;
+		// Originating tab id from the server — skip if it's us.
+		if (data && data.tabId && message === data.tabId) return;
 		/* If a plugin / docker install (or any Unraid openPlugin / openDocker
 		   dialog) is currently on screen, hold the "another session updated
 		   the feed" notice until it's done — otherwise the viewport blocker
@@ -687,6 +686,12 @@ $(function(){
 					showSidebarApp(caSavedState.sidebarAppPath, caSavedState.sidebarAppName);
 				}
 			<? endif;?>
+			/* Restore path doesn't go through updateContent → downloadStatistics,
+			   so kick off downloadStatistics() directly. Beyond fetching stats,
+			   this is what arms the ca_gettingTemplates subscriber — without it
+			   a restored tab would never see the "another instance updated the
+			   feed" reload banner. */
+			downloadStatistics();
 		} else {
 			post({action:"defaultSortOrder"},function() {
 				myAlert("","<div class='ca_center caLogoIcon'></div><?tr('Community Applications');?><br><br><?tr('Updating Applications');?><br><span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span><div class='caButton ca_quitUpdate'>"+tr('Abort')+"</div></div>","","",false,false,false,"");
@@ -788,6 +793,13 @@ function updateContent(button,skipAppfeed=true) {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
 		}
+		/* If the initial download used the slim feed, the full templates
+		   cache is empty — kick off a background hydrate so install-time
+		   port-conflict detection and createXML have Config available by
+		   the time the user clicks Install. Server short-circuits with
+		   `already_fresh` when the full cache is already on disk, so this
+		   is safe to call unconditionally. */
+		postNoSpin({action:'hydrateFullFeed'});
 		getCategories(); /* now also re-applies count-based submenu gating */
 		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
 			var plugins = $.cookie("ca_plugininstallpending");
@@ -1126,7 +1138,6 @@ function getContent(init,category,description,newApp,startupDisplay) {
 function downloadStatistics() {
 	try {
 		if (window.caGettingTemplatesSub && !window.caGettingTemplatesSubStarted) {
-			window.caGettingTemplatesSubIgnoreFirst = true;
 			window.caGettingTemplatesSub.start();
 			window.caGettingTemplatesSubStarted = true;
 		}
