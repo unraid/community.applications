@@ -292,6 +292,13 @@ function DownloadApplicationFeed() {
 		if ( ! is_array($ApplicationFeed['applist'] ?? null) || empty($ApplicationFeed['applist']) ) {
 			return false;
 		}
+		/* Local feed IS the full applicationFeed.json (no slim/full split in
+		   localONLY mode), so stash it as the raw-feed snapshot for the
+		   dev-mode Diff button. Mirrors the @copy in hydrateFullFeedWork's
+		   remote path — without it, dev-mode diff is unreachable in localONLY. */
+		if ( ($GLOBALS['caSettings']['dev'] ?? null) === "yes" ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
+		}
 		return processApplicationFeed($ApplicationFeed, "Local") ? 'slim' : false;
 	}
 
@@ -572,16 +579,29 @@ function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bo
  */
 function hydrateFullFeedWork(): string {
 	clearstatcache();
+	$devMode = ($GLOBALS['caSettings']['dev'] ?? null) === "yes";
 	/* tempFiles gets wiped on every DownloadApplicationFeed() entry, so the
 	   full cache file's mere existence means it was written by either a
 	   full-feed download or a prior hydrate — no stale state to worry about. */
 	if ( is_file(CA_PATHS['community-templates-info-full']) ) {
+		/* Backfill the dev-mode raw-feed snapshot in localONLY mode if dev
+		   mode got toggled on after the prior hydrate wrote the full cache
+		   without it. Cheap file copy — keeps the Diff button reachable
+		   without forcing a redownload. */
+		if ( CA_PATHS['localONLY'] && $devMode && ! is_file(CA_PATHS['rawAppFeed']) ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
+		}
 		return 'already_fresh';
 	}
 
 	if ( CA_PATHS['localONLY'] ) {
 		$ApplicationFeed = json_decode(file_get_contents(CA_PATHS['application-feed-local']), true);
 		$label = "Local (hydrate)";
+		/* Stash the local feed as the raw-feed snapshot for the dev-mode
+		   Diff button — same intent as the remote-path @copy below. */
+		if ( $devMode && is_array($ApplicationFeed['applist'] ?? null) && ! empty($ApplicationFeed['applist']) ) {
+			@copy(CA_PATHS['application-feed-local'], CA_PATHS['rawAppFeed']);
+		}
 	} else {
 		$downloadURL = randomFile();
 		$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
@@ -596,8 +616,7 @@ function hydrateFullFeedWork(): string {
 		   DownloadApplicationFeed() never produced this cache (it grabs
 		   the slimmed-down file), so the full-feed hydrate is the
 		   responsible writer in the slim-first path. */
-		if ( is_array($ApplicationFeed['applist'] ?? null) && ! empty($ApplicationFeed['applist'])
-		     && ($GLOBALS['caSettings']['dev'] ?? null) === "yes" ) {
+		if ( is_array($ApplicationFeed['applist'] ?? null) && ! empty($ApplicationFeed['applist']) && $devMode ) {
 			@copy($downloadURL, CA_PATHS['rawAppFeed']);
 		}
 		@unlink($downloadURL);

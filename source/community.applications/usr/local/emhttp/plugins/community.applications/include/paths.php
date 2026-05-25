@@ -96,7 +96,7 @@ define("CA_PATHS",[
 	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
 	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
 	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
-	'rawAppFeed'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by DownloadApplicationFeed() ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
+	'rawAppFeed'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by hydrateFullFeedWork() (and the localONLY branch of DownloadApplicationFeed) ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
 	'caAdmin'                             => "/boot/config/plugins/community.applications/admin", /* marker file: when present alongside dev mode, exposes the Internal diff button */
 	'categoryList'                        => "$tempFiles/categoryList.json",
 	'repositoryList'                      => "$tempFiles/repositoryList.json",

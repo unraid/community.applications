@@ -686,6 +686,12 @@ $(function(){
 					showSidebarApp(caSavedState.sidebarAppPath, caSavedState.sidebarAppName);
 				}
 			<? endif;?>
+			/* Restore path doesn't go through updateContent → downloadStatistics,
+			   so kick off downloadStatistics() directly. Beyond fetching stats,
+			   this is what arms the ca_gettingTemplates subscriber — without it
+			   a restored tab would never see the "another instance updated the
+			   feed" reload banner. */
+			downloadStatistics();
 		} else {
 			post({action:"defaultSortOrder"},function() {
 				myAlert("","<div class='ca_center caLogoIcon'></div><?tr('Community Applications');?><br><br><?tr('Updating Applications');?><br><span class='updateContent-swal'>"+tr('Please Wait')+"</span><div class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span><div class='caButton ca_quitUpdate'>"+tr('Abort')+"</div></div>","","",false,false,false,"");
