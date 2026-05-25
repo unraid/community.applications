@@ -615,9 +615,9 @@ body,
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
 		display: inline-block !important;
 		margin-right: 1rem !important;
-		padding: 1px 10px !important;
-		font-size: 1.2rem !important;
-		line-height: 2rem !important;
+		padding: 2px 15px !important;
+		font-size: 1.8rem !important;
+		line-height: 3rem !important;
 		color: var(--support-popup-text) !important;
 		background: linear-gradient(
 		to bottom,

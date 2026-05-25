@@ -80,7 +80,6 @@ define("CA_PATHS",[
 	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults{$caTabSuffix}.json", /* per-tab */
 	'startupDisplayed'                    => "$tempFiles/startupDisplayed{$caTabSuffix}",      /* per-tab */
 	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
-	'localONLY'                           => false,    /* THIS MUST NOT BE SET TO TRUE WHEN DOING A RELEASE */
 	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
 	/* Slimmed-down feed: same shape as the full feed, just with each template's
 	   Config entries stripped out. Primary-only — GitHub backup serves only the
@@ -94,9 +93,8 @@ define("CA_PATHS",[
 	   pulling the full feed as a third try. */
 	'application-feed-smallBackup'        => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-small.json",
 	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
-	'application-feed-local'              => "/tmp/GitHub/AppFeed/applicationFeed.json",
 	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
-	'rawAppFeed'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by hydrateFullFeedWork() (and the localONLY branch of DownloadApplicationFeed) ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
+	'rawAppFeed'                       => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by hydrateFullFeedWork() ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
 	'caAdmin'                             => "/boot/config/plugins/community.applications/admin", /* marker file: when present alongside dev mode, exposes the Internal diff button */
 	'categoryList'                        => "$tempFiles/categoryList.json",
 	'repositoryList'                      => "$tempFiles/repositoryList.json",

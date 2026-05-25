@@ -23,6 +23,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Search suggestion buttons in the search popup are about 50% larger — easier to read and click, especially on a phone-sized viewport
 - Changed: Initial application-feed download now grabs a slimmed-down feed (no Config blocks) for a faster first paint — the full feed loads in the background so install-time port-conflict detection is ready by the time the user clicks Install
 - Changed: If the primary application feed is unreachable, CA now falls back to a slim copy hosted on GitHub instead of pulling the full feed as a second try
 - Fixed: Reloading Apps without a feed update no longer rewrites the small templates cache with the full-cache contents
