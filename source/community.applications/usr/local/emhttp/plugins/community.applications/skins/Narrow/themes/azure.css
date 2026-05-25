@@ -29,7 +29,7 @@
 		--ca-button-blue-hover: var(--unraid-66-color);
 		/* Green-button palette (.actionsUpdate). Same hover contract as
 		   the blue/red variants — lifts to brand orange. */
-		--ca-button-green: #1d8a1d;
+		--ca-button-green: #177817;
 		--ca-button-green-hover: var(--unraid-66-color);
 		--ca-legacy-background-color: var(--background-color,#e8e8e8);
 		--ca-search-modal-background: var(--ca-legacy-background-color);
