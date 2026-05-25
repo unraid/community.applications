@@ -287,23 +287,28 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 			$pluginUrlJs = json_encode((string)$template['PluginURL'], $jsFlags);
 			$supportContext[] = ["icon"=>"ca_fa-template","action"=>"caShowDevSource({$pluginUrlJs},true)","text"=>tr("Plugin"), "class"=>"ca_devMode"];
 		}
-		$diffPath = json_encode((string)($template['Path'] ?? ""), $jsFlags);
+		/* Pass the URL straight through to the diff endpoint so it can locate
+		   the appfeed entry without loading any templates cache — saves a
+		   huge memory load. TemplateURL for containers, PluginURL for the
+		   internal-diff button on plugins. */
 		$diffName = json_encode((string)($template['Name'] ?? ""), $jsFlags);
+		$diffContainerUrl = json_encode($templateUrl, $jsFlags);
+		$diffPluginUrl    = json_encode((string)($template['PluginURL'] ?? ""), $jsFlags);
 		/* Both Diff buttons go through caGetCachedApplicationFeed which reads
 		   the raw appfeed snapshot DownloadApplicationFeed() stashes to
-		   diffFeedCache (dev-mode only). Until that file lands on disk the
+		   rawAppFeed (dev-mode only). Until that file lands on disk the
 		   buttons can't do anything useful — hide them entirely rather than
 		   render an option that errors out on click. Handles the edge case
 		   of opening a sidebar before the background feed download finishes
 		   on a slow connection. */
-		$diffFeedReady = is_file(CA_PATHS['diffFeedCache']);
+		$diffFeedReady = is_file(CA_PATHS['rawAppFeed']);
 		/* Diff is container-only — plugin .plg payloads don't survive the
 		   array→XML round-trip cleanly and the resulting diff is more noise
 		   than signal. */
-		if ($diffFeedReady && empty($template['Plugin'])) {
+		if ($diffFeedReady && empty($template['Plugin']) && $templateUrl !== "") {
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
-				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'feed')",
+				"action" => "caShowTemplateDiff({$diffContainerUrl},{$diffName},'feed')",
 				"text"   => tr("Diff"),
 				"class"  => "ca_devMode",
 			];
@@ -312,9 +317,10 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		   when the admin marker file exists. Available for plugins too since
 		   neither side does a source-XML round-trip. */
 		if ($diffFeedReady && is_file(CA_PATHS['caAdmin'])) {
+			$diffUrl = !empty($template['Plugin']) ? $diffPluginUrl : $diffContainerUrl;
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
-				"action" => "caShowTemplateDiff({$diffPath},{$diffName},'internal')",
+				"action" => "caShowTemplateDiff({$diffUrl},{$diffName},'internal')",
 				"text"   => tr("CA"),
 				"class"  => "ca_devMode",
 			];

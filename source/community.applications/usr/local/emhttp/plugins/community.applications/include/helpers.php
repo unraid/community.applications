@@ -101,10 +101,40 @@ function writeGlobals($templates) {
 		unset($GLOBALS['templates']);
 		return;
 	}
-	$smallTemplates = duplicateArrayWithoutKeys($templates, ['Config','Network','MyIP','Shell','ExtraParams','PostArgs','CPUset','TailscaleEnabled','TailscaleIsExitNode','TailscaleDParams','TailscaleParams','TailscaleStateDir','TailscaleUserspaceNetworking']);
-	writeJsonFile(CA_PATHS['community-templates-info'],$smallTemplates);
-	writeJsonFile(CA_PATHS['community-templates-info-full'],$templates);
-	$GLOBALS['templates'] = $smallTemplates;
+	/* Write the templates as-is to the small cache — no second-pass strip.
+	   The server's slim feed already arrives without the heavy fields, and
+	   the full-feed fallback path explicitly writes the full cache itself
+	   via writeJsonFile() so we don't reiterate the array here. */
+	writeJsonFile(CA_PATHS['community-templates-info'], $templates);
+	$GLOBALS['templates'] = $templates;
+	/* Feed-ready signal fires here — the slim cache is what the UI reads
+	   for card rendering, so the moment it's on disk other open CA tabs can
+	   safely reload. The background full-feed hydrate only writes the full
+	   cache (via writeJsonFile directly, bypassing writeGlobals), so it
+	   doesn't re-fire the signal — install-time data hydrates silently. */
+	signalFeedReady();
+}
+
+/**
+ * Mark the templates feed as fully ready: touch the haveTemplates sentinel
+ * (gates enableActionCentre's wait loop) and publish on the
+ * `/sub/ca_gettingTemplates` nchan channel so other open CA tabs surface
+ * the reload banner. Should fire ONLY after the full templates cache has
+ * been written — slim-only state must keep this signal absent so background
+ * tabs aren't told the feed is ready before install-time Config data is
+ * actually on disk.
+ *
+ * The publish payload is the originating browser tab's id (from
+ * $_POST['tabId']) so the tab that triggered this update doesn't fire its
+ * own reload banner — the JS subscriber compares to its local tab id and
+ * skips when they match. Falls back to "1" if no tab id is on the request
+ * (e.g. when called from a sync safety-net path that wasn't POSTed by JS),
+ * which makes EVERY subscriber treat it as foreign and reload.
+ */
+function signalFeedReady() {
+	touch(CA_PATHS['haveTemplates']);
+	$originTabId = (string)($_POST['tabId'] ?? "");
+	ca_publish("ca_gettingTemplates", $originTabId !== "" ? $originTabId : "1");
 }
 
 /**

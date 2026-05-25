@@ -20,10 +20,13 @@
  * Dev-mode Diff button: fetch the unified diff between the appfeed entry and
  * the upstream template/.plg, then render it into the #caDiffView overlay.
  *
- * @param {string} appPath The template Path (matches appfeed Path/InstallPath)
+ * @param {string} templateUrl Template/Plugin URL — used server-side to look up
+ *                             the appfeed entry directly in the raw snapshot,
+ *                             so we don't load any templates cache.
  * @param {string} appName Display name for the dialog title
+ * @param {string} mode    "feed" (default) or "internal"
  */
-function caShowTemplateDiff(appPath, appName, mode) {
+function caShowTemplateDiff(templateUrl, appName, mode) {
 	mode = mode || "feed";
 	var $content = $("#caDiffContent");
 	if (!$content.length) return;
@@ -42,7 +45,7 @@ function caShowTemplateDiff(appPath, appName, mode) {
 	caShowTemplateDiff._seq = (caShowTemplateDiff._seq || 0) + 1;
 	var myReqId = caShowTemplateDiff._seq;
 
-	postNoSpin({ action: "getTemplateDiff", appPath: appPath, mode: mode }, function(result) {
+	postNoSpin({ action: "getTemplateDiff", templateUrl: templateUrl, mode: mode }, function(result) {
 		if (myReqId !== caShowTemplateDiff._seq) return;
 		if ($("#caDiffView").hasClass("ca_hide")) return;
 		$content.empty();
