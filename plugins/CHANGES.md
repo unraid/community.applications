@@ -23,6 +23,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: Plugin sidebar now shows the "Update" button when an update is available — the previous build silently dropped it on every sidebar open after the first
+- Fixed: Uninstalling a language pack now refreshes the application list immediately — cards were stuck showing "Installed" until you navigated away and back (Action Centre was unaffected)
 - Changed: Sidebar "Pin" button moved from the action button row to the support button row (right before any dev-mode buttons) — declutters the action row and groups the toggle with the other passive on/off buttons
 - Changed: Sidebar action buttons show "Unavailable until feed downloads" when opened before the background full-feed hydrate completes — buttons appear in place automatically the moment the hydrate finishes
 - Changed: When an app has an Update available, the "Install second" button is hidden in the sidebar — installing a second instance while an update is pending would have copied the old image anyway

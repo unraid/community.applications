@@ -553,17 +553,22 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 				/* `!=` (not `<`) is intentional: also fires when installed > feed,
 				   so a user can roll back to the feed version via the Update action. */
 				if ($template['installedVersion'] != $template['pluginVersion'] || (is_file("/tmp/plugins/$pluginName") && $template['installedVersion'] != ca_plugin("version","/tmp/plugins/$pluginName"))) {
-					if (is_file(CA_PATHS['pluginTempDownload'])) {
-						@copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
-						$template['UpdateAvailable'] = true;
-						/* json_encode the string args so a hostile feed value can't break out
+					/* `@copy` is best-effort: pluginTempDownload may or may not be
+					   present (only the install/update flow stages it). When it's
+					   missing the copy no-ops; the Update button still emits so the
+					   sidebar matches the card's caProcessPluginTemplate path. The
+					   prior `is_file(...)` gate around this whole block was dead —
+					   nothing in the runtime produces pluginTempDownload during a
+					   plain sidebar open, so plugins never showed an Update action. */
+					@copy(CA_PATHS['pluginTempDownload'],"/tmp/plugins/$pluginName");
+					$template['UpdateAvailable'] = true;
+					/* json_encode the string args so a hostile feed value can't break out
 					   of the JS string literal — produces a properly-quoted JS string and
 					   escapes `<`/`>`/`&`/`'`/`"` for safety in the surrounding HTML
 					   attribute. The emit-side htmlspecialchars in skin.php is the
 					   second layer; this is the first. */
 					$pluginNameJs = json_encode($pluginName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
 					$actionsContext[] = ["icon"=>"ca_fa-update","text"=>tr("Update"),"action"=>"installPlugin({$pluginNameJs},true);"];
-					}
 				} else {
 					$template['UpdateAvailable'] = false;
 				}
