@@ -508,9 +508,6 @@ $(function(){
 	<? endif; ?>
 	if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
 	if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
-	<?if ( CA_PATHS['localONLY'] == true ):?>
-		addBannerWarning("*** LOCAL FEED RUNNING - DO NOT RELEASE ***",true,true);
-	<?endif;?>
 	context.init({preventDoubleContext:false,left:true,above:'auto'});
 
 	var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
