@@ -92,7 +92,37 @@ if ( ! $sortOrder ) {
 ##                                        ##
 ############################################
 $GLOBALS['action'] = $_POST['action'] ?? "Unknown";
+
+/* Cross-tab feed-update detection. JS sets caFeedCheck=true on every
+   request from a tab that has previously called `registerTab` (which
+   creates a per-tab marker file at CA_PATHS['registeredTabs']/{tabId}).
+   If the marker is now missing, another tab has triggered a feed
+   download (which wipes the entire tempFiles directory, including the
+   registered-tabs subfolder) and this tab is operating on stale state —
+   short-circuit the action and tell JS to throw up the reload banner.
+   Cheap is_file check on every request, no nchan, no buffered-message
+   race. The tab that initiated the download re-registers itself inside
+   DownloadApplicationFeed before returning, so the driving tab stays
+   in sync. */
+if ( ! empty($_POST['caFeedCheck']) ) {
+	$_caTabIdForCheck = (string)($_POST['tabId'] ?? '');
+	if ($_caTabIdForCheck === '' || ! file_exists(CA_PATHS['registeredTabs'] . '/' . basename($_caTabIdForCheck))) {
+		postReturn(['feedUpdated' => true]);
+		return;
+	}
+}
+
 switch ($_POST['action']) {
+	case 'registerTab':
+		/* Bootstrap-time tab registration. JS calls this once after the
+		   tab finishes its initial load and before arming the feedCheck
+		   flag. Creates the marker file the pre-switch guard checks.
+		   Reports back whether the marker is actually on disk so the
+		   client only arms its caFeedCheck flag against a real
+		   registration — ensureTabRegistered rejects malformed tabIds
+		   and mkdir/touch failures otherwise. */
+		postReturn(['status' => ensureTabRegistered() ? 'ok' : 'failed']);
+		break;
 	case 'get_content':
 		caRequireSkin();
 		get_content();
@@ -1359,6 +1389,12 @@ function get_content() {
 function force_update_skip() {
 	clearstatcache();
 	if ( ! is_file(CA_PATHS['gettingTemplates']) && is_file(CA_PATHS['community-templates-info']) ) {
+		/* Tab is exiting with the slim cache it walked in expecting. If
+		   another tab's DownloadApplicationFeed wiped the registry while
+		   this request was in flight (or between the tab's registerTab
+		   and this call), the marker is gone — re-register here so a
+		   subsequent caFeedCheck doesn't false-positive as stale. */
+		ensureTabRegistered();
 		postReturn(['status' => "ok"]);
 		return;
 	}
@@ -1385,7 +1421,12 @@ function force_update() {
 			sleep(1);
 			clearstatcache();
 		}
-		// Another process should have refreshed templates; return.
+		/* The other tab's DownloadApplicationFeed wiped tempFiles
+		   (including this tab's marker) during the wait. The wait-
+		   then-ok path is now in sync with that fresh feed, so
+		   re-register here — otherwise a subsequent caFeedCheck on
+		   this tab would falsely surface the stale-feed banner. */
+		ensureTabRegistered();
 		postReturn(['status' => "ok"]);
 		return;
 	}
@@ -1408,6 +1449,8 @@ function force_update() {
 		ForceUpdateHelpers::resetTemplatesCache();
 	}
 
+	/* Track whether THIS invocation actually pulled a fresh feed. */
+	$freshlyDownloaded = false;
 	if (!ForceUpdateHelpers::templatesAvailable()) {
 		if (!DownloadApplicationFeed()) {
 			@unlink(CA_PATHS['gettingTemplates']);
@@ -1415,18 +1458,36 @@ function force_update() {
 			postReturn(ForceUpdateHelpers::buildDownloadFailureResponse());
 			return;
 		}
+		$freshlyDownloaded = true;
 	}
 
-	//getConvertedTemplates();
-	moderateTemplates();
 	@unlink(CA_PATHS['gettingTemplates']);
 	$script = ForceUpdateHelpers::buildUpdateScript();
 
-	/* writeGlobals writes the slim cache (and fires the feed-ready signal).
-	   The full cache is filled in by hydrateFullFeedWork — there is no
-	   full-feed fallback in DownloadApplicationFeed anymore, so nothing
-	   here writes community-templates-info-full directly. */
-	writeGlobals($GLOBALS['templates']);
+	/* Only moderate + write back when we actually downloaded a fresh feed.
+	   On a no-download cycle the cache already on disk is the output of
+	   the last download's moderation pass — re-running moderateTemplates +
+	   writeGlobals would write identical bytes back, and only fires the
+	   cross-tab "feed updated" banner unnecessarily. The one input that
+	   could legitimately change moderation results between cycles without
+	   a download is the Unraid version (Compatible / Deprecated / Featured
+	   flags depend on it), and an OS-version change requires a reboot —
+	   which wipes /tmp, including the templates cache, so the next
+	   force_update reaches DownloadApplicationFeed and rebuilds anyway.
+	   The full cache is filled in by hydrateFullFeedWork separately. */
+	if ($freshlyDownloaded) {
+		moderateTemplates();
+		writeGlobals($GLOBALS['templates']);
+	}
+	/* Re-register the calling tab. If this invocation triggered
+	   DownloadApplicationFeed, the wipe took the marker with it and we
+	   need to restore it. If this was a no-download cycle, the marker
+	   either still exists from registerTab (re-touch is a no-op) or
+	   was wiped by ANOTHER tab's concurrent download since registerTab
+	   — in which case this tab is now in sync with that fresh feed
+	   (templates were just re-read from the post-download cache) and
+	   should be re-registered. Either way, idempotent. */
+	ensureTabRegistered();
 	postReturn(['status' => "ok", 'script' => $script]);
 }
 

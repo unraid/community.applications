@@ -80,6 +80,18 @@ define("CA_PATHS",[
 	'community-templates-catSearchResults'=> "$tempFiles/catSearchResults{$caTabSuffix}.json", /* per-tab */
 	'startupDisplayed'                    => "$tempFiles/startupDisplayed{$caTabSuffix}",      /* per-tab */
 	'repositoriesDisplayed'               => "$tempFiles/repositoriesDisplayed{$caTabSuffix}.json", /* per-tab */
+	/* Dedicated tab-registration sentinel directory. Each registered tab
+	   gets a (touched, content-less) file at "$registeredTabs/{tabId}".
+	   DownloadApplicationFeed wipes the whole `tempFiles/` tree, taking
+	   the registry with it — so any tab still operating against the old
+	   feed has no marker on disk, and its next request triggers the
+	   "another tab updated the feed" reload banner via the pre-switch
+	   guard in exec.php. The action that initiated the download
+	   re-registers itself before returning, so the user-driving tab
+	   stays in sync. JS arms `window.caFeedTrackingArmed` only after a
+	   successful `registerTab` action so the guard isn't checked before
+	   the marker exists. */
+	'registeredTabs'                      => "$tempFiles/registeredID",
 	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
 	/* Slimmed-down feed: same shape as the full feed, just with each template's
 	   Config entries stripped out. Primary-only — GitHub backup serves only the

@@ -23,11 +23,14 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Sidebar "Pin" button moved from the action button row to the support button row (right before any dev-mode buttons) — declutters the action row and groups the toggle with the other passive on/off buttons
+- Changed: Sidebar action buttons show "Unavailable until feed downloads" when opened before the background full-feed hydrate completes — buttons appear in place automatically the moment the hydrate finishes
+- Changed: When an app has an Update available, the "Install second" button is hidden in the sidebar — installing a second instance while an update is pending would have copied the old image anyway
+- Fixed: Another browser tab updating the application feed no longer requires the current tab to be lucky with timing to see the reload banner — the check now runs the next time the user does anything on the stale tab, instead of relying on a real-time push that could be missed
 - Changed: Search suggestion buttons in the search popup are about 50% larger — easier to read and click, especially on a phone-sized viewport
 - Changed: Initial application-feed download now grabs a slimmed-down feed (no Config blocks) for a faster first paint — the full feed loads in the background so install-time port-conflict detection is ready by the time the user clicks Install
 - Changed: If the primary application feed is unreachable, CA now falls back to a slim copy hosted on GitHub instead of pulling the full feed as a second try
 - Fixed: Reloading Apps without a feed update no longer rewrites the small templates cache with the full-cache contents
-- Fixed: The tab that triggered a feed refresh no longer surfaces its own "another instance updated the feed" reload banner — the publish now carries the originating tab's id and the subscriber skips messages it sent itself
 - Fixed: CA's search-modal autocomplete styling no longer leaks onto other Unraid plugins' awesomplete dropdowns elsewhere on the page
 - Changed: Developer-mode template Diff button now passes the template URL straight to the server instead of looking it up by Path — drops two huge in-memory copies of the templates array and keeps the diff under PHP's 256M memory limit on large feeds
 - Added: "Use whole display window" setting (Settings panel, default off, 7.2+ only) — reclaims the Unraid OS header strip so the app browsing area fills the full browser window

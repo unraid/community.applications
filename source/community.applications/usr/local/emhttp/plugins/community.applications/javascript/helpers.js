@@ -803,6 +803,19 @@ function post(options,callback) {
 	if (options && typeof options === "object" && !options.tabId && typeof data !== "undefined" && data.tabId) {
 		options.tabId = data.tabId;
 	}
+	/* Cross-tab feed-update detection. Once a tab has rendered its first
+	   content (Apps.page arms caFeedTrackingArmed in get_content's success
+	   callback — at which point displayed-{tabId}.json is guaranteed to
+	   exist on disk), every subsequent request carries caFeedCheck=true.
+	   exec.php's pre-switch guard re-checks the file's existence; if
+	   another tab triggered a DownloadApplicationFeed (which wipes
+	   tempFiles), the file is gone and the server short-circuits with
+	   feedUpdated=true — the done callback below shows the reload banner.
+	   No nchan, no buffered-message race; the check only fires when the
+	   user actually does something on a stale tab. */
+	if (window.caFeedTrackingArmed && !options.caFeedCheck) {
+		options.caFeedCheck = true;
+	}
 	if ( ! options.noSpinner ) {
 		if ( postCount == 0) {
 			if ( ! $(".ca_sweetalert_open").length ) {
@@ -814,6 +827,24 @@ function post(options,callback) {
 	}
 
 	$.post(execURL,options).done(function(result) {
+		/* Server's pre-switch guard short-circuited: another tab triggered
+		   a feed download while this tab was sitting around, our per-tab
+		   displayed cache is gone, and the action we were about to do
+		   would be running against stale state. Show the reload banner
+		   and stop processing this response (no script eval, no caller
+		   callback — they'd be operating on the empty {feedUpdated:true}
+		   payload anyway). */
+		if (result && result.feedUpdated) {
+			if (typeof caHandleForeignFeedUpdate === "function") {
+				caHandleForeignFeedUpdate();
+			}
+			if ( ! options.noSpinner ) {
+				postCount--;
+				if (postCount < 0) postCount = 0;
+				if (postCount === 0) myCloseSpinner();
+			}
+			return;
+		}
 		if (result.script) {
 			try {
 				eval(result.script);

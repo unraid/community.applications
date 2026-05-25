@@ -513,6 +513,23 @@ function displayPopup($template) {
 		}
 	}
 
+	/* When an Update is available, drop "Install second" from the install
+	   bucket. The combination doesn't make sense: a second instance of an
+	   app that has an update pending would install at the old image
+	   version anyway (createXML reads the same template), and offering
+	   both nudges the user toward the wrong action. Updating first is
+	   the right path; Install second can come back the next time the
+	   sidebar opens (no update pending). */
+	if (!empty($rightUpdateActionItems)) {
+		$rightInstallActionItems = array_values(array_filter(
+			$rightInstallActionItems,
+			static function ($item) {
+				$text = trim(strip_tags((string)($item['text'] ?? "")));
+				return $text !== tr("Install second") && $text !== "Install second";
+			}
+		));
+	}
+
 	ob_start();
 	?>
 	<div class='popup'>
@@ -536,10 +553,33 @@ function displayPopup($template) {
 					<?php /* Support buttons stay in the popup body and scroll
 					         with the rest of the content. Action buttons live
 					         in .popupStickyActions below this block and get
-					         relocated to the close area by JS. */ ?>
-					<?php if (!empty($supportContext)): ?>
+					         relocated to the close area by JS. The Pin button
+					         used to live in .popupStickyActions too; now it
+					         sits at the end of this row, slotted in just
+					         before the first dev-mode button (if any) so the
+					         dev-only stuff stays grouped at the far end. */ ?>
+					<?php
+					$showPin = ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin);
+					/* Index where the pin should be inserted in the support
+					   row. Default: after all support buttons (length). If a
+					   support entry carries `ca_devMode` in its class field,
+					   the pin slots in just before it instead. */
+					$pinInsertIdx = $showPin ? count($supportContext) : -1;
+					if ($showPin) {
+						foreach ($supportContext as $_pinIdx => $_pinSc) {
+							if (strpos((string)($_pinSc['class'] ?? ''), 'ca_devMode') !== false) {
+								$pinInsertIdx = $_pinIdx;
+								break;
+							}
+						}
+					}
+					?>
+					<?php if (!empty($supportContext) || $showPin): ?>
 						<div class='popupSupportRow'>
-							<?php foreach ($supportContext as $sc): ?>
+							<?php foreach ($supportContext as $_scIdx => $sc): ?>
+								<?php if ($showPin && $_scIdx === $pinInsertIdx): ?>
+									<div class='caButton supportPopup pinPopup <?= htmlspecialchars((string)$pinnedClass, ENT_QUOTES) ?>' data-repository='<?= htmlspecialchars((string)$Repository, ENT_QUOTES) ?>' data-name='<?= htmlspecialchars((string)$SortName, ENT_QUOTES) ?>'><span><?= tr("Pin") ?></span></div>
+								<?php endif; ?>
 								<?php
 								/* Optional caller-supplied extra class (e.g. ca_devMode for
 								   dev-mode-only buttons) — appended to the static caButton +
@@ -552,6 +592,9 @@ function displayPopup($template) {
 									<div class='caButton supportPopup<?= $scExtraClass ?>'><a href='<?= htmlspecialchars($sc['link'], ENT_QUOTES) ?>' target='_blank'><span class='<?= $sc['icon'] ?>'> <?= $sc['text'] ?></span></a></div>
 								<?php endif; ?>
 							<?php endforeach; ?>
+							<?php if ($showPin && $pinInsertIdx >= count($supportContext)): ?>
+								<div class='caButton supportPopup pinPopup <?= htmlspecialchars((string)$pinnedClass, ENT_QUOTES) ?>' data-repository='<?= htmlspecialchars((string)$Repository, ENT_QUOTES) ?>' data-name='<?= htmlspecialchars((string)$SortName, ENT_QUOTES) ?>'><span><?= tr("Pin") ?></span></div>
+							<?php endif; ?>
 						</div>
 					<?php endif; ?>
 
@@ -575,6 +618,18 @@ function displayPopup($template) {
 			         (community.applications.css) relies on this DOM order to
 			         right-align the right group as one contiguous block. */ ?>
 			<div class='popupStickyActions'>
+				<?php /* While the full-feed hydrate is still in flight (background fetch
+				         kicked off after the slim-feed bootstrap finishes), the action
+				         buttons can't do anything useful — Install / Reinstall /
+				         Install-second-instance / Edit all need Config blocks that only
+				         live in the full feed. Surface a "wait for the feed" message in
+				         the action-row slot instead. Existence check on the full-cache
+				         JSON is the canonical "hydrate complete" signal. Refreshing the
+				         sidebar (re-clicking the card) after the hydrate finishes will
+				         re-render this block with the live buttons. */ ?>
+				<?php if ( ! is_file(CA_PATHS['community-templates-info-full']) ): ?>
+					<div class='caFeedPending'><?= tr("Unavailable until feed downloads") ?></div>
+				<?php else: ?>
 				<?php /* Always htmlspecialchars(..., ENT_QUOTES) the action onclick — these
 				         strings get built with interpolated template data (RequiresFile,
 				         pluginName, paths, etc.) and an unescaped emit lets a hostile
@@ -616,9 +671,8 @@ function displayPopup($template) {
 					<?php endif; ?>
 				<?php endforeach; ?>
 
-				<?php if ($LanguagePack !== "en_US" && ! $Blacklist && ! $NoPin): ?>
-					<div class='caButton pinPopup <?= htmlspecialchars((string)$pinnedClass, ENT_QUOTES) ?>' data-repository='<?= htmlspecialchars((string)$Repository, ENT_QUOTES) ?>' data-name='<?= htmlspecialchars((string)$SortName, ENT_QUOTES) ?>'><span><?= tr("Pin") ?></span></div>
-				<?php endif; ?>
+				<?php /* Pin button moved to .popupSupportRow above — see the
+				         insertion block in the support section. */ ?>
 
 				<?php /* === RIGHT BLUE GROUP — install-family ===================== */ ?>
 				<?php if (!empty($installFirstAction['action'])): ?>
@@ -654,6 +708,7 @@ function displayPopup($template) {
 				<?php if (!empty($popupUninstallAction['action'])): ?>
 					<div class='caButton actionsPopup actionsUninstall'><span onclick="<?= htmlspecialchars($popupUninstallAction['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($popupUninstallAction['text'] ?? tr("Uninstall")))), ENT_QUOTES) ?></span></div>
 				<?php endif; ?>
+				<?php endif; /* full-feed-present guard */ ?>
 			</div>
 
 			<?= $ModeratorCommentBlock ?>
