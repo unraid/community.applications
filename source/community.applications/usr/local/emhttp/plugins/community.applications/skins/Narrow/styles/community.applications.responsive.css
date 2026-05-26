@@ -30,6 +30,61 @@ body {
 	scrollbar-width: none;
 }
 
+/* Layout-positioning vars (7.2+ path).
+ *
+ * On pre-7.2 these are defined per-CA-theme in `themes/{name}.css` (which
+ * loads only on legacy OS). On 7.2+ CA's theme file isn't loaded — the
+ * positioning is driven instead by the dynamix layout class on <body>
+ * (`Theme--sidebar` when the OS sidebar nav is active, `Theme--nav-top`
+ * when the top nav is active), with a theme-name override for the one
+ * outlier (azure's beta popup sits closer to the search row).
+ *
+ * Defaults match the nav-top layout — they apply when no layout class is
+ * present and provide a safe fallback. The `.Theme--sidebar` block shifts
+ * the search area right past the OS sidebar's left rail.
+ */
+:root {
+	--search-area-top: 1rem;
+	--search-area-left: 1rem;
+	--search-area-mobile-left: initial;
+	--beta-popup-offset: 5rem;
+
+	/* Layout measurements consumed by the shared `.ca_display_area` /
+	   `.menuItems` calc in main CSS:
+	     - `--ca-header-image-height` — vertical space the OS header
+	       strip reserves on desktop. Collapses to 0 in the `<1024px`
+	       and whole-window blocks below so CA can reclaim it.
+	     - `--ca-menu-height` — height of the CA top-bar / menu row.
+	       4rem default; doubles to 8rem on `<768px` for the nav-top
+	       layout where the toolbar wraps to two rows. Sidebar layout
+	       overrides this to 0px (no top-bar at all).
+	     - `--ca-theme-top-offset` — chrome above the cards (search
+	       row + spacing). 5rem nav-top default / 3rem sidebar.
+
+	   On <7.2 these are redeclared per-theme in legacy-colors.css
+	   since the legacy layout has different chrome math anyway. */
+	--ca-header-image-height: 91px;
+	--ca-menu-height: 4rem;
+	--ca-theme-top-offset: 5rem;
+	--ca-menu-top-offset: 4rem;
+}
+.Theme--sidebar {
+	--search-area-top: 1rem;
+	--search-area-left: 65px;
+	
+
+	/* Sidebar layout has no top-bar (`--ca-menu-height: 0`) and tighter
+	   above-card chrome (`--ca-theme-top-offset: 3rem`). Header image
+	   height matches nav-top — `--ca-header-image-height` isn't
+	   layout-dependent, only viewport-dependent. */
+	--ca-menu-height: 0px;
+	--ca-theme-top-offset: 3rem;
+	--ca-menu-top-offset: 4rem;
+}
+.Theme--azure {
+	--beta-popup-offset: 1.5rem;
+}
+
 /* Full-height mode — three condition contexts that need the same set of
    tweaks (hide the Unraid OS #header, shift various tops up by the
    reclaimed chrome height). The source of truth is the
@@ -47,46 +102,32 @@ body {
 body:has(.ca_useWholeDisplayWindow) #header {
 	display: none !important;
 }
-.Theme--nav-top body:has(.ca_useWholeDisplayWindow) .ca_display_area {
-	top: 11rem;
+/* Zero out the header strip's reserved height when the user hides the
+   OS header — main CSS reserves 91px by default, drop to 0 here so the
+   rest of CA's layout reclaims the strip. The `@media (max-width: 1024px)`
+   block below does the same automatically for narrow viewports. */
+body:has(.ca_useWholeDisplayWindow) {
+	--ca-header-image-height: 0px;
 }
-.Theme--sidebar body:has(.ca_useWholeDisplayWindow) .ca_display_area {
-	top: 2rem;
-}
-.Theme--nav-top body:has(.ca_useWholeDisplayWindow) .menuItems {
-	top: 10.5rem;
-}
-.Theme--sidebar body:has(.ca_useWholeDisplayWindow) .menuItems {
-	top: 4rem;
-}
+/* `.ca_display_area` + `.menuItems` get their `top` from the shared
+   calc in main CSS for both layouts — `--ca-header-image-height`
+   flipping to 0 above pulls them up automatically. No layout-specific
+   whole-window overrides needed. */
 
 @media (max-width: 1024px) {
 	/* Condition 2: automatic on mobile width. */
 	#header {
 		display: none !important;
 	}
-	.Theme--nav-top .ca_display_area {
-		top: 11rem;
-	}
-	.Theme--sidebar .ca_display_area {
-		top: 2rem;
-	}
-	.Theme--nav-top .menuItems {
-		top: 10.5rem;
-	}
-	.Theme--sidebar .menuItems {
-		top: 4rem;
-	}
+	/* `.ca_display_area` + `.menuItems` get their top from the shared
+	   calc in main CSS for both layouts — at this breakpoint
+	   `--ca-header-image-height` flips to 0px (above) so they auto-
+	   shift up regardless of layout. */
 
 	.searchAreaHolder {
 		height:4rem;
-		padding-left: 2rem;
 	}
-	.Theme--sidebar .searchAreaHolder {
-		margin-left: 5rem;
-		left: 0;
-		width: 16rem;
-	}
+
 	.searchArea {
 		padding-left: 0;
 		margin-left: 0;
@@ -96,6 +137,9 @@ body:has(.ca_useWholeDisplayWindow) #header {
 	}
 	:root {
 		--mobileDevice: true;
+		/* OS header strip is hidden at this breakpoint (see `#header`
+		   rule above) so the reserved height collapses to 0 as well. */
+		--ca-header-image-height: 0px;
 	}
 	#ca_mobile_layout_probe {
 		left: 0;
@@ -118,7 +162,6 @@ body:has(.ca_useWholeDisplayWindow) #header {
 		outline: none !important;
 		box-shadow: none !important;
 	}
-	.mfp-close:hover,
 	.mfp-close:focus,
 	.mfp-close:focus-visible,
 	.mfp-close:active {
@@ -129,6 +172,14 @@ body:has(.ca_useWholeDisplayWindow) #header {
 	}
 }
 @media (max-width: 767px) {
+	/* At narrow viewports the nav-top toolbar wraps onto a second line,
+	   so the reserved menu height doubles from 4rem (one row) to 8rem
+	   (two rows). Sidebar layout doesn't have a top toolbar, so its
+	   `--ca-menu-height: 0px` from main CSS stays put. */
+	.Theme--nav-top {
+		--ca-menu-height: 8rem;
+	}
+
 	/* On very narrow viewports the top-bar action buttons (SEARCH /
 	   DockerHub / Apps / Sort) drop their text label and show as icon-
 	   only. The icon ::before margin-right also gets zeroed since
@@ -183,9 +234,11 @@ body:has(.ca_useWholeDisplayWindow) #header {
 		--ca-scrim-transition-duration: 0s;
 		--ca-scrim-transition-ease: linear;
 	}
-	.Theme--nav-top .ca_display_area {
-		top: 14rem;
-	}
+	/* `.Theme--nav-top .ca_display_area` top removed — handled by the
+	   shared calc in main CSS. At this breakpoint the nav-top calc
+	   resolves to `0px + 8rem + 5rem = 13rem` (was hardcoded `14rem`).
+	   To tune: change `--ca-theme-top-offset` in main CSS (currently
+	   5rem nav-top / 3rem sidebar). */
 	body {
 		overflow-x: unset !important;
 		width: initial;
@@ -203,11 +256,14 @@ body:has(.ca_useWholeDisplayWindow) #header {
 	#header {
 		display: none;
 	}
-	.searchAreaHolder {
-		top: var(--search-area-mobile-top);
-	}
+
 	.Theme--nav-top .searchAreaHolder {
 		padding-left: 0;
+	}
+	.Theme--sidebar .searchAreaHolder {
+		background-color: var(--background-color);
+		width: 15rem;
+		margin-top: -1rem;
 	}
 	/* Nav-top: narrow the search bar to make room for the open menu strip. */
 	.Theme--nav-top .searchAreaHolder.menuShowing {
@@ -258,20 +314,12 @@ body:has(.ca_useWholeDisplayWindow) #header {
 		padding-left: 1rem;
 	}
 	.Theme--sidebar .menuItems {
-		top: 2.5rem;
+		/* `top` removed — shared calc in main CSS handles it. */
 		bottom: 0;
 	}
-	/* Sidebar themes — pull the inline menu strip flush against the rail when
-	   the mobile menu is showing. */
-	.Theme--sidebar .menuItems.menuShowing {
-		margin-left: -1rem;
-	}
-	.Theme--sidebar .mainArea {
-		top: 3rem;
-	}
-	.Theme--sidebar .ca_display_area {
-		top: 1rem;
-	}
+
+	/* `.Theme--sidebar .ca_display_area` top removed — shared calc in
+	   main CSS handles it. */
 	/* On mobile sidebar layouts the menu doesn't reserve a top bar, so the
 	   .ca_modal_overlay should fill the whole viewport — override the
 	   `top: 8rem` push-down applied at body.menuShowing in the desktop CSS. */

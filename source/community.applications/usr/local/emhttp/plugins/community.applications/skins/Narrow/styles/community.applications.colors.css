@@ -1,79 +1,167 @@
 /* ==========================================================================
 	Community Applications Color Variables
+
+	Goal: zero theme-specific tuning lives in CA on 7.2+. Switching the
+	OS theme (including custom user-defined themes) reroutes every color
+	in CA automatically.
+
+	Three tiers:
+	  1. Theme-defined dynamix vars (`--brand-red`, `--bg-opacity-10`,
+	     `--text-color`, etc.) — adapt per-theme. PREFERRED.
+	  2. Dynamix base palette vars (`--white`, `--gray-500`, etc.) —
+	     fixed values, theme-invariant. Used for "this color is always
+	     X" cases (button text, near-black accents) where there's no
+	     theme equivalent.
+	  3. CA-private literals — last resort, only for things with no
+	     dynamix counterpart at all (purple/teal accents the rest of
+	     Unraid doesn't use, mislabeled load-bearing legacy values).
+
+	No `var(--X, fallback)` fallbacks below — every dynamix name CA
+	references is supplied by either the OS itself (7.2+) or our
+	per-theme polyfill files (<7.2, `themes/{azure,black,gray,white}.css`).
+	If you add a new dynamix-var dependency here, make sure all four
+	polyfill files declare it too.
 	========================================================================== */
 
 :root {
-	/* Text Colors */
-	--ca-red-color: #882626;
-	--ca-green-color: #038503;
-	--ca-warning-color: #bdbd14;
-	--ca-white-color: #fff;
-	--ca-grey-color: #626868;
-	--ca-dark-grey-color: #040404;
-	--ca-light-grey-color: #bb0000;
-	--ca-teal-color: #1fa67a;
-	--ca-red-error-color: #f34646;
-	--ca-dark-blue-color: #606E7F;
-	--ca-yellow-color: #cecc31;
-	--ca-orange-color: #F15A2C;
-	--ca-purple-color: #322fff;
-	--ca-dark-purple-color: #854153;
-	--ca-dark-green-color: #008100;
-	--ca-dark-red-color: #810000;
-	--ca-dark-orange-color: #009900;
-	--ca-light-bg-color: #DDDADF;
-	--ca-dark-bg-color: #0b0b0b;
-	--ca-medium-bg-color: #444;
-	--ca-light-text-color: #BDBDBD;
-	--ca-lighter-text-color: #F3F3F3;
-	--ca-medium-text-color: #CCC;
-	--ca-dark-text-color: #333;
-	--ca-medium-dark-color: #3F3F3F;
+	/* === Theme-tracking colors (Tier 1) =====================================
+	   Resolve via dynamix theme vars and adapt with the OS theme. */
 
-	/* Opacity Colors */
-	--ca-shadow-color: rgba(255, 140, 47, 0.5);
+	/* Pending-text blink, suggestion-mark fallback, error indicators —
+	   all want "the red Unraid is currently using". `--brand-red` is
+	   defined per-theme in dynamix and resolves to `--red-800` by default
+	   (custom themes can override). */
+	--ca-red-color: var(--brand-red);
+	--ca-red-error-color: var(--brand-red);
+
+	/* Mask-gradient fade endpoint — used as the low-alpha end of a
+	   linear-gradient mask. `--bg-opacity-10` is dynamix's theme-aware
+	   10%-alpha overlay (rgba(0,0,0,0.1) on light themes, rgba(255,255,255,0.1)
+	   on dark themes — only the alpha matters for a mask). */
+	--ca-white-overlay-light: var(--bg-opacity-10);
+
+	/* Button text on the colored action buttons (red/blue/green/orange
+	   backgrounds). On dark themes this paints as light-on-color (legacy
+	   behavior); on light themes it now paints dark-on-color (matches
+	   the rest of the page's text style). One material WCAG side-effect:
+	   dark text on `--orange-500` jumps from 2.32:1 to 9.05:1 — the
+	   long-standing orange-hover accessibility bug. */
+	--ca-white-color: var(--text-color);
+
+	/* Named-color aliases — also adopt theme text/inverse-text. Most
+	   uses are text on a theme-aware bg so flipping with the theme is
+	   the right behavior. */
+	--ca-named-white: var(--text-color);
+	--ca-named-black: var(--inverse-text-color);
+
+	/* Muted secondary text — `--alt-text-color` is dynamix's "muted text
+	   on the current bg" semantic. Adapts per theme. */
+	--ca-grey-color: var(--alt-text-color);
+	--ca-medium-text-color: var(--alt-text-color);
+	--ca-light-text-color: var(--alt-text-color);
+
+	/* Bright text on dark bgs (Magnific Popup title, etc.) — `--text-color`
+	   is light on dark themes and dark on light themes; both are
+	   appropriate "primary body text" against the surrounding mild bg. */
+	--ca-lighter-text-color: var(--text-color);
+
+	/* MFP close-X — `--text-color` so the icon matches the theme's
+	   body-text rendering against whatever the popup paints. */
+	--ca-dark-text-color: var(--text-color);
+
+	/* Mid-tone shaded bg — `--shade-bg-color` is dynamix's panel/shade
+	   surface (gray-800 on dark themes, gray-150 on light). */
+	--ca-medium-bg-color: var(--shade-bg-color);
+
+	/* Dark-red accent for warning-tier badges. Tracks brand red. */
+	--ca-dark-red-color: var(--brand-red);
+
+	/* === Base-palette colors (Tier 2 — rare exceptions) ====================
+	   No theme-var equivalent for these — dynamix doesn't define a brand
+	   green / yellow, and `--black-opacity-20` is a base-palette alpha. */
+
+	--ca-green-color: var(--green-900);
+	--ca-dark-green-color: var(--green-900);
+	--ca-yellow-color: var(--yellow-500);
+	--ca-medium-overlay-color: var(--black-opacity-20);
+
+	/* === CA-private literals (Tier 3) =======================================
+	   No dynamix equivalent — these stay as raw values. */
+
+	/* Non-standard alpha overlays (0.4 / 0.6 / 1.0). Dynamix's
+	   `--*-opacity-XX` palette doesn't include these levels. */
 	--ca-overlay-color: rgba(0, 0, 0, 0.4);
-	--ca-medium-overlay-color: rgba(0, 0, 0, 0.2);
 	--ca-dark-overlay-color: rgba(0, 0, 0, 0.6);
 	--ca-white-overlay: rgba(0, 0, 0, 1);
-	--ca-white-overlay-light: rgba(0, 0, 0, 0.1);
 
-	/* Full-screen scrim (.ca_modal_overlay + SweetAlert's .sweet-overlay) */
-	--ca-scrim-transition-duration: 0.5s;
-	--ca-scrim-transition-ease: ease-in-out;
+	/* CA-specific accent colors with no Unraid-wide counterpart —
+	   dark-purple (Trusted chip), teal (pinned-card icon). */
+	--ca-dark-purple-color: #854153;
+	--ca-teal-color: #1fa67a;
 
-	/* HSL Colors */
-	--ca-hsl-light-blue: hsl(200, 40%, 80%);
-	--ca-hsl-dark-blue: hsl(205, 40%, 40%);
+	/* Orange-tinted card hover shadow. Derived from `--brand-orange` via
+	   `color-mix` so the shadow tint tracks whichever orange the active
+	   theme is using. Alpha stays at 0.5 by mixing with `transparent`. */
+	--ca-shadow-color: color-mix(in srgb, var(--brand-orange) 50%, transparent);
+
+	/* Mislabeled but load-bearing — `--ca-dark-orange-color` is actually
+	   `#009900` (green) and powers the OFFICIAL badge gradient;
+	   `--ca-light-grey-color` is actually `#bb0000` (red) and powers
+	   the deprecation gradient. Renaming would require tracking every
+	   reference; the mislabels stay. */
+	--ca-dark-orange-color: #009900;
+	--ca-light-grey-color: #bb0000;
+
+	/* HSL accents — precise hue/saturation/lightness matter for these
+	   visuals (autocomplete suggestion mark + decorative gradients).
+	   Not worth approximating to the base palette. */
 	--ca-hsl-yellow: hsl(65, 100%, 50%);
 	--ca-hsl-light-yellow: hsl(68, 100%, 41%);
+	--ca-hsl-light-blue: hsl(200, 40%, 80%);
+	--ca-hsl-dark-blue: hsl(205, 40%, 40%);
 	--ca-hsl-green: hsl(86, 100%, 21%);
 	--ca-hsl-white: hsla(0, 0%, 100%);
 
-	/* Named Colors */
-	--ca-named-red: red;
-	--ca-named-white: white;
-	--ca-named-black: black;
-	--ca-named-grey: grey;
+	/* === CA-internal non-color vars ========================================= */
+
+	/* JS-read flag toggled at the responsive breakpoint by main CSS. */
 	--mainAreaHeight: unset;
 	--mobileDevice: false;
 
-}
-.Theme--fontSize50:root {
-	--ca_legacySearchMarginTop: 15rem;
-}
-.Theme--fontSize56:root {
-	--ca_legacySearchMarginTop: 14rem;
-}
-.Theme--fontSize62:root {
-	--ca_legacySearchMarginTop: 13rem;
-}
-.Theme--fontSize68:root {
-	--ca_legacySearchMarginTop: 12rem;
-}
-.Theme--fontSize75:root {
-	--ca_legacySearchMarginTop: 11rem;
-}
-.Theme--fontSize80:root {
-	--ca_legacySearchMarginTop: 11rem;
+	/* Card hover + favourite states — derived from the active dynamix theme
+	   via `color-mix`. Mixing toward `--text-color` pushes the surface AWAY
+	   from the bg toward contrast: slight darken on light themes, slight
+	   lighten on dark themes. */
+	--template-hover-background: color-mix(in srgb, var(--mild-background-color) 90%, var(--text-color) 10%);
+	--template-favourite: color-mix(in srgb, var(--mild-background-color) 70%, var(--text-color) 30%);
+
+	/* Bottom banner — fixed brand colors regardless of theme so the banner
+	   stays recognizable across light/dark themes. */
+	--ca-bottomBanner-bg-from: #2a2a2e;
+	--ca-bottomBanner-bg-to: #1f1f22;
+	--ca-bottomBanner-text: #f0f0f0;
+
+	/* Modal scrim (sidebar overlay backdrop). Same across all themes. */
+	--ca-scrim-background: rgba(0, 0, 0, 0.25);
+	--ca-scrim-blur: 12px;
+	--ca-scrim-transition-duration: 0.5s;
+	--ca-scrim-transition-ease: ease-in-out;
+
+	/* Search-modal interior background — matches the sidebar surface
+	   (`--mild-background-color`). The modal's outer border paints with
+	   `--background-color` (the page bg) so the chrome blends with the
+	   surrounding view. Suggestion chips inherit this same color
+	   (transparent fill) and match `.caButton`'s resting style. */
+	--ca-search-modal-background: var(--mild-background-color);
+
+	/* Awesomplete `<mark>` highlight in suggestion chips. Tracks the
+	   ca-red accent (which itself tracks the active theme's brand red). */
+	--ca-suggestion-mark-color: var(--ca-red-color);
+
+	/* Chart grid line for the per-app trend graph. */
+	--chart-grid: var(--border-color);
+
+	/* Tooltipster fontColor (read from JS via `cssVar()` in Apps.page for
+	   the trend-chart tooltips). Inherits the active theme's text color. */
+	--tooltipster-content: var(--text-color);
 }

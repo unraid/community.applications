@@ -7,6 +7,22 @@
 * 3) Legacy and supplemental CA UI blocks
 * 4) Third-party components (Awesomplete / Magnific Popup)
 */
+
+/* Shared `top` calc for the menu strip + main display area — same
+   formula for both nav-top and sidebar layouts. The three constituent
+   vars (`--ca-header-image-height`, `--ca-menu-height`,
+   `--ca-theme-top-offset`) are defined in responsive.css for 7.2+
+   and in legacy-colors.css for <7.2 — definitions belong with the
+   layout/theme files that actually paint the chrome the calc is
+   compensating for. If any of the three vars is undefined for a
+   particular code path, the calc resolves to invalid and `top` falls
+   back to `auto`. */
+.ca_display_area {
+	top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--ca-theme-top-offset));
+}
+.menuItems {
+	top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--ca-menu-top-offset));
+}
 body {
 	scrollbar-gutter: stable;
 	cursor: default !important;
@@ -24,7 +40,9 @@ body {
 	content: "\f0c0";
 	font-family: fontAwesome;
 }
-
+.menuItems .caLogoIcon {
+	font-size: 2rem;
+}
 #maxHomeApps {
 	display: none;
 	z-index: 0;
@@ -53,7 +71,7 @@ body:has(.sidenavShow) {
 	display: none;
 	position: fixed;
 	bottom: 24px;
-	color: var(--red-800);
+	color: var(--brand-red);
 	font-size: 2.5rem;
 	/* High enough to beat the sidebar (1000) and any wrapper stacking context
 	   it inherits from, while still under SweetAlert (10000+) and the viewport
@@ -78,7 +96,7 @@ body:has(.sidenavShow) {
 	cursor: pointer;
 }
 .xmlInstall:hover {
-	color: var(--unraid-66-color);
+	color: var(--brand-orange);
 }
 .ca_back_to_top::before {
 	content: "\f0aa"; /* fa-arrow-circle-up */
@@ -151,7 +169,7 @@ p {
 1.1) Typography
 ========================================================================== */
 a {
-	color: var(--a-color);
+	color: var(--link-text-color);
 }
 
 .ca_bold {
@@ -216,25 +234,6 @@ body.ca_searchModalOpen :is(#sortByButton, .dockerSearch, .templateSearch, .ca_d
    row of cards. .multi_installDiv is toggled via jQuery .show()/.hide() which
    sets inline `display:none` when hidden — `:not([style*="display: none"])`
    matches the shown state. */
-.Theme--sidebar body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
-	bottom: 9rem;
-}
-.Theme--nav-top body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
-	bottom: 6rem;
-}
-
-/* In Theme--sidebar layouts the persistent #menu is the sidebar itself — keep
-   it parked at the same plane as the .ca_modal_overlay (999) when a modal is
-   open so it stays visible/interactive at scrim level instead of being pushed
-   below the page content like upgrade_notice. */
-.Theme--sidebar body:has(.sidenavShow) #menu,
-.Theme--sidebar body.ca_searchModalOpen #menu,
-.Theme--sidebar body:has(.mobileMenu.menuShowing) #menu,
-.Theme--sidebar body:has(.ca_sweetalert_open) #menu,
-.Theme--sidebar body:has(.mfp-bg) #menu {
-	z-index: 999;
-}
-
 .ca_href {
 	cursor: pointer;
 }
@@ -244,7 +243,7 @@ body.ca_searchModalOpen :is(#sortByButton, .dockerSearch, .templateSearch, .ca_d
 	padding-top: 0.5rem;
 	padding-bottom: 0.5rem;
 	font-size: 1.5rem;
-	color: var(--magnificCloseColor);
+	color: var(--text-color);
 }
 
 .mainArea {
@@ -277,9 +276,6 @@ body,
 .sidenav:focus-visible {
 	outline: none;
 }
-.Theme--sidebar .mainArea {
-	top: 2rem;
-}
 /* ==========================================================================
 2) Core CA Components
 ========================================================================== */
@@ -298,8 +294,8 @@ body,
 	flex-shrink: 0;     /* keep fixed width inside flex containers (home strip, templatesDisplay) */
 
 	/* Visual */
-	background-color: var(--template-background);
-	border: 1px solid var(--ca-border-color);
+	background-color: var(--mild-background-color);
+	border: 1px solid var(--border-color);
 	overflow: hidden;
 
 	/* Interactive */
@@ -337,8 +333,6 @@ body,
 }
 .ca_homeTemplatesHeader {
 	font-size: 2rem;
-	margin-top: 1rem;
-	margin-bottom: 0.5rem;
 }
 
 .ca_homeTemplatesLine2 {
@@ -417,9 +411,9 @@ body,
 	/* Create fade effect using template background color */
 	background: linear-gradient(to right,
 	transparent 0%,
-	color-mix(in srgb, var(--template-background) 10%, transparent) 30%,
-	color-mix(in srgb, var(--template-background) 30%, transparent) 70%,
-	color-mix(in srgb, var(--template-background) 80%, transparent) 100%);
+	color-mix(in srgb, var(--mild-background-color) 10%, transparent) 30%,
+	color-mix(in srgb, var(--mild-background-color) 30%, transparent) 70%,
+	color-mix(in srgb, var(--mild-background-color) 80%, transparent) 100%);
 
 	/* Padding for spacing */
 	padding-left: 0.5rem;
@@ -446,7 +440,7 @@ body,
 		/* Typography */
 		font-size: 1.2rem;
 		line-height: 2rem;
-		color: var(--support-popup-text);
+		color: var(--inverse-text-color);
 
 		/* Visual */
 		background: linear-gradient(
@@ -456,16 +450,16 @@ body,
 		),
 		linear-gradient(
 		to right,
-		color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
-		var(--support-popup-background) 50%,
-		color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
+		color-mix(in srgb, var(--inverse-background-color) 85%, white) 0%,
+		var(--inverse-background-color) 50%,
+		color-mix(in srgb, var(--inverse-background-color) 85%, white) 100%
 		);
 		background-position: 0 0;
 		background-size: 100% 100%;
 		border-radius: 15px;
 	}
 	.popupDescription, .popupRepoDescription {
-		background: var(--support-popup-background);
+		background: var(--inverse-background-color);
 	}
 	.caButton {
 		cursor: pointer;
@@ -481,12 +475,12 @@ body,
 	}
 	.caButton a {
 		text-decoration: none;
-		color: var(--support-popup-text);
+		color: var(--inverse-text-color);
 		cursor: pointer;
 	}
 
 	.caButton:hover {
-		background: var(--unraid-66-color);
+		background: var(--brand-orange);
 		color: var(--ca-white-color) !important;
 	}
 
@@ -518,11 +512,11 @@ body,
 	}
 
 	.caButtonRed {
-		background: var(--ca-button-red) !important;
+		background: var(--brand-red) !important;
 		color: var(--ca-white-color) !important;
 	}
 	.caButtonRed:hover {
-		background: var(--ca-button-red-hover) !important;
+		background: var(--brand-orange) !important;
 		color: var(--ca-white-color) !important;
 	}
 
@@ -536,13 +530,13 @@ body,
 	   other modifiers like .caButtonLarge. */
 	.popUpClose.caButton,
 	.caDiffClose.caButton {
-		background: var(--ca-button-red);
-		color: var(--ca-white-color);
+		background: var(--brand-red);
+		/* color inherits from `.caButton` (`--inverse-text-color`). */
 	}
 	.popUpClose.caButton:hover,
 	.caDiffClose.caButton:hover {
-		background: var(--ca-button-red-hover);
-		color: var(--ca-white-color);
+		background: var(--brand-orange);
+		/* color inherits from `.caButton` (`--inverse-text-color`). */
 	}
 
 	/* Sidebar action-row coloring. .actionsInstall = primary install-family
@@ -552,28 +546,28 @@ body,
 	   Compound selectors are 0,2,0 / 0,2,1 — naturally outrank `.caButton`
 	   (0,1,0) and `.caButton:hover` (0,1,1) without needing !important. */
 	.popupStickyActions > .actionsInstall {
-		background: var(--ca-button-blue);
-		color: var(--ca-white-color);
+		background: var(--blue-800);
+		color: var(--inverse-text-color);
 	}
 	.popupStickyActions > .actionsInstall:hover {
-		background: var(--ca-button-blue-hover);
-		color: var(--ca-white-color);
+		background: var(--brand-orange);
+		color: var(--inverse-text-color);
 	}
 	.popupStickyActions > .actionsUpdate {
-		background: var(--ca-button-green);
-		color: var(--ca-white-color);
+		background: var(--green-900);
+		color: var(--inverse-text-color);
 	}
 	.popupStickyActions > .actionsUpdate:hover {
-		background: var(--ca-button-green-hover);
-		color: var(--ca-white-color);
+		background: var(--brand-orange);
+		color: var(--inverse-text-color);
 	}
 	.popupStickyActions > .actionsUninstall {
-		background: var(--ca-button-red);
-		color: var(--ca-white-color);
+		background: var(--brand-red);
+		color: var(--inverse-text-color);
 	}
 	.popupStickyActions > .actionsUninstall:hover {
-		background: var(--ca-button-red-hover);
-		color: var(--ca-white-color);
+		background: var(--brand-orange);
+		color: var(--inverse-text-color);
 	}
 	/* Push the right-group buttons (install-family + uninstall) to the far
 	   right of the action row while keeping the same wrap/gap behavior.
@@ -621,47 +615,35 @@ body,
 		padding: 0.4rem 0.5rem;
 	}
 
-	/* Awesomplete suggestions: use caButton styling, force precedence */
+	/* Awesomplete suggestion chips — inherit the canonical `.caButton`
+	   style (two-layer gradient bg, `--inverse-text-color` text, 15px
+	   border-radius, hover→`--brand-orange`) so chips look identical to
+	   the sidebar's support / action buttons. Only size attributes are
+	   overridden here because chips are visually larger than the
+	   sidebar buttons. */
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
-		display: inline-block !important;
 		margin-right: 1rem !important;
 		padding: 2px 15px !important;
 		font-size: 1.8rem !important;
 		line-height: 3rem !important;
-		color: var(--support-popup-text) !important;
-		background: linear-gradient(
-		to bottom,
-		transparent 50%,
-		var(--ca-overlay-color) 100%
-		),
-		linear-gradient(
-		to right,
-		color-mix(in srgb, var(--support-popup-background) 85%, white) 0%,
-		var(--support-popup-background) 50%,
-		color-mix(in srgb, var(--support-popup-background) 85%, white) 100%
-		) !important;
-		background-position: 0 0 !important;
-		background-size: 100% 100% !important;
-		border-radius: 15px !important;
-		cursor: pointer !important;
 	}
 	/* Mouse hover highlight: only applies while the mouse is the active input device.
 	   When the user presses an arrow key, JS removes ca_suggestionMouseUsed which instantly
 	   drops this style even if the cursor is still physically over a <li>, so only the
 	   keyboard-selected item is highlighted. */
 	body.ca_searchModalOpen.ca_suggestionMouseUsed #searchFilter .awesomplete > ul > li.caButton:hover {
-		background: var(--unraid-66-color) !important;
+		background: var(--brand-orange) !important;
 		color: var(--ca-white-color) !important;
 	}
 	/* Keyboard navigation highlight (Awesomplete sets aria-selected="true") */
 	body.ca_searchModalOpen:not(.ca_suggestionMouseUsed) #searchFilter .awesomplete > ul > li.caButton[aria-selected="true"] {
-		background: var(--unraid-66-color) !important;
+		background: var(--brand-orange) !important;
 		color: var(--ca-white-color) !important;
 	}
 	/* Awesomplete match highlight: per-theme color (red in black/gray, yellow in white/azure), no background fill */
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton mark {
 		background: transparent !important;
-		color: var(--ca-suggestion-mark-color, var(--ca-red-color)) !important;
+		color: var(--ca-suggestion-mark-color) !important;
 	}
 
 	/* 2.5) Form Elements */
@@ -724,18 +706,13 @@ body,
 	.menuItems {
 		overflow-inline: scroll;
 		position: fixed;
-		top: 19rem;
+		/* `top` handled by the shared `.ca_display_area`/`.menuItems`
+		   calc earlier in this file — don't hardcode here. */
 		bottom: 4rem;
 		align-items: stretch;
 		width: 14rem;
 		z-index: 2;
-		background-color: var(--ca-legacy-background-color);
-	}
-	.Theme--nav-top .menuItems {
-		top: 19rem;
-	}
-	.Theme--sidebar .menuItems {
-		top: 15rem;
+		background-color: var(--background-color);
 	}
 	.menuItems::-webkit-scrollbar {
 		width: 0px;  /* vertical scrollbar width */
@@ -760,7 +737,7 @@ body,
 	.mainArea::-webkit-scrollbar-thumb,
 	.ca_diffCol::-webkit-scrollbar-thumb {
 		background-color: transparent;
-		background-image: linear-gradient(var(--unraid-66-color), var(--unraid-66-color));
+		background-image: linear-gradient(var(--brand-orange), var(--brand-orange));
 		background-repeat: no-repeat;
 		background-position: center;
 		background-size: 100% 20rem;
@@ -779,7 +756,7 @@ body,
 	.mainArea::-webkit-scrollbar-track,
 	.ca_diffCol::-webkit-scrollbar-track {
 		background: transparent;
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 28%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 28%, transparent);
 		border-radius: 999px;
 	}
 	.menuItems::-webkit-scrollbar-corner,
@@ -787,7 +764,7 @@ body,
 	.ca_homeTemplates::-webkit-scrollbar-corner,
 	.mainArea::-webkit-scrollbar-corner,
 	.ca_diffCol::-webkit-scrollbar-corner {
-		background: var(--unraid-66-color);
+		background: var(--brand-orange);
 	}
 	.menuItems::-webkit-scrollbar-thumb:hover,
 	.sidenav::-webkit-scrollbar-thumb:hover,
@@ -795,7 +772,7 @@ body,
 	.mainArea::-webkit-scrollbar-thumb:hover,
 	.ca_diffCol::-webkit-scrollbar-thumb:hover {
 		background-color: transparent;
-		background-image: linear-gradient(var(--unraid-66-color), var(--unraid-66-color));
+		background-image: linear-gradient(var(--brand-orange), var(--brand-orange));
 		background-repeat: no-repeat;
 		background-position: center;
 		background-size: 100% 20rem;
@@ -844,6 +821,9 @@ body,
 		box-shadow: none;
 		border-radius: 999px;
 	}
+	body:has(.ca_homeTemplatesHeader):not(:has(#caDiffView:not(.ca_hide))) .ca_fixed_hscroll_indicator {
+		height: revert;
+	}
 	.ca_fixed_hscroll_indicator.visible {
 		opacity: 1;
 	}
@@ -852,8 +832,8 @@ body,
 	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging),
 	.ca_fixed_hscroll_indicator.ca_scroll_active,
 	.ca_fixed_hscroll_indicator.ca_scroll_target_hover {
-		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
 	}
 	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
 	.ca_fixed_hscroll_thumb {
@@ -863,7 +843,7 @@ body,
 		left: 0;
 		height: 3px;
 		border-radius: 999px;
-		background: var(--unraid-66-color);
+		background: var(--brand-orange);
 		pointer-events: auto;
 		cursor: default;
 		transition: height 150ms ease-out;
@@ -884,8 +864,8 @@ body,
 		cursor: default;
 		z-index: 1000;
 		transition: opacity 120ms ease-in-out;
-		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
 		border-radius: 999px;
 	}
 	.ca_fixed_vscroll_indicator.visible {
@@ -900,8 +880,8 @@ body,
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb:hover),
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb.dragging),
 	.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_scroll_active {
-		background: color-mix(in srgb, var(--unraid-66-color) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 20%, transparent);
+		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
 	}
 	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
 	.ca_fixed_vscroll_thumb {
@@ -911,7 +891,7 @@ body,
 		right: 0;
 		width: 3px;
 		border-radius: 999px;
-		background: var(--unraid-66-color);
+		background: var(--brand-orange);
 		pointer-events: auto;
 		cursor: default;
 		transition: width 150ms ease-out;
@@ -1002,7 +982,7 @@ body,
 		.mainArea:hover,
 		.ca_diffCol:hover {
 			scrollbar-width: thin;
-			scrollbar-color: var(--unraid-66-color) color-mix(in srgb, var(--unraid-66-color) 22%, transparent);
+			scrollbar-color: var(--brand-orange) color-mix(in srgb, var(--brand-orange) 22%, transparent);
 		}
 		.ca_custom_scroll_target:hover {
 			scrollbar-width: none;
@@ -1012,11 +992,13 @@ body,
 		display: block;
 	}
 	.menuItems.menuShowing {
-		padding-top: 3rem;
+		/* padding-top removed — the shared `.menuItems` calc places
+		   the menu at the correct vertical position; no extra inner
+		   push needed when the menu is in its `menuShowing` state. */
 	}
 
 	.selectedMenu {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		font-weight: bold;
 	}
 
@@ -1028,7 +1010,7 @@ body,
 		font-size: 1.05rem;
 		line-height: 1.25;
 		font-weight: normal;
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		white-space: normal;
 		word-break: break-word;
 	}
@@ -1041,7 +1023,7 @@ body,
 		line-height: 1.2;
 		font-weight: normal;
 		font-style: italic;
-		color: var(--sidebar-text);
+		color: var(--text-color);
 		white-space: normal;
 		word-break: break-word;
 		cursor: default;
@@ -1064,12 +1046,12 @@ body,
 		max-width: 90vw;
 
 		background: linear-gradient(145deg, var(--ca-bottomBanner-bg-from), var(--ca-bottomBanner-bg-to));
-		border: 1px solid color-mix(in srgb, var(--unraid-66-color) 50%, transparent);
+		border: 1px solid color-mix(in srgb, var(--brand-orange) 50%, transparent);
 		border-radius: 0.75rem;
 		box-shadow:
-		0 0 0 1px color-mix(in srgb, var(--unraid-66-color) 10%, transparent),
+		0 0 0 1px color-mix(in srgb, var(--brand-orange) 10%, transparent),
 		0 10px 30px var(--ca-dark-overlay-color),
-		0 0 40px color-mix(in srgb, var(--unraid-66-color) 15%, transparent);
+		0 0 40px color-mix(in srgb, var(--brand-orange) 15%, transparent);
 
 		color: var(--ca-bottomBanner-text);
 		font-size: 2rem;
@@ -1118,8 +1100,8 @@ body,
 		width: 90%;
 		max-width: 70rem;
 		/* Visual */
-		background-color: var(--sidebar-background);
-		color: var(--sidebar-text);
+		background-color: var(--mild-background-color);
+		color: var(--text-color);
 
 		/* Interactive */
 		overflow-x: hidden;
@@ -1200,8 +1182,8 @@ body,
 	}
 
 	.ca_settingCard {
-		background-color: var(--template-background);
-		border: 1px solid var(--ca-border-color);
+		background-color: var(--mild-background-color);
+		border: 1px solid var(--border-color);
 		border-radius: 0.8rem;
 		padding: 1.2rem 1.4rem;
 	}
@@ -1316,7 +1298,7 @@ body,
 		user-select: none;
 	}
 	.caRepoIgnoreToggle:hover {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 	}
 
 	.caModerationFixedToggle {
@@ -1480,7 +1462,7 @@ body,
 	.upgradePopupBackground,
 	.installedPopup {
 		clip-path: polygon(0 0, 100% 0, 100% 100%);
-		background-color: var(--unraid-66-color);
+		background-color: var(--brand-orange);
 		top: var(--beta-popup-offset);
 		height: 9rem;
 		width: 9rem;
@@ -1488,11 +1470,11 @@ body,
 		right: 0;
 	}
 	.installedPopup {
-		background-color: var(--ca-purple-color);
+		background-color: var(--blue-800);
 	}
 	.betaPopupBackground,
 	.upgradePopupBackground {
-		background-color: var(--unraid-66-color);
+		background-color: var(--brand-orange);
 	}
 	.betaPopupText,
 	.upgradePopupText,
@@ -1622,14 +1604,6 @@ body,
 		bottom: 4rem;
 		right: 0rem;
 	}
-	.Theme--nav-top .ca_display_area {
-		left: 0;
-		top: 20rem;
-	}
-	.Theme--sidebar .ca_display_area {
-		left: 6rem;
-		top: 13rem;
-	}
 	.ca_fa-asterisk::before {
 		content: "\f069";
 		font-family: fontAwesome;
@@ -1690,7 +1664,7 @@ body,
 		   diff completely covers the blurred page + the sidebar. Dismissing it
 		   reveals the sidebar and overlay untouched underneath. */
 		z-index: 1001;
-		background: var(--ca-legacy-background-color, #1d1b1b);
+		background: var(--background-color);
 		padding: 5rem 2rem 2rem;
 		box-sizing: border-box;
 		display: flex;
@@ -1745,8 +1719,7 @@ body,
 		padding: 0.4rem 0.8rem;
 		font-weight: bold;
 		text-align: left;
-		background: var(--ca-modal-bg, #222);
-		border-bottom: 1px solid var(--ca-border-color, #444);
+		border: 1px solid var(--border-color);
 		/* A full upstream URL can be long — clip it with an ellipsis so it
 		   doesn't push the column wider than its 50% share. The link itself
 		   remains clickable on the visible portion. */
@@ -1768,7 +1741,7 @@ body,
 		flex: 1 1 50%;
 		min-width: 0;
 		overflow: auto;
-		border: 1px solid var(--ca-border-color, #444);
+		border: 1px solid var(--border-color);
 		font-family: ui-monospace, Menlo, Consolas, monospace;
 		font-size: 1.2rem;
 		line-height: 1.4;
@@ -1824,22 +1797,36 @@ body,
 		min-height: 1.4em;
 	}
 	/* Per-text inline highlight — the row itself stays untinted; only the
-	   line content gets the red/green wrapper. Text color inherits panel
-	   default (white) so contents stay readable. */
-	.ca_diffText.ca_diffDel { background: rgba(220, 60, 60, 0.45); }
-	.ca_diffText.ca_diffAdd { background: rgba(60, 180, 75, 0.45); }
+	   line content gets the red/green wrapper. Text is forced black so
+	   it's legible regardless of whichever brand red / green dynamix is
+	   currently painting (and so it stays consistent with our other
+	   colored chips that paint dark text on bright bg). */
+	.ca_diffText.ca_diffDel,
+	.ca_diffText.ca_diffAdd {
+		color: var(--black);
+	}
+	.ca_diffText.ca_diffDel { background: color-mix(in srgb, var(--brand-red) 45%, transparent); }
+	.ca_diffText.ca_diffAdd { background: color-mix(in srgb, var(--green-900) 45%, transparent); }
 	/* Inside a paired changed line, the specific characters that differ
 	   between source and feed get a darker shade on top of the line-level
 	   tint so the eye lands on the actual delta. Unchanged characters in
 	   the same line keep the lighter line color. */
-	.ca_diffText.ca_diffDel .ca_diffCharDel { background: rgba(220, 60, 60, 0.7); }
-	.ca_diffText.ca_diffAdd .ca_diffCharAdd { background: rgba(60, 180, 75, 0.7); }
+	.ca_diffText.ca_diffDel .ca_diffCharDel { background: color-mix(in srgb, var(--brand-red) 70%, transparent); }
+	.ca_diffText.ca_diffAdd .ca_diffCharAdd { background: color-mix(in srgb, var(--green-900) 70%, transparent); }
 	/* Decoded-side highlight for the Plugin button's two-column view: each span
 	   wraps the value that was substituted in for a `&name;` reference (see
 	   caBuildDecodedRows in diff.js + caExtractXmlEntities in exec.php). Amber
 	   was picked to stay distinct from the diff red/green so reading a Diff
 	   immediately after a Plugin view doesn't muddle the eye's color memory. */
-	.ca_entitySub { background: rgba(230, 200, 60, 0.4); }
+	.ca_entitySub {
+		/* Amber highlight tied to the brand yellow (`--ca-yellow-color`
+		   → `--yellow-500` ~`#ffd324`). Alpha preserved via color-mix
+		   at the same 40% level as the original hardcoded rgba. Text
+		   forced black for legibility against the yellow-tinted bg,
+		   matching the diff add/remove rows above. */
+		background: color-mix(in srgb, var(--ca-yellow-color) 40%, transparent);
+		color: var(--black);
+	}
 	.ca_diffEmpty {
 		text-align: center;
 		font-style: italic;
@@ -1942,7 +1929,7 @@ body,
 	}
 
 	.ca_readmore {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		font-size: 1.5rem !important;
 		cursor: pointer;
 		padding-left: .5rem;
@@ -2049,7 +2036,7 @@ body,
 
 
 	.chartMenu.selectedMenu {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		font-weight: bold;
 	}
 
@@ -2093,12 +2080,6 @@ body,
 		margin-bottom: 0.5rem;
 		font-size: 1.5rem;
 	}
-
-	/* Prevent a banner warning from covering the search bar when scrolling */
-	.Theme--sidebar .upgrade_notice {
-		position: absolute;
-	}
-
 
 	/* 3.8) Misc application state / compatibility helpers */
 	li.debugging {
@@ -2166,7 +2147,7 @@ body,
 	.enabledIcon,
 	.homeMore {
 		cursor: pointer;
-		color: var(--unraid-66-color) !important;
+		color: var(--brand-orange) !important;
 	}
 
 	.fav,
@@ -2188,7 +2169,7 @@ body,
 
 	.nonfav,
 	.pinPopup.unpinned {
-		background-color: var(--support-popup-background);
+		background-color: var(--inverse-background-color);
 	}
 	/* Pin button: only the UNPINNED state gets the orange hover, so a pinned
 	   (green) button stays green on hover — matches the .fav repo-button
@@ -2196,7 +2177,7 @@ body,
 	   would otherwise tie with .caButton:hover on specificity and win via
 	   cascade order, so we use !important to claim hover unambiguously. */
 	.pinPopup.unpinned:hover {
-		background: var(--unraid-66-color) !important;
+		background: var(--brand-orange) !important;
 		color: var(--ca-white-color) !important;
 	}
 
@@ -2221,7 +2202,7 @@ body,
 	}
 
 	.featuredIncompatible {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 	}
 
 	.homespotlightIconArea {
@@ -2245,7 +2226,7 @@ body,
 	.chartMenu:hover,
 	li.context:hover,
 	.sortIcons:hover {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 	}
 
 	a.initDockerSearch {
@@ -2260,7 +2241,7 @@ input[type="button"] {
     border: none ! important;
 	}
 	input:hover[type="button"] {
-		color: var(--unraid-66-color) !important;
+		color: var(--brand-orange) !important;
 		background: none !important;
 		background-color: none !important;
 	}
@@ -2319,7 +2300,7 @@ input[type="button"] {
 		padding-bottom: 20px;
 		position: fixed;
 		bottom: 0;
-		background-color: var(--ca-legacy-background-color);
+		background-color: var(--background-color);
 	}
 
 	.notice.shift {
@@ -2381,13 +2362,13 @@ input[type="button"] {
 		letter-spacing: 0.05rem;
 		text-transform: uppercase;
 		font-weight: 600;
-		color: var(--ca-named-white);
+		color: var(--black);
 		pointer-events: none;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 		white-space: nowrap;
 	}
 	.installedCardBackground {
-		background-color: var(--ca-purple-color);
+		background-color: var(--blue-800);
 	}
 	.LTOfficialCardBackground {
 		/* Unraid brand gradient: Red #e22828 → Orange #f15a2c → Gold #ff8c2f */
@@ -2401,7 +2382,7 @@ input[type="button"] {
 		background-color: var(--ca-dark-red-color);
 	}
 	.betaCardBackground {
-		background-color: var(--unraid-66-color);
+		background-color: var(--brand-orange);
 	}
 	.greenCardBackground {
 		background-color: var(--ca-dark-green-color);
@@ -2486,7 +2467,7 @@ input[type="button"] {
 		padding-top: 1rem;
 		padding-bottom: 1rem;
 		width: 90%;
-		background-color: var(--sidebar-background);
+		background-color: var(--mild-background-color);
 		z-index: 5;
 		max-width: 70rem;
 		right: 0;
@@ -2501,7 +2482,7 @@ input[type="button"] {
 		right: 1.5rem;
 		bottom: 2px;
 		height: 1px;
-		background-color: color-mix(in srgb, var(--sidebar-text) 75%, var(--sidebar-background));
+		background-color: color-mix(in srgb, var(--text-color) 75%, var(--mild-background-color));
 		pointer-events: none;
 	}
 	.popupCloseArea > div:first-child {
@@ -2633,7 +2614,7 @@ input[type="button"] {
 	   the start of the row would look like a glitch. */
 	.popupCloseAreaButtons .popupStickyActions::before {
 		content: "|";
-		color: var(--sidebar-text);
+		color: var(--text-color);
 		opacity: 0.4;
 		font-size: 1.8rem;
 		line-height: 1;
@@ -2703,7 +2684,7 @@ input[type="button"] {
 	}
 	.popUpLink {
 		cursor: pointer;
-		color: var(--a-color);
+		color: var(--link-text-color);
 	}
 
 	a.popUpLink {
@@ -2813,7 +2794,7 @@ input[type="button"] {
 	.screen {
 		border: 1px solid;
 		border-radius: 5px 5px 5px 5px;
-		border-color: var(--unraid-66-color);
+		border-color: var(--brand-orange);
 		vertical-align: top;
 		min-width: 8rem;
 		max-width: 12rem;
@@ -2838,9 +2819,11 @@ input[type="button"] {
 	}
 	/* 3.13) Search area, sort controls, and spotlight section */
 	.searchAreaHolder {
-		top: var(--search-area-top);
-		position: sticky;
+		top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--search-area-top));
+		left: var(--search-area-left);
+		position: fixed;
 		z-index: 6;
+		padding-left: 2rem;
 	}
 	/* When the search modal is open, raise the holder's stacking context above
 	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
@@ -2851,7 +2834,7 @@ input[type="button"] {
 		z-index: 1000;
 	}
 	.searchArea {
-		padding-left: var(--search-area-left);
+		/* padding-left: var(--search-area-left); */
 		background-color: revert;
 		display: flex;
 		flex-direction: row;
@@ -2863,13 +2846,6 @@ input[type="button"] {
 		max-width: 1920px;
 		margin: 0 auto;
 	}
-	.Theme--legacyOS.Theme--sidebar .searchArea {
-		margin-left: -8.5rem;
-	}
-	.Theme--legacyOS.Theme--nav-top .searchArea {
-		margin: var(--ca_legacySearchMarginTop) auto -10rem auto !important;
-	}
-
 	#searchFilter {
 		position: relative;
 		display: inline-flex;
@@ -2922,6 +2898,9 @@ input[type="button"] {
 		opacity: 1;
 		pointer-events: auto;
 	}
+	body:has(.mobileMenu.menuShowing) .ca_modal_overlay {
+	  left: 17rem;
+    }
 	/* Pop the mobile menu above the scrim (default z-index 5 from responsive
 	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
 	body:has(.mobileMenu.menuShowing) .mobileMenu {
@@ -2948,14 +2927,14 @@ input[type="button"] {
 	.ca_modal_overlay,
 	.sweet-overlay,
 	.mfp-bg {
-		background: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
-		background-color: var(--ca-scrim-background, rgba(0, 0, 0, 0.25)) !important;
-		backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
-		-webkit-backdrop-filter: blur(var(--ca-scrim-blur, 12px)) !important;
+		background: var(--ca-scrim-background) !important;
+		background-color: var(--ca-scrim-background) !important;
+		backdrop-filter: blur(var(--ca-scrim-blur)) !important;
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur)) !important;
 		transition:
-			opacity var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
-			backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important,
-			-webkit-backdrop-filter var(--ca-scrim-transition-duration, 0.5s) var(--ca-scrim-transition-ease, ease-in-out) !important;
+			opacity var(--ca-scrim-transition-duration) var(--ca-scrim-transition-ease) !important,
+			backdrop-filter var(--ca-scrim-transition-duration) var(--ca-scrim-transition-ease) !important,
+			-webkit-backdrop-filter var(--ca-scrim-transition-duration) var(--ca-scrim-transition-ease) !important;
 	}
 	/* .ca_modal_overlay starts hidden; per-state rules above flip these on. */
 	.ca_modal_overlay {
@@ -2964,9 +2943,9 @@ input[type="button"] {
 	}
 	body.ca_searchModalOpen #searchFilter {
 		position: fixed;
-		top: var(--ca-search-modal-top, 6rem);
-		left: var(--ca-search-modal-left, 0);
-		width: var(--ca-search-modal-width, 100%);
+		top: var(--ca-search-modal-top);
+		left: var(--ca-search-modal-left);
+		width: var(--ca-search-modal-width);
 		max-width: 100vw;
 		box-sizing: border-box;
 		transform: none;
@@ -2975,8 +2954,11 @@ input[type="button"] {
 		padding: 0.9rem 1.1rem 0.6rem 1.1rem;
 		border-radius: 0.45rem;
 		box-shadow: 0 0.35rem 1.2rem var(--ca-medium-overlay-color);
+		/* Border paints with the page bg so the modal chrome blends with the
+		   surrounding `.mainArea` / `.ca_display_area`; interior fills with
+		   the sidebar surface so it reads as a sidebar-like overlay. */
 		background: var(--ca-search-modal-background);
-		border: 1px solid var(--ca-medium-overlay-color);
+		border: 1px solid var(--background-color);
 	}
 	body.ca_searchModalOpen #searchBox.ca_searchBoxHidden,
 	body.ca_searchModalOpen #searchBox {
@@ -3025,7 +3007,7 @@ input[type="button"] {
 	}
 	.caSearchModalIconControls .searchModalQueryBtn:hover,
 	.caSearchModalIconControls .searchModalClearBtn:hover {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 	}
 	body.ca_searchModalOpen #searchFilter .caSearchModalTopRow {
 		display: grid;
@@ -3083,17 +3065,18 @@ input[type="button"] {
 		opacity: 0 !important;
 	}
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li {
+		/* Layout / text-behavior only. Color, background, border-radius,
+		   padding, margin, font-size, and line-height all inherit from
+		   `.caButton` (with the chip-size overrides in the `.caButton`
+		   rule above) so the chip paint stays in lockstep with the
+		   sidebar's `.caButton`s. This selector has higher specificity
+		   than the base `.caButton` rule, so declaring any visual
+		   property here would silently clobber the sidebar-button look. */
 		position: relative;
 		max-width: 100%;
 		box-sizing: border-box;
-		margin: 0.15rem 0;
-		padding: 0;
 		min-width: 0;
-		border-radius: 0;
-		border: none;
-		background: transparent;
 		font-family: inherit;
-		font-size: inherit;
 		font-weight: inherit;
 		letter-spacing: normal;
 		text-transform: none;
@@ -3102,8 +3085,6 @@ input[type="button"] {
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		line-height: 1.2;
-		cursor: pointer;
 		outline: none;
 		box-shadow: none;
 	}
@@ -3117,7 +3098,7 @@ input[type="button"] {
 	}
 
 	#searchBox {
-		left: var(--search-area-left);
+	/*	left: var(--search-area-left);*/
 		margin-left: 0rem;
 		margin-right: 0;
 		margin-bottom: 1rem;
@@ -3212,7 +3193,7 @@ input[type="button"] {
 		margin-left: 10px;
 		cursor: pointer;
 		text-decoration: none !important;
-		color: var(--sidebar-text);
+		color: var(--text-color);
 	}
 
 	.spinnerBackground {
@@ -3289,7 +3270,7 @@ input[type="button"] {
 	}
 
 	.spotlightMessage a {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		text-decoration: none;
 	}
 
@@ -3355,11 +3336,12 @@ input[type="button"] {
 		box-sizing: border-box;
 		margin: 0.2em 0 0;
 		padding: 0;
-		/* Visual */
-		background: linear-gradient(to bottom right, var(--ca-named-white), var(--ca-hsl-white));
-		border: 1px solid var(--ca-medium-overlay-color);
-		border-radius: 0.3em;
-		box-shadow: 0.05em 0.2em 0.6em var(--ca-medium-overlay-color);
+		/* Visual — transparent so the chip area inherits #searchFilter's
+		   `--ca-search-modal-background` (sidebar surface). The previous
+		   white linear-gradient here clashed with the rest of the modal
+		   and made dark-theme text on chips unreadable. Border + shadow
+		   also dropped — the modal container already has its own. */
+		background: transparent;
 		list-style: none;
 		text-shadow: none;
 		font-size: 1.5rem;
@@ -3660,7 +3642,7 @@ input[type="button"] {
 	   color, and hover are now owned by the utility modifiers. Pinning
 	   position:fixed at top/right=1.5rem floats the button in a fixed
 	   spot regardless of which MFP content type (image / iframe) is up
-	   and how far the user has scrolled the lightbox. */
+	   and how far the user has the lightbox. */
 	.mfp-image-holder .mfp-close.caButton,
 	.mfp-iframe-holder .mfp-close.caButton {
 		position: fixed;
@@ -3672,6 +3654,14 @@ input[type="button"] {
 		font-weight: normal;
 		opacity: 1;
 		text-align: center;
+		/* `.mfp-close` base rule paints `--ca-red-error-color`; that wins
+		   over `.caButton`'s `--inverse-text-color` by source order, so
+		   reassert it explicitly here. `!important` is required because
+		   another rule (likely MagnificPopup library or our own MFP
+		   overrides further down) sets color with `!important` too —
+		   without it, the red bleeds through. Matches `.popUpClose.caButton`
+		   / `.caDiffClose.caButton`. */
+		color: var(--inverse-text-color) !important;
 	}
 
 	.mfp-image-holder .mfp-close,
@@ -3726,11 +3716,11 @@ input[type="button"] {
 	}
 	.mfp-arrow-left:hover:after,
 	.mfp-arrow-left:focus:after {
-		border-right-color: var(--unraid-66-color);
+		border-right-color: var(--brand-orange);
 	}
 	.mfp-arrow-right:hover:after,
 	.mfp-arrow-right:focus:after {
-		border-left-color: var(--unraid-66-color);
+		border-left-color: var(--brand-orange);
 	}
 
 	/* MFP's stock styling uses a :before pseudo-element to draw a larger,
@@ -4007,7 +3997,7 @@ input[type="button"] {
 	}
 
 	.videoPlayOverlay:hover::after {
-		color: var(--unraid-66-color);
+		color: var(--brand-orange);
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 		transform: translate(-50%, -50%) scale(1.0);
 	}

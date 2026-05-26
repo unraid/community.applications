@@ -841,6 +841,24 @@ function caInitializeClickHandlers() {
 			}
 			caMqFallback();
 		}
+
+		/* Second cleanup boundary at 767px — the slide-in `.mobileMenu`
+		   element only renders inside `@media (max-width: 767px)` (see
+		   responsive.css), but the `menuShowing` DOM class survives a
+		   resize/rotate up across the 768px boundary. Without this
+		   listener the modal scrim painted by `body:has(.mobileMenu.menuShowing)`
+		   stays visible on tablet/landscape after the menu itself has
+		   collapsed back into the desktop layout. Fires regardless of
+		   IntersectionObserver support — matchMedia is universal. */
+		var mqCaMenuMobile = window.matchMedia("(max-width: 767px)");
+		var caMenuMqHandler = function() {
+			if (!mqCaMenuMobile.matches) caClearMenuShowingForDesktopLayout();
+		};
+		if (typeof mqCaMenuMobile.addEventListener === "function") {
+			mqCaMenuMobile.addEventListener("change", caMenuMqHandler);
+		} else {
+			mqCaMenuMobile.addListener(caMenuMqHandler);
+		}
 	}
 	$(".mainArea").on("click", ".actionsButtonContext,.actionsButton,.ca_multiselect", function() {
 		data.actions = true;
