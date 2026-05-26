@@ -1,0 +1,90 @@
+/*
+ * Catch-all override stylesheet.
+ *
+ * Loaded unconditionally after `community.applications.css` (and so wins
+ * the cascade over the base CA rules). Use this file for any var
+ * reroutes, theme-class-scoped tweaks, or rule overrides that aren't
+ * cleanly classifiable as "color tokens" (colors.css) or "responsive
+ * layout" (responsive.css). Expected to grow over time — drop new
+ * overrides at the bottom rather than reorganizing existing blocks.
+ *
+ * Convention: scope every var override to the body class it should
+ * affect (e.g. `.Theme--sidebar`, `.Theme--nav-top`, `.Theme--<name>`)
+ * so it only fires for matching users. Never declare unscoped `:root`
+ * vars here — those belong in colors.css.
+ */
+
+/* ===========================================================================
+   Var overrides
+   =========================================================================== */
+
+/* Sidebar surfaces read better with a softer red — the dynamix
+   `--brand-red` (deep `#e22828`) clashes with sidebar bg tones.
+   `--red-300` (`#ff9e9e`) is the closest palette entry that lifts
+   cleanly off the sidebar surface. */
+
+
+/* ===========================================================================
+   Sidebar-layout style overrides
+   =========================================================================== */
+
+/* Multi-install bar pushes the bottom of `.ca_display_area` up to make
+   room for the action toolbar. Sidebar layout's bar is taller (button
+   row sits beneath the OS sidebar rail). */
+body.Theme--sidebar:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 9rem;
+}
+
+/* In sidebar layouts the persistent #menu IS the OS sidebar — keep it
+   parked at the modal-scrim plane (999) when a modal is open so it stays
+   visible/interactive at scrim level instead of getting pushed below
+   the page content like upgrade_notice. Theme class is on the body
+   itself, so the descendant-`body` selectors that used to be here never
+   matched anything. */
+body.Theme--sidebar:has(.sidenavShow) #menu,
+body.Theme--sidebar.ca_searchModalOpen #menu,
+body.Theme--sidebar:has(.mobileMenu.menuShowing) #menu,
+body.Theme--sidebar:has(.ca_sweetalert_open) #menu,
+body.Theme--sidebar:has(.mfp-bg) #menu {
+	z-index: 999;
+}
+
+.Theme--sidebar .mainArea {
+	top: 1rem;
+}
+
+.Theme--sidebar .ca_display_area {
+	left: 65px;
+	/* `top` handled by the shared `.ca_display_area`/`.menuItems`
+	   calc in main CSS — applies to both layouts. */
+}
+
+/* Prevent a banner warning from covering the search bar when scrolling. */
+.Theme--sidebar .upgrade_notice {
+	position: absolute;
+}
+
+/* Legacy-OS-only sidebar tweak (gray/azure on <7.2). The search area
+   needs a negative margin-left to clear the legacy sidebar's left rail. */
+.Theme--legacyOS.Theme--sidebar .searchArea {
+	margin-left: -8.5rem;
+}
+
+/* ===========================================================================
+   Nav-top-layout style overrides
+   =========================================================================== */
+
+/* Multi-install bar bottom offset for nav-top — shorter toolbar than
+   sidebar layout. */
+body.Theme--nav-top:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 6rem;
+}
+
+.Theme--nav-top .ca_display_area {
+	left: 0;
+}
+.Theme--sidebar .menuItems {
+   left: 65px;
+   padding-left: 1rem;
+}
+

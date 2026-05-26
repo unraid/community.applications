@@ -23,6 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Assorted UI tweaks across cards, sidebar, search popup, and diff overlay
+- Changed: Mobile / responsive layout improvements
+- Changed: CA now follows the active Unraid OS theme more strictly on 7.2+ — custom themes inherit automatically
 - Changed: Cards show every applicable status badge (Installed + Updated, Incompatible + Deprecated, etc.) instead of only the highest-priority one — extra badges wrap to a second row inside the top-right corner without crossing the icon. Blacklist supersedes Deprecated and the LT-branded "Official" supersedes the plain "Official" so duplicate chips don't pile up
 - Added: Sidebar header now shows the same status badge row above the app icon — surfaces Installed / Updated / Incompatible / etc. without having to scroll the sidebar body
 - Fixed: Plugin sidebar now shows the "Update" button when an update is available — the previous build silently dropped it on every sidebar open after the first

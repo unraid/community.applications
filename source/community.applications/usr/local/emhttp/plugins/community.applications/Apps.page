@@ -81,9 +81,6 @@ $previousLocale = strip_tags($_COOKIE["locale"] ?? "");
 $allowedThemes = ['black', 'white', 'azure', 'gray'];
 $ca_theme = in_array($theme, $allowedThemes) ? $theme : 'black';
 
-$allowedFontSizes = ['50', '56.25', '62.5', '68.75', '75', '80'];
-$fontSize = in_array($display['font'], $allowedFontSizes) ? $display['font'] : '62.5';
-
 if ( is_file(CA_PATHS['addConverted']) )
 	$dockerConvertFlag = "true";
 else
@@ -173,9 +170,6 @@ if ( ! $responsiveOS ) {
 	$classList[] = "Theme--responsive";
 }
 
-// Set a class for the font size on all OS versions
-$classList[] = "Theme--fontSize".intval($fontSize);
-
 $htmlClasses = implode(" ",$classList);
 
 /* Settings-difference class list. For every key defined in default.cfg,
@@ -217,10 +211,30 @@ function tr($string,$ret=false) {
 
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
-<? if ( $responsiveOS ):?>
+<?php /* Catch-all override stylesheet. Loaded unconditionally right after
+         community.applications.css so its rules generally take precedence
+         over the base CA rules at equal specificity — but later-loaded
+         stylesheets (responsive.css / legacy-colors.css) can still
+         override at the same specificity. Use this file for var reroutes
+         scoped to body classes (e.g. `.Theme--sidebar`), per-theme tweaks,
+         or any rule overrides that don't fit the colors / responsive /
+         theme-polyfill files. */ ?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.overrides.css");?>'></link>
+<? if ( $responsiveOS ): ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>
-<?endif;?>
-<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/themes/$ca_theme.css");?>'></link>
+<? else: ?>
+<?php /* Pre-7.2 polyfill: dynamix on legacy OS didn't define the semantic
+         theme vars (`--text-color`, `--mild-background-color`, `--link-text-color`,
+         `--border-color`, `--inverse-*`) or the base color palette that CA's
+         main CSS now references. This consolidated file ships per-theme
+         color sets scoped by `.Theme--<name>` plus the shared base palette
+         and layout-positioning vars. On 7.2+ this file is NOT loaded —
+         dynamix's own theme/palette files own those vars, so CA inherits
+         whichever theme the OS has active (including custom ones CA has
+         never heard of). Layout-positioning vars are duplicated in
+         responsive.css for the 7.2+ path. */ ?>
+<link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.legacy-colors.css");?>'></link>
+<? endif; ?>
 
 <script src='<?autov("/plugins/community.applications/javascript/helpers.js");?>'></script>
 <script src='<?autov("/plugins/community.applications/javascript/libraries.js");?>'></script>

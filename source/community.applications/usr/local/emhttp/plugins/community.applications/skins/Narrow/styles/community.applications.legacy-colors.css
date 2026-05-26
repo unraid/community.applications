@@ -1,0 +1,529 @@
+/*
+ * Legacy (pre-7.2 Unraid) color definitions, consolidated.
+ *
+ * Loaded only on `!$responsiveOS` (see Apps.page else branch). Replaces
+ * the per-theme polyfill files for the color/var side of things — on
+ * legacy, dynamix doesn't define `--text-color`, `--mild-background-color`,
+ * `--brand-red`, the base palette, etc., so CA ships its own copies here.
+ *
+ * Every block is scoped by `.Theme--legacyOS` so this file is inert
+ * outside legacy mode regardless of how it might end up loaded. The
+ * specific theme rules also stack `.Theme--<name>` so each theme only
+ * picks up its own color set.
+ *
+ * Sections:
+ *   1. Base color palette — shared across all four legacy themes
+ *      (verbatim copy of dynamix's `default-color-palette.css`).
+ *   2. Default positioning vars — nav-top values, used unless overridden
+ *      by a layout-scoped block.
+ *   3. Sidebar-layout positioning overrides.
+ *   4. Theme tokens, one block per legacy theme (verbatim copies of the
+ *      matching `dynamix/styles/themes/<name>.css`). Azure also includes
+ *      its `--beta-popup-offset: 1.5rem` override here since it differs
+ *      from the other three.
+ */
+
+/* ===========================================================================
+   1. Base color palette
+   =========================================================================== */
+.Theme--legacyOS {
+    --font-sans: clear-sans, sans-serif;
+    --font-bitstream: bitstream;
+
+    --black: #1d1b1b;
+    --black-opacity-05: rgba(0, 0, 0, 0.05);
+    --black-opacity-10: rgba(0, 0, 0, 0.1);
+    --black-opacity-20: rgba(0, 0, 0, 0.2);
+    --black-opacity-25: rgba(0, 0, 0, 0.25);
+    --black-opacity-30: rgba(0, 0, 0, 0.3);
+
+    --white: #ffffff;
+    --white-opacity-05: rgba(255, 255, 255, 0.05);
+    --white-opacity-10: rgba(255, 255, 255, 0.1);
+    --white-opacity-25: rgba(255, 255, 255, 0.25);
+    --white-opacity-30: rgba(255, 255, 255, 0.3);
+    --white-opacity-50: rgba(255, 255, 255, 0.5);
+    --white-opacity-80: rgba(255, 255, 255, 0.8);
+    --white-opacity-90: rgba(255, 255, 255, 0.9);
+
+    --gray-000: var(--white);
+    --gray-100: #f2f2f2;
+    --gray-120: rgba(242, 242, 242, 0.2);
+    --gray-150: #e8e8e8;
+    --gray-200: #d3d3d3;
+    --gray-300: #cccccc;
+    --gray-400: #909090;
+    --gray-500: #808080;
+    --gray-600: #404040;
+    --gray-700: #303030;
+    --gray-800: #212121;
+    --gray-895: rgba(25, 25, 25, 0.95);
+    --gray-900: var(--black);
+
+    --orange-100: #ffdfb9;
+    --orange-200: #ff9900;
+    --orange-300: #e68a00;
+    --orange-400: #ce7c10;
+    --orange-500: #ff8c2f;
+    --orange-800: #f15a2c;
+    --orange-900: #d63301;
+
+    --red-100: #ffddd1;
+    --red-300: #ff9e9e;
+    --red-500: #ff3300;
+    --red-600: #f0000c;
+    --red-700: #de1100;
+    --red-800: #e22828;
+    --red-900: #941c00;
+
+    --green-100: #dff2bf;
+    --green-200: #33cc33;
+    --green-500: #17bf0b;
+    --green-800: #4f8a10;
+    --green-900: #127a05;
+
+    --blue-100: #d9edf7;
+    --blue-200: #bce8f1;
+    --blue-300: #bde5f8;
+    --blue-700: #0099ff;
+    --blue-800: #486dba;
+    --blue-900: #3b5998;
+
+    --yellow-100: #fff6bf;
+    --yellow-200: #feefb3;
+    --yellow-500: #ffd324;
+}
+
+/* ===========================================================================
+   2. Default positioning vars (nav-top values)
+   =========================================================================== */
+.Theme--legacyOS {
+    --search-area-top: 4rem;
+    --search-area-left: 1rem;
+    --search-area-mobile-left: initial;
+    --search-area-mobile-top: 0px;
+    --beta-popup-offset: 5rem;
+}
+
+/* ===========================================================================
+   3. Sidebar-layout positioning overrides
+   =========================================================================== */
+.Theme--legacyOS.Theme--sidebar {
+    --search-area-top: 0px;
+    --search-area-left: 7rem;
+    --search-area-mobile-left: 7rem;
+}
+
+/* ===========================================================================
+   4. Per-theme color tokens
+   =========================================================================== */
+
+/* --- black --------------------------------------------------------------- */
+.Theme--legacyOS.Theme--black {
+    /* Theme specific vars */
+    --theme-black--mild-gray-700: #262626;
+
+    --text-color: var(--gray-100);
+    --blockquote-text-color: var(--gray-800);
+    --alt-text-color: var(--gray-500);
+    --disabled-text-color: var(--gray-500);
+    --inverse-text-color: var(--gray-900);
+    --link-text-color: var(--blue-800);
+
+    --background-color: var(--gray-900);
+    --opac-background-color: var(--gray-895);
+    --mild-background-color: var(--theme-black--mild-gray-700);
+    --usage-bar-background-color: var(--gray-600);
+    --usage-bar-used-background-color: var(--gray-500);
+    --usage-disk-background-color: var(--gray-700);
+    --inverse-background-color: var(--gray-100);
+    --radio-background-color: var(--gray-700);
+    --dashboard-background-color: var(--gray-700);
+    --dashboard-title-action-color: var(--white-opacity-30);
+    --dashboard-icon-color: var(--mild-background-color);
+
+    --border-color: var(--gray-600);
+    --disabled-border-color: var(--gray-500);
+    --input-border-color: var(--gray-200);
+    --disabled-input-border-color: var(--gray-500);
+    --textarea-border-color: var(--gray-400);
+    --inverse-border-color: var(--white-opacity-25);
+    --table-border-color: var(--gray-700);
+    --table-background-color: var(--gray-800);
+    --table-header-background-color: var(--gray-800);
+    --hover-table-row-background-color: var(--white-opacity-05);
+
+    --footer-text: var(--text-color);
+    --footer-background-color: var(--mild-background-color);
+
+    --small-shadow: 0 0 3px var(--gray-700);
+    --hr-color: var(--gray-800);
+
+    --checkbox-color: var(--gray-500);
+    --checkbox-hover-color: var(--gray-600);
+
+    --brand-orange: var(--orange-500);
+    --brand-red: var(--red-800);
+
+    --header-text-color: var(--customer-header-text-color, var(--inverse-text-color));
+    --header-background-color: var(--custom-header-background-color, var(--gray-100));
+
+    --title-header-background-color: var(--mild-background-color);
+
+    --scrollbar-color: var(--gray-300);
+    --scrollbar-hover-color: var(--gray-200);
+
+    --bg-opacity-10: var(--black-opacity-10);
+    --bg-opacity-30: var(--black-opacity-30);
+
+    --button-text-color: var(--brand-orange);
+    --button-border: none;
+    --button-background: linear-gradient(90deg, var(--brand-red) 0, var(--brand-orange)) 0 0 no-repeat,
+        linear-gradient(90deg, var(--brand-red) 0, var(--brand-orange)) 0 100% no-repeat,
+        linear-gradient(0deg, var(--brand-red) 0, var(--brand-red)) 0 100% no-repeat,
+        linear-gradient(0deg, var(--brand-orange) 0, var(--brand-orange)) 100% 100% no-repeat;
+    --button-background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%;
+
+    --hover-button-border: var(--blue-700);
+    --hover-button-text-color: var(--white);
+    --hover-button-background: linear-gradient(90deg,var(--brand-red) 0,var(--brand-orange));
+
+    --input-bg-color: transparent;
+    --focus-input-bg-color: var(--mild-background-color);
+
+    --shade-bg-color: var(--gray-800);
+
+    --dynamix-filetree-bg-color: var(--gray-900);
+}
+
+/* --- white --------------------------------------------------------------- */
+.Theme--legacyOS.Theme--white {
+    /* Theme specific vars */
+    --theme-white--mild-gray-100: #f7f9f9;
+
+    --text-color: var(--gray-900);
+    --blockquote-text-color: var(--gray-800);
+    --alt-text-color: var(--gray-400);
+    --disabled-text-color: var(--gray-500);
+    --inverse-text-color: var(--gray-100);
+    --link-text-color: var(--blue-800);
+
+    --background-color: var(--gray-100);
+    --opac-background-color: var(--gray-895);
+    --mild-background-color: var(--theme-white--mild-gray-100);
+    --usage-bar-background-color: var(--gray-500);
+    --usage-bar-used-background-color: var(--gray-400);
+    --usage-disk-background-color: var(--gray-200);
+    --inverse-background-color: var(--gray-900);
+    --radio-background-color: var(--gray-200);
+    --dashboard-background-color: var(--gray-700);
+    --dashboard-title-action-color: var(--black-opacity-30);
+    --dashboard-icon-color: var(--mild-background-color);
+
+    --border-color: var(--gray-200);
+    --disabled-border-color: var(--gray-500);
+    --input-border-color: var(--black);
+    --disabled-input-border-color: var(--gray-400);
+    --textarea-border-color: var(--gray-400);
+    --inverse-border-color: var(--gray-000);
+    --table-border-color: var(--gray-200);
+    --table-background-color: var(--gray-150);
+    --table-header-background-color: var(--gray-150);
+    --hover-table-row-background-color: var(--black-opacity-05);
+
+    --footer-text: var(--text-color);
+    --footer-background-color: var(--gray-200);
+
+    --small-shadow: 0 0 3px var(--gray-700);
+    --hr-color: var(--gray-300);
+
+    --checkbox-color: var(--gray-200);
+    --checkbox-hover-color: var(--gray-300);
+
+    --brand-orange: var(--orange-500);
+    --brand-red: var(--red-800);
+
+    --header-text-color: var(--customer-header-text-color, var(--inverse-text-color));
+    --header-background-color: var(--custom-header-background-color, var(--gray-900));
+
+    --title-header-background-color: var(--gray-150);
+
+    --scrollbar-color: var(--gray-400);
+    --scrollbar-hover-color: var(--gray-500);
+
+    --bg-opacity-10: var(--white-opacity-10);
+    --bg-opacity-30: var(--white-opacity-30);
+
+    --button-text-color: var(--brand-orange);
+    --button-border: none;
+    --button-background: linear-gradient(90deg, var(--brand-red) 0, var(--brand-orange)) 0 0 no-repeat,
+        linear-gradient(90deg, var(--brand-red) 0, var(--brand-orange)) 0 100% no-repeat,
+        linear-gradient(0deg, var(--brand-red) 0, var(--brand-red)) 0 100% no-repeat,
+        linear-gradient(0deg, var(--brand-orange) 0, var(--brand-orange)) 100% 100% no-repeat;
+    --button-background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%;
+
+    --hover-button-border: var(--blue-700);
+    --hover-button-text-color: var(--white);
+    --hover-button-background: linear-gradient(90deg,var(--brand-red) 0,var(--brand-orange));
+
+    --input-bg-color: transparent;
+    --focus-input-bg-color: var(--gray-150);
+
+    --shade-bg-color: var(--gray-150);
+
+    --dynamix-ui-dropdownchecklist-color: var(--black);
+    --dynamix-ui-dropdownchecklist-color-alt1: var(--gray-150);
+    --dynamix-ui-dropdownchecklist-color-alt2: var(--gray-400);
+
+    --dynamix-sweet-alert-text-color: var(--black);
+    --dynamix-sweet-alert-icon-bg-color: var(--gray-100);
+
+    --dynamix-tablesorter-thead-row-border-color: var(--gray-200);
+    --dynamix-tablesorter-thead-th-text-color: var(--black);
+    --dynamix-tablesorter-thead-th-bg-color: var(--gray-150);
+
+    --dynamix-tablesorter-tbody-row-alt-bg-color: var(--gray-150);
+    --dynamix-tablesorter-tbody-row-bg-color: var(--gray-100);
+    --dynamix-tablesorter-tbody-row-border-color: var(--gray-200);
+
+    --dynamix-select-box-shadow: 0 2px 0 var(--orange-500), inset 0 -1px var(--gray-100);
+    --dynamix-select-disabled-bg-color: var(--gray-150);
+    --dynamix-select-disabled-border-color: var(--gray-500);
+    --dynamix-select-disabled-color: var(--black);
+}
+
+/* --- gray ---------------------------------------------------------------- */
+.Theme--legacyOS.Theme--gray {
+    /* Theme specific vars */
+    --theme-gray--black-alt: #121510;
+    --theme-gray--cyan-300: #606e7f;
+    --theme-gray--cyan-400: #566573;
+    --theme-gray--cyan-500: #42453e;
+    --theme-gray--cyan-600: #004e86;
+    --theme-gray--cyan-700: #39587f;
+    --theme-gray--cyan-900: #212f3d;
+    --theme-gray--green-900: #232523;
+
+    --text-color: var(--theme-gray--cyan-300);
+    --blockquote-text-color: var(--gray-800);
+    --alt-text-color: var(--theme-gray--cyan-300);
+    --disabled-text-color: var(--gray-500);
+    --inverse-text-color: var(--gray-900);
+    --link-text-color: var(--blue-800);
+
+    --background-color: var(--black);
+    --alt-background-color: var(--gray-700);
+    --opac-background-color: var(--gray-895);
+    --mild-background-color: var(--theme-gray--black-alt);
+    --usage-bar-background-color: var(--gray-600);
+    --usage-bar-used-background-color: var(--gray-500);
+    --usage-disk-background-color: var(--theme-gray--green-900);
+    --inverse-background-color: var(--gray-100);
+    --radio-background-color: var(--gray-700);
+    --disabled-input-background-color: var(--alt-background-color);
+    --table-background-color: transparent;
+    --hover-table-row-background-color: var(--white-opacity-05);
+    --dashboard-background-color: var(--theme-gray--cyan-900);
+    --dashboard-title-action-color: var(--white-opacity-30);
+    --dashboard-icon-color: var(--mild-background-color);
+
+    --border-color: var(--theme-gray--cyan-300);
+    --alt-border-color: var(--theme-gray--cyan-600);
+    --disabled-border-color: var(--gray-500);
+    --input-border-color: var(--border-color);
+    --disabled-input-border-color: var(--gray-500);
+    --textarea-border-color: var(--border-color);
+    --inverse-border-color: var(--theme-gray--cyan-500);
+    --table-border-color: var(--gray-700);
+    --table-alt-border-color: var(--theme-gray--black-alt);
+    --dashboard-border-color: var(--theme-gray--cyan-400);
+
+    --footer-text: var(--gray-500);
+    --footer-background-color: var(--black);
+
+    --small-shadow: 0 0 0 0 transparent;
+    --hr-color: var(--theme-gray--cyan-300);
+
+    --checkbox-color: var(--gray-800);
+    --checkbox-hover-color: var(--gray-600);
+
+    --brand-orange: var(--orange-500);
+    --brand-red: var(--red-800);
+
+    --header-text-color: var(--customer-header-text-color, var(--inverse-text-color));
+    --header-background-color: var(--custom-header-background-color, var(--gray-100));
+
+    --title-header-background-color: var(--mild-background-color);
+
+    --scrollbar-color: var(--gray-300);
+    --scrollbar-hover-color: var(--gray-200);
+
+    --bg-opacity-10: var(--black-opacity-10);
+    --bg-opacity-30: var(--black-opacity-30);
+
+    --button-border: var(--theme-gray--cyan-300);
+    --button-text-color: var(--theme-gray--cyan-300);
+    --button-background: var(--theme-gray--black-alt);
+    --button-background-size: cover;
+
+    --hover-button-border: var(--blue-700);
+    --hover-button-text-color: var(--gray-300);
+    --hover-button-background: var(--theme-gray--black-alt);
+
+    --input-bg-color: var(--theme-gray--black-alt);
+    --focus-input-border-color: var(--blue-700);
+    --focus-input-background-color: var(--mild-background-color);
+
+    --shade-bg-color: var(--theme-gray--black-alt);
+
+    --dynamix-filetree-bg-color: var(--gray-900);
+    --dynamix-ui-dropdownchecklist-color: var(--theme-gray--cyan-300);
+    --dynamix-ui-dropdownchecklist-color-alt1: var(--gray-900);
+    --dynamix-ui-dropdownchecklist-dropcontainer-border-color: var(--blue-700);
+    --dynamix-ui-state-active-border-color: var(--blue-700);
+
+    --dynamix-sweet-alert-text-color: var(--theme-gray--cyan-300);
+    --dynamix-sweet-alert-icon-bg-color: var(--black);
+
+    --dynamix-tablesorter-thead-row-border-color: var(--theme-gray--cyan-300);
+    --dynamix-tablesorter-thead-th-text-color: var(--gray-500);
+    --dynamix-tablesorter-thead-th-bg-color: var(--black);
+
+    --dynamix-tablesorter-tbody-row-alt-bg-color: var(--theme-gray--black-alt);
+    --dynamix-tablesorter-tbody-row-bg-color: var(--black);
+    --dynamix-tablesorter-tbody-row-border-color: var(--table-alt-border-color);
+
+    --dynamix-select-bg-color: var(--black);
+    --dynamix-select-box-shadow: 0 2px 0 var(--theme-gray--black-alt), inset 0 -1px var(--black);
+    --dynamix-select-disabled-bg-color: var(--gray-700);
+    --dynamix-select-disabled-border-color: var(--gray-500);
+    --dynamix-select-disabled-color: var(--gray-500);
+
+    --dynamix-box-text-color: var(--theme-gray--cyan-300);
+}
+
+/* --- azure --------------------------------------------------------------- */
+.Theme--legacyOS.Theme--azure {
+    --gray-400: #9794a0; /* Overwrites value in default-color */
+
+    /* Theme specific vars */
+    --theme-azure--cyan-400: #606e7f;
+    --theme-azure--cyan-700: #004e86;
+    --theme-azure--gray-100: #f3f0f4;
+    --theme-azure--gray-150: #edeaef;
+    --theme-azure--gray-200: #d7dbdd;
+    --theme-azure--gray-300: #cacfd2;
+    --theme-azure--gray-800: #4f4f4f;
+    /* Defined locally so the `--dynamix-select-box-shadow` rule below can
+       resolve a color when this theme is active. Dynamix's own azure.css
+       references `--theme-gray--black-alt` from inside the azure block —
+       a verbatim-copy bug that leaves the shadow color invalid on azure.
+       Using the same `#121510` value the gray theme defines so the shadow
+       paints with dynamix's intended dark tone. */
+    --theme-azure--black-alt: #121510;
+    --theme-azure-grayish-orange: #9f9180;
+
+    --text-color: var(--theme-azure--cyan-400);
+    --blockquote-text-color: var(--gray-800);
+    --alt-text-color: var(--gray-400);
+    --disabled-text-color: var(--gray-500);
+    --inverse-text-color: var(--gray-900);
+    --link-text-color: var(--blue-800);
+
+    --background-color: var(--gray-150);
+    --alt-background-color: var(--gray-700);
+    --opac-background-color: var(--white-opacity-80);
+    --mild-background-color: var(--theme-azure--gray-150);
+    --usage-disk-background-color: var(--theme-azure--gray-150);
+    --inverse-background-color: var(--gray-100);
+    --radio-background-color: var(--gray-700);
+    --disabled-input-background-color: var(--gray-300);
+    --table-background-color: transparent;
+    --table-header-background-color: var(--gray-150);
+    /* `--usage-bar-background-color` is declared twice in dynamix's own
+       azure.css (the cyan-400 line just above the table-header decl gets
+       overridden by `--gray-500` further down). Mirroring the effective
+       behavior here by keeping only the winning `--gray-500` declaration. */
+    --usage-bar-background-color: var(--gray-500);
+    --usage-bar-used-background-color: var(--gray-400);
+    --hover-table-row-background-color: var(--black-opacity-05);
+
+    --dashboard-background-color: var(--theme-azure--gray-200);
+    --dashboard-title-action-color: var(--black-opacity-30);
+    --dashboard-icon-color: var(--mild-background-color);
+
+    --border-color: var(--theme-azure--cyan-400);
+    --alt-border-color: var(--theme-azure--cyan-700);
+    --disabled-border-color: var(--gray-500);
+    --input-border-color: var(--border-color);
+    --disabled-input-border-color: var(--gray-500);
+    --textarea-border-color: var(--input-border-color);
+    --inverse-border-color: var(--gray-600);
+    --table-border-color: var(--theme-azure--cyan-400);
+    --table-alt-border-color: var(--theme-azure--gray-100);
+    --dashboard-border-color: var(--theme-azure--gray-300);
+
+    --footer-background-color: var(--black);
+    --footer-text: var(--gray-500);
+
+    --small-shadow: 0 0 0 0 transparent;
+    --hr-color: var(--theme-azure--cyan-400);
+
+    --checkbox-color: var(--gray-800);
+    --checkbox-hover-color: var(--gray-600);
+
+    --brand-orange: var(--orange-500);
+    --brand-red: var(--red-800);
+
+    --header-text-color: var(--customer-header-text-color, var(--inverse-text-color));
+    --header-background-color: var(--custom-header-background-color, var(--gray-100));
+
+    --title-header-background-color: var(--mild-background-color);
+
+    --scrollbar-color: var(--gray-300);
+    --scrollbar-hover-color: var(--gray-200);
+
+    --bg-opacity-10: var(--black-opacity-10);
+    --bg-opacity-30: var(--black-opacity-30);
+
+    --button-border: var(--theme-azure-grayish-orange);
+    --button-text-color: var(--theme-azure-grayish-orange);
+    --button-background: var(--mild-background-color);
+    --button-background-size: cover;
+
+    --hover-button-border: var(--blue-800);
+    --hover-button-text-color: var(--theme-azure--gray-800);
+    --hover-button-background: var(--mild-background-color);
+
+    --input-bg-color: var(--mild-background-color);
+    --focus-input-bg-color: var(--theme-azure--gray-150);
+
+    --shade-bg-color: var(--theme-azure--gray-150);
+
+    --dynamix-ui-dropdownchecklist-color: var(--theme-azure--cyan-400);
+    --dynamix-ui-dropdownchecklist-color-alt1: var(--gray-900);
+    --dynamix-ui-dropdownchecklist-color-alt2: var(--gray-500);
+    --dynamix-ui-dropdownchecklist-dropcontainer-border-color: var(--blue-800);
+    --dynamix-ui-state-active-border-color: var(--blue-800);
+
+    --dynamix-sweet-alert-text-color: var(--theme-azure--cyan-400);
+    --dynamix-sweet-alert-icon-bg-color: var(--gray-150);
+
+    --dynamix-tablesorter-thead-row-border-color: var(--theme-azure--cyan-400);
+    --dynamix-tablesorter-thead-th-text-color: var(--theme-azure--cyan-400);
+    --dynamix-tablesorter-thead-th-bg-color: var(--gray-150);
+
+    --dynamix-tablesorter-tbody-row-bg-color: var(--mild-background-color);
+    --dynamix-tablesorter-tbody-row-alt-bg-color: var(--mild-background-color);
+    --dynamix-tablesorter-tbody-row-border-color: var(--theme-azure--gray-150);
+
+    --dynamix-select-bg-color: var(--black);
+    --dynamix-select-box-shadow: 0 2px 0 var(--theme-azure--black-alt), inset 0 -1px var(--black);
+    --dynamix-select-disabled-bg-color: var(--gray-700);
+
+    --dynamix-box-text-color: var(--theme-azure--cyan-400);
+
+    /* Azure's chrome sits closer to the search row than the other
+       legacy themes; tighten the beta-popup-offset accordingly. */
+    --beta-popup-offset: 1.5rem;
+}
