@@ -23,13 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
-- Chore: Major rework of CA's theme/color/layout architecture — CA now defers entirely to the Unraid OS theme on 7.2+, so picking a different theme (including any custom user theme) automatically reroutes every color in CA. Pre-7.2 still gets the four legacy themes via an internal polyfill. Layout positioning (where the cards / menu / search row sit) is now driven by a few variables and CSS `calc()` rather than per-font-size hardcoded values, eliminating the matrix of font-size × theme × breakpoint tuning that used to need testing on every change
-- Changed: Search popup interior now matches the sidebar tone with a darker border around it, and suggestion chips paint identically to the sidebar's other buttons
-- Changed: Sidebar action buttons (Install / Update / Uninstall) and close buttons (sidebar X, MFP close, diff close) now use the theme's default text color instead of forcing white text — improves readability on light themes where dark-on-color reads better than white-on-color
-- Changed: Card and sidebar badges (INSTALLED / UPDATED / OFFICIAL / BETA / etc.) paint dark text on the colored background for consistent legibility; INSTALLED badge color changed from purple to brand blue
-- Changed: Diff overlay add / remove / entity-substitution highlights now use the active theme's brand red / green / yellow with dark text instead of hardcoded rgba colors
-- Fixed: Modal scrim no longer lingers on screen when rotating from portrait to landscape on a phone — the mobile menu state now clears at the 768px boundary as well as at 1024px
-- Added: Logo glyph above the Home / Clear Search menu item in the slide-in mobile menu
+- Changed: Assorted UI tweaks across cards, sidebar, search popup, and diff overlay
+- Changed: Mobile / responsive layout improvements
+- Changed: CA now follows the active Unraid OS theme more strictly on 7.2+ — custom themes inherit automatically
 - Changed: Cards show every applicable status badge (Installed + Updated, Incompatible + Deprecated, etc.) instead of only the highest-priority one — extra badges wrap to a second row inside the top-right corner without crossing the icon. Blacklist supersedes Deprecated and the LT-branded "Official" supersedes the plain "Official" so duplicate chips don't pile up
 - Added: Sidebar header now shows the same status badge row above the app icon — surfaces Installed / Updated / Incompatible / etc. without having to scroll the sidebar body
 - Fixed: Plugin sidebar now shows the "Update" button when an update is available — the previous build silently dropped it on every sidebar open after the first
