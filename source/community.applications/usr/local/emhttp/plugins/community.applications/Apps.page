@@ -3330,6 +3330,7 @@ function caLoadSidebarReadmeSections() {
 		var url = $section.attr("data-readme-url") || "";
 		var fallback = $section.attr("data-readme-url-fallback") || "";
 		var repoName = $section.attr("data-readme-repo") || "";
+		var appName = $section.attr("data-readme-app") || "";
 
 		/* Server-side fetch + cache. caIsPublicHttpUrlJs is still applied as
 		   a belt-and-braces gate — the backend re-validates with the stricter
@@ -3348,6 +3349,7 @@ function caLoadSidebarReadmeSections() {
 					action: "caFetchSidebarSource",
 					url: u,
 					repoName: repoName,
+					appName: appName,
 					kind: "readme",
 					noSpinner: true,
 					tabId: (typeof data !== "undefined" && data.tabId) ? data.tabId : ""

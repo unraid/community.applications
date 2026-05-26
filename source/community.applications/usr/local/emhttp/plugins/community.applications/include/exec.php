@@ -173,6 +173,9 @@ switch ($_POST['action']) {
 	case 'statistics':
 		statistics();
 		break;
+	case 'caCompareFeedShas':
+		caCompareFeedShas();
+		break;
 	case 'showModeration':
 		showModeration();
 		break;
@@ -604,10 +607,10 @@ function hydrateFullFeedWork(): string {
 
 	$downloadURL = randomFile();
 	$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
-	$label = "Primary Server (hydrate)";
+	$label = "Primary Server (full)";
 	if ( (! is_array($ApplicationFeed['applist'] ?? null)) || empty($ApplicationFeed['applist']) ) {
 		$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 600, false);
-		$label = "Backup Server (hydrate)";
+		$label = "Backup Server (full)";
 	}
 	/* Dev mode: stash the raw applicationFeed.json snapshot before
 	   deleting the per-request tempfile so the Diff/Plugin/Template
@@ -1860,10 +1863,66 @@ function statistics() {
 	$statistics['repositories'] = @count($repositories) ?: tr("unknown");
 	$statistics['updateTime'] = $updateTime;
 	$statistics['currentServer'] = tr($currentServer);
-	$statistics['primaryServerUrl'] = CA_PATHS['application-feed'];
-	$statistics['backupServerUrl'] = CA_PATHS['application-feedBackup'];
+
+	/* Dev/admin-only diagnostic: include the requesting tab's session id
+	   so the statistics popup can display it. Normal users get no tabId
+	   field in the response and the row in the template stays hidden. */
+	if (($GLOBALS['caSettings']['dev'] ?? "no") === "yes" && is_file(CA_PATHS['caAdmin'])) {
+		$statistics['tabId'] = (string)($_POST['tabId'] ?? '');
+	}
 
 	postReturn(['statistics'=>$statistics]);
+}
+
+/**
+ * Dev/admin-only diagnostic: fetch the three feed files (small, full,
+ * statistics) from both the primary CA server and the GitHub backup,
+ * compute SHA-256 of each body, and return per-file match results.
+ *
+ * Used by the bottom of the statistics popup (replaces the old
+ * Primary/Backup server links) so a maintainer can spot-check whether
+ * the two mirrors are in sync without leaving the GUI. Gated server-side
+ * on `caSettings['dev']` and the on-disk `caAdmin` marker so the action
+ * is a no-op for normal users.
+ *
+ * Returns:
+ *   { enabled: bool,
+ *     results: {
+ *       small:      { primary: <sha|null>, backup: <sha|null>, match: bool },
+ *       full:       { ... },
+ *       statistics: { ... }
+ *     }
+ *   }
+ * `null` sha values indicate the fetch failed for that URL.
+ *
+ * @return void
+ */
+function caCompareFeedShas() {
+	if (($GLOBALS['caSettings']['dev'] ?? "no") !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+		postReturn(['enabled' => false]);
+		return;
+	}
+
+	$sources = [
+		'small'      => ['primary' => CA_PATHS['application-feed-small'], 'backup' => CA_PATHS['application-feed-smallBackup']],
+		'full'       => ['primary' => CA_PATHS['application-feed'],       'backup' => CA_PATHS['application-feedBackup']],
+		'statistics' => ['primary' => CA_PATHS['statisticsURL'],          'backup' => CA_PATHS['statisticsURLBackup']],
+	];
+
+	$results = [];
+	foreach ($sources as $name => $urls) {
+		$primaryBody = download_url($urls['primary']);
+		$backupBody  = download_url($urls['backup']);
+		$primarySha  = (is_string($primaryBody) && strlen($primaryBody)) ? hash('sha256', $primaryBody) : null;
+		$backupSha   = (is_string($backupBody)  && strlen($backupBody))  ? hash('sha256', $backupBody)  : null;
+		$results[$name] = [
+			'primary' => $primarySha,
+			'backup'  => $backupSha,
+			'match'   => ($primarySha !== null && $backupSha !== null && $primarySha === $backupSha),
+		];
+	}
+
+	postReturn(['enabled' => true, 'results' => $results]);
 }
 
 /**
@@ -2043,10 +2102,12 @@ function getDevRawURL() {
  * Inputs (POST):
  *   url       Absolute https URL to fetch
  *   repoName  RepoName from the template entry (drives the cache file name)
+ *   appName   Template Name (folded into the readme cache file name so two
+ *             templates from the same repo don't share one README cache file)
  *   kind      "readme" or "changes"
  *
  * Cache file naming (under CA_PATHS['templates-community']):
- *   readme  → {alphaNumeric(repoName)}-README.md
+ *   readme  → {alphaNumeric(repoName . appName)}-README.md
  *   changes → {alphaNumeric(repoName)}-{sanitisedBasename(url)}   (preserves .plg / .xml)
  *
  * Response: { ok: true, content: "<file contents>" }
@@ -2057,6 +2118,7 @@ function getDevRawURL() {
 function caFetchSidebarSource() {
 	$url      = trim((string)getPost("url", ""));
 	$repoName = trim((string)getPost("repoName", ""));
+	$appName  = trim((string)getPost("appName", ""));
 	$kind     = (string)getPost("kind", "");
 
 	if ($url === "" || !caIsPublicHttpUrl($url)) {
@@ -2077,7 +2139,11 @@ function caFetchSidebarSource() {
 	}
 
 	if ($kind === "readme") {
-		$cacheName = $safeRepo . "-README.md";
+		/* Fold the app name into the cache key so two templates from the
+		   same repo (each pointing at its own README) don't share one cache
+		   file and serve each other's body. alphaNumeric() strips spaces
+		   and punctuation, leaving a filesystem-safe slug. */
+		$cacheName = alphaNumeric($safeRepo . $appName) . "-README.md";
 	} else {
 		$path = (string)parse_url($url, PHP_URL_PATH);
 		$base = basename($path);

@@ -23,6 +23,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: Sidebar README cache now keys off both the repository and the app name, so two templates sharing a repo no longer serve each other's README from cache
 - Changed: Assorted UI tweaks across cards, sidebar, search popup, and diff overlay
 - Changed: Mobile / responsive layout improvements
 - Changed: CA now follows the active Unraid OS theme more strictly on 7.2+ — custom themes inherit automatically

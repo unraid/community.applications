@@ -1538,13 +1538,14 @@ function caBuildReadmeSectionDiv(array $template): string {
 	$safeRawMainUrl = htmlspecialchars($rawMainUrl, ENT_QUOTES);
 	$safeRawMasterUrl = htmlspecialchars($rawMasterUrl, ENT_QUOTES);
 	$safeRepoName = htmlspecialchars((string)($template['RepoName'] ?? ""), ENT_QUOTES);
+	$safeAppName = htmlspecialchars((string)($template['Name'] ?? ""), ENT_QUOTES);
 	/* Loading placeholder rendered inside .ca_readme_body. JS replaces the
 	   whole inner DOM via .html(text) once the postNoSpin call completes, so
 	   it self-evicts on first paint and we don't have to hide it. */
 	$loadingReadme =
 		"<div class='ca_center caLogoIcon'></div>".
 		"<div class='ca_center ca_italic'>".tr("Loading README...")."</div>";
-	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}' data-readme-repo='{$safeRepoName}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>{$loadingReadme}</div></div>";
+	return "<div id='{$readmeId}' class='ReadmeSection popupDescription popup_readmore {$readmeId}' data-readme-id='{$readmeId}' data-readme-url='{$safeRawMainUrl}' data-readme-url-fallback='{$safeRawMasterUrl}' data-readme-repo='{$safeRepoName}' data-readme-app='{$safeAppName}'><div class='ReadmeSectionLabel ca_bold'><a class='popUpLink' href='{$safeReadmeUrl}' target='_blank' rel='noopener noreferrer'>".tr("View README on Web")."</a></div><div class='ca_readme_body'>{$loadingReadme}</div></div>";
 }
 
 /**
