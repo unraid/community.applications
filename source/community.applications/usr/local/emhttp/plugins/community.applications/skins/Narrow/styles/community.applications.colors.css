@@ -18,9 +18,9 @@
 
 	No `var(--X, fallback)` fallbacks below — every dynamix name CA
 	references is supplied by either the OS itself (7.2+) or our
-	per-theme polyfill files (<7.2, `themes/{azure,black,gray,white}.css`).
+	consolidated legacy polyfill (<7.2, `community.applications.legacy-colors.css`).
 	If you add a new dynamix-var dependency here, make sure all four
-	polyfill files declare it too.
+	`.Theme--legacyOS.Theme--<name>` blocks in that file declare it too.
 	========================================================================== */
 
 :root {

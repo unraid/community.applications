@@ -212,10 +212,13 @@ function tr($string,$ret=false) {
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.colors.css");?>'></link>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.css");?>'></link>
 <?php /* Catch-all override stylesheet. Loaded unconditionally right after
-         community.applications.css so it always wins the cascade. Use this
-         file for var reroutes scoped to body classes (e.g.
-         `.Theme--sidebar`), per-theme tweaks, or any rule overrides that
-         don't fit the colors / responsive / theme-polyfill files. */ ?>
+         community.applications.css so its rules generally take precedence
+         over the base CA rules at equal specificity — but later-loaded
+         stylesheets (responsive.css / legacy-colors.css) can still
+         override at the same specificity. Use this file for var reroutes
+         scoped to body classes (e.g. `.Theme--sidebar`), per-theme tweaks,
+         or any rule overrides that don't fit the colors / responsive /
+         theme-polyfill files. */ ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.overrides.css");?>'></link>
 <? if ( $responsiveOS ): ?>
 <link rel='stylesheet' href='<?autov("/plugins/community.applications/skins/Narrow/styles/community.applications.responsive.css");?>'></link>

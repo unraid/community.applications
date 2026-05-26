@@ -414,6 +414,13 @@
     --theme-azure--gray-200: #d7dbdd;
     --theme-azure--gray-300: #cacfd2;
     --theme-azure--gray-800: #4f4f4f;
+    /* Defined locally so the `--dynamix-select-box-shadow` rule below can
+       resolve a color when this theme is active. Dynamix's own azure.css
+       references `--theme-gray--black-alt` from inside the azure block —
+       a verbatim-copy bug that leaves the shadow color invalid on azure.
+       Using the same `#121510` value the gray theme defines so the shadow
+       paints with dynamix's intended dark tone. */
+    --theme-azure--black-alt: #121510;
     --theme-azure-grayish-orange: #9f9180;
 
     --text-color: var(--theme-azure--cyan-400);
@@ -427,13 +434,16 @@
     --alt-background-color: var(--gray-700);
     --opac-background-color: var(--white-opacity-80);
     --mild-background-color: var(--theme-azure--gray-150);
-    --usage-bar-background-color: var(--theme-azure--cyan-400);
     --usage-disk-background-color: var(--theme-azure--gray-150);
     --inverse-background-color: var(--gray-100);
     --radio-background-color: var(--gray-700);
     --disabled-input-background-color: var(--gray-300);
     --table-background-color: transparent;
     --table-header-background-color: var(--gray-150);
+    /* `--usage-bar-background-color` is declared twice in dynamix's own
+       azure.css (the cyan-400 line just above the table-header decl gets
+       overridden by `--gray-500` further down). Mirroring the effective
+       behavior here by keeping only the winning `--gray-500` declaration. */
     --usage-bar-background-color: var(--gray-500);
     --usage-bar-used-background-color: var(--gray-400);
     --hover-table-row-background-color: var(--black-opacity-05);
@@ -508,7 +518,7 @@
     --dynamix-tablesorter-tbody-row-border-color: var(--theme-azure--gray-150);
 
     --dynamix-select-bg-color: var(--black);
-    --dynamix-select-box-shadow: 0 2px 0 var(--theme-gray--black-alt), inset 0 -1px var(--black);
+    --dynamix-select-box-shadow: 0 2px 0 var(--theme-azure--black-alt), inset 0 -1px var(--black);
     --dynamix-select-disabled-bg-color: var(--gray-700);
 
     --dynamix-box-text-color: var(--theme-azure--cyan-400);

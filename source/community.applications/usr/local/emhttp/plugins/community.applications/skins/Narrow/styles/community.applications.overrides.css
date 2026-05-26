@@ -31,19 +31,21 @@
 /* Multi-install bar pushes the bottom of `.ca_display_area` up to make
    room for the action toolbar. Sidebar layout's bar is taller (button
    row sits beneath the OS sidebar rail). */
-.Theme--sidebar body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+body.Theme--sidebar:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
 	bottom: 9rem;
 }
 
 /* In sidebar layouts the persistent #menu IS the OS sidebar — keep it
    parked at the modal-scrim plane (999) when a modal is open so it stays
    visible/interactive at scrim level instead of getting pushed below
-   the page content like upgrade_notice. */
-.Theme--sidebar body:has(.sidenavShow) #menu,
-.Theme--sidebar body.ca_searchModalOpen #menu,
-.Theme--sidebar body:has(.mobileMenu.menuShowing) #menu,
-.Theme--sidebar body:has(.ca_sweetalert_open) #menu,
-.Theme--sidebar body:has(.mfp-bg) #menu {
+   the page content like upgrade_notice. Theme class is on the body
+   itself, so the descendant-`body` selectors that used to be here never
+   matched anything. */
+body.Theme--sidebar:has(.sidenavShow) #menu,
+body.Theme--sidebar.ca_searchModalOpen #menu,
+body.Theme--sidebar:has(.mobileMenu.menuShowing) #menu,
+body.Theme--sidebar:has(.ca_sweetalert_open) #menu,
+body.Theme--sidebar:has(.mfp-bg) #menu {
 	z-index: 999;
 }
 
@@ -74,7 +76,7 @@
 
 /* Multi-install bar bottom offset for nav-top — shorter toolbar than
    sidebar layout. */
-.Theme--nav-top body:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+body.Theme--nav-top:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
 	bottom: 6rem;
 }
 

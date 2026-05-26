@@ -481,12 +481,18 @@ body,
 
 	.caButton:hover {
 		background: var(--brand-orange);
-		color: var(--ca-white-color) !important;
+		/* Match the resting `.caButton` color (`--inverse-text-color`)
+		   instead of forcing white. The previous `!important` white
+		   override silently leaked through to action / close buttons
+		   that explicitly set `--inverse-text-color` on hover, leaving
+		   Install / Update / Uninstall / CLOSE rendering white-on-orange
+		   regardless. */
+		color: var(--inverse-text-color) !important;
 	}
 
 	.caButton:hover a,
 	a.caButton:hover {
-		color: var(--ca-white-color);
+		color: var(--inverse-text-color);
 		text-decoration: none;
 	}
 
