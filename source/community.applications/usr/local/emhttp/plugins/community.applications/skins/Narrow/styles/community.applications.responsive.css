@@ -361,6 +361,21 @@ body:has(.ca_useWholeDisplayWindow) {
 		display: none;
 	}
 
+	/* MagnificPopup gallery thumbnail strip — phone viewports don't have
+	   the horizontal room for a useful filmstrip, and reserving 10rem of
+	   bottom height (see .caHasThumbStrip in Apps.page) eats the slide
+	   itself. Drop the strip + its reserve so the slide takes the full
+	   popup area; left/right arrows still cycle. */
+	.caMfpThumbs {
+		display: none !important;
+	}
+	.mfp-wrap.caHasThumbStrip .mfp-container {
+		padding-bottom: 0 !important;
+	}
+	.mfp-wrap.caHasThumbStrip .mfp-figure img.mfp-img {
+		max-height: 100vh !important;
+	}
+
 }
 @media (max-height: 600px) {
 	#header {
@@ -369,5 +384,17 @@ body:has(.ca_useWholeDisplayWindow) {
 
 	.Theme--nav-top .ca_display_area {
 		bottom: 0;
+	}
+
+	/* Same reasoning as the max-width: 767px block above — short
+	   viewports can't spare the 10rem reserve for the filmstrip. */
+	.caMfpThumbs {
+		display: none !important;
+	}
+	.mfp-wrap.caHasThumbStrip .mfp-container {
+		padding-bottom: 0 !important;
+	}
+	.mfp-wrap.caHasThumbStrip .mfp-figure img.mfp-img {
+		max-height: 100vh !important;
 	}
 }

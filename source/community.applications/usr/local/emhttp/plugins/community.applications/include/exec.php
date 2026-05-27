@@ -1041,7 +1041,7 @@ function appOfDay($file) {
 				if ( ! isset($template['trends']) ) continue;
 				if ( count($template['trends']) < 6 ) continue;
 				if ( startsWith($template['Repository'],"ich777/steamcmd") ) continue; // because a ton of apps all use the same repo
-				if ( $template['trending'] && ($template['downloads'] > 100000) ) {
+				if ( $template['trending'] && ( ($template['PluginURL']??false) || ($template['downloads'] > 100000) ) ) {
 					if ( checkRandomApp($template) ) {
 						if ( in_array($template['Repository'],$repos) )
 							continue;
@@ -1053,13 +1053,19 @@ function appOfDay($file) {
 			}
 			break;
 		case "topPlugins":
-			$sortOrder['sortBy'] = "downloads";
+			$previousMonth = date("m", strtotime("first day of previous month"));
+			foreach ($file as &$tplRef) {
+				if ( ! isset($tplRef['PluginURL']) ) continue;
+				$tplRef['lastMonthDownloads'] = (int)($tplRef['pluginStats'][$previousMonth] ?? 0);
+			}
+			unset($tplRef);
+			$sortOrder['sortBy'] = "lastMonthDownloads";
 			$sortOrder['sortDir'] = "Down";
 			usort($file,"mySort");
 			$repos = [];
 			foreach ($file as $template) {
 				if ( !isset($template['PluginURL']) ) continue;
-				if ( ! $template['downloads'] ?? false ) continue;
+				if ( ! ($template['lastMonthDownloads'] ?? 0) ) continue;
 
 				// don't show patch within top installs on home page if it's already installed and featured is displayed
 
@@ -1081,7 +1087,7 @@ function appOfDay($file) {
 			foreach ($file as $template) {
 				if ( isset($template['trends']) && count($template['trends'] ) < 3 ) continue;
 				if ( startsWith($template['Repository'],"ich777/steamcmd") ) continue; // because a ton of apps all use the same repo`
-				if ( isset($template['trending']) && ($template['downloads'] > 10000) ) {
+				if ( isset($template['trending']) && ( ($template['PluginURL']??false) || ($template['downloads'] > 10000) ) ) {
 					if ( checkRandomApp($template) ) {
 						if ( in_array($template['Repository'],$repos) )
 							continue;

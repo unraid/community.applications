@@ -141,7 +141,7 @@ class GetContentHelpers {
 			[
 				"type"=>"topPlugins",
 				"text1"=>tr("Most Popular Plugins"),
-				"text2"=>tr("The most popular plugins installed by other Unraid users"),
+				"text2"=>tr("The most popular plugins installed by other Unraid users last month"),
 				"cat"=>"plugins:",
 				"sortby"=>"downloads",
 				"sortdir"=>"Down"
