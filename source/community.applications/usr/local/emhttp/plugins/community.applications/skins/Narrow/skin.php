@@ -308,47 +308,64 @@ function displayPopup($template) {
 
 	$mediaBlock = "";
 	$pictures = $Screenshot ?: $Photo;
-	if ($pictures || $Video) {
-		$mediaSections = [];
-		if ($pictures) {
-			foreach ($pictures as $shot) {
-				$shot = trim($shot);
-				/* caIsPublicHttpUrl instead of validURL — popup images auto-fetch
-				   on render, so the stricter LAN/.local/RFC1918 rejection that
-				   guards the popup icon at line 873 has to apply here too.
-				   referrerpolicy='no-referrer' only hides the referrer; it
-				   doesn't stop the request itself. */
-				if ($shot === "" || !caIsPublicHttpUrl($shot)) {
-					continue;
-				}
-				$safeShot = htmlspecialchars($shot, ENT_QUOTES);
-				/* span (not <a>) so the legacy external-link click handler doesn't
-				   intercept this — magnific uses data-mfp-src as the source. */
-				$mediaSections[] = "<span class='screenshot mfp-image' data-mfp-src='$safeShot'><img class='screen' src='$safeShot' referrerpolicy='no-referrer'></img></span>";
+	$iconUrlNormalized = trim((string)($Icon ?? ""));
+	$iconForGallery   = ($iconUrlNormalized !== "" && caIsPublicHttpUrl($iconUrlNormalized)) ? $iconUrlNormalized : "";
+	$mediaSections    = [];
+
+	/* Hidden icon seed: keeps the app icon as a real gallery item (clickable
+	   via the icon area at the top of the popup, plus reachable via the
+	   carousel/arrows once the gallery is open) without painting a duplicate
+	   tile in the visible media row. The visible icon's click handler opens
+	   the gallery at index 0 (this seed). */
+	if ($iconForGallery !== "") {
+		$safeSeed = htmlspecialchars($iconForGallery, ENT_QUOTES);
+		$mediaSections[] = "<span class='screenshot mfp-image caGalleryIconSeed' data-mfp-src='$safeSeed' style='display:none'><img class='screen' src='$safeSeed' referrerpolicy='no-referrer'></span>";
+	}
+
+	if ($pictures) {
+		foreach ($pictures as $shot) {
+			$shot = trim($shot);
+			/* caIsPublicHttpUrl instead of validURL — popup images auto-fetch
+			   on render, so the stricter LAN/.local/RFC1918 rejection that
+			   guards the popup icon at line 873 has to apply here too.
+			   referrerpolicy='no-referrer' only hides the referrer; it
+			   doesn't stop the request itself. */
+			if ($shot === "" || !caIsPublicHttpUrl($shot)) {
+				continue;
 			}
-		}
-		if ($Video) {
-			foreach ($Video as $vid) {
-				$vid = trim($vid);
-				if ($vid === "" || !caIsPublicHttpUrl($vid)) {
-					continue;
-				}
-				$thumbnail = trim((string)getYoutubeThumbnail($vid));
-				/* The youtube thumbnail comes from a fixed-format helper, but it's
-				   still derived from a feed-supplied URL — gate it with the same
-				   public-URL check so an attacker-controlled video URL can't
-				   produce a thumbnail src pointing at a LAN host. */
-				if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
-					continue;
-				}
-				$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-				$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
-				$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='$safeThumb' referrerpolicy='no-referrer'></span>";
+			/* Skip screenshots that duplicate the app's icon — some
+			   templates reuse the icon URL in the Screenshot list,
+			   which renders as an awkward thumbnail of the icon. */
+			if ($iconUrlNormalized !== "" && $shot === $iconUrlNormalized) {
+				continue;
 			}
+			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
+			/* span (not <a>) so the legacy external-link click handler doesn't
+			   intercept this — magnific uses data-mfp-src as the source. */
+			$mediaSections[] = "<span class='screenshot mfp-image' data-mfp-src='$safeShot'><img class='screen' src='$safeShot' referrerpolicy='no-referrer'></img></span>";
 		}
-		if ($mediaSections) {
-			$mediaBlock = "<div class='caMediaGallery'>".implode("", $mediaSections)."</div>";
+	}
+	if ($Video) {
+		foreach ($Video as $vid) {
+			$vid = trim($vid);
+			if ($vid === "" || !caIsPublicHttpUrl($vid)) {
+				continue;
+			}
+			$thumbnail = trim((string)getYoutubeThumbnail($vid));
+			/* The youtube thumbnail comes from a fixed-format helper, but it's
+			   still derived from a feed-supplied URL — gate it with the same
+			   public-URL check so an attacker-controlled video URL can't
+			   produce a thumbnail src pointing at a LAN host. */
+			if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
+				continue;
+			}
+			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
+			$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
+			$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='$safeThumb' referrerpolicy='no-referrer'></span>";
 		}
+	}
+	if ($mediaSections) {
+		$mediaBlock = "<div class='caMediaGallery'>".implode("", $mediaSections)."</div>";
 	}
 
 	$appType = $Plugin ? tr("Plugin") : tr("Docker");
@@ -725,9 +742,9 @@ function displayPopup($template) {
 			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
 			<?= $CACommentBlock ?>
 			<?= $RequiresMessage ?>
+			<?= $mediaBlock ?>
 			<?= $readmeSection ?>
 			<?= $RecommendedBlock ?>
-			<?= $mediaBlock ?>
 			<?= $chartBlock ?>
 			<div>
 				<div class='popupInfoSection'>
@@ -1061,9 +1078,15 @@ function getPopupDescriptionSkin($appNumber) {
 		   `Icon=http://192.168.1.1/admin/reboot` could otherwise CSRF a LAN
 		   device. Anything that fails falls back to the local "?" image. */
 		$iconCandidate = (string)$template['Icon'];
-		$safeIcon = caIsPublicHttpUrl($iconCandidate) ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
+		$iconIsPublic = caIsPublicHttpUrl($iconCandidate);
+		$safeIcon = $iconIsPublic ? $iconCandidate : "/plugins/dynamix.docker.manager/images/question.png";
 		$safeIconAttr = htmlspecialchars($safeIcon, ENT_QUOTES);
-		$template['display_icon'] = "<img class='popupIcon screenshot' href='{$safeIconAttr}' src='{$safeIconAttr}' alt='Application Icon' referrerpolicy='no-referrer'>";
+		/* When the icon is a real public-HTTP URL we tag it caIconOpensGallery
+		   instead of .screenshot — JS in Apps.page binds the click to open
+		   .caMediaGallery's MFP at index 0 (the hidden icon seed). Fallback
+		   question.png icons get neither class so they aren't clickable. */
+		$iconClass = $iconIsPublic ? "popupIcon caIconOpensGallery" : "popupIcon";
+		$template['display_icon'] = "<img class='{$iconClass}' src='{$safeIconAttr}' alt='Application Icon' referrerpolicy='no-referrer'>";
 	}
 
 	$template['ModeratorComment'] = caApplySidebarSearchLinks($template['ModeratorComment']);
@@ -1127,10 +1150,13 @@ function getRepoDescriptionSkin($repository) {
 	/* caIsPublicHttpUrl, not validURL — repo icon auto-fetches on popup open
 	   so the same LAN-host rejection that guards the popup / card icons has
 	   to apply here too. */
-	$safeIconUrl = ($iconUrl && caIsPublicHttpUrl($iconUrl)) ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
-	$iconPrefix = $safeIconUrl ? "<span class='screenshot mfp-image' data-mfp-src='{$safeIconUrl}'>" : "";
-	$iconPostfix = $safeIconUrl ? "</span>" : "";
+	$iconIsPublic = ($iconUrl && caIsPublicHttpUrl($iconUrl));
+	$safeIconUrl = $iconIsPublic ? htmlspecialchars($iconUrl, ENT_QUOTES) : "";
 	$repoIcon = $safeIconUrl ?: "/plugins/dynamix.docker.manager/images/question.png";
+	/* Same pattern as the app popup: real public icons become gallery
+	   triggers (caIconOpensGallery → MFP open at idx 0 of the hidden seed),
+	   question-mark fallbacks stay non-clickable. */
+	$iconClass = $iconIsPublic ? "popupIcon caIconOpensGallery" : "popupIcon";
 	$repoBio = isset($repo['bio']) ? markdown($repo['bio']) : "<br><center>".tr("No description present");
 	$favRepoClass = ($GLOBALS['caSettings']['favourite'] == $repository) ? "fav" : "nonfav";
 	$encodedRepository = htmlentities($repository, ENT_QUOTES);
@@ -1138,7 +1164,7 @@ function getRepoDescriptionSkin($repository) {
 	$totals = caSummarizeRepositoryTemplates($templates, $repository);
 
 	$donationSection = caBuildRepoDonationSection($repo);
-	$mediaSection = caBuildRepoMediaSection($repo);
+	$mediaSection = caBuildRepoMediaSection($repo, $iconIsPublic ? (string)$iconUrl : "");
 	$linksSection = caBuildRepoLinkSection($repo);
 	$statsSection = caBuildRepoStatsSection($repo, $totals);
 
@@ -1156,7 +1182,7 @@ function getRepoDescriptionSkin($repository) {
 		<div class='popupContent'>
 			<div class='ca_popupIconArea'>
 				<div class='popupIcon'>
-					$iconPrefix<img class='popupIcon' src='{$repoIcon}' referrerpolicy='no-referrer'>$iconPostfix
+					<img class='{$iconClass}' src='{$repoIcon}' referrerpolicy='no-referrer'>
 				</div>
 				<div class='popupInfo'>
 					<div class='popupName ellipsis'>$repository</div>

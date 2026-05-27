@@ -1495,17 +1495,58 @@ function caInitializeEventHandlers() {
 	 * Capture-phase error handler that substitutes a placeholder image when
 	 * any `<img>` fails to load (spotlight icons get their dedicated backup).
 	 *
+	 * Sidebar gallery thumbs (`.caMediaGallery .screenshot img`) are special-
+	 * cased: a broken screenshot/video poster almost always means the source
+	 * URL is dead, so the whole `.screenshot` tile is dropped from the
+	 * gallery rather than replaced with a question-mark image — keeps the
+	 * MFP gallery (and the new thumbnail strip) from showing dead entries.
+	 * If removing the tile empties the gallery, hide it entirely.
+	 *
 	 * @param {ErrorEvent} event
 	 */
 	window.addEventListener("error", function(event) {
 		var target = event.target;
-		if (target && target.tagName === "IMG") {
-			if (target.classList.contains("spotlightIcon")) {
-				target.src = window.caSpotlightIconBackup || "/plugins/dynamix.docker.manager/images/question.png";
-			} else {
-				target.src = "/plugins/dynamix.docker.manager/images/question.png";
-			}
+		if (!target || target.tagName !== "IMG") return;
+
+		var $screenshot = $(target).closest(".caMediaGallery .screenshot");
+		if ($screenshot.length) {
+			var $gallery = $screenshot.closest(".caMediaGallery");
+			$screenshot.remove();
+			if (!$gallery.find(".screenshot").length) $gallery.hide();
 			target.onerror = null;
+			return;
+		}
+
+		if (target.classList.contains("spotlightIcon")) {
+			target.src = window.caSpotlightIconBackup || "/plugins/dynamix.docker.manager/images/question.png";
+		} else {
+			target.src = "/plugins/dynamix.docker.manager/images/question.png";
+		}
+		target.onerror = null;
+
+		/* Replaced-with-question icons aren't worth fullscreening — strip
+		   the .screenshot/.mfp-image classes and the magnificPopup click
+		   binding so the placeholder isn't a live MFP trigger. Two markup
+		   shapes hit this path:
+		     - app/repo icon: <img class='popupIcon caIconOpensGallery' ...>
+		     - legacy .screenshot wrapper inside the popup body
+		   For the straggler `.screenshot` popups MFP binds the click
+		   directly on the element (no delegate), so removing the class
+		   alone isn't enough — `.off("click.magnificPopup")` peels the
+		   handler off too. caIconOpensGallery uses our own namespaced
+		   binding `click.caIconGallery` (added in Apps.page); strip that
+		   too along with the class so the placeholder doesn't open the
+		   gallery to a broken seed. */
+		var $mfpRoot = $(target).hasClass("screenshot")
+			? $(target)
+			: $(target).closest(".screenshot");
+		if ($mfpRoot.length) {
+			$mfpRoot.off("click.magnificPopup");
+			$mfpRoot.removeClass("screenshot mfp-image");
+			$mfpRoot.removeAttr("data-mfp-src");
+		}
+		if ($(target).hasClass("caIconOpensGallery")) {
+			$(target).off("click.caIconGallery").removeClass("caIconOpensGallery");
 		}
 	}, true);
 

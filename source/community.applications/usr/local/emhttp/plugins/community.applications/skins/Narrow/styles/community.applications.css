@@ -2520,6 +2520,13 @@ input[type="button"] {
 		border-radius: 1rem 1rem 1rem 1rem;
 	}
 
+	/* The icon img used to carry the .screenshot class (cursor:pointer
+	   came from that). Now that real icons get .caIconOpensGallery to
+	   open the media gallery instead, re-add the pointer affordance. */
+	.caIconOpensGallery {
+		cursor: pointer;
+	}
+
 	.popupInfo {
 		flex: 1;
 		min-width: 0;             /* allow ellipsis on .popupName inside flex item */

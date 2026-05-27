@@ -767,7 +767,7 @@ function mySort($a, $b) {
 	$b['trendDelta'] = $b['trendDelta'] ?? null;
 	if ( $sortOrder['sortBy'] == "Name" )
 		$sortOrder['sortBy'] = "SortName";
-	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta") {
+	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "lastMonthDownloads") {
 		$c = strtolower($a[$sortOrder['sortBy']] ?? "");
 		$d = strtolower($b[$sortOrder['sortBy']] ?? "");
 	} else {
@@ -840,16 +840,101 @@ function searchArray($array,$key,$value,$startingIndex=0) {
 	return false;
 }
 /**
+ * Synthesize docker-style trend arrays for plugin templates from `pluginStats`.
+ *
+ * pluginStats is a calendar-year map of MM => monthly install count plus
+ * `T` (lifetime total). Dockers ship pre-baked `trends` / `trendsDate` /
+ * `downloadtrend`; plugins don't, so we compute equivalents here so the
+ * sidebar's Trend / Downloads-Per-Month / Total-Downloads charts (gated only
+ * on those fields being populated) light up for plugins too.
+ *
+ * Strategy: walk a rolling window of up to 11 completed months ending at the
+ * previous month (11 not 12 — the MM keys are year-agnostic, so going a full
+ * 12 back would alias to the current partial month's key). Anchor the latest
+ * cumulative on `T - currentMonthInstalls` and walk backwards subtracting
+ * each month's installs. Pre-window history (anything older than the window)
+ * collapses into the first point so the cumulative chart reflects real
+ * lifetime growth. Iteration stops once we cross FirstSeen.
+ *
+ * @param  array<string,mixed>  $template  Mutated in place.
+ * @return void
+ */
+function computePluginTrendsFromStats(&$template) {
+	if ( ! ($template['PluginURL'] ?? false) ) return;
+	if ( ! is_array($template['pluginStats'] ?? null) ) return;
+
+	$stats = $template['pluginStats'];
+	$total = (int)($stats['T'] ?? 0);
+	if ( $total <= 0 ) return;
+
+	$currentYear  = (int)date('Y');
+	$currentMonth = (int)date('n');
+	$firstSeen    = (int)($template['FirstSeen'] ?? 0);
+	$firstSeenYear  = $firstSeen ? (int)date('Y', $firstSeen) : 0;
+	$firstSeenMonth = $firstSeen ? (int)date('n', $firstSeen) : 0;
+
+	/* pluginStats uses MM-only keys, so the same key is reused every year.
+	   We can safely walk up to 11 months back from the last completed month
+	   — going 12 back would collide with the current (partial) month's key.
+	   Current month itself is excluded (partial data). */
+	$points = []; // [['year'=>Y,'month'=>M], ...] oldest-last
+	for ( $i = 1; $i <= 11; $i++ ) {
+		$ts = mktime(0, 0, 0, $currentMonth - $i, 1, $currentYear);
+		$y = (int)date('Y', $ts);
+		$m = (int)date('n', $ts);
+		if ( $firstSeen && ($y < $firstSeenYear || ($y === $firstSeenYear && $m < $firstSeenMonth)) ) {
+			break; // earlier than FirstSeen — stop walking back
+		}
+		$points[] = ['year' => $y, 'month' => $m];
+	}
+	if ( count($points) < 2 ) return;
+	$points = array_reverse($points); // chronological
+
+	$monthly = [];
+	$dates   = [];
+	foreach ( $points as $p ) {
+		$monthly[] = (int)($stats[sprintf('%02d', $p['month'])] ?? 0);
+		$dates[]   = mktime(0, 0, 0, $p['month'], 1, $p['year']);
+	}
+
+	/* T includes the current (excluded) partial month — back it out so the
+	   final cumulative anchors on end-of-previous-month. */
+	$currentMonthInstalls = (int)($stats[sprintf('%02d', $currentMonth)] ?? 0);
+	$anchor = max(0, $total - $currentMonthInstalls);
+
+	$cumulative = array_fill(0, count($monthly), 0);
+	$running    = $anchor;
+	for ( $i = count($monthly) - 1; $i >= 0; $i-- ) {
+		$cumulative[$i] = max(0, $running);
+		$running       -= $monthly[$i];
+	}
+
+	$trends = [];
+	foreach ( $monthly as $i => $cnt ) {
+		$cum      = $cumulative[$i];
+		$trends[] = $cum > 0 ? round(($cnt / $cum) * 100, 3) : 0;
+	}
+
+	$template['trends']        = $trends;
+	$template['trendsDate']    = $dates;
+	$template['downloadtrend'] = $cumulative;
+	$template['trending']      = end($trends);
+}
+
+/**
  * Repair common template authoring mistakes so the rest of the pipeline can trust the row.
  *
  * Fixes default MinVer, derives Date/BrandNewApp, normalizes Deprecated /
  * Blacklist into real booleans, applies DeprecatedMaxVer, and clears
- * boilerplate "Container Path:" descriptions from Config entries.
+ * boilerplate "Container Path:" descriptions from Config entries. Also
+ * synthesizes plugin-side trend arrays from pluginStats so the sidebar
+ * charts work for plugins (see computePluginTrendsFromStats).
  *
  * @param  array<string,mixed>  $template
  * @return array<string,mixed>
  */
 function fixTemplates($template) {
+	computePluginTrendsFromStats($template);
 
 	if ( ! $template['MinVer'] ) $template['MinVer'] = ($template['Plugin']??false) ? "6.1" : "6.0";
 	if ( ! ($template['Date']??null) ) $template['Date'] = (is_numeric($template['DateInstalled']??null)) ? $template['DateInstalled'] : 0;

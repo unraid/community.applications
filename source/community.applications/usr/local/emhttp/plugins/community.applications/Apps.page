@@ -365,22 +365,271 @@ var ca_done_override = false;
 var caAutoplayVideos = caHasSetting("autoplayVideos");
 var caYtParams    = caAutoplayVideos ? "?autoplay=1&mute=1&playsinline=1" : "?playsinline=1";
 var caVimeoParams = caAutoplayVideos ? "?autoplay=1&muted=1" : "";
+
+/* ────────────────────────────────────────────────────────────────────────
+   YouTube resume-from-timestamp for MagnificPopup video galleries.
+
+   MFP destroys and rebuilds the iframe on every slide change (arrow keys,
+   click-next, etc.), so a YouTube video normally restarts from 0 each time
+   the user returns to it. We avoid that by:
+     1. Embedding `enablejsapi=1` (+ origin) in every YouTube iframe URL so
+        we can talk to the player via the IFrame API.
+     2. On each fresh iframe build (callbacks.change), lazy-loading the
+        YouTube IFrame API and wiring a `YT.Player` to the iframe element.
+     3. On `beforeChange` / `beforeClose`, reading `getCurrentTime()` from
+        the player that's still in the DOM and stashing it keyed by the
+        original video URL (data-mfp-src — `currItem.src`).
+     4. On the next render of the same URL, appending `&start=<seconds>`
+        to the embed URL so playback resumes where the user left off.
+   Vimeo (a separate JS API) isn't wired up — its videos continue to
+   restart, matching prior behavior. */
+window.caVideoTimes = window.caVideoTimes || {}; // origUrl  -> seconds
+window.caYTPlayers  = window.caYTPlayers  || {}; // iframeId -> { player, url }
+window.caYTApiReady = window.caYTApiReady || false;
+window.caYTApiQueue = window.caYTApiQueue || [];
+
+function caEnsureYTApi() {
+	if (document.getElementById("caYTApiScript")) return;
+	var s = document.createElement("script");
+	s.id  = "caYTApiScript";
+	s.src = "https://www.youtube.com/iframe_api";
+	document.head.appendChild(s);
+}
+/* Global ready hook called by the YouTube IFrame API once loaded. Drains
+   any attach requests queued before the API was available. */
+window.onYouTubeIframeAPIReady = function() {
+	window.caYTApiReady = true;
+	while (window.caYTApiQueue.length) window.caYTApiQueue.shift()();
+};
+
+function caAttachYTPlayer(iframeEl, origUrl) {
+	if (!iframeEl) return;
+	if (!iframeEl.id) iframeEl.id = "caYT_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+	var setup = function() {
+		try {
+			var player = new YT.Player(iframeEl.id, {});
+			window.caYTPlayers[iframeEl.id] = { player: player, url: origUrl };
+		} catch (e) { /* iframe gone / not ready — harmless */ }
+	};
+	if (window.caYTApiReady) setup();
+	else { caEnsureYTApi(); window.caYTApiQueue.push(setup); }
+}
+
+function caCaptureActiveYTTime() {
+	/* MFP only renders one iframe at a time inside .mfp-iframe-scaler. */
+	var iframe = document.querySelector(".mfp-iframe-scaler iframe");
+	if (!iframe || !iframe.id) return;
+	var rec = window.caYTPlayers[iframe.id];
+	if (!rec || !rec.player || typeof rec.player.getCurrentTime !== "function") return;
+	try {
+		var t = rec.player.getCurrentTime();
+		if (typeof t === "number" && t > 0) window.caVideoTimes[rec.url] = t;
+	} catch (e) { /* player not fully ready — leave saved time as-is */ }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   Thumbnail strip for multi-item MFP galleries.
+
+   MFP only ships arrow nav + a counter — when a sidebar gallery has more
+   than one screenshot/video, render a clickable filmstrip pinned to the
+   bottom of the popup. Each thumb calls m.goTo(idx); the "active" class
+   tracks the current slide on every change. */
+function caMfpEnsureThumbStripStyles() {
+	if (document.getElementById("caMfpThumbStyles")) return;
+	var s = document.createElement("style");
+	s.id = "caMfpThumbStyles";
+	s.textContent =
+		".caMfpThumbs {" +
+			"position:absolute;left:0;right:0;bottom:5rem;" +
+			"display:flex;justify-content:center;align-items:flex-end;" +
+			"gap:1.5rem;" +
+			"padding:8px 12px;" +
+			"background:transparent;" +
+			"overflow:hidden;" + /* no scroll — flex shrink absorbs overflow */
+			"z-index:1100;" +
+		"}" +
+		/* flex:1 1 0 + min-width:0 lets every thumb shrink to share the
+		   strip width when there are many; max-width caps each thumb on
+		   roomy galleries so two-or-three thumb strips don't blow up to
+		   poster-sized. align-items:flex-end keeps everything sitting on
+		   the same baseline so the active (taller) thumb grows upward. */
+		".caMfpThumb {" +
+			"flex:1 1 0;min-width:0;max-width:8rem;" +
+			"height:56px;position:relative;" +
+			"cursor:pointer;border:2px solid transparent;" +
+			"opacity:0.55;" +
+			"transition:opacity .15s,border-color .15s,transform .15s,height .15s,max-width .15s;" +
+			"transform-origin:center bottom;" +
+			"background:#000;display:inline-block;overflow:hidden;" +
+		"}" +
+		/* object-fit:cover lets the image fill the variable-width thumb
+		   without distortion (vs. the prior width:auto which forced the
+		   thumb to grow to fit the image). */
+		".caMfpThumb img {width:100%;height:100%;display:block;object-fit:cover;}" +
+		".caMfpThumb:hover {opacity:1;transform:scale(1.08);}" +
+		/* Active thumb: taller AND wider than its peers so the current
+		   slide is obvious at a glance. flex:2 1 0 doubles its share of
+		   the strip width; max-width:12rem keeps it sane on big screens. */
+		".caMfpThumb.active {" +
+			"opacity:1;border-color:#ff8c2f;" +
+			"height:80px;flex:2 1 0;max-width:12rem;" +
+		"}" +
+		".caMfpThumb.active:hover {transform:scale(1.05);}" +
+		/* Play-icon overlay for video thumbs — reuses the same FA glyph
+		   and palette as the sidebar's .videoPlayOverlay so the
+		   affordance reads identically. Scaled down vs. the sidebar
+		   version since the thumb is only 56px tall. */
+		".caMfpThumb.caMfpThumbVideo::after {" +
+			"content:'\\f144';" +
+			"font-family:'fontAwesome';font-weight:900;" +
+			"position:absolute;top:50%;left:50%;" +
+			"transform:translate(-50%,-50%) scale(0.85);" +
+			"font-size:1.6em;" +
+			"color:rgba(255,255,255,0.9);" +
+			"text-shadow:1px 1px 3px rgba(0,0,0,0.7);" +
+			"pointer-events:none;" +
+			"transition:color .2s,transform .2s;" +
+		"}" +
+		".caMfpThumb.caMfpThumbVideo:hover::after {" +
+			"color:var(--brand-orange);" +
+			"transform:translate(-50%,-50%) scale(1);" +
+		"}" +
+		/* Reserve space at the bottom of the popup so the main content
+		   doesn't slide under the absolutely-positioned thumb strip.
+		   Math: 5rem bottom offset + ~96px strip (80px active thumb +
+		   16px padding) + ~1rem breathing room ≈ 12rem. */
+		".mfp-wrap.caHasThumbStrip .mfp-container {" +
+			"padding-bottom:12rem;" +
+		"}" +
+		/* MFP sets `max-height` on .mfp-img inline (resizeImage uses the
+		   window height, not the container's padded content area), so
+		   the container padding alone doesn't keep tall screenshots
+		   from overflowing under the strip. Cap to viewport minus the
+		   strip's reserved space, with !important to beat the inline. */
+		".mfp-wrap.caHasThumbStrip .mfp-figure img.mfp-img {" +
+			"max-height:calc(100vh - 14rem) !important;" +
+		"}";
+	document.head.appendChild(s);
+}
+
+function caMfpRenderThumbsStrip() {
+	var m = $.magnificPopup.instance;
+	if (!m || !m.wrap) return;
+	/* MFP keeps m.wrap detached between opens (rather than emptied), so any
+	   strip + reserve-space class from a prior open are still attached to
+	   it — strip both before deciding whether to draw a new one. */
+	m.wrap.find(".caMfpThumbs").remove();
+	m.wrap.removeClass("caHasThumbStrip");
+	if (!m.items || m.items.length < 2) return;
+	caMfpEnsureThumbStripStyles();
+	m.wrap.addClass("caHasThumbStrip");
+	var $strip = $("<div class='caMfpThumbs'></div>");
+	m.items.forEach(function(item, idx) {
+		if (!item.parsed) item = m.parseEl(idx);
+		var thumbSrc = "";
+		if (item.el && item.el.find) {
+			thumbSrc = item.el.find("img").attr("src") || "";
+		}
+		if (!thumbSrc && item.type === "image") thumbSrc = item.src;
+		var $thumb = $("<span class='caMfpThumb'></span>").attr("data-idx", idx);
+		/* iframe-type items are videos in this gallery — tag with the
+		   video-overlay class so the ::after play glyph paints on top. */
+		if (item.type === "iframe") $thumb.addClass("caMfpThumbVideo");
+		if (thumbSrc) {
+			$thumb.append($("<img referrerpolicy='no-referrer'>").attr("src", thumbSrc));
+		}
+		if (idx === m.index) $thumb.addClass("active");
+		$thumb.on("click", function(ev) {
+			ev.stopPropagation();
+			m.goTo(idx);
+		});
+		$strip.append($thumb);
+	});
+	m.wrap.append($strip);
+}
+
+function caMfpUpdateActiveThumb() {
+	var m = $.magnificPopup.instance;
+	if (!m || !m.wrap) return;
+	m.wrap.find(".caMfpThumb")
+		.removeClass("active")
+		.filter("[data-idx='" + m.index + "']")
+		.addClass("active");
+}
+
+/* Wraps a user-supplied callbacks object with the time-capture/attach hooks
+   (YouTube resume) plus the thumbnail-strip render/update so gallery
+   initializers can keep their own beforeOpen/afterClose etc. without
+   duplicating the plumbing. */
+function caWithVideoResumeCallbacks(userCbs) {
+	userCbs = userCbs || {};
+	var wrap = function(extra) {
+		return function() {
+			extra.apply(this, arguments);
+			var orig = userCbs[extra._name];
+			if (typeof orig === "function") orig.apply(this, arguments);
+		};
+	};
+	var onOpen = function() { caMfpRenderThumbsStrip(); };
+	onOpen._name = "open";
+	var onBeforeChange = function() { caCaptureActiveYTTime(); };
+	onBeforeChange._name = "beforeChange";
+	var onBeforeClose  = function() { caCaptureActiveYTTime(); };
+	onBeforeClose._name = "beforeClose";
+	var onChange = function() {
+		if (this.currItem && this.currItem.type === "iframe") {
+			var origUrl = this.currItem.src || "";
+			if (/youtube\.com|youtu\.be/.test(origUrl)) {
+				/* this.content is the MFP-managed jQuery wrapper around the
+				   freshly built `.mfp-iframe-scaler` div; at `change` time it
+				   may still be detached from the wrap container, so query
+				   inward off `this.content` rather than the global DOM. */
+				var iframe = this.content && this.content.find ? this.content.find("iframe")[0] : null;
+				if (iframe) caAttachYTPlayer(iframe, origUrl);
+			}
+		}
+		caMfpUpdateActiveThumb();
+	};
+	onChange._name = "change";
+	return $.extend({}, userCbs, {
+		open:         wrap(onOpen),
+		beforeChange: wrap(onBeforeChange),
+		change:       wrap(onChange),
+		beforeClose:  wrap(onBeforeClose)
+	});
+}
+
+/* Builds the "%id%" payload for the YouTube/youtu.be patterns. The MFP
+   embed URL is `//www.youtube.com/embed/<this>` (no trailing params), so
+   we stuff the full querystring into the id portion. caYtParams starts
+   with `?` (autoplay/mute/playsinline); we tack on enablejsapi=1, origin,
+   and a `&start=<sec>` resume hint when one is stashed for this URL. */
+function caBuildYouTubeIdParams(videoId, origUrl) {
+	var resume = window.caVideoTimes[origUrl]
+		? "&start=" + Math.floor(window.caVideoTimes[origUrl])
+		: "";
+	return videoId + caYtParams
+		+ "&enablejsapi=1"
+		+ "&origin=" + encodeURIComponent(location.origin)
+		+ resume;
+}
+
 var caMfpIframePatterns = {
 	youtube: {
 		index: "youtube.com/",
 		id: function(url) {
 			var m = url.match(/[?&]v=([A-Za-z0-9_-]+)/);
-			return m ? m[1] : url;
+			return caBuildYouTubeIdParams(m ? m[1] : url, url);
 		},
-		src: "//www.youtube.com/embed/%id%" + caYtParams
+		src: "//www.youtube.com/embed/%id%"
 	},
 	youtubeShort: {
 		index: "youtu.be/",
 		id: function(url) {
 			var m = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/);
-			return m ? m[1] : url;
+			return caBuildYouTubeIdParams(m ? m[1] : url, url);
 		},
-		src: "//www.youtube.com/embed/%id%" + caYtParams
+		src: "//www.youtube.com/embed/%id%"
 	},
 	vimeo: {
 		index: "vimeo.com/",
@@ -3233,7 +3482,7 @@ function showSidebarApp(apppath,appname) {
 				gallery: { enabled: true, navigateByImgClick: true, preload: [0,1] },
 				zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
 				iframe: { patterns: caMfpIframePatterns },
-				callbacks: {
+				callbacks: caWithVideoResumeCallbacks({
 					beforeOpen: function() {
 						/* keepIdentity=true: afterClose below reopens the same
 						   sidebar via data.sidebarapp{path,name}, which the
@@ -3254,17 +3503,35 @@ function showSidebarApp(apppath,appname) {
 					afterClose: function() {
 						showSidebarApp(data.sidebarapppath,data.sidebarappname);
 					}
-				}
+				})
 			});
 			/* Stragglers — .screenshot elements that aren't part of a gallery
-			   (eg. the popup app icon) get a plain single-item popup. */
+			   (eg. the popup app icon) get a plain single-item popup.
+			   Run them through caWithVideoResumeCallbacks too: the wrapper
+			   is a no-op for single-item popups except that its `open` hook
+			   clears any leftover .caMfpThumbs / .caHasThumbStrip from a
+			   prior gallery's open — MFP keeps m.wrap detached between
+			   opens rather than empty, so without this hook the previous
+			   app's thumb strip would still be hanging off it. */
 			$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 				type:'image',
 				closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
 				closeOnContentClick: true,
 				removalDelay: 100,
 				mainClass: 'mfp-fade',
-				zoom: { enabled: true, duration: 500, easing: 'ease-in-out' }
+				zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
+				callbacks: caWithVideoResumeCallbacks({})
+			});
+
+			/* App icon → open the media gallery at idx 0 (the hidden
+			   .caGalleryIconSeed tile). Lets the icon participate in arrow /
+			   carousel navigation alongside screenshots/videos without
+			   being painted twice in the visible media row. */
+			$('.caIconOpensGallery').off('click.caIconGallery').on('click.caIconGallery', function(ev) {
+				ev.preventDefault();
+				ev.stopPropagation();
+				var $gallery = $('.caMediaGallery');
+				if ($gallery.length) $gallery.magnificPopup('open', 0);
 			});
 			slideInSidebar();
 
@@ -3644,7 +3911,7 @@ function showRepoPopup(repository) {
 			gallery: { enabled: true, navigateByImgClick: true, preload: [0,1] },
 			zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
 			iframe: { patterns: caMfpIframePatterns },
-			callbacks: {
+			callbacks: caWithVideoResumeCallbacks({
 				beforeOpen: function() {
 					/* keepIdentity=true so afterClose's showRepoPopup() reopens
 					   to the same repo; without this, closeSidebar() would
@@ -3665,15 +3932,27 @@ function showRepoPopup(repository) {
 					$.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
 					showRepoPopup(data.repository);
 				}
-			}
+			})
 		});
+		/* See app-popup straggler comment — caWithVideoResumeCallbacks
+		   is needed here too to clear any prior gallery's thumb strip
+		   leftover on the detached m.wrap. */
 		$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 			type:'image',
 			closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
 			closeOnContentClick: true,
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
-			zoom: { enabled: true, duration: 500, easing: 'ease-in-out' }
+			zoom: { enabled: true, duration: 500, easing: 'ease-in-out' },
+			callbacks: caWithVideoResumeCallbacks({})
+		});
+
+		/* Repo profile icon → open the gallery at idx 0 (hidden seed). */
+		$('.caIconOpensGallery').off('click.caIconGallery').on('click.caIconGallery', function(ev) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			var $gallery = $('.caMediaGallery');
+			if ($gallery.length) $gallery.magnificPopup('open', 0);
 		});
 	});
 }

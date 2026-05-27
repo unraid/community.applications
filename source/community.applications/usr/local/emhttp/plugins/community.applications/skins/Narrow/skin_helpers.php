@@ -382,8 +382,11 @@ function caPrepareTrendVisuals(array &$template, &$templateDescription) {
 		}
 
 		if (isset($template['trendsDate'])) {
-			array_walk($template['trendsDate'],function (&$entry) {
-				$entry = tr(date("M",$entry),0).date(" j",$entry);
+			$isPlugin = (bool)($template['PluginURL'] ?? false);
+			array_walk($template['trendsDate'],function (&$entry) use ($isPlugin) {
+				$entry = $isPlugin
+					? tr(date("M",$entry),0).date(" \\'y",$entry)
+					: tr(date("M",$entry),0).date(" j",$entry);
 			});
 		}
 
@@ -1184,19 +1187,33 @@ function caBuildRepoDonationSection(array $repo): string {
  * Build the media (photos/videos) section for repository popups.
  *
  * Resolves YouTube thumbnails via getYoutubeThumbnail() for video tiles.
+ * When $iconUrl is a non-empty public-HTTP URL, the gallery is seeded with
+ * a hidden tile at index 0 so the popup's profile-icon click can open the
+ * MFP gallery at that point (icon appears in the carousel/arrow flow but
+ * not as a visible tile in the inline media row).
  *
- * @param  array<string,mixed> $repo Repository metadata containing Photo/Video entries.
- * @return string HTML media gallery markup, or empty string if no media.
+ * @param  array<string,mixed> $repo    Repository metadata containing Photo/Video entries.
+ * @param  string              $iconUrl Optional repo profile icon URL to seed the gallery with.
+ * @return string HTML media gallery markup, or empty string if no media + no icon seed.
  */
-function caBuildRepoMediaSection(array $repo): string {
+function caBuildRepoMediaSection(array $repo, string $iconUrl = ""): string {
 	$hasPhoto = !empty($repo['Photo']);
 	$hasVideo = !empty($repo['Video']);
+	$seedIcon = ($iconUrl !== "" && caIsPublicHttpUrl($iconUrl)) ? $iconUrl : "";
 
-	if (! $hasPhoto && ! $hasVideo) {
+	if (! $hasPhoto && ! $hasVideo && $seedIcon === "") {
 		return "";
 	}
 
 	$mediaHtml = "<div class='caMediaGallery'>";
+
+	if ($seedIcon !== "") {
+		/* Hidden seed — same pattern as the app popup's mediaBlock. Lets the
+		   profile icon click open the gallery at idx 0 without painting a
+		   duplicate tile in the visible media row. */
+		$safeSeed = htmlspecialchars($seedIcon, ENT_QUOTES);
+		$mediaHtml .= "<span class='screenshot mfp-image caGalleryIconSeed' data-mfp-src='{$safeSeed}' style='display:none'><img class='screen' src='{$safeSeed}' referrerpolicy='no-referrer'></span>";
+	}
 
 	if ($hasPhoto) {
 		$photos = is_array($repo['Photo']) ? $repo['Photo'] : [$repo['Photo']];
@@ -1206,6 +1223,9 @@ function caBuildRepoMediaSection(array $repo): string {
 			   render, same threat surface as the popup gallery in skin.php. */
 			if ($shot === "" || !caIsPublicHttpUrl($shot)) {
 				continue;
+			}
+			if ($seedIcon !== "" && $shot === $seedIcon) {
+				continue; // don't duplicate the icon as a visible tile
 			}
 			$safeShot = htmlspecialchars($shot, ENT_QUOTES);
 			/* span (not <a>) so the legacy external-link click handler doesn't

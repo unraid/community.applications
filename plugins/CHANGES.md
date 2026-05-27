@@ -23,6 +23,17 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Home page "Most Popular Plugins" row now ranks by *last month's* installs instead of lifetime downloads, and labels the row accordingly — surfaces what's actually catching on right now rather than perennial favorites
+- Added: Plugin sidebars now show the same Trend / Downloads-Per-Month / Total-Downloads charts that Docker container sidebars have, computed from the appfeed's monthly plugin install stats (rolling 11-month window ending at the last complete month — current month is excluded as partial data)
+- Added: Sidebar media gallery now includes a clickable thumbnail strip (carousel) at the bottom of the fullscreen popup when there's more than one screenshot/video — click any thumb to jump to that slide. The current slide's thumb is enlarged for easy tracking. Strip auto-hides on phone-sized or short viewports
+- Added: App / repo icons now open the sidebar media gallery (instead of a solo popup) so you can arrow / carousel through icon → screenshots → videos as one gallery. Icon isn't shown twice in the visible media row
+- Changed: Sidebar screenshots/videos appear above the README section instead of below, so visuals show up closer to the description
+- Changed: Sidebar screenshots whose URL exactly matches the app icon are now dropped — templates that listed the icon under Screenshot no longer paint a duplicate icon-as-thumbnail in the media row
+- Changed: Plugin trend-chart x-axis labels render as compact "Apr '26" style (no day number, year included so the year boundary is obvious)
+- Fixed: Sidebar gallery thumbnails that fail to load are now removed from the gallery entirely rather than swapped for a placeholder image — broken screenshots/videos no longer occupy slots in the carousel
+- Fixed: App / repo profile icons that fail to load keep the placeholder but are no longer clickable — clicking a question-mark icon used to open a fullscreen placeholder
+- Fixed: Sidebar media gallery from a previously-opened app no longer carries over its thumbnail strip when the next popup opens (e.g. clicking an app icon, or visiting an app with no media)
+- Fixed: Videos in the gallery attempt to resume from where you left off when arrow-navigating away and back in the same browser session (best-effort — only works for HTTPS Unraid GUIs and not protected/restricted YouTube videos)
 - Fixed: Sidebar README cache now keys off both the repository and the app name, so two templates sharing a repo no longer serve each other's README from cache
 - Changed: Assorted UI tweaks across cards, sidebar, search popup, and diff overlay
 - Changed: Mobile / responsive layout improvements
