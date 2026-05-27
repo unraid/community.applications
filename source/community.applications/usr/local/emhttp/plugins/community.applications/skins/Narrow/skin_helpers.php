@@ -1241,15 +1241,16 @@ function caBuildRepoMediaSection(array $repo, string $iconUrl = ""): string {
 			if ($vid === "" || !caIsPublicHttpUrl($vid)) {
 				continue;
 			}
+			/* Same fallback as the app-popup mediaBlock: keep the tile
+			   for non-YouTube iframes (Vimeo etc.) where getYoutubeThumbnail
+			   returns empty, using a local placeholder poster. The
+			   caIsPublicHttpUrl gate still applies to any derived thumbnail
+			   URL so a feed-supplied value can't smuggle in a LAN host. */
 			$thumbnail = trim((string)getYoutubeThumbnail($vid));
-			/* Gate the thumbnail too — derived from a feed-supplied video URL,
-			   so a hostile maintainer could otherwise smuggle a LAN host through
-			   the thumbnail src even though the video URL passed the public check. */
-			if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
-				continue;
-			}
 			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-			$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
+			$safeThumb = ($thumbnail !== "" && caIsPublicHttpUrl($thumbnail))
+				? htmlspecialchars($thumbnail, ENT_QUOTES)
+				: "/plugins/dynamix.docker.manager/images/question.png";
 			$mediaHtml .= "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='{$safeVid}' style='position: relative; display: inline-block;'><img class='screen' src='{$safeThumb}' referrerpolicy='no-referrer'></span>";
 		}
 	}

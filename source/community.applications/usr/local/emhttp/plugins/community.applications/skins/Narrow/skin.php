@@ -351,16 +351,19 @@ function displayPopup($template) {
 			if ($vid === "" || !caIsPublicHttpUrl($vid)) {
 				continue;
 			}
+			/* getYoutubeThumbnail() only returns a poster for youtube.com /
+			   youtu.be URLs; Vimeo (and any other iframe MFP supports via
+			   caMfpIframePatterns in Apps.page) returns empty. We still
+			   want the tile to render and be openable in MFP — fall back
+			   to the local question.png poster instead of dropping the
+			   item. The public-URL gate stays on the thumbnail only when
+			   we got one, so a feed-supplied URL still can't point the
+			   poster at a LAN host. */
 			$thumbnail = trim((string)getYoutubeThumbnail($vid));
-			/* The youtube thumbnail comes from a fixed-format helper, but it's
-			   still derived from a feed-supplied URL — gate it with the same
-			   public-URL check so an attacker-controlled video URL can't
-			   produce a thumbnail src pointing at a LAN host. */
-			if ($thumbnail === "" || !caIsPublicHttpUrl($thumbnail)) {
-				continue;
-			}
 			$safeVid = htmlspecialchars($vid, ENT_QUOTES);
-			$safeThumb = htmlspecialchars($thumbnail, ENT_QUOTES);
+			$safeThumb = ($thumbnail !== "" && caIsPublicHttpUrl($thumbnail))
+				? htmlspecialchars($thumbnail, ENT_QUOTES)
+				: "/plugins/dynamix.docker.manager/images/question.png";
 			$mediaSections[] = "<span class='screenshot mfp-iframe videoPlayOverlay' data-mfp-src='$safeVid' style='position: relative; display: inline-block;'><img class='screen' src='$safeThumb' referrerpolicy='no-referrer'></span>";
 		}
 	}

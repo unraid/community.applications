@@ -767,7 +767,7 @@ function mySort($a, $b) {
 	$b['trendDelta'] = $b['trendDelta'] ?? null;
 	if ( $sortOrder['sortBy'] == "Name" )
 		$sortOrder['sortBy'] = "SortName";
-	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "lastMonthDownloads") {
+	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "lastMonthDownloads" && $sortOrder['sortBy'] != "trending") {
 		$c = strtolower($a[$sortOrder['sortBy']] ?? "");
 		$d = strtolower($b[$sortOrder['sortBy']] ?? "");
 	} else {
