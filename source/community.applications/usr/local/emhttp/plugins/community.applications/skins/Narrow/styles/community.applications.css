@@ -1247,24 +1247,25 @@ body,
 	.sidebar .sidenav:focus-visible {
 		outline: none;
 	}
-	.sidebar .sidenav,
-	.popupCloseArea,
-	.popupActionsArea {
+	/* Slide-in transition lives only on the sidenav itself. The fixed
+	   .popupCloseArea / .popupActionsArea bars are positioned + visibility-
+	   toggled by their own `body:has(.sidenavShow) ...` rules later in this
+	   file — listing them here added zero behavior (the unconditional
+	   selectors here used to be overridden by the later show/hide blocks
+	   for the same elements, leaving them as dead code that confused
+	   future readers). */
+	.sidebar .sidenav {
 		transform: translateX(100%);          /* default: off-screen right */
 		opacity: 0;
 		transition: transform 500ms ease, opacity 500ms ease;
 	}
 
-	.sidebar .sidenav.sidenavShow,
-	.popupCloseArea,
-	.popupActionsArea {
+	.sidebar .sidenav.sidenavShow {
 		transform: translateX(0);             /* slide into view */
 		opacity: 1;
 	}
 
-	.sidebar .sidenav.sidenavHide,
-	.popupCloseArea,
-	.popupActionsArea {
+	.sidebar .sidenav.sidenavHide {
 		transform: translateX(100%);          /* slide back out */
 		opacity: 0;
 	}
@@ -2264,6 +2265,36 @@ body,
 		cursor: pointer;
 	}
 
+	/* The live-stats tabs and the trend / download / total-download tab
+	   strip use .chartMenu on <button> elements (was <span>, switched
+	   to button for keyboard a11y). UA button styling and Unraid's
+	   stock `button:where(:not(.unapi *))` rule both want to paint a
+	   pill background + border around them — `all: unset` wipes both
+	   so the tabs render as the same plain clickable text the legacy
+	   spans did. The padding/cursor reapply only what the old
+	   .chartMenu rule had. */
+	button.chartMenu {
+		all: unset;
+		box-sizing: border-box;
+		padding-left: 2rem;
+		cursor: pointer;
+	}
+	/* Keyboard focus indicator — a11y was the reason we moved from
+	   <span> to <button>; this makes the focus state visible when
+	   tabbing through the tabs. */
+	button.chartMenu:focus-visible {
+		outline: 2px solid var(--brand-orange);
+		outline-offset: 2px;
+	}
+	/* .Theme--sidebar's stock button-paint at specificity 0,2,1 (resting
+	   and :hover variants) sneaks past button.chartMenu's 0,1,1 — re-use
+	   the same :is() override pattern the MFP arrows do so the tabs stay
+	   visually unchanged on sidebar layout too. */
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).chartMenu,
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).chartMenu:hover {
+		background-color: transparent !important;
+		border: none !important;
+	}
 
 	.chartMenu.selectedMenu {
 		color: var(--brand-orange);
@@ -2818,8 +2849,14 @@ input[type="button"] {
 		   so Uninstall hugs closer to the panel edge. */
 		margin: 0 0.5rem 0 2rem;
 	}
+	/* Bottom padding sized to the measured action-bar height so wrapped
+	   multi-row button rows on narrow viewports don't clip the tail of
+	   the popup content. caRelocatePopupActions() in Apps.page sets
+	   --ca-sidenav-bottom on documentElement after each relocate; this
+	   rule falls back to the original 9rem static value when JS hasn't
+	   run yet or the property is otherwise missing. */
 	body:has(.sidenavShow) #sidenavContent {
-		padding-bottom: 9rem;
+		padding-bottom: var(--ca-sidenav-bottom, 9rem);
 	}
 	.popupDescription {
 		font-size: 1.5rem;

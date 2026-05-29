@@ -1116,6 +1116,7 @@ function updateContent(button,skipAppfeed=true) {
 				var $newActions = $tmp.find('.popupStickyActions').first();
 				if ($newActions.length) {
 					$('.popupActionsAreaInner .popupStickyActions').replaceWith($newActions);
+					caSyncSidenavBottomPadding();
 				}
 			});
 		});
@@ -3849,8 +3850,10 @@ function caStartLiveStats(containerName) {
 		var $tab = $(this);
 		if ($tab.hasClass("selectedMenu")) return;
 		var view = $tab.data("view");
-		$(".popupLiveStatsBlock .caLiveStatsTab").removeClass("selectedMenu");
-		$tab.addClass("selectedMenu");
+		$(".popupLiveStatsBlock .caLiveStatsTab")
+			.removeClass("selectedMenu")
+			.attr("aria-pressed", "false");
+		$tab.addClass("selectedMenu").attr("aria-pressed", "true");
 		$(".popupLiveStatsBlock .caLiveStatsView").removeClass("caLiveStatsActive");
 		$(".popupLiveStatsBlock .caLiveStatsView[data-view='" + view + "']").addClass("caLiveStatsActive");
 	});
@@ -4052,6 +4055,12 @@ function caStopLiveStats() {
  * @param {string} [content=''] Optional HTML for `#sidenavContent`
  */
 function showAlternateView(content="") {
+	/* In-place swap of #sidenavContent — if a live-stats subscription is
+	   running for a previously-open container sidebar its callbacks would
+	   keep firing against detached gauge/chart DOM after this replaces
+	   the content. Tear it down explicitly here (closeSidebar() and
+	   popUpChart()'s prelude don't fire on this code path). */
+	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	if ( content ) {
 		$("#sidenavContent").html(content);
 	}
@@ -4077,6 +4086,28 @@ function caRelocatePopupActions() {
 	$(".popupActionsAreaInner .popupStickyActions").remove();   // clear any stragglers
 	var $strip = $("#sidenavContent .popupStickyActions").first();
 	if ($strip.length) $strip.detach().appendTo(".popupActionsAreaInner");
+	caSyncSidenavBottomPadding();
+}
+
+/**
+ * Measure the rendered .popupActionsArea height and stamp it into the
+ * --ca-sidenav-bottom CSS variable so #sidenavContent's bottom padding always
+ * clears the action bar — even when buttons wrap to multiple rows on narrow
+ * sidebars. CSS keeps a 9rem fallback for the pre-measure paint. We re-run on
+ * every relocation and on resize (caRelocatePopupActions itself is also bound
+ * to viewport changes elsewhere).
+ */
+function caSyncSidenavBottomPadding() {
+	var $bar = $(".popupActionsArea").first();
+	if (!$bar.length || !$bar.is(":visible")) {
+		document.documentElement.style.removeProperty("--ca-sidenav-bottom");
+		return;
+	}
+	/* outerHeight(true) includes margin so any future spacing change on the
+	   action bar carries straight into the padding. Add a 1rem breathing gap
+	   below the last row so content doesn't kiss the buttons. */
+	var h = $bar.outerHeight(true) + 16;
+	document.documentElement.style.setProperty("--ca-sidenav-bottom", h + "px");
 }
 
 /**
@@ -4497,6 +4528,13 @@ function slideInSidebar() {
  */
 function showRepoPopup(repository) {
 	if ( !repository ) return;
+	/* In-place swap of #sidenavContent further down — if the previous
+	   sidebar had a live-stats panel running, its NchanSubscriber +
+	   SmoothieChart RAF loops would keep firing against detached gauge
+	   DOM. Tear them down before navigating to the repo profile.
+	   closeSidebar() / popUpChart()'s prelude don't fire on this path
+	   because the sidebar transitions in place. */
+	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	data.repository = repository;
 	context.destroy("#actionsPopup");
 	var fromCard = false;
@@ -5171,6 +5209,10 @@ function caInitInfiniteScroll() {
 		resizeTimer = setTimeout(function() {
 			resizeTimer = null;
 			caEnsureScrollable();
+			/* Action bar can wrap to additional rows at narrow widths — re-sync
+			   the bottom-padding variable so #sidenavContent never disappears
+			   behind a taller fixed bar after a resize. */
+			if (typeof caSyncSidenavBottomPadding === "function") caSyncSidenavBottomPadding();
 		}, 150);
 	};
 	$(window).on("resize", onResize);

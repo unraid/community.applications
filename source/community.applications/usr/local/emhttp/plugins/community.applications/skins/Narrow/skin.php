@@ -496,10 +496,10 @@ function displayPopup($template) {
 			<div class='popupChartBlock popupLiveStatsBlock' data-container='{$encodedContainer}'>
 				<div>
 					<span class='charts'>
-						<span class='chartMenu caLiveStatsTab selectedMenu' data-view='summary'>{$tabSummary}</span>
-						<span class='chartMenu caLiveStatsTab' data-view='cpu'>{$tabCpu}</span>
-						<span class='chartMenu caLiveStatsTab' data-view='memory'>{$tabMem}</span>
-						<span class='chartMenu caLiveStatsTab' data-view='net'>{$tabNet}</span>
+						<button type='button' role='tab' aria-pressed='true' class='chartMenu caLiveStatsTab selectedMenu' data-view='summary'>{$tabSummary}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='cpu'>{$tabCpu}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='memory'>{$tabMem}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='net'>{$tabNet}</button>
 					</span>
 				</div>
 				<div class='caLiveStatsView caLiveStatsSummaryView caLiveStatsActive' data-view='summary'>

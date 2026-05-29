@@ -48,30 +48,45 @@ if ($containerName === '' || !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,254}$/',
 $endpoint  = 'stats_' . $containerName;
 $abortTime = 10;
 
-/* Per-channel pidfile lock — belt-and-suspenders deduplication on top of
-   the pgrep check in exec.php's startLiveStatsPublisher. Two near-
+/* Per-channel interprocess lock — belt-and-suspenders deduplication on top
+   of the pgrep check in exec.php's startLiveStatsPublisher. Two near-
    simultaneous spawn requests can both clear pgrep before either's PID
-   shows up in /proc; whichever loses the race here exits silently while
-   the winner keeps publishing. A stale pidfile from a hard-killed prior
-   instance is recovered automatically (posix_kill with signal 0 doesn't
-   actually send a signal, just probes whether the PID is alive). */
-$pidfile = "/var/run/caLiveStats_{$containerName}.pid";
-if (is_file($pidfile)) {
-	$existingPid = (int)trim((string)@file_get_contents($pidfile));
-	if ($existingPid > 0 && posix_kill($existingPid, 0)) {
-		exit(0);
-	}
-	/* Stale pidfile — previous publisher died without cleanup. Fall
-	   through and claim the endpoint. */
+   shows up in /proc; whichever loses the flock race here exits silently
+   while the winner keeps publishing.
+   flock() is the only race-free primitive available in PHP for this:
+     - posix_kill($pid, 0) probes can false-positive after PID reuse, so a
+       fresh PID landing on a dead instance's stale number reads as
+       "already running" and we silently never spawn.
+     - is_file() + file_put_contents() is a TOCTOU window — both racing
+       spawns can pass the existence check before either's write lands.
+   flock(LOCK_EX | LOCK_NB) atomically claims the lock and is auto-released
+   on process exit (even SIGKILL), so stale-lock recovery is automatic and
+   PID identity doesn't enter into it. The container name is sha1'd into
+   the lock path so any future change to Docker's name grammar can't break
+   the filename (and so we never have to worry about / etc. landing in a
+   path). */
+$pidfile   = "/var/run/caLiveStats_" . sha1($containerName) . ".lock";
+$pidHandle = @fopen($pidfile, 'c+');
+if (!$pidHandle || !flock($pidHandle, LOCK_EX | LOCK_NB)) {
+	if ($pidHandle) fclose($pidHandle);
+	exit(0);
 }
-@file_put_contents($pidfile, getmypid() . "\n");
-register_shutdown_function(function() use ($pidfile) {
-	/* Only clear the pidfile if we still own it. If a brand-new
-	   instance has already taken over (e.g. our exit raced with the
-	   next spawn), removing its pidfile would let yet another
-	   instance start. */
-	$owner = (int)trim((string)@file_get_contents($pidfile));
-	if ($owner === getmypid()) @unlink($pidfile);
+/* Stamp the PID + container name into the lock file purely for human
+   debugging (`cat /var/run/caLiveStats_*.lock`) — flock itself doesn't
+   need any payload. */
+ftruncate($pidHandle, 0);
+fwrite($pidHandle, getmypid() . " " . $containerName . "\n");
+fflush($pidHandle);
+register_shutdown_function(function() use ($pidfile, $pidHandle) {
+	/* Release the flock (implicit on fclose, but explicit makes the
+	   intent obvious) and unlink the file. No "is it still ours?"
+	   check needed — the lock only releases on this exact handle, so
+	   if we got here we definitely own it. */
+	if (is_resource($pidHandle)) {
+		flock($pidHandle, LOCK_UN);
+		fclose($pidHandle);
+	}
+	@unlink($pidfile);
 });
 
 $DockerClient = new DockerClient();

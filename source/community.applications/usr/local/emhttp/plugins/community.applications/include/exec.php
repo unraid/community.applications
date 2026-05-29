@@ -1324,6 +1324,11 @@ function get_content() {
 		}
 		$duplicates = caFindDuplicateTemplates($GLOBALS['templates'], null);
 		$displayApplications = ['community' => $duplicates];
+		/* Mirror the cleanup getRepoDuplicates() does — without it the
+		   startup-mode flag can leak past the duplicates view into the
+		   next category navigation and incorrectly re-trigger the home
+		   startup display. */
+		@unlink(CA_PATHS['startupDisplayed']);
 		writeJsonFile(CA_PATHS['community-templates-displayed'], $displayApplications);
 		@unlink(CA_PATHS['community-templates-allSearchResults']);
 		@unlink(CA_PATHS['community-templates-catSearchResults']);
@@ -2315,6 +2320,22 @@ function getRepoDuplicates() {
  * @return void
  */
 function startLiveStatsPublisher() {
+	/* Server-side feature gate. Mirrors the same two checks
+	   getPopupDescriptionSkin() uses to decide whether to render the
+	   live-stats block in the sidebar HTML:
+	     - User has flipped the "Display usage graphs" setting on.
+	     - Unraid OS is responsive (>7.1.9999 by version_compare).
+	   Without this gate, a hand-crafted POST could spawn a publisher
+	   process even when the feature is disabled in Settings (or on an
+	   OS that doesn't render the sidebar block at all). Fail fast
+	   before any pgrep/exec runs. */
+	$usageGraphsEnabled  = ($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") === "yes";
+	$liveStatsResponsive = version_compare((string)($GLOBALS['caSettings']['unRaidVersion'] ?? "0"), "7.1.9999", ">");
+	if (!$usageGraphsEnabled || !$liveStatsResponsive) {
+		postReturn(['ok' => false, 'error' => 'live stats disabled']);
+		return;
+	}
+
 	$containerName = trim((string)getPost("container", ""));
 	if ($containerName === "" || !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,254}$/', $containerName)) {
 		postReturn(['ok' => false, 'error' => 'invalid container name']);
