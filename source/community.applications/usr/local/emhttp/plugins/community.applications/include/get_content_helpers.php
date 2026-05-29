@@ -363,7 +363,18 @@ class GetContentHelpers {
 			}
 		}
 
-		if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
+		/* "Limit searches to name" setting (Settings panel, default off) —
+		   when enabled, only Name and Author/RepoName count; Overview text,
+		   category translations, and maintainer-supplied ExtraSearchTerms
+		   are excluded. Cuts false-positive hits at the cost of fuzzy
+		   discovery, which is the trade-off users opt into here. */
+		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
+
+		$anyHitFields = $limitToName
+			? [$template['Author']??null, $template['RepoName']??null]
+			: [$template['Author']??null, $template['RepoName']??null, $template['Overview']??null, $template['translatedCategories']??null];
+
+		if ( filterMatch($filter,$anyHitFields) ) {
 			if ( $template['RepoName'] == ($GLOBALS['caSettings']['favourite']??null) ) {
 				$searchResults['nameHit'][] = $template;
 			} else {
@@ -372,7 +383,7 @@ class GetContentHelpers {
 			return;
 		}
 
-		if ( filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
+		if ( ! $limitToName && filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
 			debug("extraHit: ".$template['Name']);
 			$searchResults['extraHit'][] = $template;
 		}

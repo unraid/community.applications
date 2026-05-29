@@ -34,6 +34,23 @@
 	--ca-red-color: var(--brand-red);
 	--ca-red-error-color: var(--brand-red);
 
+	/* Literal pure black, intentionally theme-invariant. Used where the
+	   design calls for true #000 regardless of the active Unraid theme —
+	   currently only the .Theme--sidebar override that forces black text
+	   on the colored Install / Uninstall action buttons. Distinct from
+	   `--ca-named-black` below which tracks `--inverse-text-color` and
+	   flips with the theme. */
+	--ca-black-color: #000000;
+
+	/* Literal pure white, symmetric companion to --ca-black-color. Used
+	   where the design wants true #fff regardless of theme — currently
+	   only the .Theme--black override for the MFP gallery's caret glyph
+	   (which is black on every other theme but invisible on the black
+	   theme's dark backdrop). Distinct from `--ca-named-white` /
+	   `--ca-white-color` below which track --text-color and flip per
+	   theme. */
+	--ca-white-color-literal: #ffffff;
+
 	/* Mask-gradient fade endpoint — used as the low-alpha end of a
 	   linear-gradient mask. `--bg-opacity-10` is dynamix's theme-aware
 	   10%-alpha overlay (rgba(0,0,0,0.1) on light themes, rgba(255,255,255,0.1)

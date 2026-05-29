@@ -125,7 +125,7 @@ $(function() {
 	     other .caButton in CA is a <div>. Click handler bound in diff.js;
 	     the Escape-key dismiss in clickHandlers.js synthesizes a click on
 	     this element so both paths run the same code. -->
-	<div class='caButton caDiffClose'><?tr("CLOSE");?></div>
+	<div class='caButton caDiffClose' aria-label='<?tr("Close");?>' title='<?tr("Close");?>'>&times;</div>
 	<div id='caDiffContent'></div>
 </div>
 <!-- Loading placeholder cloned into #caDiffContent while the feed JSON is
@@ -216,9 +216,9 @@ $(function() {
 <div class='sidebar' role='dialog' aria-modal='true'>
 	<div class='popupCloseArea'>
 		<div class='popupCloseAreaButtons'>
-			<span class='popUpClose caButton'><?tr("CLOSE");?></span>
-			<span class='popUpBack caButton'><?tr("BACK");?></span>
-			<span class="popUpStat caButton"><?tr("BACK");?></span>
+			<span class='popUpClose caButton' aria-label='<?tr("Close");?>' title='<?tr("Close");?>'>&times;</span>
+			<span class='popUpBack caButton' aria-label='<?tr("Back");?>' title='<?tr("Back");?>'></span>
+			<span class="popUpStat caButton" aria-label='<?tr("Back");?>' title='<?tr("Back");?>'></span>
 		</div>
 	</div>
 	<!-- Mirror of popupCloseArea but at the BOTTOM of the viewport. The
@@ -242,10 +242,15 @@ $(function() {
 	<div class='sidenav sidenavHide' tabindex='-1'>
 		<div id='sidenavContent'></div>
 	</div>
-	<!-- Sidebar-scoped scroll controls removed per design — the bottom-
-	     fixed action bar now occupies that visual real estate, and the
-	     page-level scroll controls (at the top of this file) handle the
-	     main browse view. -->
+	<!-- Sidebar-scoped scroll controls. Sibling of .sidenav, not child, so
+	     they're outside the scrollable area and don't move with sidenav
+	     content. .caSidebarScroll is the discriminator that lets the
+	     page-level scroll controls (at the top of this file) hide
+	     themselves while these stay visible, and that gives these their
+	     above-the-action-bar bottom inset (CSS rules in
+	     community.applications.css next to the page-level ones). -->
+	<div class='ca_back_to_top caSidebarScroll' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
+	<div class='ca_move_to_end caSidebarScroll' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
 </div>
 
 <!-- Templates / HTML for alternate views -->
@@ -577,6 +582,15 @@ $(function() {
 						<div class='ca_settingDescription'><?tr("Use the entire height — automatically done on mobile.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
 
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Limit searches to name");?></span>
+							<input type='hidden' name='searchLimitToName' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='searchLimitToName' value='yes' <?=($GLOBALS['caSettings']['searchLimitToName'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Only match search terms against Application Name or Author / Maintainer. Not generally recommended.");?></div>
+					</div>
+
 					<?php /* Same pattern as Use whole display window above —
 					         always rendered; caBindSettingsFormHandlers()
 					         disables the switch when <html> lacks
@@ -591,7 +605,7 @@ $(function() {
 							<input type='hidden' name='displayUsageGraphs' value='no'>
 							<input type='checkbox' class='switch caSettingSwitch' name='displayUsageGraphs' value='yes' <?=($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") == "yes" ? "checked" : ""; ?>>
 						</div>
-						<div class='ca_settingDescription'><?tr("Show live CPU / Memory / Network gauges and charts at the top of the sidebar for a running docker container, fed from a per-container background publisher over a nchan WebSocket. The publisher only starts when a sidebar opens and self-terminates ~10 seconds after the last subscriber disconnects.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
+						<div class='ca_settingDescription'><?tr("Show live CPU / Memory / Network on running containers.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
 
 					<div class='ca_settingCard'>

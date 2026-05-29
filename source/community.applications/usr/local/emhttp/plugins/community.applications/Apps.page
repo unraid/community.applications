@@ -4118,7 +4118,7 @@ function showSidebarApp(apppath,appname) {
 			   never enabled the module — `r.enabled` was undefined). */
 			$('.caMediaGallery').magnificPopup({
 				delegate: '.screenshot',
-				closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+				closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 				/* Gallery mode: don't close on content click — gallery's own
 				   navigateByImgClick handles image clicks (advances to next).
 				   Otherwise the click both advances AND closes. */
@@ -4161,7 +4161,7 @@ function showSidebarApp(apppath,appname) {
 			   app's thumb strip would still be hanging off it. */
 			$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 				type:'image',
-				closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+				closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 				closeOnContentClick: true,
 				removalDelay: 100,
 				mainClass: 'mfp-fade',
@@ -4550,7 +4550,7 @@ function showRepoPopup(repository) {
 		   from their own `mfp-image`/`mfp-iframe` class. */
 		$('.caMediaGallery').magnificPopup({
 			delegate: '.screenshot',
-			closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+			closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 			closeOnContentClick: false,    /* gallery's navigateByImgClick handles image clicks */
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
@@ -4585,7 +4585,7 @@ function showRepoPopup(repository) {
 		   leftover on the detached m.wrap. */
 		$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 			type:'image',
-			closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+			closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 			closeOnContentClick: true,
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
