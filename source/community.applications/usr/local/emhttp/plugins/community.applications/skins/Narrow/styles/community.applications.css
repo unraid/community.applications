@@ -104,6 +104,14 @@ body:has(.sidenavShow) {
 .ca_move_to_end::before {
 	content: "\f0ab"; /* fa-arrow-circle-down */
 }
+/* When the sidebar is open, the page-level scroll controls overlay it
+   (they're position:fixed at z-index 9998, well above the sidebar's 1000),
+   so they peek through. Hide them entirely while the sidebar is shown —
+   the sidebar has its own scroll position and these would just be visual
+   noise targeting the wrong scroller anyway. */
+body:has(.sidenavShow) :is(.ca_back_to_top, .ca_move_to_end) {
+	display: none !important;
+}
 /*
 /* Dim all page content except the visible sidebar and its children */
 /*body:has(.sidenavShow) > :not(.sidebar, .ca_modal_overlay, .ca_sweetalert_open, .dropdown-menu, #ca_fixed_scroll_root) {
@@ -1131,20 +1139,23 @@ body,
 		outline: none;
 	}
 	.sidebar .sidenav,
-	.popupCloseArea {
+	.popupCloseArea,
+	.popupActionsArea {
 		transform: translateX(100%);          /* default: off-screen right */
 		opacity: 0;
 		transition: transform 500ms ease, opacity 500ms ease;
 	}
 
 	.sidebar .sidenav.sidenavShow,
-	.popupCloseArea {
+	.popupCloseArea,
+	.popupActionsArea {
 		transform: translateX(0);             /* slide into view */
 		opacity: 1;
 	}
 
 	.sidebar .sidenav.sidenavHide,
-	.popupCloseArea {
+	.popupCloseArea,
+	.popupActionsArea {
 		transform: translateX(100%);          /* slide back out */
 		opacity: 0;
 	}
@@ -1509,6 +1520,104 @@ body,
 		height: 1px;
 		width: 3px;
 		border: none;
+	}
+
+	/* Live-stats tab views share one grid cell so the inactive ones stay
+	   laid out (real clientWidth) while invisible. Smoothie's responsive:true
+	   reads canvas.clientWidth every frame — display:none on a hidden view
+	   would zero that and the chart would paint to nothing, then a tab
+	   switch would show an empty graph until new data arrived.
+	   visibility:hidden keeps layout intact so each chart paints into its
+	   real-sized canvas the whole time and tab switches reveal the
+	   accumulated history immediately. */
+	.popupLiveStatsBlock {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+	.popupLiveStatsBlock > div:first-child {
+		grid-row: 1;
+		grid-column: 1;
+	}
+	.caLiveStatsView {
+		grid-row: 2;
+		grid-column: 1;
+		visibility: hidden;
+		pointer-events: none;
+	}
+	.caLiveStatsView.caLiveStatsActive {
+		visibility: visible;
+		pointer-events: auto;
+	}
+
+	/* Live-stats summary — three side-by-side classic-speedometer gauges
+	   styled to match a real analog dial: white face, bezel ring, tapered
+	   red needle, blue center hub, dark major ticks with lighter minor
+	   ticks in between, and yellow/orange/red warning bands across the
+	   upper-right portion of the arc. Fixed colors (not theme variables)
+	   because the white face needs predictable contrast on both light
+	   and dark Unraid themes. */
+	.caLiveDonutGrid {
+		display: flex;
+		flex-wrap: nowrap;
+		justify-content: space-around;
+		align-items: flex-start;
+		gap: 0.5rem;
+		margin: 0.25rem 0;
+	}
+	.caLiveDonut {
+		flex: 1 1 0;
+		min-width: 0;
+		max-width: 170px;
+		text-align: center;
+		line-height: 1.1;
+	}
+	.caLiveGaugeMount {
+		width: 100%;
+		max-width: 130px;
+		margin: 0 auto;
+	}
+	.caLiveGaugeSvg {
+		width: 100%;
+		height: auto;
+		display: block;
+		filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+	}
+	.caLiveGaugeFace     { fill: #f7f7f7; stroke: #b8b8b8; stroke-width: 0.6; }
+	.caLiveGaugeFaceRim  { fill: none; stroke: #d6d6d6; stroke-width: 1.2; }
+	.caLiveGaugeTrack    { stroke: #2c2c2c; }
+	.caLiveGaugeZoneWarn { stroke: #E7C547; }
+	.caLiveGaugeZoneHigh { stroke: #E68A33; }
+	.caLiveGaugeZoneCrit { stroke: #D14545; }
+	.caLiveGaugeTickMajor { stroke: #1f1f1f; }
+	.caLiveGaugeTickMinor { stroke: #5a5a5a; }
+	.caLiveGaugeAxisText { fill: #1f1f1f; font-weight: 500; }
+	.caLiveGaugeTitle    { fill: #1f1f1f; font-weight: 700; letter-spacing: 0.5px; }
+	.caLiveGaugeSubtitle { fill: #2c2c2c; font-weight: 500; }
+	.caLiveGaugeSubtitleHeader { fill: #5a5a5a; font-weight: 500; letter-spacing: 0.3px; }
+	.caLiveGaugeHub      { fill: #2778c4; stroke: #1d5894; stroke-width: 0.5; }
+	.caLiveGaugeHubInner { fill: #4a93d6; }
+	.caLiveGaugeNeedle   {
+		fill: #d23434;
+		stroke: #8c1c1c;
+		stroke-width: 0.3;
+		stroke-linejoin: round;
+		transition: transform 600ms ease-out;
+	}
+	.caLiveDonutSub {
+		font-size: 14px;
+		font-weight: 600;
+		opacity: 0.9;
+		min-height: 1.1em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		margin-top: 0.1rem;
+	}
+	.caLiveStatsLegend {
+		text-align: center;
+		font-size: 10px;
+		opacity: 0.85;
+		margin-top: 0.15rem;
 	}
 
 	.ellipsis {
@@ -2491,8 +2600,58 @@ input[type="button"] {
 		background-color: color-mix(in srgb, var(--text-color) 75%, var(--mild-background-color));
 		pointer-events: none;
 	}
+	/* CLOSE / BACK / STAT cluster pushed to the top-RIGHT corner of the
+	   sidebar — sidebar fills 90% of viewport width up to 70rem max, and
+	   the cluster sits on its right edge with a 2rem inset. Action buttons
+	   no longer live up here (see .popupActionsArea below). */
 	.popupCloseArea > div:first-child {
-		margin-left: 2rem;
+		margin-left: auto;
+		margin-right: 2rem;
+		width: fit-content;
+	}
+
+	/* Bottom action bar — mirror of .popupCloseArea but anchored to the
+	   bottom of the viewport. caRelocatePopupActions() detaches the
+	   server-rendered .popupStickyActions row from the popup body and
+	   appends it into .popupActionsAreaInner so the per-app Install /
+	   Update / Uninstall buttons stay glued to the bottom edge regardless
+	   of scroll position. The popup content gets matching bottom padding
+	   so its tail isn't hidden behind the bar. */
+	body:has(.sidenavShow) .popupActionsArea {
+		position: fixed;
+		padding: 0.75rem 0;
+		width: 90%;
+		background-color: var(--mild-background-color);
+		z-index: 5;
+		max-width: 70rem;
+		right: 0;
+		bottom: 2rem;
+		/* Specificity override — the bare `.popupActionsArea, ...`
+		   rules above force translateX(100%) + opacity 0 as the
+		   default off-screen state. This rule needs to redeclare
+		   the visible state to win the cascade when the sidebar
+		   is open, matching what .popupCloseArea does. */
+		transform: translateX(0);
+		opacity: 1;
+	}
+	body:has(.sidenavShow) .popupActionsArea::before {
+		content: "";
+		position: absolute;
+		left: 1.5rem;
+		right: 1.5rem;
+		top: 2px;
+		height: 1px;
+		background-color: color-mix(in srgb, var(--text-color) 75%, var(--mild-background-color));
+		pointer-events: none;
+	}
+	.popupActionsAreaInner {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		margin: 0 2rem;
+	}
+	body:has(.sidenavShow) #sidenavContent {
+		padding-bottom: 5rem;
 	}
 	.popupDescription {
 		font-size: 1.5rem;

@@ -183,6 +183,9 @@ $(function() {
 				<li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><span class='caAllAppsMenuLabel' data-all-apps-label="<?tr('All Apps');?>" data-all-results-label="<?tr('All Results');?>"><?tr("All Apps");?></span></li>
 				<li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
 				<li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
+				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes" && is_file(CA_PATHS['caAdmin'])):?>
+				<li class='categoryMenu caMenuItem caDuplicatesMenu onlyShowWithFeed nonDockerSearch' data-category='duplicates'><?tr("Duplicates");?></li>
+				<?endif;?>
 				<li><hr class='category_hr onlyShowWithFeed'/></li>
 				<li class='caMenuItem showSettings noSelect'><?tr("Settings");?></li>
 				<li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
@@ -218,6 +221,15 @@ $(function() {
 			<span class="popUpStat caButton"><?tr("BACK");?></span>
 		</div>
 	</div>
+	<!-- Mirror of popupCloseArea but at the BOTTOM of the viewport. The
+	     server keeps emitting .popupStickyActions inline with the popup
+	     content; caRelocatePopupActions() detaches it and appends here
+	     instead so the Install/Update/Uninstall row stays glued to the
+	     bottom edge regardless of scroll position, leaving the top-bar
+	     for just the Close/Back/Stat buttons. -->
+	<div class='popupActionsArea'>
+		<div class='popupActionsAreaInner'></div>
+	</div>
 	<!-- tabindex='-1' so slideInSidebar() can move focus into the dialog on
 	     open. Without this, focus stays on whatever opened the sidebar (an app
 	     card on desktop, or nothing in particular after a touch on mobile) and
@@ -230,13 +242,10 @@ $(function() {
 	<div class='sidenav sidenavHide' tabindex='-1'>
 		<div id='sidenavContent'></div>
 	</div>
-	<!-- Sidebar copy of the scroll controls. Sibling of .sidenav, not child,
-	     so they're outside the scrollable area and don't move with sidenav
-	     content. .sidebar has no transform, so position:fixed resolves
-	     against the viewport. .sidebar's stacking context (z-index 1000)
-	     keeps these above .sidenav since they appear later in DOM order. -->
-	<div class='ca_back_to_top' title='<?tr("Back to top");?>' aria-label='<?tr("Back to top");?>'></div>
-	<div class='ca_move_to_end' title='<?tr("Move to end");?>' aria-label='<?tr("Move to end");?>'></div>
+	<!-- Sidebar-scoped scroll controls removed per design — the bottom-
+	     fixed action bar now occupies that visual real estate, and the
+	     page-level scroll controls (at the top of this file) handle the
+	     main browse view. -->
 </div>
 
 <!-- Templates / HTML for alternate views -->
@@ -467,9 +476,20 @@ $(function() {
 							<span data-stat-text='totalDeprecated'></span>
 						</td>
 					</tr>
-					<tr>
+					<!-- Dev/admin-only diagnostic rows. Both are populated +
+					     unhidden by statistics.js when the caCompareFeedShas
+					     action confirms dev+admin gating is satisfied. -->
+					<tr id='caTabIdRow' class='ca_hide'>
 						<td class='ca_table'>
-							<a class='popUpLink' data-stat-href='primaryServerUrl' target='_blank' rel='noopener noreferrer'><?tr("Primary Server");?></a> / <a class='popUpLink' data-stat-href='backupServerUrl' target='_blank' rel='noopener noreferrer'> <?tr("Backup Server");?></a>
+							<?tr("Session (tab) ID");?>
+						</td>
+						<td class='ca_stat'>
+							<span data-stat-text='tabId'></span>
+						</td>
+					</tr>
+					<tr id='caFeedShaCheckRow' class='ca_hide'>
+						<td class='ca_table'>
+							<span data-stat-html='feedShaCheck'></span>
 						</td>
 					</tr>
 					</tbody>
@@ -555,6 +575,23 @@ $(function() {
 							<input type='checkbox' class='switch caSettingSwitch' name='useWholeDisplayWindow' value='yes' <?=($GLOBALS['caSettings']['useWholeDisplayWindow'] ?? "no") == "yes" ? "checked" : ""; ?>>
 						</div>
 						<div class='ca_settingDescription'><?tr("Use the entire height — automatically done on mobile.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
+					</div>
+
+					<?php /* Same pattern as Use whole display window above —
+					         always rendered; caBindSettingsFormHandlers()
+					         disables the switch when <html> lacks
+					         .Theme--responsive (legacy chrome). The live-
+					         stats publisher + Smoothie charts only render
+					         well in the 7.2+ responsive sidebar layout, so
+					         off-by-default and gated on both this flag and
+					         the responsive class. */ ?>
+					<div class='ca_settingCard caDisplayUsageGraphsCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Display usage graphs");?></span>
+							<input type='hidden' name='displayUsageGraphs' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='displayUsageGraphs' value='yes' <?=($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Show live CPU / Memory / Network gauges and charts at the top of the sidebar for a running docker container, fed from a per-container background publisher over a nchan WebSocket. The publisher only starts when a sidebar opens and self-terminates ~10 seconds after the last subscriber disconnects.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
 
 					<div class='ca_settingCard'>

@@ -67,6 +67,14 @@ class GetContentHelpers {
 			case "repos":
 				$context['action'] = 'repos';
 				return $context;
+			case "duplicates":
+				/* Dev + admin only — the menu item is gated server-side at
+				   render time, but get_content() re-checks before doing any
+				   work. categoryString stays false so no regex matching runs
+				   downstream. */
+				$context['categoryString'] = false;
+				$context['action'] = 'duplicates';
+				return $context;
 			case "":
 				$context['categoryString'] = false;
 				break;

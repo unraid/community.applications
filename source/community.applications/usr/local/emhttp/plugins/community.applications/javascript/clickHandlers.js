@@ -1015,6 +1015,25 @@ function caInitializeClickHandlers() {
 			}
 		});
 	});
+	/**
+	 * Dev + admin only: from the repo sidebar, render this repo's duplicate-
+	 * Name templates into the main cards area. Mirrors the .ca_repoSearchPopUp
+	 * flow (close sidebar, swap content) but skips the search-box update —
+	 * this isn't a search, just a filtered view, so the search input stays as
+	 * the user left it.
+	 */
+	$("body").on("click", ".ca_repoDuplicates", function(e) {
+		e.stopPropagation();
+		var repository = $(this).data("repository");
+		if (!repository) return;
+		caClearHomeSectionSubtitle();
+		closeSidebar();
+		post({ action: "getRepoDuplicates", repository: repository }, function(result) {
+			if (result && result.display_data) {
+				updateDisplay(result.display_data);
+			}
+		});
+	});
 	$("body").on("click", ".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function(e) {
 		e.stopPropagation();
 		var repository = $(this).data("repository") ? $(this).data("repository") : $(this).closest(".ca_holder").data("repository");
@@ -1726,6 +1745,13 @@ function caBindSettingsFormHandlers(initialFormState) {
 		$form.find(".caUseWholeDisplayWindowCard")
 			.addClass("ca_settingDisabled")
 			.find("input[type='checkbox'][name='useWholeDisplayWindow']")
+				.prop("disabled", true);
+		/* Same story for Display usage graphs — the live-stats panel only
+		   slots cleanly into the 7.2+ responsive sidebar geometry, so on
+		   legacy chrome the card stays visible but greyed and locked. */
+		$form.find(".caDisplayUsageGraphsCard")
+			.addClass("ca_settingDisabled")
+			.find("input[type='checkbox'][name='displayUsageGraphs']")
 				.prop("disabled", true);
 	}
 
