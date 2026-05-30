@@ -77,16 +77,23 @@ if (!$pidHandle || !flock($pidHandle, LOCK_EX | LOCK_NB)) {
 ftruncate($pidHandle, 0);
 fwrite($pidHandle, getmypid() . " " . $containerName . "\n");
 fflush($pidHandle);
-register_shutdown_function(function() use ($pidfile, $pidHandle) {
+register_shutdown_function(function() use ($pidHandle) {
 	/* Release the flock (implicit on fclose, but explicit makes the
-	   intent obvious) and unlink the file. No "is it still ours?"
-	   check needed — the lock only releases on this exact handle, so
-	   if we got here we definitely own it. */
+	   intent obvious). Deliberately do NOT unlink the lock file:
+	   between our LOCK_UN and an unlink() call a new publisher can
+	   race in, fopen() the still-present path, win the flock, and
+	   then have its lock file deleted out from under it — leaving
+	   the path free for a third process to open+lock a fresh inode
+	   while the second process still holds an orphan handle, so
+	   both would think they're the sole publisher. Leaving the file
+	   behind is harmless: the `c+` open at startup reuses it,
+	   ftruncate() + fwrite() refresh the PID stamp on each new
+	   owner, and flock identity is per-inode so contention stays
+	   correct. */
 	if (is_resource($pidHandle)) {
 		flock($pidHandle, LOCK_UN);
 		fclose($pidHandle);
 	}
-	@unlink($pidfile);
 });
 
 $DockerClient = new DockerClient();

@@ -344,7 +344,22 @@ class GetContentHelpers {
 			return;
 		}
 
-		if ( filterMatch($filter,[$template['SortName']??null,$template['RepoShort']??null,$template['Language']??null,$template['LanguageLocal']??null]) ) {
+		/* "Limit searches to name" setting (Settings panel, default off) —
+		   when enabled, only Name and Author/RepoName count; Overview text,
+		   category translations, language metadata, and maintainer-supplied
+		   ExtraSearchTerms are excluded. Cuts false-positive hits at the
+		   cost of fuzzy discovery, which is the trade-off users opt into
+		   here. Hoisted ahead of the SortName/RepoShort/Language block so
+		   that block can respect the same flag (Language / LanguageLocal
+		   are unambiguously non-name fields — they'd otherwise still match
+		   even when the user asked to narrow the search). */
+		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
+
+		$nameLikeFields = $limitToName
+			? [$template['SortName']??null, $template['RepoShort']??null]
+			: [$template['SortName']??null, $template['RepoShort']??null, $template['Language']??null, $template['LanguageLocal']??null];
+
+		if ( filterMatch($filter,$nameLikeFields) ) {
 			if ( ($template['LTOfficial']??false) || ($template['Official']??false) ) {
 				$searchResults['officialHit'][] = $template;
 				return;
@@ -362,13 +377,6 @@ class GetContentHelpers {
 				}
 			}
 		}
-
-		/* "Limit searches to name" setting (Settings panel, default off) —
-		   when enabled, only Name and Author/RepoName count; Overview text,
-		   category translations, and maintainer-supplied ExtraSearchTerms
-		   are excluded. Cuts false-positive hits at the cost of fuzzy
-		   discovery, which is the trade-off users opt into here. */
-		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
 
 		$anyHitFields = $limitToName
 			? [$template['Author']??null, $template['RepoName']??null]
