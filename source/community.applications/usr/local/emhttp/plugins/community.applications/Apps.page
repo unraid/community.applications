@@ -1059,7 +1059,11 @@ function updateContent(button,skipAppfeed=true) {
 
 	startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
 	var $startupMatch = $(".caMenuItem[data-category='"+startupScreen+"']");
-	if ($startupMatch.filter(".caCategoryAll").length) $startupMatch = $startupMatch.filter(".caCategoryAll");
+	if ($startupMatch.filter(".caCategoryAll").length) {
+		$startupMatch = $startupMatch.filter(".caCategoryAll");
+		/* Reveal the parent's sub wrapper so the active "All" is visible. */
+		$startupMatch.closest(".subCategory").show();
+	}
 	$startupMatch.addClass("selectedMenu");
 
 	startupScreen = button ? $(button).data("category") : startupScreen;
@@ -1901,9 +1905,13 @@ function removeApp(application, humanName) {
 				enableSearch();
 				$(".caMenuItem").removeClass("selectedMenu");
 				/* Parent + auto "All" sub share data-category — prefer the All sub
-				   so only it gets selectedMenu (parent is peek-only). */
+				   so only it gets selectedMenu (parent is peek-only). Reveal the
+				   sub wrapper so the active selection is actually visible. */
 				var $matched = $(".caMenuItem[data-category='previous_apps']");
-				if ($matched.filter(".caCategoryAll").length) $matched = $matched.filter(".caCategoryAll");
+				if ($matched.filter(".caCategoryAll").length) {
+					$matched = $matched.filter(".caCategoryAll");
+					$matched.closest(".subCategory").show();
+				}
 				$matched.addClass("selectedMenu");
 				previousApps(false,true,data.previousAppsSection);
 				caRefreshInstalledMenuStates();
@@ -2997,7 +3005,10 @@ function getCategories() {
 				if ( selectedMenu ) {
 					var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
 					var $matched = $(menuItem);
-					if ($matched.filter(".caCategoryAll").length) menuItem = $matched.filter(".caCategoryAll").get();
+					if ($matched.filter(".caCategoryAll").length) {
+						menuItem = $matched.filter(".caCategoryAll").get();
+						$(menuItem).closest(".subCategory").show();
+					}
 					$(menuItem).addClass("selectedMenu");
 				}	else
 					$(".allApps").addClass("selectedMenu");

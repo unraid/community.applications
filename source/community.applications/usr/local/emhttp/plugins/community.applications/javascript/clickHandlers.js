@@ -1196,9 +1196,13 @@ function caInitializeClickHandlers() {
 	$(".mainArea").on("click", ".homeMore", function() {
 		var description = $(this).data("des");
 		var category = $(this).data("category");
-		/* Parent + auto "All" share data-category — prefer the All sub. */
+		/* Parent + auto "All" share data-category — prefer the All sub. Reveal
+		   its (hidden by default) wrapper so the active selection is visible. */
 		var $menuItem = $(".caMenuItem[data-category='" + category + "']");
-		if ($menuItem.filter(".caCategoryAll").length) $menuItem = $menuItem.filter(".caCategoryAll");
+		if ($menuItem.filter(".caCategoryAll").length) {
+			$menuItem = $menuItem.filter(".caCategoryAll");
+			$menuItem.closest(".subCategory").show();
+		}
 		$(".caMenuItem").removeClass("selectedMenu");
 		$menuItem.addClass("selectedMenu");
 		var sortOrder = {};
