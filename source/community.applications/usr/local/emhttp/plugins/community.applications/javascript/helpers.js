@@ -870,6 +870,16 @@ function post(options,callback) {
 			}
 		}
 
+		/* After a user-driven server round-trip, hide any parent-with-subs
+		   the user expanded but never picked from. Branches that hold the
+		   active selection are left in whatever expanded/compact state the
+		   click handler left them in — we don't snap a freshly-picked
+		   branch back to compact mid-flow. Skipped for noSpinner / postNoSpin
+		   so background polls don't yank UI state. */
+		if (!options.noSpinner && typeof caHideUnselectedSubs === "function") {
+			caHideUnselectedSubs();
+		}
+
 
 		if ( ! options.noSpinner ) {
 			postCount--;

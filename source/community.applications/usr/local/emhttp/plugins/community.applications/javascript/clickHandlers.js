@@ -1080,6 +1080,10 @@ function caInitializeClickHandlers() {
 		if ($(this).hasClass("showStatistics")) { e.stopPropagation(); showStatistics(); }
 		else if ($(this).hasClass("showSettings")) { e.stopPropagation(); showSettings(); }
 		else if ($(this).hasClass("showCredits")) { e.stopPropagation(); showCredits(); }
+		/* Parent of a sub-menu: clicking it only expands the subs (no fetch),
+		   so on mobile we keep the menu open until the user actually picks
+		   one — the auto "All" entry or a real sub. */
+		else if ($(this).next(".subCategory").length) { /* leave menu open */ }
 		else { scrollToTop(); closeMenu(); }
 	});
 	/**
@@ -1092,6 +1096,10 @@ function caInitializeClickHandlers() {
 		if ($(menu).hasClass("caMenuDisabled")) return;
 		if ($(menu).hasClass("selectedMenu") &&
 		    (!$(".caRepositoryMenu").hasClass("selectedMenu") || $(menu).hasClass("caRepositoryMenu"))) return;
+		/* Parent of a sub-menu — let the body handler slide the subs open,
+		   but don't fetch anything. The auto-generated "All" sub is the
+		   one that fetches the parent's full result set. */
+		if ($(menu).next(".subCategory").length) return;
 		caClearHomeSectionSubtitle();
 		if (!data.searchFlag) {
 			$("#searchBox").val("");
@@ -1131,19 +1139,29 @@ function caInitializeClickHandlers() {
 		var currentCat = $(".selectedMenu").data("category");
 		var newCat = $(this).data("category");
 		if (currentCat && currentCat.startsWith(newCat)) slideFlag = false;
+		/* Parent that has a sub-menu beneath it: clicking only toggles the
+		   subs open. Don't move selectedMenu off the active item and don't
+		   fetch — the auto-generated "All" sub fetches the parent's results. */
+		var isParentWithSubs = $(this).next(".subCategory").length > 0;
 		if (!$(this).hasClass("caRepositoryMenu")) {
-			$(".caMenuItem").removeClass("selectedMenu");
-			/* `closest()` instead of `parent()` because subcategory items
-			   are now nested one level deeper (<li class='subCategory'><ul>
-			   <li class='caMenuItem'>...). */
-			if (!$(this).closest(".subCategory").length && slideFlag) $(".subCategory").hide("fast");
+			if (!isParentWithSubs) $(".caMenuItem").removeClass("selectedMenu");
 		}
 		if ($(this).hasClass("caRepositoryMenu") && $(".startupButton").hasClass("selectedMenu")) {
 			$(".startupButton").removeClass("selectedMenu");
 			$(".allApps").addClass("selectedMenu");
 		}
-		$(this).addClass("selectedMenu");
+		if (!isParentWithSubs) $(this).addClass("selectedMenu");
 		if (slideFlag && !$(this).parent().hasClass("actionCentre")) $(this).next().show("fast");
+		/* Hide other peek-only expansions. Branches that hold the active
+		   selection stay fully expanded — we never collapse the one the user
+		   has actually picked from. The exclude argument shields:
+		     - parent click  -> this parent's own sub-menu being opened
+		     - sub/leaf click -> the wrapper containing the now-selected leaf
+		   Skipped for caRepositoryMenu (Repositories has its own state). */
+		if (!$(this).hasClass("caRepositoryMenu") && typeof caHideUnselectedSubs === "function") {
+			var $keepOpen = isParentWithSubs ? $(this).next(".subCategory") : $(this).closest(".subCategory");
+			caHideUnselectedSubs($keepOpen);
+		}
 	});
 	/**
 	 * Section-menu click (Installed/Previous/Pinned/Action Centre): dispatch
@@ -1152,6 +1170,10 @@ function caInitializeClickHandlers() {
 	 */
 	$("body").on("click", ".sectionMenu", function() {
 		if ($(this).hasClass("caMenuDisabled")) return;
+		/* Parent of a sub-menu (Installed Apps / Previous Apps): clicking
+		   only peeks at the subs. The auto-generated "All" entry inside the
+		   sub list is what dispatches the parent's action. */
+		if ($(this).next(".subCategory").length) return;
 		caClearHomeSectionSubtitle();
 		var section = $(this).attr("data-category");
 		showSortIcons();
@@ -1174,9 +1196,15 @@ function caInitializeClickHandlers() {
 	$(".mainArea").on("click", ".homeMore", function() {
 		var description = $(this).data("des");
 		var category = $(this).data("category");
-		var menuItem = $.find(".caMenuItem[data-category='" + category + "']");
+		/* Parent + auto "All" share data-category — prefer the All sub. Reveal
+		   its (hidden by default) wrapper so the active selection is visible. */
+		var $menuItem = $(".caMenuItem[data-category='" + category + "']");
+		if ($menuItem.filter(".caCategoryAll").length) {
+			$menuItem = $menuItem.filter(".caCategoryAll");
+			$menuItem.closest(".subCategory").show();
+		}
 		$(".caMenuItem").removeClass("selectedMenu");
-		$(menuItem).addClass("selectedMenu");
+		$menuItem.addClass("selectedMenu");
 		var sortOrder = {};
 		if ($(this).data("sortby")) {
 			sortOrder.sortBy = $(this).data("sortby");

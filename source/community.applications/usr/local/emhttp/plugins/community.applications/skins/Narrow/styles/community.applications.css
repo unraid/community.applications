@@ -206,6 +206,17 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 li.subCategory {
 	margin-top: -0.5rem;
 }
+/* Auto-disable the synthetic "All" sub when every real sibling under it is
+   already disabled — the parent has nothing to "show all of" so the entry
+   should grey out and stop accepting clicks. Pure CSS so any future
+   parent/sub list gets the behavior for free.
+   Reads: an .caCategoryAll whose following siblings contain NO enabled
+   .caMenuItem (i.e. all siblings are .caMenuDisabled). */
+li.subCategory > ul > li.caCategoryAll:not(:has(~ li.caMenuItem:not(.caMenuDisabled))) {
+	cursor: default;
+	opacity: 0.5;
+	pointer-events: none;
+}
 .category {
 	font-style: italic;
 }

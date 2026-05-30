@@ -1058,7 +1058,13 @@ function updateContent(button,skipAppfeed=true) {
 	$(".subCategory").hide();
 
 	startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
-	$(".caMenuItem[data-category='"+startupScreen+"']").addClass("selectedMenu");
+	var $startupMatch = $(".caMenuItem[data-category='"+startupScreen+"']");
+	if ($startupMatch.filter(".caCategoryAll").length) {
+		$startupMatch = $startupMatch.filter(".caCategoryAll");
+		/* Reveal the parent's sub wrapper so the active "All" is visible. */
+		$startupMatch.closest(".subCategory").show();
+	}
+	$startupMatch.addClass("selectedMenu");
 
 	startupScreen = button ? $(button).data("category") : startupScreen;
 	$.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
@@ -1898,8 +1904,15 @@ function removeApp(application, humanName) {
 			post({action:'remove_application',application:application}, function(result) {
 				enableSearch();
 				$(".caMenuItem").removeClass("selectedMenu");
-				var menuItem = $.find(".caMenuItem[data-category='previous_apps']");
-				$(menuItem).addClass("selectedMenu");
+				/* Parent + auto "All" sub share data-category — prefer the All sub
+				   so only it gets selectedMenu (parent is peek-only). Reveal the
+				   sub wrapper so the active selection is actually visible. */
+				var $matched = $(".caMenuItem[data-category='previous_apps']");
+				if ($matched.filter(".caCategoryAll").length) {
+					$matched = $matched.filter(".caCategoryAll");
+					$matched.closest(".subCategory").show();
+				}
+				$matched.addClass("selectedMenu");
 				previousApps(false,true,data.previousAppsSection);
 				caRefreshInstalledMenuStates();
 			});
@@ -2835,7 +2848,30 @@ function showMenu() {
 	/* Snap the menu scroll back to the top each time it opens — wherever the
 	   user left it (after a long category list, etc.) shouldn't carry over. */
 	$(".menuItems").scrollTop(0);
+	/* Reset menu: hide any parent the user expanded but didn't pick from.
+	   Branches with an active selection stay fully expanded. */
+	caHideUnselectedSubs();
 }
+
+/**
+ * Hide every `.subCategory` wrapper that doesn't contain `.selectedMenu`.
+ * Wrappers with an active selection stay fully expanded — clicking another
+ * parent never collapses the branch holding the current pick.
+ *
+ * @param {jQuery} [$keepOpen] Optional wrapper to leave visible regardless
+ */
+function caHideUnselectedSubs($keepOpen) {
+	$(".subCategory").each(function() {
+		var $sub = $(this);
+		if ($keepOpen && $keepOpen.is && $keepOpen.is($sub)) return;
+		if ($sub.find(".selectedMenu").length) return;
+		if ($sub.is(":visible")) $sub.hide("fast");
+	});
+}
+
+/* Back-compat alias for older call sites. */
+function caCollapseUnselectedSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
+function caNormalizeSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
 
 /**
  * Collapse mobile menu when the close control is in the expanded state.
@@ -2937,6 +2973,11 @@ function getCategories() {
 
 		caDebug(restoreStateMenu);
 		var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
+		/* Parent-with-subs and its auto-generated "All" sub share the same
+		   data-category. Prefer the "All" sub so only it shows selectedMenu —
+		   the parent itself is never a fetch target. */
+		var $matched = $(menuItem);
+		if ($matched.filter(".caCategoryAll").length) menuItem = $matched.filter(".caCategoryAll").get();
 		$(".caMenuItem").each(function(){
 			$(this).removeClass("selectedMenu");
 		});
@@ -2963,6 +3004,11 @@ function getCategories() {
 				var selectedMenu = $.cookie("ca_selectedMenu");
 				if ( selectedMenu ) {
 					var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
+					var $matched = $(menuItem);
+					if ($matched.filter(".caCategoryAll").length) {
+						menuItem = $matched.filter(".caCategoryAll").get();
+						$(menuItem).closest(".subCategory").show();
+					}
 					$(menuItem).addClass("selectedMenu");
 				}	else
 					$(".allApps").addClass("selectedMenu");
