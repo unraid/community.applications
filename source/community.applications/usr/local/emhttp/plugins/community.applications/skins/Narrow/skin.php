@@ -443,6 +443,95 @@ function displayPopup($template) {
 		";
 	}
 
+	/* Empty canvas for the live CPU chart — only rendered when this template
+	   resolved to a running container in getPopupDescriptionSkin(). Apps.page's
+	   popUpChart() looks for #caLiveCpuChart and starts the polling loop on
+	   sidebar open, closeSidebar() tears it down. */
+	$liveStatsBlock = "";
+	if (!empty($template['liveStatsContainer'])) {
+		$encodedContainer = htmlspecialchars((string)$template['liveStatsContainer'], ENT_QUOTES);
+		/* Live stats canvases need a real pixel size — SmoothieChart reads
+		   canvas.clientWidth at streamTo() time to size its visible window.
+		   The trend / download / total-download charts use Chart.js with
+		   its own aspect-ratio scaling, so they keep the legacy .caChart
+		   sizing — we deliberately don't share that class here.
+		   Default view is Summary (four donut gauges, no time-series); the
+		   chart views are hidden until the user clicks a tab, at which point
+		   caStartLiveStats lazy-binds streamTo() on first reveal. */
+		$tabSummary  = tr("Summary");
+		$tabCpu      = tr("CPU");
+		$tabMem      = tr("Memory");
+		$tabNet      = tr("Network I/O");
+		$lblCpuHost  = tr("Host CPU");
+		$lblContainer= tr("Container");
+		$lblHost     = tr("Host");
+		$lblRx       = tr("RX");
+		$lblTx       = tr("TX");
+
+		/* Each summary gauge is just an empty mount point — caStartLiveStats()
+		   uses caBuildGauge() to inject the speedometer SVG (arc band with
+		   warning zones, tick marks, "0"/"100" labels, two needles, hub,
+		   metric name in the upper interior) once we know the per-metric
+		   scale (host RAM total for memory, NIC link speed for network,
+		   etc.). Sub-label under each gauge holds the live numeric readouts. */
+		$gaugeMount = function($metric, $subClass, $label) {
+			return "
+				<div class='caLiveDonut'>
+					<div class='caLiveGaugeMount' data-metric='{$metric}' data-label='{$label}'></div>
+					<div class='caLiveDonutSub {$subClass}'>&nbsp;</div>
+				</div>
+			";
+		};
+		$donutCpu     = $gaugeMount("cpu",     "caLiveDonutSubCpu",     $tabCpu);
+		$donutCpuHost = $gaugeMount("cpuhost", "caLiveDonutSubCpuHost", $lblCpuHost);
+		$donutMem     = $gaugeMount("memory",  "caLiveDonutSubMem",     $tabMem);
+		$donutNet     = $gaugeMount("net",     "caLiveDonutSubNet",     $tabNet);
+
+		/* Shared legend snippet stamped under each chart. Inner ring + the
+		   chart's secondary line are both rendered in magenta to keep the
+		   "host" association visually consistent across the whole view. */
+		$legendHost = "<span style='color:#C341D6;'>■</span> {$lblHost}";
+
+		$liveStatsBlock = "
+			<div class='popupChartBlock popupLiveStatsBlock' data-container='{$encodedContainer}'>
+				<div>
+					<span class='charts'>
+						<button type='button' role='tab' aria-pressed='true' class='chartMenu caLiveStatsTab selectedMenu' data-view='summary'>{$tabSummary}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='cpu'>{$tabCpu}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='memory'>{$tabMem}</button>
+						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='net'>{$tabNet}</button>
+					</span>
+				</div>
+				<div class='caLiveStatsView caLiveStatsSummaryView caLiveStatsActive' data-view='summary'>
+					<div class='caLiveDonutGrid'>
+						{$donutCpu}
+						{$donutCpuHost}
+						{$donutMem}
+						{$donutNet}
+					</div>
+				</div>
+				<div class='caLiveStatsView' data-view='cpu'>
+					<canvas id='caLiveCpuChart' class='caLiveStatsCanvas' style='width:100%;height:120px;display:block;'></canvas>
+					<div class='caLiveStatsLegend'>
+						<span style='color:#FF8C2F;'>■</span> {$lblContainer} &nbsp; {$legendHost}
+					</div>
+				</div>
+				<div class='caLiveStatsView' data-view='memory'>
+					<canvas id='caLiveMemChart' class='caLiveStatsCanvas' style='width:100%;height:120px;display:block;'></canvas>
+					<div class='caLiveStatsLegend'>
+						<span style='color:#3FB6F2;'>■</span> {$lblContainer} &nbsp; {$legendHost}
+					</div>
+				</div>
+				<div class='caLiveStatsView' data-view='net'>
+					<canvas id='caLiveNetChart' class='caLiveStatsCanvas' style='width:100%;height:120px;display:block;'></canvas>
+					<div class='caLiveStatsLegend'>
+						<span style='color:#41C46C;'>■</span> {$lblRx} &nbsp; <span style='color:#E22828;'>■</span> {$lblTx} &nbsp; {$legendHost}
+					</div>
+				</div>
+			</div>
+		";
+	}
+
 	$changeLogBlock = "";
 	if (isset($display_changes)) {
 		$changeLogBlock = "
@@ -741,6 +830,7 @@ function displayPopup($template) {
 				<?php endif; /* full-feed-present guard */ ?>
 			</div>
 
+			<?= $liveStatsBlock ?>
 			<?= $ModeratorCommentBlock ?>
 			<div class='popupDescription popup_readmore'><?= $display_ovr ?></div>
 			<?= $CACommentBlock ?>
@@ -1063,6 +1153,24 @@ function getPopupDescriptionSkin($appNumber) {
 
 	[$selected, $name, $pluginName] = caResolveSelectionState($template, $dockerRunning);
 
+	/* Live CPU/memory chart is only meaningful for a docker container that's
+	   currently running — Plugin / Language / RepositoryTemplate rows have no
+	   container to attach to. caResolveSelectionState gives us both halves of
+	   that check: $selected===true and a non-empty $name only when the
+	   template matched a row in the live docker listing.
+	   Additional gates:
+	     - User must have flipped on the Display usage graphs setting
+	       (default off; see default.cfg + skin.html settings panel).
+	     - The OS must be 7.2+ "responsive" — the chart canvases + gauge
+	       SVGs assume the new sidebar layout (matches the same gate
+	       Apps.page uses to apply .Theme--responsive to <html>). Same
+	       version_compare expression as Apps.page line 74 so they stay
+	       in lockstep. On legacy chrome the setting card is still shown
+	       in Settings but disabled by caBindSettingsFormHandlers. */
+	$usageGraphsEnabled = ($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") === "yes";
+	$liveStatsResponsive = version_compare($GLOBALS['caSettings']['unRaidVersion'] ?? "0", "7.1.9999", ">");
+	$template['liveStatsContainer'] = ($usageGraphsEnabled && $liveStatsResponsive && $selected === true && $name && empty($template['Plugin']) && empty($template['Language']) && empty($template['RepositoryTemplate'])) ? $name : "";
+
 	$template['display_ovr'] = caFormatOverview($template);
 
 	caFormatTemplateChanges($template);
@@ -1131,6 +1239,7 @@ function getPopupDescriptionSkin($appNumber) {
 		"totaldownLabel"=>$downloadLabel ?: "",
 		"supportContext"=>$supportContext,
 		"actionsContext"=>$actionsContext,
+		"liveStatsContainer"=>$template['liveStatsContainer'] ?? "",
 		"ID"=>$template['ID'] ?? false
 	];
 }
@@ -1181,6 +1290,14 @@ function getRepoDescriptionSkin($repository) {
 		$repoUrlButton = "<a class='caButton ca_repoUrl' href='{$safeRepoUrl}' target='_blank' rel='noopener noreferrer'>".tr("Repository")."</a>";
 	}
 
+	/* Dev + admin only: surface duplicate-Name templates within this repo so
+	   moderators can spot accidental double-listings without trawling all the
+	   repo's cards. Both copies of each duplicate group are shown. */
+	$repoDuplicatesButton = "";
+	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && is_file(CA_PATHS['caAdmin'])) {
+		$repoDuplicatesButton = "<div class='caButton ca_repoDuplicates' data-repository='{$encodedRepository}'>".tr("Duplicates")."</div>";
+	}
+
 	$popupContent = "
 		<div class='popupContent'>
 			<div class='ca_popupIconArea'>
@@ -1192,6 +1309,7 @@ function getRepoDescriptionSkin($repository) {
 					<div class='caButton ca_repoSearchPopUp popupProfile' data-repository='{$encodedRepository}'>$seeAllAppsLabel</div>
 					<div class='caButton ca_favouriteRepo $favRepoClass' data-repository='{$encodedRepository}'>$favouriteLabel</div>
 					{$repoUrlButton}
+					{$repoDuplicatesButton}
 				</div>
 			</div>
 			<div class='popupRepoDescription'>$repoBio</div>

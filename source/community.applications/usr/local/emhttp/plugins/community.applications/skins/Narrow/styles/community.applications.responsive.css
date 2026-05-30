@@ -44,7 +44,7 @@ body {
  * the search area right past the OS sidebar's left rail.
  */
 :root {
-	--search-area-top: 1rem;
+	--search-area-top: 0.25rem;
 	--search-area-left: 1rem;
 	--search-area-mobile-left: initial;
 	--beta-popup-offset: 5rem;
@@ -69,7 +69,7 @@ body {
 	--ca-menu-top-offset: 4rem;
 }
 .Theme--sidebar {
-	--search-area-top: 1rem;
+	--search-area-top: 0.25rem;
 	--search-area-left: 65px;
 	
 

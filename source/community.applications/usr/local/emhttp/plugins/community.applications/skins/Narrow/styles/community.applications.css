@@ -65,19 +65,30 @@ body:has(.sidenavShow) {
 }
 /* CA's own scroll controls — independent of dynamix's .back_to_top /
    .move_to_end so we don't conflict with other plugins. Visibility and click
-   targets (.mainArea instead of html/body) are managed in Apps.page. */
+   targets (.mainArea instead of html/body) are managed in Apps.page.
+   Restyled to match the sidebar close (×) — plain arrow glyph at text
+   color, no red-circle background. Padding gives them comparable hit
+   targets to the close button. */
 .ca_back_to_top,
 .ca_move_to_end {
 	display: none;
 	position: fixed;
 	bottom: 24px;
-	color: var(--brand-red);
-	font-size: 2.5rem;
+	color: var(--text-color);
+	background: transparent;
+	font-size: 2.4rem;
+	line-height: 1;
+	padding: 0.4rem 0.9rem;
+	border-radius: 0.5rem;
 	/* High enough to beat the sidebar (1000) and any wrapper stacking context
 	   it inherits from, while still under SweetAlert (10000+) and the viewport
 	   blocker (9999). */
 	z-index: 9998;
 	cursor: pointer;
+}
+.ca_back_to_top:hover,
+.ca_move_to_end:hover {
+	background: color-mix(in srgb, var(--text-color) 14%, transparent);
 }
 .ca_back_to_top {
 	right: 40px;
@@ -99,10 +110,50 @@ body:has(.sidenavShow) {
 	color: var(--brand-orange);
 }
 .ca_back_to_top::before {
-	content: "\f0aa"; /* fa-arrow-circle-up */
+	content: "\f062"; /* fa-arrow-up — plain glyph, no circle */
+}
+
+/* HR rules across CA — left/right menu dividers, settings panel rule
+   lines, etc. Browser default borders inherit `currentColor` which is
+   often near-full-strength `--text-color`; lighten to a transparent tint
+   so they read as subtle separators rather than hard lines. */
+hr,
+.category_hr {
+	border: none;
+	border-top: 1px solid color-mix(in srgb, var(--text-color) 18%, transparent);
+	background: transparent;
+	height: 0;
 }
 .ca_move_to_end::before {
-	content: "\f0ab"; /* fa-arrow-circle-down */
+	content: "\f063"; /* fa-arrow-down — plain glyph, no circle */
+}
+/* When the sidebar is open, the PAGE-level scroll controls overlay it
+   (they're position:fixed at z-index 9998, well above the sidebar's 1000),
+   so they would peek through. Hide just those — the sidebar-scoped pair
+   (.caSidebarScroll, added inside .sidebar in skin.html) stays visible
+   and gets lifted above the fixed-bottom action bar by the rule below. */
+body:has(.sidenavShow) :is(.ca_back_to_top, .ca_move_to_end):not(.caSidebarScroll) {
+	display: none !important;
+}
+/* Symmetric: when the sidebar is NOT open, hide the sidebar-scoped copy.
+   Without this, jQuery's inline `display: block` from a previous fadeIn
+   (e.g. statistics view was scrolled before the user closed it) would
+   keep those arrows floating mid-page after the sidebar dismisses, since
+   caUpdateScrollControls's MutationObserver doesn't trigger a fresh
+   evaluation against the now-active mainArea scroller until something
+   else triggers it. */
+body:not(:has(.sidenavShow)) :is(.ca_back_to_top, .ca_move_to_end).caSidebarScroll {
+	display: none !important;
+}
+/* Sidebar-scoped scroll controls — lift above the bottom action bar.
+   The bar sits at bottom: 3rem with ~6rem of internal padded height, so
+   ~10rem clears it with a small visual margin. caUpdateScrollControls()'s
+   fadeIn/fadeOut still drives the visibility based on the sidebar's
+   scroll position (caGetActiveScroller returns the sidebar's scroller
+   when sidenavShow is set). */
+.ca_back_to_top.caSidebarScroll,
+.ca_move_to_end.caSidebarScroll {
+	bottom: 10rem;
 }
 /*
 /* Dim all page content except the visible sidebar and its children */
@@ -364,6 +415,20 @@ body,
 	top: 18rem;
 }
 
+/* Card-scoped overrides for the flat .caButton baseline. The sidebar's
+   bigger pill sizing makes Details / Install / Manage overlap each other
+   (and the small subtitle text above them) on the much smaller card
+   footprint. Tighten font, padding, and corner radius so the bottom
+   line of buttons stays inside one row again. */
+.ca_bottomLine .caButton,
+.ca_bottomLine .infoButton {
+	font-size: 1.1rem;
+	line-height: 1.2;
+	padding: 0.35rem 0.9rem;
+	border-radius: 0.4rem;
+	gap: 0.3rem;
+}
+
 .ca_bottomLineSpotLight {
 	top: 15rem !important;
 }
@@ -440,7 +505,7 @@ body,
 		/* Typography */
 		font-size: 1.2rem;
 		line-height: 2rem;
-		color: var(--inverse-text-color);
+		color: var(--text-color);
 
 		/* Visual */
 		background: linear-gradient(
@@ -459,10 +524,28 @@ body,
 		border-radius: 15px;
 	}
 	.popupDescription, .popupRepoDescription {
-		background: var(--inverse-background-color);
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
 	}
 	.caButton {
 		cursor: pointer;
+		/* Flat redesign — pill/rounded rectangle, bigger hit target,
+		   no inset shadows, no gradients. Most overrides for specific
+		   button families (install/update/uninstall/close, mfp) pile
+		   color on top of this baseline. */
+		font-size: 1.55rem;
+		line-height: 1.4;
+		padding: 0.9rem 1.6rem;
+		border-radius: 0.6rem;
+		border: none;
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
+		color: var(--text-color);
+		box-shadow: none;
+		text-decoration: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		transition: background 120ms ease, color 120ms ease;
 	}
 
 	.popupRepoDescription,
@@ -475,24 +558,27 @@ body,
 	}
 	.caButton a {
 		text-decoration: none;
-		color: var(--inverse-text-color);
+		color: inherit;
 		cursor: pointer;
 	}
 
 	.caButton:hover {
-		background: var(--brand-orange);
-		/* Match the resting `.caButton` color (`--inverse-text-color`)
-		   instead of forcing white. The previous `!important` white
-		   override silently leaked through to action / close buttons
-		   that explicitly set `--inverse-text-color` on hover, leaving
-		   Install / Update / Uninstall / CLOSE rendering white-on-orange
-		   regardless. */
-		color: var(--inverse-text-color) !important;
+		/* Subtle darken — color tint removed per restyle. Specific button
+		   families (Install/Reinstall, Uninstall, Close) override this
+		   with their own hover colors below. */
+		background: color-mix(in srgb, var(--text-color) 16%, transparent);
+		color: var(--text-color);
 	}
 
+	/* Anchor-form caButtons (the repo link section's Web Page / Forum /
+	   Discord / etc., plus a few inline link buttons) share the same flat
+	   hover as the <div>-form. Inherit text color from the baseline
+	   .caButton:hover rule above rather than the old --inverse-text-color
+	   override, which used to pair with the legacy orange-fill hover and
+	   leaves the label invisible on the new subtle tint. */
 	.caButton:hover a,
 	a.caButton:hover {
-		color: var(--inverse-text-color);
+		color: inherit;
 		text-decoration: none;
 	}
 
@@ -534,15 +620,32 @@ body,
 	   right tool when a button doesn't have a stable class hook (eg. the
 	   per-call MFP closeMarkup string) or when red is being stacked with
 	   other modifiers like .caButtonLarge. */
+	/* Close glyph — square button containing only an "×". No fill at rest;
+	   the surrounding panel background does the work. Hover adds a faint
+	   tint so the affordance is still discoverable. The diff overlay's
+	   close keeps the same treatment because it shares the .caDiffClose
+	   hook. */
 	.popUpClose.caButton,
 	.caDiffClose.caButton {
-		background: var(--brand-red);
-		/* color inherits from `.caButton` (`--inverse-text-color`). */
+		background: transparent;
+		color: var(--text-color);
+		font-size: 2.4rem;
+		line-height: 1;
+		padding: 0.4rem 0.9rem;
+		border-radius: 0.5rem;
 	}
 	.popUpClose.caButton:hover,
 	.caDiffClose.caButton:hover {
-		background: var(--brand-orange);
-		/* color inherits from `.caButton` (`--inverse-text-color`). */
+		background: color-mix(in srgb, var(--text-color) 14%, transparent);
+		color: var(--text-color);
+	}
+	/* MFP gallery close (×) hover override — keep the same faint background
+	   tint from the rule above, but flip the × itself to Unraid 66 orange
+	   so the close hover-affordance reads more strongly than the sidebar
+	   close (which stays at --text-color). The sidebar's .popUpClose
+	   doesn't carry .mfp-close so it isn't matched here. */
+	.mfp-close.caButton:hover {
+		color: var(--brand-orange);
 	}
 
 	/* Sidebar action-row coloring. .actionsInstall = primary install-family
@@ -551,29 +654,42 @@ body,
 	   classes are applied by skin.php when the matching text is detected.
 	   Compound selectors are 0,2,0 / 0,2,1 — naturally outrank `.caButton`
 	   (0,1,0) and `.caButton:hover` (0,1,1) without needing !important. */
+	/* Install / Reinstall / Install-second-instance — branded Unraid orange,
+	   darker on hover. The :hover background is mixed against black so the
+	   shade tracks any future change to --brand-orange instead of being
+	   pinned to a literal hex. */
 	.popupStickyActions > .actionsInstall {
-		background: var(--blue-800);
-		color: var(--inverse-text-color);
+		background: var(--brand-orange);
+		color: var(--ca-white-color);
 	}
 	.popupStickyActions > .actionsInstall:hover {
-		background: var(--brand-orange);
-		color: var(--inverse-text-color);
+		background: color-mix(in srgb, var(--brand-orange) 78%, black);
+		color: var(--ca-white-color);
 	}
-	.popupStickyActions > .actionsUpdate {
-		background: var(--green-900);
-		color: var(--inverse-text-color);
-	}
-	.popupStickyActions > .actionsUpdate:hover {
-		background: var(--brand-orange);
-		color: var(--inverse-text-color);
-	}
+	/* Update — colors removed per restyle. No explicit rule needed; the
+	   flat .caButton baseline (faint text-color tint, lighter on hover)
+	   wins, so Update matches WebUI / Edit / other neutral buttons. */
+	/* Uninstall stays destructive-red. */
 	.popupStickyActions > .actionsUninstall {
 		background: var(--brand-red);
-		color: var(--inverse-text-color);
+		color: var(--ca-white-color);
 	}
 	.popupStickyActions > .actionsUninstall:hover {
-		background: var(--brand-orange);
-		color: var(--inverse-text-color);
+		background: color-mix(in srgb, var(--brand-red) 80%, black);
+		color: var(--ca-white-color);
+	}
+
+	/* Theme--sidebar text override — on that one layout the colored
+	   action buttons (Install / Reinstall / Install second under
+	   .actionsInstall, Uninstall / Remove under .actionsUninstall) use
+	   BLACK text instead of the default white-on-brand. Update isn't
+	   covered because it carries no colored background under the
+	   restyle (transparent baseline, flat hover). */
+	.Theme--sidebar .popupStickyActions > .actionsInstall,
+	.Theme--sidebar .popupStickyActions > .actionsInstall:hover,
+	.Theme--sidebar .popupStickyActions > .actionsUninstall,
+	.Theme--sidebar .popupStickyActions > .actionsUninstall:hover {
+		color: var(--ca-black-color);
 	}
 	/* Push the right-group buttons (install-family + uninstall) to the far
 	   right of the action row while keeping the same wrap/gap behavior.
@@ -629,7 +745,8 @@ body,
 	   sidebar buttons. */
 	body.ca_searchModalOpen #searchFilter .awesomplete > ul > li.caButton {
 		margin-right: 1rem !important;
-		padding: 2px 15px !important;
+		margin-bottom: 0.6rem !important;
+		padding: 0.5rem 15px !important;
 		font-size: 1.8rem !important;
 		line-height: 3rem !important;
 	}
@@ -1130,21 +1247,25 @@ body,
 	.sidebar .sidenav:focus-visible {
 		outline: none;
 	}
-	.sidebar .sidenav,
-	.popupCloseArea {
+	/* Slide-in transition lives only on the sidenav itself. The fixed
+	   .popupCloseArea / .popupActionsArea bars are positioned + visibility-
+	   toggled by their own `body:has(.sidenavShow) ...` rules later in this
+	   file — listing them here added zero behavior (the unconditional
+	   selectors here used to be overridden by the later show/hide blocks
+	   for the same elements, leaving them as dead code that confused
+	   future readers). */
+	.sidebar .sidenav {
 		transform: translateX(100%);          /* default: off-screen right */
 		opacity: 0;
 		transition: transform 500ms ease, opacity 500ms ease;
 	}
 
-	.sidebar .sidenav.sidenavShow,
-	.popupCloseArea {
+	.sidebar .sidenav.sidenavShow {
 		transform: translateX(0);             /* slide into view */
 		opacity: 1;
 	}
 
-	.sidebar .sidenav.sidenavHide,
-	.popupCloseArea {
+	.sidebar .sidenav.sidenavHide {
 		transform: translateX(100%);          /* slide back out */
 		opacity: 0;
 	}
@@ -1255,7 +1376,13 @@ body,
 	body:has(.sidenavShow):has(.moderationContainer) .sidenav {
 		overflow: scroll;
 	}
-	body:has(.sidenavShow):has(.moderationContainer) :is(.popUpClose, .popUpBack) {
+	/* When the moderation / statistics overlay is up, the back arrow
+	   (.popUpBack — "go back to the previously-open sidebar app") doesn't
+	   apply, so it stays hidden. But the × close still does (it just
+	   calls closeSidebar via the body-delegated handler in
+	   clickHandlers.js), so we leave .popUpClose visible alongside the
+	   overlay's own .popUpStat button. */
+	body:has(.sidenavShow):has(.moderationContainer) .popUpBack {
 		display: none !important;
 	}
 	body:has(.sidenavShow):has(.moderationContainer) .popUpStat {
@@ -1509,6 +1636,104 @@ body,
 		height: 1px;
 		width: 3px;
 		border: none;
+	}
+
+	/* Live-stats tab views share one grid cell so the inactive ones stay
+	   laid out (real clientWidth) while invisible. Smoothie's responsive:true
+	   reads canvas.clientWidth every frame — display:none on a hidden view
+	   would zero that and the chart would paint to nothing, then a tab
+	   switch would show an empty graph until new data arrived.
+	   visibility:hidden keeps layout intact so each chart paints into its
+	   real-sized canvas the whole time and tab switches reveal the
+	   accumulated history immediately. */
+	.popupLiveStatsBlock {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+	.popupLiveStatsBlock > div:first-child {
+		grid-row: 1;
+		grid-column: 1;
+	}
+	.caLiveStatsView {
+		grid-row: 2;
+		grid-column: 1;
+		visibility: hidden;
+		pointer-events: none;
+	}
+	.caLiveStatsView.caLiveStatsActive {
+		visibility: visible;
+		pointer-events: auto;
+	}
+
+	/* Live-stats summary — three side-by-side classic-speedometer gauges
+	   styled to match a real analog dial: white face, bezel ring, tapered
+	   red needle, blue center hub, dark major ticks with lighter minor
+	   ticks in between, and yellow/orange/red warning bands across the
+	   upper-right portion of the arc. Fixed colors (not theme variables)
+	   because the white face needs predictable contrast on both light
+	   and dark Unraid themes. */
+	.caLiveDonutGrid {
+		display: flex;
+		flex-wrap: nowrap;
+		justify-content: space-around;
+		align-items: flex-start;
+		gap: 0.5rem;
+		margin: 0.25rem 0;
+	}
+	.caLiveDonut {
+		flex: 1 1 0;
+		min-width: 0;
+		max-width: 170px;
+		text-align: center;
+		line-height: 1.1;
+	}
+	.caLiveGaugeMount {
+		width: 100%;
+		max-width: 130px;
+		margin: 0 auto;
+	}
+	.caLiveGaugeSvg {
+		width: 100%;
+		height: auto;
+		display: block;
+		filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+	}
+	.caLiveGaugeFace     { fill: #f7f7f7; stroke: #b8b8b8; stroke-width: 0.6; }
+	.caLiveGaugeFaceRim  { fill: none; stroke: #d6d6d6; stroke-width: 1.2; }
+	.caLiveGaugeTrack    { stroke: #2c2c2c; }
+	.caLiveGaugeZoneWarn { stroke: #E7C547; }
+	.caLiveGaugeZoneHigh { stroke: #E68A33; }
+	.caLiveGaugeZoneCrit { stroke: #D14545; }
+	.caLiveGaugeTickMajor { stroke: #1f1f1f; }
+	.caLiveGaugeTickMinor { stroke: #5a5a5a; }
+	.caLiveGaugeAxisText { fill: #1f1f1f; font-weight: 500; }
+	.caLiveGaugeTitle    { fill: #1f1f1f; font-weight: 700; letter-spacing: 0.5px; }
+	.caLiveGaugeSubtitle { fill: #2c2c2c; font-weight: 500; }
+	.caLiveGaugeSubtitleHeader { fill: #5a5a5a; font-weight: 500; letter-spacing: 0.3px; }
+	.caLiveGaugeHub      { fill: #2778c4; stroke: #1d5894; stroke-width: 0.5; }
+	.caLiveGaugeHubInner { fill: #4a93d6; }
+	.caLiveGaugeNeedle   {
+		fill: #d23434;
+		stroke: #8c1c1c;
+		stroke-width: 0.3;
+		stroke-linejoin: round;
+		transition: transform 600ms ease-out;
+	}
+	.caLiveDonutSub {
+		font-size: 14px;
+		font-weight: 600;
+		opacity: 0.9;
+		min-height: 1.1em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		margin-top: 0.1rem;
+	}
+	.caLiveStatsLegend {
+		text-align: center;
+		font-size: 10px;
+		opacity: 0.85;
+		margin-top: 0.15rem;
 	}
 
 	.ellipsis {
@@ -2040,6 +2265,36 @@ body,
 		cursor: pointer;
 	}
 
+	/* The live-stats tabs and the trend / download / total-download tab
+	   strip use .chartMenu on <button> elements (was <span>, switched
+	   to button for keyboard a11y). UA button styling and Unraid's
+	   stock `button:where(:not(.unapi *))` rule both want to paint a
+	   pill background + border around them — `all: unset` wipes both
+	   so the tabs render as the same plain clickable text the legacy
+	   spans did. The padding/cursor reapply only what the old
+	   .chartMenu rule had. */
+	button.chartMenu {
+		all: unset;
+		box-sizing: border-box;
+		padding-left: 2rem;
+		cursor: pointer;
+	}
+	/* Keyboard focus indicator — a11y was the reason we moved from
+	   <span> to <button>; this makes the focus state visible when
+	   tabbing through the tabs. */
+	button.chartMenu:focus-visible {
+		outline: 2px solid var(--brand-orange);
+		outline-offset: 2px;
+	}
+	/* .Theme--sidebar's stock button-paint at specificity 0,2,1 (resting
+	   and :hover variants) sneaks past button.chartMenu's 0,1,1 — re-use
+	   the same :is() override pattern the MFP arrows do so the tabs stay
+	   visually unchanged on sidebar layout too. */
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).chartMenu,
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).chartMenu:hover {
+		background-color: transparent !important;
+		border: none !important;
+	}
 
 	.chartMenu.selectedMenu {
 		color: var(--brand-orange);
@@ -2158,24 +2413,35 @@ body,
 
 	.fav,
 	.pinPopup.pinned {
-		background: linear-gradient(
-		to bottom,
-		transparent 0%,
-		var(--ca-overlay-color) 100%
-		),
-		linear-gradient(
-		to right,
-		color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 0%,
-		var(--ca-dark-orange-color) 50%,
-		color-mix(in srgb, var(--ca-dark-orange-color) 85%, white) 100%
-		) !important;
-		background-position: 0 0 !important;
-		background-size: 100% 100% !important;
+		/* Active favourite / pinned state — flat Unraid brand orange.
+		   Replaces the previous dual-gradient (dark-orange + overlay)
+		   so the active state matches the flat Install / Reinstall
+		   button language. !important keeps it winning over the
+		   .nonfav baseline tint and any .caButton:hover treatment so
+		   a selected chip stays orange even while moused-over. */
+		background: var(--brand-orange) !important;
+		color: var(--ca-white-color) !important;
+	}
+	.fav:hover,
+	.pinPopup.pinned:hover {
+		background: color-mix(in srgb, var(--brand-orange) 78%, black) !important;
+		color: var(--ca-white-color) !important;
 	}
 
 	.nonfav,
 	.pinPopup.unpinned {
-		background-color: var(--inverse-background-color);
+		/* Resting state for the favourite / pin toggles. The old rule
+		   forced --inverse-background-color (dark on a light theme),
+		   which used to pair with the OLD .caButton baseline of white
+		   text. The flat-restyle baseline sets text to --text-color
+		   (dark), so the legacy dark fill rendered as black-on-black
+		   text. Use the same translucent text-color tint the flat
+		   .caButton baseline uses so unselected state matches the rest
+		   of the chip language and stays readable on both light and
+		   dark themes. The .fav / .pinned rule above (orange gradient
+		   + !important) still wins for the active state. */
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
+		color: var(--text-color);
 	}
 	/* Pin button: only the UNPINNED state gets the orange hover, so a pinned
 	   (green) button stays green on hover — matches the .fav repo-button
@@ -2468,6 +2734,24 @@ input[type="button"] {
 	}
 
 	/* 3.12) Popup detail content area */
+
+	/* Baseline off-screen state for the top close-bar and bottom action-bar
+	   so they slide in/out together with the .sidenav rather than just
+	   popping into place. The `body:has(.sidenavShow) ...` rules below win
+	   the cascade (body:has + descendant beats a plain class) and override
+	   transform/opacity to the on-screen values — the transition declared
+	   here animates the swap in both directions whenever sidenavShow is
+	   toggled on a .sidenav that's already in the DOM. (Freshly AJAX-
+	   inserted .popupCloseArea content paints directly in the visible state
+	   and doesn't animate, which is the existing behavior for the .sidenav
+	   itself.) Matches the 500ms ease used by the .sidebar .sidenav slide. */
+	.popupCloseArea,
+	.popupActionsArea {
+		transform: translateX(100%);
+		opacity: 0;
+		transition: transform 500ms ease, opacity 500ms ease;
+	}
+
 	body:has(.sidenavShow) .popupCloseArea {
 		position: fixed;
 		padding-top: 1rem;
@@ -2488,11 +2772,109 @@ input[type="button"] {
 		right: 1.5rem;
 		bottom: 2px;
 		height: 1px;
-		background-color: color-mix(in srgb, var(--text-color) 75%, var(--mild-background-color));
+		background-color: color-mix(in srgb, var(--text-color) 18%, transparent);
 		pointer-events: none;
 	}
+	/* Top-bar layout: BACK button lives on the LEFT edge of the sidebar,
+	   CLOSE (×) on the RIGHT, with the Statistics-overlay back button
+	   (.popUpStat) sitting next to CLOSE since it's part of the same
+	   close-cluster semantically.
+	   - justify-content: flex-end keeps Close/Stat packed to the right
+	     whenever BACK is hidden (the .ca_hide class — most popups don't
+	     show a back arrow).
+	   - When BACK is visible it gets margin-right: auto, consuming the
+	     free space and pushing the right cluster to the bar's right edge
+	     while BACK itself stays anchored at the left.
+	   - width: calc(100% - 4rem) instead of width:100% so the 2rem
+	     margins don't overflow the bar's max-width box. */
 	.popupCloseArea > div:first-child {
-		margin-left: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		width: calc(100% - 4rem);
+		margin: 0 2rem;
+	}
+	/* Both back-arrow variants (popUpBack for normal sidebars, popUpStat
+	   for the statistics / moderation overlay) anchor at the LEFT edge.
+	   Same order + auto-margin push so close stays right-anchored either
+	   way. They never both render at the same time so the matching order
+	   value is fine. */
+	.popUpBack,
+	.popUpStat { order: 0; margin-right: auto; }
+	.popUpClose { order: 2; }
+	/* Icon-only BACK / STAT buttons — match the × close: transparent
+	   baseline, faint tint on hover. ::before arrow is the entire visible
+	   content so the icon-text gap is zeroed too. */
+	.popUpBack.caButton,
+	.popUpStat.caButton {
+		background: transparent;
+		color: var(--text-color);
+		padding: 0.4rem 0.9rem;
+		font-size: 1.6rem;
+		line-height: 1;
+	}
+	.popUpBack.caButton:hover,
+	.popUpStat.caButton:hover {
+		background: color-mix(in srgb, var(--text-color) 14%, transparent);
+		color: var(--text-color);
+	}
+	.popUpBack.caButton::before,
+	.popUpStat.caButton::before {
+		margin-right: 0;
+	}
+
+	/* Bottom action bar — mirror of .popupCloseArea but anchored to the
+	   bottom of the viewport. caRelocatePopupActions() detaches the
+	   server-rendered .popupStickyActions row from the popup body and
+	   appends it into .popupActionsAreaInner so the per-app Install /
+	   Update / Uninstall buttons stay glued to the bottom edge regardless
+	   of scroll position. The popup content gets matching bottom padding
+	   so its tail isn't hidden behind the bar. */
+	body:has(.sidenavShow) .popupActionsArea {
+		position: fixed;
+		padding: 1.5rem 0 1rem;
+		margin-top: 1rem;
+		width: 90%;
+		background-color: var(--mild-background-color);
+		z-index: 5;
+		max-width: 70rem;
+		right: 0;
+		bottom: 3rem;
+		/* Specificity override — the bare `.popupActionsArea, ...`
+		   rules above force translateX(100%) + opacity 0 as the
+		   default off-screen state. This rule needs to redeclare
+		   the visible state to win the cascade when the sidebar
+		   is open, matching what .popupCloseArea does. */
+		transform: translateX(0);
+		opacity: 1;
+	}
+	body:has(.sidenavShow) .popupActionsArea::before {
+		content: "";
+		position: absolute;
+		left: 1.5rem;
+		right: 1.5rem;
+		top: 2px;
+		height: 1px;
+		background-color: color-mix(in srgb, var(--text-color) 18%, transparent);
+		pointer-events: none;
+	}
+	.popupActionsAreaInner {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		/* Left inset matches the original 2rem so WebUI/Edit/etc still sit
+		   under the popup body column. Right inset is tightened to 0.5rem
+		   so Uninstall hugs closer to the panel edge. */
+		margin: 0 0.5rem 0 2rem;
+	}
+	/* Bottom padding sized to the measured action-bar height so wrapped
+	   multi-row button rows on narrow viewports don't clip the tail of
+	   the popup content. caRelocatePopupActions() in Apps.page sets
+	   --ca-sidenav-bottom on documentElement after each relocate; this
+	   rule falls back to the original 9rem static value when JS hasn't
+	   run yet or the property is otherwise missing. */
+	body:has(.sidenavShow) #sidenavContent {
+		padding-bottom: var(--ca-sidenav-bottom, 9rem);
 	}
 	.popupDescription {
 		font-size: 1.5rem;
@@ -2578,8 +2960,10 @@ input[type="button"] {
 	   group / close / back / pin buttons all have a unique semantic class,
 	   so the icon lives entirely in CSS — no PHP class threading or markup
 	   change needed when the glyph changes. */
-	.popUpClose::before,
-	.caDiffClose::before,
+	/* Only .actionsUninstall keeps the FontAwesome × icon — sidebar close
+	   (.popUpClose), diff overlay close (.caDiffClose), and MFP popup
+	   close all switched to a literal "×" character in markup so they
+	   share the cleaner thin glyph the design wants. */
 	.actionsUninstall::before {
 		content: "\f00d";              /* fa-times — close / destructive */
 		font-family: fontAwesome;
@@ -2679,6 +3063,44 @@ input[type="button"] {
 	}
 	.popupSupportRow > .caButton {
 		margin: 0;
+	}
+
+	/* Shrink the non-action button families to ~75% of the flat .caButton
+	   baseline. Covers:
+	     - Support row buttons (Project / Discord / Support / Registry /
+	       Template / Plugin / Diff / Pin etc.) on the application sidebar
+	     - Repo-cluster buttons in the icon area row (All Apps / Profile /
+	       Favourite / dev-mode Repository / dev+admin Duplicates —
+	       .popupProfile, .repoPopup, .ca_favouriteRepo, .ca_repoUrl,
+	       .ca_repoDuplicates)
+	     - Repo link-section buttons (Web Page / Forum / Forum Profile /
+	       Facebook / Reddit / Twitter / Discord) — all live in
+	       .repoLinkArea via caBuildRepoLinkSection
+	     - Donate button — same visual weight as the other repo links
+	   The bottom action row (.popupStickyActions > .caButton) is
+	   deliberately NOT in this selector list so Install / Update /
+	   Uninstall stay at their default full-size baseline. */
+	.popupSupportRow > .caButton,
+	.popupProfile,
+	.repoPopup,
+	.ca_favouriteRepo,
+	.ca_repoUrl,
+	.ca_repoDuplicates,
+	.repoLinkArea > .caButton,
+	.caButton.donate {
+		font-size: 1.2rem;
+		padding: 0.65rem 1.2rem;
+		border-radius: 0.5rem;
+	}
+	/* The Unraid icon-font's discord glyph renders visually small at the
+	   normal button font-size, so the base .ca_discord_popup::before rule
+	   bumps it to 2.2rem. That makes the Discord button noticeably taller
+	   than its siblings in the shrunk button groups. Bring the glyph back
+	   in line here — still slightly larger than the surrounding 1.2rem
+	   label so the icon reads balanced, but no longer dominating the row. */
+	.popupSupportRow > .caButton.ca_discord_popup::before,
+	.repoLinkArea > .caButton.ca_discord_popup::before {
+		font-size: 1.4rem;
 	}
 
 	.popupInfoLeft {
@@ -3151,6 +3573,21 @@ input[type="button"] {
 		left: 0;
 		flex: 0 0 auto;
 		margin-top: 0.5rem;
+	}
+
+	/* Top-toolbar buttons (SEARCH / Sort / DockerHub / Apps-by-Author / etc).
+	   The flat .caButton baseline introduced for the sidebar pills is too
+	   large here — it pushes these into each other and onto the "Clear
+	   Search" hint underneath. Restore something close to the original
+	   compact toolbar sizing so the bar fits on one line again. */
+	.searchButton,
+	#sortByButton,
+	.dockerSearch,
+	.templateSearch {
+		font-size: 1.3rem;
+		padding: 0.5rem 1rem;
+		border-radius: 0.45rem;
+		line-height: 1.3;
 	}
 
 	/* FontAwesome icon glyphs on the two top-bar action buttons. Same 0.5rem
@@ -3667,14 +4104,23 @@ input[type="button"] {
 		font-weight: normal;
 		opacity: 1;
 		text-align: center;
-		/* `.mfp-close` base rule paints `--ca-red-error-color`; that wins
-		   over `.caButton`'s `--inverse-text-color` by source order, so
-		   reassert it explicitly here. `!important` is required because
-		   another rule (likely MagnificPopup library or our own MFP
-		   overrides further down) sets color with `!important` too —
-		   without it, the red bleeds through. Matches `.popUpClose.caButton`
-		   / `.caDiffClose.caButton`. */
-		color: var(--inverse-text-color) !important;
+		/* Inverse paint — fill the close chip with the theme's text color
+		   and stamp the × in the theme's background color. Visually it
+		   reads as the close button's silhouette punched out of a solid
+		   chip, no matter which theme is active. !important keeps it
+		   beating the MagnificPopup library's own color rule that paints
+		   `--ca-red-error-color` further down with !important. */
+		background: var(--text-color) !important;
+		color: var(--background-color) !important;
+	}
+	/* Hover — flip the × to Unraid 66 orange. !important required to beat
+	   the resting rule above which also paints `color` with !important
+	   (otherwise the inverse-paint --background-color leaks through on
+	   hover). Selector specificity is 0,4,0, one higher than the resting
+	   rule so the orange wins on the hover state. */
+	.mfp-image-holder .mfp-close.caButton:hover,
+	.mfp-iframe-holder .mfp-close.caButton:hover {
+		color: var(--brand-orange) !important;
 	}
 
 	.mfp-image-holder .mfp-close,
@@ -3716,10 +4162,11 @@ input[type="button"] {
 	   the new arrow position) the click bubbled to .mfp-wrap and the popup
 	   closed instead of advancing. Leaving the arrow stationary fixes that. */
 
-	/* Hover/focus: kill whatever orange backdrop the inherited button styling
-	   wants to paint, and tint the caret unraid-66 instead. !important needed
-	   to override the button-focus rendering bleeding through (same trick
-	   the @media (max-width: 1024px) block in responsive.css uses for touch). */
+	/* Hover/focus: tint the caret orange. The caret itself is a FA glyph
+	   below, so coloring it is just a `color:` change — no border-*-color
+	   gymnastics like the old CSS-border-triangle approach needed.
+	   !important on background/outline/box-shadow stays defensive against
+	   the inherited <button> focus rendering. */
 	.mfp-arrow:hover,
 	.mfp-arrow:focus {
 		opacity: 1;
@@ -3727,50 +4174,68 @@ input[type="button"] {
 		outline: none !important;
 		box-shadow: none !important;
 	}
-	.mfp-arrow-left:hover:after,
-	.mfp-arrow-left:focus:after {
-		border-right-color: var(--brand-orange);
-	}
-	.mfp-arrow-right:hover:after,
-	.mfp-arrow-right:focus:after {
-		border-left-color: var(--brand-orange);
+	.mfp-arrow:hover:after {
+		color: var(--brand-orange);
 	}
 
-	/* MFP's stock styling uses a :before pseudo-element to draw a larger,
-	   darker triangle behind :after for a drop-shadow effect. We don't want
-	   the shadow, so :before is suppressed entirely (content: none) — only
-	   the white :after triangle remains. */
+	/* .Theme--sidebar stock at-rest variant:
+	     .Theme--sidebar :is(input[type=…], …, button:where(:not(.unapi *)),
+	                         …, a.button:where(:not(.unapi *)))
+	   paints a default background-color + 1px border on every unscoped
+	   <button> on the sidebar layout (max specificity 0,2,1 from the
+	   input[type=…] / a.button members). AND-stacking `.mfp-arrow`
+	   (0,1,0) with the same :is() group lands at 0,3,1 — wins. Strips
+	   both the painted bg and the border so the MFP gallery arrows
+	   stay flat. */
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).mfp-arrow {
+		background-color: transparent !important;
+		border: none !important;
+	}
+
+	/* Same trick, hover state. The .Theme--sidebar variant
+	     .Theme--sidebar :is(input[type=…], …):hover:where(:not(.unapi *))
+	   paints a hover background-color at specificity 0,2,1. Adding
+	   `.mfp-arrow:hover` to the chain lands at 0,4,1 — wins. */
+	.Theme--sidebar :is(input[type="button"], input[type="reset"], input[type="submit"], button, button[type="button"], a.button).mfp-arrow:hover {
+		background-color: transparent !important;
+	}
+
+	/* Library :before suppressed (it was MFP's drop-shadow triangle). */
 	.mfp-arrow:before {
 		content: none;
 	}
 
-	/* Triangle is a 0×0 box whose colored border draws the visible shape.
-	   The element's top/left places the APEX of the resulting triangle.
-	   top:32 puts the apex at the vertical center of the 64px box; the
-	   symmetric border-top/border-bottom widths fan the triangle equally
-	   above and below (19px padding top, 19px padding bottom). Horizontal
-	   `left` is set per-variant so the visible 17×26 bbox sits with 19px
-	   padding on each side of the 55px box. For right-pointing arrows the
-	   apex is on the RIGHT of the bbox, so element_left = bbox_left + bbox_width. */
+	/* Caret rendered as a FontAwesome glyph centered in the arrow's
+	   55×64 hit-box. Default color is pure black via --ca-black-color;
+	   per-variant content set below picks left- or right-pointing. */
 	.mfp-arrow:after {
-		content: '';
-		display: block;
-		width: 0;
-		height: 0;
 		position: absolute;
-		top: 32px;
-		margin: 0;
-		border-top: 13px solid transparent;
-		border-bottom: 13px solid transparent;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-family: fontAwesome;
+		font-size: 8rem;
+		line-height: 1;
+		/* --text-color is theme-tied — dark on light themes, light on
+		   dark themes — so the caret automatically reads against any
+		   theme's backdrop without per-theme overrides. */
+		color: var(--text-color);
 	}
 
 	.mfp-arrow-left {
 		left: 0;
 	}
+	/* On the .Theme--sidebar layout the Unraid OS sidebar (left rail) takes
+	   the first 65px of the viewport, so the left arrow sits behind it
+	   and isn't clickable. Push it past the rail. The .Theme--nav-top
+	   layout doesn't have this rail so left:0 is correct there. */
+	.Theme--sidebar .mfp-arrow-left {
+		left: 65px;
+	}
 
 	.mfp-arrow-left:after {
-		border-right: 17px solid var(--ca-named-white);
-		left: 19px;
+		content: "\f0d9"; /* fa-caret-left */
 	}
 
 	.mfp-arrow-right {
@@ -3778,8 +4243,7 @@ input[type="button"] {
 	}
 
 	.mfp-arrow-right:after {
-		border-left: 17px solid var(--ca-named-white);
-		left: 36px;
+		content: "\f0da"; /* fa-caret-right */
 	}
 
 	.mfp-iframe-holder {

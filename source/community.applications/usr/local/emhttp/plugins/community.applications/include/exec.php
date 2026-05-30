@@ -211,6 +211,21 @@ switch ($_POST['action']) {
 		   for the Plugin button's two-column raw / decoded view). */
 		getDevRawURL();
 		break;
+	case 'getRepoDuplicates':
+		/* Dev + admin only: render the duplicate-Name templates for a single
+		   repo into the main cards area. Mirrors get_content's response so the
+		   client can hand it straight to updateDisplay(). */
+		caRequireSkin();
+		getRepoDuplicates();
+		break;
+	case 'startLiveStatsPublisher':
+		/* Idempotently spawn the long-running scripts/caLiveStats.php
+		   publisher. The sidebar's live-stats panel posts this on open;
+		   if the publisher's already running (any tab on any browser
+		   keeping it warm), this is a no-op. publish() in the script
+		   self-terminates ~10s after the last subscriber drops. */
+		startLiveStatsPublisher();
+		break;
 	case 'caFetchSidebarSource':
 		/* Sidebar README/Changes loader: fetch over PHP (avoids client-side
 		   CORS failures from repo hosts that don't set Access-Control-Allow-
@@ -1299,6 +1314,29 @@ function get_content() {
 		return;
 	}
 
+	if ( $categoryContext['action'] === 'duplicates' ) {
+		/* Defense in depth — the menu item is hidden when these conditions
+		   aren't met, but a hand-crafted POST shouldn't be able to enumerate
+		   the duplicates dataset either. */
+		if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+			postReturn(["error"=>tr("Not authorized")]);
+			return;
+		}
+		$duplicates = caFindDuplicateTemplates($GLOBALS['templates'], null);
+		$displayApplications = ['community' => $duplicates];
+		/* Mirror the cleanup getRepoDuplicates() does — without it the
+		   startup-mode flag can leak past the duplicates view into the
+		   next category navigation and incorrectly re-trigger the home
+		   startup display. */
+		@unlink(CA_PATHS['startupDisplayed']);
+		writeJsonFile(CA_PATHS['community-templates-displayed'], $displayApplications);
+		@unlink(CA_PATHS['community-templates-allSearchResults']);
+		@unlink(CA_PATHS['community-templates-catSearchResults']);
+		$o['display_data'] = display_apps(1, false, false, true);
+		postReturn($o);
+		return;
+	}
+
 	$categoryRegex = $categoryContext['categoryRegex'];
 	$displayFlags = [
 		'displayBlacklisted'  => $categoryContext['displayBlacklisted'],
@@ -2096,6 +2134,251 @@ function getDevRawURL() {
 }
 
 /**
+ * Normalize a template's docker Repository field to canonical owner/name:tag
+ * form so cross-repo comparison treats `nginx`, `library/nginx`, `_/nginx`,
+ * `library/nginx:latest`, `ghcr.io/linuxserver/nginx`, and
+ * `lscr.io/linuxserver/nginx:latest` consistently. Rules:
+ *
+ *   - Leading registry hostname is dropped — first path segment is treated
+ *     as a registry when it contains `.` or `:` (port) or is exactly
+ *     `localhost`. So `ghcr.io/owner/c` collapses to `owner/c`, which then
+ *     matches the Docker Hub form `owner/c`. Same-registry cross-maintainer
+ *     pairs still match each other because both sides shed the same prefix.
+ *   - `_/foo` and bare `foo` (no slash) both become `library/foo`.
+ *   - Missing tag → `:latest`. Tag detection looks at the colon position
+ *     relative to the last slash so a `host:port/` prefix (when the registry
+ *     strip above declines to fire) doesn't get its port misread as a tag.
+ *   - Lowercased throughout — Docker reference grammar is case-insensitive
+ *     for hostnames and namespace/name segments.
+ *
+ * @param  mixed  $repo Raw `Repository` field.
+ * @return string Canonical key, or "" when the input is empty.
+ */
+function caNormalizeDockerRepo($repo) {
+	$repo = strtolower(trim((string)$repo));
+	if ($repo === "") return "";
+
+	/* Strip registry hostname (ghcr.io/, lscr.io/, quay.io/,
+	   registry.hub.docker.com/, localhost:5000/, …) so the path beyond it can
+	   match the Docker Hub form. Detection follows Docker's reference grammar:
+	   a leading segment qualifies as a hostname when it carries a dot, a port
+	   colon, or is exactly `localhost`. */
+	$firstSlash = strpos($repo, "/");
+	if ($firstSlash !== false) {
+		$first = substr($repo, 0, $firstSlash);
+		if ($first === "localhost" || strpos($first, ".") !== false || strpos($first, ":") !== false) {
+			$repo = substr($repo, $firstSlash + 1);
+		}
+	}
+
+	if (strpos($repo, "_/") === 0) {
+		$repo = "library/" . substr($repo, 2);
+	} elseif (strpos($repo, "/") === false) {
+		$repo = "library/" . $repo;
+	}
+
+	$slashPos = strrpos($repo, "/");
+	$afterSlash = $slashPos === false ? $repo : substr($repo, $slashPos + 1);
+	if (strpos($afterSlash, ":") === false) {
+		$repo .= ":latest";
+	}
+	return $repo;
+}
+
+/**
+ * Find duplicate-Repository templates, optionally scoped to a single maintainer.
+ *
+ * Groups every non-repo template by canonical docker Repository (see
+ * caNormalizeDockerRepo) and emits all members of any group with ≥2 entries.
+ *
+ *   - `$repository === null` → return every duplicate across the whole feed.
+ *   - `$repository === "Foo"` → return every duplicate group that has at
+ *     least one member with `RepoName === "Foo"`, and emit *all* members of
+ *     those groups (so both the clicked repo's entry and any cross-repo
+ *     copies are visible side by side).
+ *
+ * Entries are deduped on Path|RepoName|Name (the closest thing to a stable
+ * identity in $GLOBALS['templates']) and sorted with mySort.
+ *
+ * @param  array<int,array<string,mixed>> $templates  $GLOBALS['templates'] or equivalent.
+ * @param  string|null                    $repository Maintainer filter, or null for all repos.
+ * @return array<int,array<string,mixed>>             Templates to display.
+ */
+function caFindDuplicateTemplates(array $templates, $repository = null) {
+	$repoIndex = [];
+	foreach ($templates as $template) {
+		if (!empty($template['RepositoryTemplate'])) continue;
+		/* Language packs have no docker Repository — without this guard they'd
+		   all normalize to the same `library/:latest` key and collide as a
+		   single giant phantom duplicate group. */
+		if (!empty($template['Language'])) continue;
+		/* Branch templates are per-tag expansions of a lead (the parser at the
+		   top of exec.php emits them with BranchName set and Displayable=false).
+		   They share the lead's RepoName but differ only in tag, so they'd
+		   otherwise self-cluster against their own lead as fake duplicates.
+		   Only the lead — which carries BranchID and no BranchName — counts. */
+		if (!empty($template['BranchName'])) continue;
+		$key = caNormalizeDockerRepo($template['Repository'] ?? "");
+		if ($key === "") continue;
+		$repoIndex[$key][] = $template;
+	}
+
+	$duplicates = [];
+	$seen = [];
+	foreach ($repoIndex as $entries) {
+		if (count($entries) < 2) continue;
+
+		if ($repository !== null) {
+			/* Per-maintainer view: keep the group only when this maintainer
+			   actually publishes the image — otherwise the user clicked a
+			   repo that has nothing to do with this collision. */
+			$touchesRepo = false;
+			foreach ($entries as $entry) {
+				if (($entry['RepoName'] ?? "") === $repository) { $touchesRepo = true; break; }
+			}
+			if (!$touchesRepo) continue;
+		}
+
+		foreach ($entries as $entry) {
+			$dedupeKey = ($entry['Path'] ?? '').'|'.($entry['RepoName'] ?? '').'|'.($entry['Name'] ?? '');
+			if (isset($seen[$dedupeKey])) continue;
+			$seen[$dedupeKey] = true;
+			$duplicates[] = $entry;
+		}
+	}
+
+	usort($duplicates, "mySort");
+	return $duplicates;
+}
+
+/**
+ * Dev + admin only: render the duplicate-Repository templates touching a repo.
+ *
+ * Thin wrapper around caFindDuplicateTemplates() that scopes to the clicked
+ * maintainer and pipes the result through the same display_apps() pipeline
+ * that get_content uses, so the JS side hands the response straight to
+ * updateDisplay(). The all-repos variant is reached through the "Duplicates"
+ * menu item, which routes through get_content (action=duplicates) so it
+ * participates in normal category navigation and state restore.
+ *
+ * @return void
+ */
+function getRepoDuplicates() {
+	if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+		postReturn(["error"=>tr("Not authorized")]);
+		return;
+	}
+
+	$repository = html_entity_decode(getPost("repository", ""), ENT_QUOTES);
+	if ($repository === "") {
+		postReturn(["error"=>tr("Missing repository")]);
+		return;
+	}
+
+	$templates = &$GLOBALS['templates'];
+	if (empty($templates)) {
+		postReturn(["display_data"=>["header"=>"<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>", "cards"=>[], "scripts"=>"", "totalApps"=>0, "pageNumber"=>1]]);
+		return;
+	}
+
+	$duplicates = caFindDuplicateTemplates($templates, $repository);
+	$displayApplications = ['community' => $duplicates];
+
+	@unlink(CA_PATHS['repositoriesDisplayed']);
+	@unlink(CA_PATHS['dockerSearchActive']);
+	@unlink(CA_PATHS['startupDisplayed']);
+	writeJsonFile(CA_PATHS['community-templates-displayed'], $displayApplications);
+	@unlink(CA_PATHS['community-templates-allSearchResults']);
+	@unlink(CA_PATHS['community-templates-catSearchResults']);
+
+	postReturn(['display_data' => display_apps(1, false, false, true)]);
+}
+
+
+/**
+ * Spawn a per-container live-stats nchan publisher on demand.
+ *
+ * One publisher process per container being watched. The sidebar passes
+ * its container name; if a script is already running with that exact
+ * container as its first argument (pgrep --ns $$ -f matches the full
+ * command line including args), this call is a no-op. Otherwise the
+ * script gets spawned with the container as argv[1] and starts publishing
+ * to nchan channel `stats_<containerName>`.
+ *
+ * Why one-per-container vs. one-shared-for-all: Docker's stats API is
+ * per-container with no bulk endpoint, so a single shared publisher
+ * walking every running container scales linearly with the host's total
+ * container count regardless of how many viewers there are. A per-
+ * container publisher does ONE Docker call per tick and only runs when
+ * someone's actually watching that container — the cost scales with
+ * viewers (the right axis), not with what's installed.
+ *
+ * The pidfile and self-termination conventions are the same as the
+ * shared model: publish() with abort=true strips the script back out
+ * of /var/run/nchan.pid and exit()s ~10s after the last subscriber drops.
+ *
+ * @return void
+ */
+function startLiveStatsPublisher() {
+	/* Server-side feature gate. Mirrors the same two checks
+	   getPopupDescriptionSkin() uses to decide whether to render the
+	   live-stats block in the sidebar HTML:
+	     - User has flipped the "Display usage graphs" setting on.
+	     - Unraid OS is responsive (>7.1.9999 by version_compare).
+	   Without this gate, a hand-crafted POST could spawn a publisher
+	   process even when the feature is disabled in Settings (or on an
+	   OS that doesn't render the sidebar block at all). Fail fast
+	   before any pgrep/exec runs. */
+	$usageGraphsEnabled  = ($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") === "yes";
+	$liveStatsResponsive = version_compare((string)($GLOBALS['caSettings']['unRaidVersion'] ?? "0"), "7.1.9999", ">");
+	if (!$usageGraphsEnabled || !$liveStatsResponsive) {
+		postReturn(['ok' => false, 'error' => 'live stats disabled']);
+		return;
+	}
+
+	$containerName = trim((string)getPost("container", ""));
+	if ($containerName === "" || !preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,254}$/', $containerName)) {
+		postReturn(['ok' => false, 'error' => 'invalid container name']);
+		return;
+	}
+
+	$docroot   = $_SERVER['DOCUMENT_ROOT'] ?? '/usr/local/emhttp';
+	$scriptAbs = "$docroot/plugins/community.applications/scripts/caLiveStats.php";
+
+	if (!is_file($scriptAbs)) {
+		postReturn(['ok' => false, 'error' => 'publisher not installed']);
+		return;
+	}
+
+	/* Dedupe per container: pgrep -f matches the full command line, so the
+	   pattern "<absPath> <name>" hits only the publisher for THIS container.
+	   Two sidebars on different containers spawn two scripts; two sidebars
+	   on the same container share one. */
+	$pids = [];
+	$pgrepPattern = $scriptAbs . ' ' . $containerName;
+	@exec('pgrep --ns $$ -f ' . escapeshellarg($pgrepPattern), $pids, $rv);
+	if ($rv === 0 && !empty($pids)) {
+		postReturn(['ok' => true, 'status' => 'already_running', 'pid' => (int)$pids[0]]);
+		return;
+	}
+
+	/* Deliberately NOT touching /var/run/nchan.pid. That registry is for
+	   .page files that declare Nchan=… so DefaultPageLayout.php can keep
+	   their publisher always-on (auto-respawn at every page render). Our
+	   publishers are on-demand instead: spawned by this endpoint only,
+	   terminated by publish()'s abort path once nobody's watching. Adding
+	   ourselves there would invite the auto-respawn loop to re-launch us
+	   without our argv, and removeNChanScript() — keyed by script path,
+	   not by argv — would tangle multiple per-container publishers
+	   together at cleanup. The pidfile mechanism just doesn't model our
+	   "spawn-per-viewer" lifecycle. */
+	@exec(escapeshellarg($scriptAbs) . ' ' . escapeshellarg($containerName) . ' >/dev/null 2>&1 &');
+
+	postReturn(['ok' => true, 'status' => 'started']);
+}
+
+
+/**
  * Sidebar README/Changes loader backend.
  *
  * The browser used to fetch README.md / .plg / template XML directly from
@@ -2538,6 +2821,13 @@ function getCategoriesPresent() {
 	if (! empty($categories) ) {
 		$categories[] = "repos";
 		$categories[] = "All";
+		/* Keep the dev+admin "Duplicates" menu item enabled alongside
+		   Repositories. The item is only rendered into the DOM when the
+		   same gate passes server-side, so listing the category here
+		   doesn't leak its existence to non-admin sessions. */
+		if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && is_file(CA_PATHS['caAdmin'])) {
+			$categories[] = "duplicates";
+		}
 	}
 
 	postReturn(array_values(array_unique($categories)));

@@ -249,6 +249,10 @@ function tr($string,$ret=false) {
      so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
      to render README.md client-side instead of going through PHP. -->
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
+<!-- SmoothieCharts ships with dynamix (see DashStats.page) — used here for the
+     sidebar's live CPU stream so we get true streaming-style rendering with
+     a fixed window instead of a frame-by-frame Chart.js redraw. -->
+<script src='<?autov("/webGui/javascript/smoothie.js");?>'></script>
 
 <!-- Settings-difference flags. Class list is `ca_<key>` for every key in
      default.cfg whose runtime value in $GLOBALS['caSettings'] differs from
@@ -1091,7 +1095,7 @@ function updateContent(button,skipAppfeed=true) {
 		postNoSpin({action:'hydrateFullFeed'}, function(hydrateResult) {
 			if (hydrateResult && hydrateResult.status === 'failed') return;
 			if (!data.sidebarapppath) return;
-			if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
+			if (!$('.popupActionsAreaInner .caFeedPending').length) return;
 			/* Snapshot the app identity we're about to fetch, so the
 			   callback can verify the same app is still in the sidebar
 			   when the response arrives. Without this, a fast user opening
@@ -1106,12 +1110,13 @@ function updateContent(button,skipAppfeed=true) {
 				   while the popup re-fetch was in flight — re-check both
 				   the pending notice AND that the open sidebar is still
 				   the same app we requested before touching the DOM. */
-				if (!$('.popupCloseAreaButtons .caFeedPending').length) return;
+				if (!$('.popupActionsAreaInner .caFeedPending').length) return;
 				if (data.sidebarappname !== requestedAppName || data.sidebarapppath !== requestedAppPath) return;
 				var $tmp = $('<div>').html(popResult.description);
 				var $newActions = $tmp.find('.popupStickyActions').first();
 				if ($newActions.length) {
-					$('.popupCloseAreaButtons .popupStickyActions').replaceWith($newActions);
+					$('.popupActionsAreaInner .popupStickyActions').replaceWith($newActions);
+					caSyncSidenavBottomPadding();
 				}
 			});
 		});
@@ -1565,6 +1570,12 @@ function clearSearchBox() {
    name `cookie` is kept as an alias because external callers (helpers.js, the
    install/update paths) still use it positionally. */
 function closeSidebar(keepIdentity=false,visible=false) {
+	/* Always tear down the live-CPU poll loop on sidebar close — even when
+	   keepIdentity is true (gallery transitions etc.), because the gallery's
+	   afterClose path reopens the sidebar with a fresh popUpChart() call that
+	   will restart polling cleanly. Leaving the interval armed would double-
+	   poll once the new sidebar lands. */
+	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	if ( ! keepIdentity ) {
 		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
 		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
@@ -1593,7 +1604,7 @@ function closeSidebar(keepIdentity=false,visible=false) {
 	context.destroy("#actionsPopup");
 	/* Drop the relocated per-app action strip so a stale row from the
 	   previous app doesn't linger next to CLOSE when the sidebar reopens. */
-	$(".popupCloseAreaButtons .popupStickyActions").remove();
+	$(".popupActionsAreaInner .popupStickyActions").remove();
 
 	/* If a settings form was open with unsaved edits, submit it instead of just
 	   closing — the submit handler saves and reloads, which subsumes closing. */
@@ -3400,13 +3411,656 @@ function popUpChart(descData) {
 			}
 		});
 	}
+
+	/* Live CPU chart for running containers. Only wires up when the popup
+	   payload nominated a container (server-side: docker, running, non-
+	   plugin / non-language / non-repo). caStopLiveStats() in closeSidebar
+	   handles teardown — we also defensively stop any prior loop here
+	   before starting a new one, in case the user popped between two
+	   sidebars without us catching the close in between. */
+	caStopLiveStats();
+	if (descData && descData.liveStatsContainer && $("#caLiveCpuChart").length) {
+		caStartLiveStats(descData.liveStatsContainer);
+	}
 }
+
+/**
+ * Build a themed SmoothieChart with sensible defaults shared by all three
+ * live-stats charts. Caller adds TimeSeries and calls streamTo() when the
+ * canvas is first revealed.
+ *
+ * @param {object} extra Chart-specific overrides (minValue/maxValue/yMax/
+ *                       yMinFormatter/maxValueScale/etc.)
+ * @returns {SmoothieChart}
+ */
+function caBuildLiveSmoothie(extra) {
+	var grid  = cssVar("--chart-grid")          || "rgba(127,127,127,0.25)";
+	var label = cssVar("--tooltipster-content") || "#cccccc";
+	var base = {
+		millisPerPixel: 50,
+		responsive: true,
+		grid: {
+			strokeStyle: grid,
+			fillStyle: 'transparent',
+			lineWidth: 1,
+			millisPerLine: 1000,
+			verticalSections: 4
+		},
+		labels: {
+			fillStyle: label,
+			fontSize: 11,
+			precision: 0
+		},
+		timestampFormatter: function(date) { return ''; }
+	};
+	return new SmoothieChart($.extend(true, base, extra || {}));
+}
+
+/**
+ * Format a byte-rate (bytes/sec) into human-readable form for the summary
+ * panel and disk/network chart axes. Picks B/s → KB/s → MB/s based on
+ * magnitude.
+ *
+ * @param {number} bps Bytes per second
+ * @returns {string}
+ */
+function caFmtRate(bps) {
+	if (!isFinite(bps) || bps < 0) bps = 0;
+	if (bps < 1024)        return bps.toFixed(0) + " B/s";
+	if (bps < 1024 * 1024) return (bps / 1024).toFixed(1) + " KB/s";
+	return (bps / 1048576).toFixed(2) + " MB/s";
+}
+
+/**
+ * Format a memory value (in MB) into MB or GB depending on magnitude. Used
+ * for both the memory chart's axis labels and the donut's center text.
+ *
+ * @param {number} mb Megabytes
+ * @returns {string}
+ */
+function caFmtMB(mb) {
+	if (!isFinite(mb) || mb < 0) mb = 0;
+	if (mb < 1024) return mb.toFixed(0) + " MB";
+	return (mb / 1024).toFixed(2) + " GB";
+}
+
+/**
+ * Build an analog-speedometer SVG gauge in the supplied mount node. Used
+ * by the live-stats summary view.
+ *
+ * Modeled after a classic dashboard dial: white face inside a darker
+ * bezel ring, dark major tick marks with lighter minor ticks in between,
+ * yellow / orange / red warning bands across the upper portion of the
+ * arc, a tapered red needle, and a blue center hub. The metric name
+ * ("CPU" / "MEM" / "NET") is rendered large in the dial's interior;
+ * the current value is shown below the SVG in the caLiveDonutSub slot.
+ *
+ * Geometry: 270 degree arc from -135 (lower-left) through 0 (straight
+ * up) to +135 (lower-right). Values 0..100 map linearly across the
+ * sweep. One needle only — the container's. (Host overlay lives on
+ * the chart views, where two lines can sit side by side without the
+ * needles fighting for the same arc position.)
+ *
+ * Zones are optional {from, to, cssClass} ranges in the value domain.
+ *
+ * @param {jQuery} $mount Container <div class="caLiveGaugeMount">.
+ * @param {object} opts   {title, zones[]}
+ * @returns Gauge handle { setValue(contVal) }.
+ */
+function caBuildGauge($mount, opts) {
+	var SVG_NS = 'http://www.w3.org/2000/svg';
+	var cx = 50, cy = 50;
+	var rArc = 38;          /* center-of-stroke radius for the colored arc */
+	var rFace = 47;         /* white dial face radius */
+	var startA = -135, endA = 135;
+
+	function polar(angleDeg, r) {
+		var rad = (angleDeg - 90) * Math.PI / 180;
+		return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+	}
+	function arcD(fromA, toA, r) {
+		var s = polar(fromA, r), e = polar(toA, r);
+		var large = (toA - fromA) > 180 ? 1 : 0;
+		return 'M ' + s.x.toFixed(3) + ' ' + s.y.toFixed(3) +
+		       ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' +
+		       e.x.toFixed(3) + ' ' + e.y.toFixed(3);
+	}
+	function valToAngle(v) {
+		v = Math.max(0, Math.min(100, v));
+		return startA + (v / 100) * (endA - startA);
+	}
+	function svgEl(tag, attrs) {
+		var el = document.createElementNS(SVG_NS, tag);
+		for (var k in (attrs || {})) el.setAttribute(k, attrs[k]);
+		return el;
+	}
+
+	var svg = svgEl('svg', { viewBox: '0 0 100 100', 'class': 'caLiveGaugeSvg' });
+
+	/* Dial face — a filled circle with a soft outer rim. Drawn first so
+	   everything else sits on top of it. */
+	svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: rFace,     'class': 'caLiveGaugeFace' }));
+	svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: rFace - 2, 'class': 'caLiveGaugeFaceRim' }));
+
+	/* Colored arc segments. The base track is the dark gauge background
+	   stroke; warning zones override their segments with brighter colors. */
+	var stops = [0];
+	(opts.zones || []).forEach(function(z) { stops.push(z.from); stops.push(z.to); });
+	stops.push(100);
+	stops = stops.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort(function(a, b) { return a - b; });
+	for (var i = 0; i < stops.length - 1; i++) {
+		var from = stops[i], to = stops[i + 1];
+		if (from === to) continue;
+		var inZone = null;
+		(opts.zones || []).forEach(function(z) { if (from >= z.from && to <= z.to) inZone = z; });
+		svg.appendChild(svgEl('path', {
+			d: arcD(valToAngle(from), valToAngle(to), rArc),
+			fill: 'none',
+			'stroke-width': inZone ? 4 : 1.6,
+			'stroke-linecap': 'butt',
+			'class': inZone ? inZone.cssClass : 'caLiveGaugeTrack'
+		}));
+	}
+
+	/* Tick marks. Majors at every 10% (thicker, longer); minors at every
+	   2% in between (thin, short). Both sit just inside the colored arc. */
+	for (var t = 0; t <= 50; t++) {
+		var pct = t * 2;
+		var ang = valToAngle(pct);
+		var major = (pct % 10 === 0);
+		var pInner = polar(ang, rArc - (major ? 5.5 : 3.2));
+		var pOuter = polar(ang, rArc - (major ? 0.4 : 1.4));
+		svg.appendChild(svgEl('line', {
+			x1: pInner.x.toFixed(2), y1: pInner.y.toFixed(2),
+			x2: pOuter.x.toFixed(2), y2: pOuter.y.toFixed(2),
+			'stroke-width': major ? 1.0 : 0.5,
+			'class': major ? 'caLiveGaugeTickMajor' : 'caLiveGaugeTickMinor'
+		}));
+	}
+
+	function addText(x, y, txt, size, cls) {
+		var node = svgEl('text', {
+			x: x.toFixed(2), y: y.toFixed(2),
+			'text-anchor': 'middle',
+			'dominant-baseline': 'middle',
+			'font-size': size,
+			'class': cls
+		});
+		node.textContent = txt;
+		svg.appendChild(node);
+		return node;
+	}
+
+	/* "0" and "100" labels tucked just inside the arc's start and end. */
+	var p0   = polar(valToAngle(0),   rArc - 9);
+	var p100 = polar(valToAngle(100), rArc - 9);
+	addText(p0.x,   p0.y,   '0',   4, 'caLiveGaugeAxisText');
+	addText(p100.x, p100.y, '100', 4, 'caLiveGaugeAxisText');
+
+	/* Title above the hub. Supports either a string ("CPU") or an array
+	   of strings (["Unraid","CPU"]) for two-line labels — the dial cluster
+	   uses the array form for the Unraid CPU gauge so the longer name
+	   fits inside the dial face without overlapping the arc or hub. */
+	var titleLines = Array.isArray(opts.title) ? opts.title : [opts.title || ''];
+	var titleSize  = (titleLines.length > 1) ? 8 : 11;
+	var titleGap   = (titleLines.length > 1) ? 9 : 0;
+	var titleTopY  = cy - 12 - ((titleLines.length - 1) * titleGap / 2);
+	titleLines.forEach(function(line, i) {
+		addText(cx, titleTopY + i * titleGap, line, titleSize, 'caLiveGaugeTitle');
+	});
+
+	/* Tapered triangular needle: a polygon defined pointing straight up
+	   (toward the top of the dial). The wrapping <g>'s rotate transform
+	   walks it around the arc. CSS handles the smooth tween. */
+	var needle = svgEl('g', { 'class': 'caLiveGaugeNeedle' });
+	var tipY  = cy - (rArc - 3);
+	var tailY = cy + 8;
+	needle.appendChild(svgEl('polygon', {
+		points:
+			cx + ',' + tipY + ' ' +
+			(cx - 2.2) + ',' + (cy + 1) + ' ' +
+			(cx - 1.0) + ',' + tailY + ' ' +
+			(cx + 1.0) + ',' + tailY + ' ' +
+			(cx + 2.2) + ',' + (cy + 1)
+	}));
+	needle.setAttribute('transform', 'rotate(' + startA + ' ' + cx + ' ' + cy + ')');
+	svg.appendChild(needle);
+
+	/* Two-layer hub: outer ring covers the needle's pivot, inner highlight
+	   gives the same "screw" look as a real instrument cluster. */
+	svg.appendChild(svgEl('circle', { cx: cx, cy: cy, r: 4.5, 'class': 'caLiveGaugeHub' }));
+	svg.appendChild(svgEl('circle', { cx: cx - 1, cy: cy - 1, r: 1.4, 'class': 'caLiveGaugeHubInner' }));
+
+	/* Subtitle inside the dial face, BELOW the "0"/"100" axis labels
+	   (which sit around y=70). Putting it here instead of between hub
+	   and axis labels gives us a much wider corridor (~55 SVG units of
+	   clear dial face vs ~30 above) so the base font-size can be large
+	   enough to actually read at the rendered scale — at viewBox 100×92
+	   stretched to ~130px CSS wide, 1 SVG unit ≈ 1.3 CSS px, so size 7
+	   lands at ~9 CSS px.
+	   Optional opts.subtitleHeader is a tiny static caption rendered just
+	   above the dynamic body line — e.g. the Unraid CPU gauge uses it to
+	   prefix "Loads" over its three-value pipe-separated load average,
+	   while the Net gauge sticks to a single static body line of "Rx+Tx"
+	   with no header. */
+	var hasHeader        = !!opts.subtitleHeader;
+	var subtitleBodyY    = hasHeader ? (cy + 30) : (cy + 28);
+	var subtitleBodySize = hasHeader ? 6 : 7;
+	if (hasHeader) {
+		var subtitleHeader = svgEl('text', {
+			x: cx.toFixed(2), y: (cy + 22).toFixed(2),
+			'text-anchor': 'middle',
+			'dominant-baseline': 'middle',
+			'font-size': 4,
+			'class': 'caLiveGaugeSubtitleHeader'
+		});
+		subtitleHeader.textContent = opts.subtitleHeader;
+		svg.appendChild(subtitleHeader);
+	}
+	var subtitleText = svgEl('text', {
+		x: cx.toFixed(2), y: subtitleBodyY.toFixed(2),
+		'text-anchor': 'middle',
+		'dominant-baseline': 'middle',
+		'font-size': subtitleBodySize,
+		'class': 'caLiveGaugeSubtitle'
+	});
+	subtitleText.textContent = opts.subtitle || '';
+	svg.appendChild(subtitleText);
+
+	var subtitleMaxLen = 50;
+	function fitSubtitle() {
+		subtitleText.setAttribute('font-size', subtitleBodySize);
+		var len = 0;
+		try { len = subtitleText.getComputedTextLength(); } catch (e) { /* unrendered */ }
+		if (len > subtitleMaxLen && len > 0) {
+			subtitleText.setAttribute('font-size', (subtitleBodySize * subtitleMaxLen / len).toFixed(2));
+		}
+	}
+	if (opts.subtitle) fitSubtitle();
+
+	$mount.empty().append(svg);
+
+	return {
+		setValue: function(contVal) {
+			needle.setAttribute('transform', 'rotate(' + valToAngle(contVal).toFixed(2) + ' ' + cx + ' ' + cy + ')');
+		},
+		setSubtitle: function(txt) {
+			subtitleText.textContent = txt || '';
+			fitSubtitle();
+		}
+	};
+}
+
+/**
+ * Start the live-stats subscription for a docker container. Builds three
+ * SmoothieChart instances (CPU, Memory, Network) and three speedometer
+ * gauges (Summary view), then subscribes to nchan channel
+ * /sub/stats_<containerName> to receive one snapshot per second from this
+ * container's dedicated publisher (scripts/caLiveStats.php <containerName>).
+ *
+ * One publisher process per container being watched: two tabs on the same
+ * container share one publisher, two tabs on different containers spawn
+ * two lightweight publishers. Each does exactly one Docker socket call
+ * per tick regardless of host container count.
+ *
+ * Calling startLiveStatsPublisher first is idempotent per-container —
+ * exec.php's pgrep on path+container-arg returns "already_running" if
+ * another tab keeps it warm, otherwise spawns a new one.
+ *
+ * Default view is Summary; chart canvases lazy-bind streamTo() the first
+ * time their tab is clicked, but the TimeSeries data accumulates from
+ * message one so switching tabs after a while still shows history.
+ *
+ * Render delay: 1000 ms — matches the publisher's tick interval so
+ * samples are drawn one beat after they arrive, hiding the natural
+ * jitter from the publish round-trip.
+ *
+ * Teardown lives in caStopLiveStats() — closeSidebar() and popUpChart()'s
+ * prelude both call it so a back-to-back sidebar open doesn't leak the
+ * previous container's WebSocket. The publisher itself self-terminates
+ * ~10s after the last subscriber drops via publish()'s abort path.
+ *
+ * @param {string} containerName Docker container Name (already validated server-side).
+ */
+function caStartLiveStats(containerName) {
+	if (!$(".popupLiveStatsBlock").length) return;
+	if (typeof SmoothieChart !== "function") return;
+
+	/* Magenta — used everywhere the "host total" overlay appears (inner
+	   donut ring, secondary chart series, legend swatches). Kept in one
+	   place so the visual association across donuts/charts/legends stays
+	   consistent if it ever needs to be retuned. */
+	var HOST_COLOR = '#C341D6';
+	var HOST_FILL  = 'rgba(195,65,214,0.10)';
+
+	/* CPU% — whole-host normalized. Y-axis is *dynamic*: SmoothieChart fits
+	   to the peak inside the currently-visible window (rather than pinning
+	   at 100), so a container that peaked at 35% and dropped to 20% will
+	   show the 35% headroom until that sample scrolls off the left edge,
+	   then re-scale down to the new peak. maxValueScale 1.10 leaves 10%
+	   headroom above the running peak so the line doesn't ride the
+	   ceiling. Host CPU% rides the same dynamic axis. */
+	var cpuChart = caBuildLiveSmoothie({
+		minValue: 0,
+		maxValueScale: 1.10,
+		yMinFormatter: function(v) { return Math.max(0, Math.floor(v)) + ' %'; },
+		yMaxFormatter: function(v) { return Math.max(0, Math.ceil(v)) + ' %'; }
+	});
+	var cpuSeries     = new TimeSeries();
+	var cpuHostSeries = new TimeSeries();
+	cpuChart.addTimeSeries(cpuSeries,     { strokeStyle: '#FF8C2F', fillStyle: 'rgba(255,140,47,0.15)', lineWidth: 2 });
+	cpuChart.addTimeSeries(cpuHostSeries, { strokeStyle: HOST_COLOR, fillStyle: HOST_FILL,             lineWidth: 1.5 });
+
+	/* Memory — raw MB series (auto-formatted to GB above 1024). Y-max is
+	   pinned to the host total RAM once we see it on the first tick, so
+	   both the container line and the host total line fit on the same
+	   axis. The donut's outer ring uses container_used / container_limit
+	   (so a small-limit container still shows full when saturated), while
+	   the inner host ring uses host_used / host_total. */
+	var memChart = caBuildLiveSmoothie({
+		minValue: 0,
+		yMinFormatter: function(v) { return caFmtMB(Math.max(0, v)); },
+		yMaxFormatter: function(v) { return caFmtMB(Math.max(0, v)); }
+	});
+	var memSeries     = new TimeSeries();
+	var memHostSeries = new TimeSeries();
+	memChart.addTimeSeries(memSeries,     { strokeStyle: '#3FB6F2', fillStyle: 'rgba(63,182,242,0.15)', lineWidth: 2 });
+	memChart.addTimeSeries(memHostSeries, { strokeStyle: HOST_COLOR, fillStyle: HOST_FILL,             lineWidth: 1.5 });
+
+	/* Network I/O — two container series (RX/TX) plus a single host total
+	   line. Green = RX, red = TX, matching the dashboard's network colors.
+	   (Disk I/O was intentionally dropped — see the server-side comment
+	   above getContainerCpu(); cgroup blkio doesn't capture bind-mount or
+	   named-volume traffic so the container figure isn't honest.) */
+	var netChart = caBuildLiveSmoothie({
+		minValue: 0,
+		minValueScale: 1.02,
+		maxValueScale: 1.05,
+		yMinFormatter: function(v) { return caFmtRate(Math.max(0, v)); },
+		yMaxFormatter: function(v) { return caFmtRate(Math.max(0, v)); }
+	});
+	var netRxSeries   = new TimeSeries();
+	var netTxSeries   = new TimeSeries();
+	var netHostSeries = new TimeSeries();
+	netChart.addTimeSeries(netRxSeries,   { strokeStyle: '#41C46C', fillStyle: 'rgba(65,196,108,0.12)', lineWidth: 2 });
+	netChart.addTimeSeries(netTxSeries,   { strokeStyle: '#E22828', fillStyle: 'rgba(226,40,40,0.12)', lineWidth: 2 });
+	netChart.addTimeSeries(netHostSeries, { strokeStyle: HOST_COLOR, fillStyle: HOST_FILL,             lineWidth: 1.5 });
+
+	window.caLiveStats = {
+		container: containerName,
+		sub: null,                   /* NchanSubscriber, set after start() below */
+		prev: null,                  /* previous cumulative counters {tsMs, container + host} */
+		peakNet:  1,                 /* session-relative max net byte-rate when NIC speed unknown */
+		netSpeedBps: 0,              /* aggregate NIC link speed in bytes/sec, populated from first tick */
+		memMaxPinned: false,
+		gauges: { cpu: null, cpuHost: null, memory: null, net: null },
+		charts: {
+			cpu:    { chart: cpuChart, series: cpuSeries, host: cpuHostSeries,                              canvasId: 'caLiveCpuChart', streamed: false },
+			memory: { chart: memChart, series: memSeries, host: memHostSeries,                              canvasId: 'caLiveMemChart', streamed: false },
+			net:    { chart: netChart, rx:     netRxSeries, tx:    netTxSeries, host: netHostSeries,        canvasId: 'caLiveNetChart', streamed: false }
+		}
+	};
+
+	/* Summary gauges. Warning zones at 70/85/95 of full scale across all
+	   three metrics. For network the "full scale" is the fastest single
+	   NIC's link speed (set on the first tick once we know what it is),
+	   so the 95-100 red band is literally "saturating the wire". */
+	var standardZones = [
+		{ from: 70, to: 85, cssClass: 'caLiveGaugeZoneWarn' },
+		{ from: 85, to: 95, cssClass: 'caLiveGaugeZoneHigh' },
+		{ from: 95, to: 100, cssClass: 'caLiveGaugeZoneCrit' }
+	];
+	window.caLiveStats.gauges.cpu     = caBuildGauge($(".caLiveGaugeMount[data-metric='cpu']"),     { title: 'CPU',                zones: standardZones });
+	window.caLiveStats.gauges.cpuHost = caBuildGauge($(".caLiveGaugeMount[data-metric='cpuhost']"), { title: ['Unraid', 'CPU'],    zones: standardZones, subtitleHeader: 'Loads' });
+	window.caLiveStats.gauges.memory  = caBuildGauge($(".caLiveGaugeMount[data-metric='memory']"),  { title: 'MEM',                zones: standardZones });
+	window.caLiveStats.gauges.net     = caBuildGauge($(".caLiveGaugeMount[data-metric='net']"),     { title: 'NET',                zones: standardZones, subtitle: 'Rx+Tx' });
+
+	/* Eager-bind every chart canvas now, even though only one view is
+	   currently visible. SmoothieChart's RAF loop runs regardless of the
+	   canvas's CSS visibility; while hidden it appends data to TimeSeries
+	   but the paint goes to a 0-sized canvas (no visible pixels). The
+	   moment the user flips to that chart's tab, responsive:true picks up
+	   the now-real canvas dimensions on the next frame and the line
+	   appears already drawn with the accumulated history.
+	   Without this, switching tabs after a while showed an empty chart
+	   that started painting from t=now, hiding everything that happened
+	   while the other tab was up. */
+	var refWidth = Math.max(300, Math.floor(($(".popupLiveStatsBlock").width() || 600)));
+	$.each(window.caLiveStats.charts, function(_, spec) {
+		var canvas = document.getElementById(spec.canvasId);
+		if (!canvas) return;
+		/* Seed an explicit pixel-buffer size since the chart's hidden
+		   view divs report clientWidth:0. responsive:true will resize the
+		   buffer up/down once the canvas is laid out for real. */
+		canvas.width  = refWidth;
+		canvas.height = 120;
+		spec.chart.streamTo(canvas, 1000);
+		spec.streamed = true;
+	});
+
+	/* Tab strip — toggles the .caLiveStatsActive class which controls
+	   visibility (not display) via CSS. All views are laid out in the
+	   same grid cell at full size all the time; only one is visibility:
+	   visible at any moment. This keeps the hidden chart canvases at
+	   their real clientWidth so Smoothie keeps drawing into them, and a
+	   tab switch instantly reveals the already-drawn history.
+	   Scoped to the live-stats block so it tears down with the sidebar's
+	   DOM when closeSidebar() wipes #sidenavContent. */
+	$(".popupLiveStatsBlock").on("click", ".caLiveStatsTab", function() {
+		var $tab = $(this);
+		if ($tab.hasClass("selectedMenu")) return;
+		var view = $tab.data("view");
+		$(".popupLiveStatsBlock .caLiveStatsTab")
+			.removeClass("selectedMenu")
+			.attr("aria-pressed", "false");
+		$tab.addClass("selectedMenu").attr("aria-pressed", "true");
+		$(".popupLiveStatsBlock .caLiveStatsView").removeClass("caLiveStatsActive");
+		$(".popupLiveStatsBlock .caLiveStatsView[data-view='" + view + "']").addClass("caLiveStatsActive");
+	});
+
+	/* Per-snapshot processor. Called by the nchan onmessage handler below
+	   for each second's all-containers payload — extracts this sidebar's
+	   container entry, flattens host fields into the same shape the old
+	   per-poll endpoint used to return, and runs the gauge/chart updates.
+	   Self-contained so the contents of the handler stay readable. */
+	var processSnapshot = function(result) {
+			if (!window.caLiveStats || window.caLiveStats.container !== containerName) return;
+			if (!result || !result.ok) {
+				/* Container stopped or disappeared mid-session — tear the
+				   subscriber down and message the summary panel rather
+				   than spamming reconnects against a dead container. The
+				   gauge needles park at whatever they last read; the
+				   sub-label change is the signal. */
+				caStopLiveStats();
+				$(".caLiveDonutSubCpu, .caLiveDonutSubCpuHost, .caLiveDonutSubMem, .caLiveDonutSubNet").text("<?tr("stopped");?>");
+				return;
+			}
+			/* Use the server's sample timestamp for chart X-positions, not
+			   the WebSocket arrival time. Otherwise any latency between
+			   the publisher emitting and the browser receiving shifts the
+			   X-axis around per-sample, which on a slow tick looks like
+			   gaps in the line (Smoothie scrolls at wall-clock speed and
+			   draws nothing between widely-spaced samples). */
+			var nowMs = (typeof result.tsMs === "number" && result.tsMs > 0) ? result.tsMs : new Date().getTime();
+
+			/* Pin the memory chart's Y-max to the host's total RAM the
+			   first time we see it. Smoothie picks up the option change
+			   on the next render frame. Using host total (not container
+			   limit) keeps the axis consistent across both lines so the
+			   host overlay isn't off the top of the chart on containers
+			   that have a small explicit memory limit. */
+			if (!window.caLiveStats.memMaxPinned && result.hostMemTotalMb > 0) {
+				window.caLiveStats.charts.memory.chart.options.maxValue = result.hostMemTotalMb;
+				window.caLiveStats.memMaxPinned = true;
+			}
+
+			/* Container rate deltas (net) and host rate/CPU deltas.
+			   First poll has no prev → all rates collapse to 0 so the
+			   chart leaves zeros at t0 and starts plotting real numbers
+			   from tick two onward. */
+			var rxRate = 0, txRate = 0;
+			var hostCpu = 0, hostNetRate = 0;
+			var prev = window.caLiveStats.prev;
+			if (prev && result.tsMs > prev.tsMs) {
+				var elapsedSec = (result.tsMs - prev.tsMs) / 1000.0;
+				if (elapsedSec > 0) {
+					rxRate = Math.max(0, (result.netRxBytes - prev.netRxBytes) / elapsedSec);
+					txRate = Math.max(0, (result.netTxBytes - prev.netTxBytes) / elapsedSec);
+
+					var hostNetDelta = (result.hostNetRxBytes - prev.hostNetRxBytes) +
+					                   (result.hostNetTxBytes - prev.hostNetTxBytes);
+					hostNetRate = Math.max(0, hostNetDelta / elapsedSec);
+				}
+				/* Host CPU% from /proc/stat jiffies: busy_delta / total_delta. */
+				var totalDelta = result.hostCpuTotal - prev.hostCpuTotal;
+				var busyDelta  = result.hostCpuBusy  - prev.hostCpuBusy;
+				if (totalDelta > 0 && busyDelta >= 0) hostCpu = (busyDelta / totalDelta) * 100.0;
+			}
+			window.caLiveStats.prev = {
+				tsMs:           result.tsMs,
+				netRxBytes:     result.netRxBytes,
+				netTxBytes:     result.netTxBytes,
+				hostCpuBusy:    result.hostCpuBusy,
+				hostCpuTotal:   result.hostCpuTotal,
+				hostNetRxBytes: result.hostNetRxBytes,
+				hostNetTxBytes: result.hostNetTxBytes
+			};
+
+			/* Chart appends — every chart gets both a container line and
+			   a host line. Memory: container_mb vs host_used_mb. Net
+			   shows container RX/TX plus a single host total to keep the
+			   chart from getting too crowded. */
+			window.caLiveStats.charts.cpu.series.append(nowMs, result.cpu);
+			window.caLiveStats.charts.cpu.host.append(nowMs, hostCpu);
+			window.caLiveStats.charts.memory.series.append(nowMs, result.memMb);
+			window.caLiveStats.charts.memory.host.append(nowMs, result.hostMemUsedMb);
+			window.caLiveStats.charts.net.rx.append(nowMs, rxRate);
+			window.caLiveStats.charts.net.tx.append(nowMs, txRate);
+			window.caLiveStats.charts.net.host.append(nowMs, hostNetRate);
+
+			/* Gauge value mapping — both needles read against the same
+			   per-metric scale, so the container needle is always at or
+			   behind the host needle (the host metric is a superset).
+			   - CPU: both already 0..100 of total host CPU.
+			   - Memory: % of host RAM.
+			   - Network: % of aggregate NIC link speed (falls back to a
+			     session peak if /sys/class/net reported no usable speed). */
+			var netTotal = rxRate + txRate;
+
+			/* Pin the network gauge scale to the fastest single NIC's link
+			   speed once we see a non-zero value — the redline (red zone
+			   at the top of the gauge) then maps to actually saturating
+			   that wire. If it stays 0 (virtual hosts, unknown PHY) we
+			   fall back to a session peak. */
+			if (!window.caLiveStats.netSpeedBps && result.hostNetMaxBps > 0) {
+				window.caLiveStats.netSpeedBps = result.hostNetMaxBps;
+			}
+			var netScale = window.caLiveStats.netSpeedBps;
+			if (!netScale) {
+				if (netTotal    > window.caLiveStats.peakNet) window.caLiveStats.peakNet = netTotal;
+				if (hostNetRate > window.caLiveStats.peakNet) window.caLiveStats.peakNet = hostNetRate;
+				netScale = window.caLiveStats.peakNet;
+			}
+
+			var hostMemPerc = result.hostMemTotalMb > 0 ? (result.hostMemUsedMb / result.hostMemTotalMb) * 100.0 : 0;
+			var contMemPerc = result.hostMemTotalMb > 0 ? (result.memMb         / result.hostMemTotalMb) * 100.0 : 0;
+			var netHostPct  = netScale > 0 ? (hostNetRate / netScale) * 100.0 : 0;
+			var netContPct  = netScale > 0 ? (netTotal    / netScale) * 100.0 : 0;
+
+			/* All four donuts refresh every tick regardless of which view
+			   is currently visible, so flipping to Summary always shows
+			   fresh numbers. Center text + outer ring = container; sub-
+			   label "H ..." + inner ring = host. */
+			/* Refresh every gauge each tick regardless of which view is
+			   visible, so flipping to Summary always shows fresh needles.
+			   The Unraid CPU gauge gets its load-average annotation set
+			   *inside* the dial via setSubtitle — auto-fit shrinks the
+			   font if the three values would otherwise overflow the
+			   axis-label gap. */
+			var g = window.caLiveStats.gauges;
+			if (g.cpu)     g.cpu.setValue(result.cpu);
+			if (g.cpuHost) g.cpuHost.setValue(hostCpu);
+			if (g.memory)  g.memory.setValue(contMemPerc);
+			if (g.net)     g.net.setValue(netContPct);
+
+			if (g.cpuHost && g.cpuHost.setSubtitle) {
+				var loads = (result.hostLoadAvg && result.hostLoadAvg.length === 3)
+					? result.hostLoadAvg[0].toFixed(2) + "|" + result.hostLoadAvg[1].toFixed(2) + "|" + result.hostLoadAvg[2].toFixed(2)
+					: "";
+				g.cpuHost.setSubtitle(loads);
+			}
+
+			$(".caLiveDonutSubCpu").text(result.cpu.toFixed(1) + "%");
+			$(".caLiveDonutSubCpuHost").text(hostCpu.toFixed(1) + "%");
+			$(".caLiveDonutSubMem").text(caFmtMB(result.memMb));
+			$(".caLiveDonutSubNet").text(caFmtRate(netTotal));
+			/* Suppress unused-var noise when other host vars don't drive
+			   a gauge directly — they're still read by the chart-append
+			   block above. */
+			void hostMemPerc; void netHostPct;
+	};
+
+	/* Kick the per-container publisher (no-op if one is already running
+	   for this exact container — another tab subscribed, or our own
+	   previous sidebar within the publisher's post-disconnect grace
+	   window). The publisher script publishes to stats_<containerName>;
+	   the subscriber below listens on that same channel. The message body
+	   is the FLAT per-snapshot shape processSnapshot already expects, so
+	   we just JSON.parse and hand it off — no reshaping. */
+	postNoSpin({action:"startLiveStatsPublisher", container: containerName}, function() { /* fire-and-forget */ });
+
+	var sub = new NchanSubscriber('/sub/stats_' + containerName, {subscriber:'websocket', reconnectTimeout:5000});
+	sub.on('message', function(raw) {
+		if (!window.caLiveStats || window.caLiveStats.container !== containerName) return;
+		var result;
+		try { result = JSON.parse(raw); } catch (e) { return; }
+		if (!result || typeof result !== 'object') return;
+		processSnapshot(result);
+	});
+	sub.start();
+	window.caLiveStats.sub = sub;
+}
+
+/**
+ * Tear down the live-stats subscription. Safe to call when nothing is
+ * running. Invoked from closeSidebar() and from popUpChart()'s prelude so
+ * back-to-back sidebar opens don't leak the previous container's WebSocket.
+ *
+ * The shared publisher (scripts/caLiveStats.php) doesn't need an explicit
+ * stop signal — nchan's subscriber-count drops as soon as sub.stop() runs,
+ * and publish() in the script self-terminates ~10s later if nobody else
+ * picks up the channel.
+ *
+ * SmoothieChart has no `.destroy()` — the documented teardown is to call
+ * `.stop()` on the chart (halts the requestAnimationFrame loop) and drop
+ * the reference so its TimeSeries can be garbage collected.
+ */
+function caStopLiveStats() {
+	if (!window.caLiveStats) return;
+	try {
+		if (window.caLiveStats.sub && typeof window.caLiveStats.sub.stop === "function") {
+			window.caLiveStats.sub.stop();
+		}
+		var charts = window.caLiveStats.charts || {};
+		$.each(charts, function(_, spec) {
+			if (spec && spec.chart && typeof spec.chart.stop === "function") spec.chart.stop();
+		});
+	} catch (e) { /* stop() mid-frame is fine — Smoothie tolerates it */ }
+	window.caLiveStats = null;
+}
+
 /**
  * Show the sliding sidebar pane: inject optional HTML, reveal `.sidebar`, hide back affordance, {@link slideInSidebar}.
  *
  * @param {string} [content=''] Optional HTML for `#sidenavContent`
  */
 function showAlternateView(content="") {
+	/* In-place swap of #sidenavContent — if a live-stats subscription is
+	   running for a previously-open container sidebar its callbacks would
+	   keep firing against detached gauge/chart DOM after this replaces
+	   the content. Tear it down explicitly here (closeSidebar() and
+	   popUpChart()'s prelude don't fire on this code path). */
+	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	if ( content ) {
 		$("#sidenavContent").html(content);
 	}
@@ -3421,16 +4075,39 @@ function showAlternateView(content="") {
 
 /**
  * Detach the per-app action + support button strip from the freshly-rendered
- * sidebar content and append it next to the always-visible CLOSE button in
- * .popupCloseAreaButtons. Server keeps emitting the strip inside the popup
- * body (so it ships with the right per-app actions); this just relocates it
- * after each render so the buttons live at the top of the sidebar instead
- * of inline with the icon area.
+ * sidebar content and append it into the fixed-bottom .popupActionsAreaInner
+ * container. Server keeps emitting the strip inline with the popup body (so
+ * it ships with the right per-app actions for the template); this just
+ * relocates it after each render so the buttons stay glued to the bottom
+ * edge of the viewport while the user scrolls the popup content above.
+ * The top bar (.popupCloseAreaButtons) is left with just CLOSE/BACK/STAT.
  */
 function caRelocatePopupActions() {
-	$(".popupCloseAreaButtons .popupStickyActions").remove();   // clear any stragglers
+	$(".popupActionsAreaInner .popupStickyActions").remove();   // clear any stragglers
 	var $strip = $("#sidenavContent .popupStickyActions").first();
-	if ($strip.length) $strip.detach().appendTo(".popupCloseAreaButtons");
+	if ($strip.length) $strip.detach().appendTo(".popupActionsAreaInner");
+	caSyncSidenavBottomPadding();
+}
+
+/**
+ * Measure the rendered .popupActionsArea height and stamp it into the
+ * --ca-sidenav-bottom CSS variable so #sidenavContent's bottom padding always
+ * clears the action bar — even when buttons wrap to multiple rows on narrow
+ * sidebars. CSS keeps a 9rem fallback for the pre-measure paint. We re-run on
+ * every relocation and on resize (caRelocatePopupActions itself is also bound
+ * to viewport changes elsewhere).
+ */
+function caSyncSidenavBottomPadding() {
+	var $bar = $(".popupActionsArea").first();
+	if (!$bar.length || !$bar.is(":visible")) {
+		document.documentElement.style.removeProperty("--ca-sidenav-bottom");
+		return;
+	}
+	/* outerHeight(true) includes margin so any future spacing change on the
+	   action bar carries straight into the padding. Add a 1rem breathing gap
+	   below the last row so content doesn't kiss the buttons. */
+	var h = $bar.outerHeight(true) + 16;
+	document.documentElement.style.setProperty("--ca-sidenav-bottom", h + "px");
 }
 
 /**
@@ -3472,7 +4149,7 @@ function showSidebarApp(apppath,appname) {
 			   never enabled the module — `r.enabled` was undefined). */
 			$('.caMediaGallery').magnificPopup({
 				delegate: '.screenshot',
-				closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+				closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 				/* Gallery mode: don't close on content click — gallery's own
 				   navigateByImgClick handles image clicks (advances to next).
 				   Otherwise the click both advances AND closes. */
@@ -3515,7 +4192,7 @@ function showSidebarApp(apppath,appname) {
 			   app's thumb strip would still be hanging off it. */
 			$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 				type:'image',
-				closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+				closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 				closeOnContentClick: true,
 				removalDelay: 100,
 				mainClass: 'mfp-fade',
@@ -3851,6 +4528,13 @@ function slideInSidebar() {
  */
 function showRepoPopup(repository) {
 	if ( !repository ) return;
+	/* In-place swap of #sidenavContent further down — if the previous
+	   sidebar had a live-stats panel running, its NchanSubscriber +
+	   SmoothieChart RAF loops would keep firing against detached gauge
+	   DOM. Tear them down before navigating to the repo profile.
+	   closeSidebar() / popUpChart()'s prelude don't fire on this path
+	   because the sidebar transitions in place. */
+	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	data.repository = repository;
 	context.destroy("#actionsPopup");
 	var fromCard = false;
@@ -3904,7 +4588,7 @@ function showRepoPopup(repository) {
 		   from their own `mfp-image`/`mfp-iframe` class. */
 		$('.caMediaGallery').magnificPopup({
 			delegate: '.screenshot',
-			closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+			closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 			closeOnContentClick: false,    /* gallery's navigateByImgClick handles image clicks */
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
@@ -3939,7 +4623,7 @@ function showRepoPopup(repository) {
 		   leftover on the detached m.wrap. */
 		$('.screenshot').not($('.caMediaGallery').find('.screenshot')).magnificPopup({
 			type:'image',
-			closeMarkup: "<span class='mfp-close magnificPopup caButton caButtonLarge caButtonRed'>"+tr("CLOSE")+"</span>",
+			closeMarkup: "<span class='mfp-close magnificPopup caButton popUpClose' aria-label='"+tr("Close")+"' title='"+tr("Close")+"'>&times;</span>",
 			closeOnContentClick: true,
 			removalDelay: 100,
 			mainClass: 'mfp-fade',
@@ -4525,6 +5209,10 @@ function caInitInfiniteScroll() {
 		resizeTimer = setTimeout(function() {
 			resizeTimer = null;
 			caEnsureScrollable();
+			/* Action bar can wrap to additional rows at narrow widths — re-sync
+			   the bottom-padding variable so #sidenavContent never disappears
+			   behind a taller fixed bar after a resize. */
+			if (typeof caSyncSidenavBottomPadding === "function") caSyncSidenavBottomPadding();
 		}, 150);
 	};
 	$(window).on("resize", onResize);

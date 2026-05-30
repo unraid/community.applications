@@ -1672,11 +1672,30 @@ function caBuildBottomLineSection(
 	} else {
 		$backgroundClickable = "ca_backgroundClickable";
 		$dataPluginURL = empty($template['PluginURL']) ? "" : "data-pluginurl='".htmlspecialchars((string)$template['PluginURL'], ENT_QUOTES)."'";
+		/* Install vs Manage label — dummy button, no own click handler.
+		   Clicking it just bubbles to the .ca_holder click that opens the
+		   sidebar (same as clicking Details or the card background). The
+		   only signal is the LABEL: "Install" when the user hasn't yet
+		   added this app to their stack, "Manage" once it's already
+		   installed. InstallPath is set by the feed merge whenever a local
+		   user template exists for this app (docker or plugin), so it's
+		   the same signal the sidebar uses to decide whether to render
+		   Install vs Reinstall in the actions row.
+		   Skipped on repository cards (RepositoryTemplate) — they're
+		   virtual aggregations with no InstallPath of their own. */
+		$installManageButton = "";
+		if (empty($template['RepositoryTemplate'])) {
+			$isInstalled = !empty($template['InstallPath']);
+			$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
+			$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
+			$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";
+		}
 		$cardStart = "
 			<div class='ca_holder {$class} {$popupType} {$holderClass}' data-apppath='".($template['Path'] ?? "")."' data-appname='{$name}' data-repository='".htmlentities($repoName, ENT_QUOTES)."' {$dataPluginURL}>";
 		$card .= "
 			<div class='ca_bottomLine {$bottomClass}'>
 			<div class='caButton infoButton {$cardClass}'>".tr("Details")."</div>
+			{$installManageButton}
 			{$favSpan}{$pinnedSpan}
 		";
 	}

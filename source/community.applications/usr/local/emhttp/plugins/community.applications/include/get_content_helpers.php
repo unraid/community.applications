@@ -67,6 +67,14 @@ class GetContentHelpers {
 			case "repos":
 				$context['action'] = 'repos';
 				return $context;
+			case "duplicates":
+				/* Dev + admin only — the menu item is gated server-side at
+				   render time, but get_content() re-checks before doing any
+				   work. categoryString stays false so no regex matching runs
+				   downstream. */
+				$context['categoryString'] = false;
+				$context['action'] = 'duplicates';
+				return $context;
 			case "":
 				$context['categoryString'] = false;
 				break;
@@ -336,7 +344,22 @@ class GetContentHelpers {
 			return;
 		}
 
-		if ( filterMatch($filter,[$template['SortName']??null,$template['RepoShort']??null,$template['Language']??null,$template['LanguageLocal']??null]) ) {
+		/* "Limit searches to name" setting (Settings panel, default off) —
+		   when enabled, only Name and Author/RepoName count; Overview text,
+		   category translations, language metadata, and maintainer-supplied
+		   ExtraSearchTerms are excluded. Cuts false-positive hits at the
+		   cost of fuzzy discovery, which is the trade-off users opt into
+		   here. Hoisted ahead of the SortName/RepoShort/Language block so
+		   that block can respect the same flag (Language / LanguageLocal
+		   are unambiguously non-name fields — they'd otherwise still match
+		   even when the user asked to narrow the search). */
+		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
+
+		$nameLikeFields = $limitToName
+			? [$template['SortName']??null, $template['RepoShort']??null]
+			: [$template['SortName']??null, $template['RepoShort']??null, $template['Language']??null, $template['LanguageLocal']??null];
+
+		if ( filterMatch($filter,$nameLikeFields) ) {
 			if ( ($template['LTOfficial']??false) || ($template['Official']??false) ) {
 				$searchResults['officialHit'][] = $template;
 				return;
@@ -355,7 +378,11 @@ class GetContentHelpers {
 			}
 		}
 
-		if ( filterMatch($filter,[$template['Author']??null,$template['RepoName']??null,$template['Overview']??null,$template['translatedCategories']??null]) ) {
+		$anyHitFields = $limitToName
+			? [$template['Author']??null, $template['RepoName']??null]
+			: [$template['Author']??null, $template['RepoName']??null, $template['Overview']??null, $template['translatedCategories']??null];
+
+		if ( filterMatch($filter,$anyHitFields) ) {
 			if ( $template['RepoName'] == ($GLOBALS['caSettings']['favourite']??null) ) {
 				$searchResults['nameHit'][] = $template;
 			} else {
@@ -364,7 +391,7 @@ class GetContentHelpers {
 			return;
 		}
 
-		if ( filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
+		if ( ! $limitToName && filterMatch($filter,[$template['ExtraSearchTerms']??null],false) ) {
 			debug("extraHit: ".$template['Name']);
 			$searchResults['extraHit'][] = $template;
 		}

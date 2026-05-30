@@ -1015,6 +1015,25 @@ function caInitializeClickHandlers() {
 			}
 		});
 	});
+	/**
+	 * Dev + admin only: from the repo sidebar, render this repo's duplicate-
+	 * Name templates into the main cards area. Mirrors the .ca_repoSearchPopUp
+	 * flow (close sidebar, swap content) but skips the search-box update —
+	 * this isn't a search, just a filtered view, so the search input stays as
+	 * the user left it.
+	 */
+	$("body").on("click", ".ca_repoDuplicates", function(e) {
+		e.stopPropagation();
+		var repository = $(this).data("repository");
+		if (!repository) return;
+		caClearHomeSectionSubtitle();
+		closeSidebar();
+		post({ action: "getRepoDuplicates", repository: repository }, function(result) {
+			if (result && result.display_data) {
+				updateDisplay(result.display_data);
+			}
+		});
+	});
 	$("body").on("click", ".repoPopup,.ca_repoinfo,.ca_repoFromPopUp,.cardDescriptionRepo", function(e) {
 		e.stopPropagation();
 		var repository = $(this).data("repository") ? $(this).data("repository") : $(this).closest(".ca_holder").data("repository");
@@ -1236,7 +1255,21 @@ function caInitializeClickHandlers() {
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { changeSortOrder(); });
 	});
 	$("body").on("click", ".languageSwitch", function() { CAswitchLanguage($(this).data("language")); });
-	$("body").on("click", ".popUpClose", function() { closeSidebar(); });
+	/* MFP closeMarkup carries `popUpClose` so the X picks up the same flat
+	   styling as the sidebar's own close button. Without this guard, clicking
+	   the MFP X fires both this delegate (closeSidebar() with the default
+	   keepIdentity=false, wiping data.sidebarapp{path,name} + the cookies +
+	   sessionStorage sidebar fields) AND MFP's own close → afterClose, which
+	   reopens the sidebar via showSidebarApp(data.sidebarapppath,
+	   data.sidebarappname) — except those are now empty, so the reopen
+	   silently lands on the first entry in displayed.json. ESC / outside-
+	   click don't fire .popUpClose so they survived. Skip any .popUpClose
+	   that lives inside an MFP overlay — MFP's own close machinery handles
+	   that path. */
+	$("body").on("click", ".popUpClose", function() {
+		if ($(this).closest(".mfp-wrap, .mfp-container").length) return;
+		closeSidebar();
+	});
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
 	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
@@ -1726,6 +1759,13 @@ function caBindSettingsFormHandlers(initialFormState) {
 		$form.find(".caUseWholeDisplayWindowCard")
 			.addClass("ca_settingDisabled")
 			.find("input[type='checkbox'][name='useWholeDisplayWindow']")
+				.prop("disabled", true);
+		/* Same story for Display usage graphs — the live-stats panel only
+		   slots cleanly into the 7.2+ responsive sidebar geometry, so on
+		   legacy chrome the card stays visible but greyed and locked. */
+		$form.find(".caDisplayUsageGraphsCard")
+			.addClass("ca_settingDisabled")
+			.find("input[type='checkbox'][name='displayUsageGraphs']")
 				.prop("disabled", true);
 	}
 
