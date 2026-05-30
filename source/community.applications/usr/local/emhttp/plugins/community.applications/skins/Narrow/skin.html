@@ -162,6 +162,10 @@ $(function() {
 				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?></li>
 				<li class='subCategory onlyShowWithFeed'>
 					<ul>
+						<!-- Auto "All" entry: same data-category as the parent so the
+						     section-menu switch dispatches the parent's action. Parent
+						     itself is now peek-only (see clickHandlers.js gating). -->
+						<li class='caMenuItem sectionMenu caCategoryAll onlyShowWithFeed' data-category='installed_apps'><?tr("All");?></li>
 						<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_docker'><?tr("Docker");?></li>
 						<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='inst_plugins'><?tr("Plugins");?></li>
 					</ul>
@@ -169,6 +173,7 @@ $(function() {
 				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='previous_apps'><?tr("Previous Apps");?></li>
 				<li class='subCategory onlyShowWithFeed'>
 					<ul>
+						<li class='caMenuItem sectionMenu caCategoryAll' data-category='previous_apps'><?tr("All");?></li>
 						<li class='caMenuItem sectionMenu' data-category='prev_docker'><?tr("Docker");?></li>
 						<li class='caMenuItem sectionMenu' data-category='prev_plugins'><?tr("Plugins");?></li>
 					</ul>

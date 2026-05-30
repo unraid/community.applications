@@ -2048,6 +2048,12 @@ function get_categories() {
 				   so the .subCategory bullet-suppression CSS and the
 				   closest('.subCategory') click-handler logic both apply. */
 				$cat .= "<li class='subCategory'><ul>";
+				/* Auto-generated "All" entry at the top: shares the parent's
+				   data-category so it fetches everything under the parent. The
+				   parent itself no longer fetches on click — it only toggles the
+				   sub menu. caCategoryAll marks it so cookie-restore prefers it
+				   over the parent when both match the same data-category. */
+				$cat .= "<li class='categoryMenu caMenuItem nonDockerSearch caCategoryAll' data-category='{$category['Cat']}'>".tr("All")."</li>";
 				foreach($category['Sub'] as $subcategory) {
 					$cat .= "<li class='categoryMenu caMenuItem nonDockerSearch' data-category='{$subcategory['Cat']}'>".$subcategory['Des']."</li>";
 				}
