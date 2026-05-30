@@ -505,7 +505,7 @@ body,
 		/* Typography */
 		font-size: 1.2rem;
 		line-height: 2rem;
-		color: var(--inverse-text-color);
+		color: var(--text-color);
 
 		/* Visual */
 		background: linear-gradient(
@@ -524,7 +524,7 @@ body,
 		border-radius: 15px;
 	}
 	.popupDescription, .popupRepoDescription {
-		background: var(--inverse-background-color);
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
 	}
 	.caButton {
 		cursor: pointer;
@@ -2734,6 +2734,24 @@ input[type="button"] {
 	}
 
 	/* 3.12) Popup detail content area */
+
+	/* Baseline off-screen state for the top close-bar and bottom action-bar
+	   so they slide in/out together with the .sidenav rather than just
+	   popping into place. The `body:has(.sidenavShow) ...` rules below win
+	   the cascade (body:has + descendant beats a plain class) and override
+	   transform/opacity to the on-screen values — the transition declared
+	   here animates the swap in both directions whenever sidenavShow is
+	   toggled on a .sidenav that's already in the DOM. (Freshly AJAX-
+	   inserted .popupCloseArea content paints directly in the visible state
+	   and doesn't animate, which is the existing behavior for the .sidenav
+	   itself.) Matches the 500ms ease used by the .sidebar .sidenav slide. */
+	.popupCloseArea,
+	.popupActionsArea {
+		transform: translateX(100%);
+		opacity: 0;
+		transition: transform 500ms ease, opacity 500ms ease;
+	}
+
 	body:has(.sidenavShow) .popupCloseArea {
 		position: fixed;
 		padding-top: 1rem;

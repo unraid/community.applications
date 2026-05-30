@@ -1255,7 +1255,21 @@ function caInitializeClickHandlers() {
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { changeSortOrder(); });
 	});
 	$("body").on("click", ".languageSwitch", function() { CAswitchLanguage($(this).data("language")); });
-	$("body").on("click", ".popUpClose", function() { closeSidebar(); });
+	/* MFP closeMarkup carries `popUpClose` so the X picks up the same flat
+	   styling as the sidebar's own close button. Without this guard, clicking
+	   the MFP X fires both this delegate (closeSidebar() with the default
+	   keepIdentity=false, wiping data.sidebarapp{path,name} + the cookies +
+	   sessionStorage sidebar fields) AND MFP's own close → afterClose, which
+	   reopens the sidebar via showSidebarApp(data.sidebarapppath,
+	   data.sidebarappname) — except those are now empty, so the reopen
+	   silently lands on the first entry in displayed.json. ESC / outside-
+	   click don't fire .popUpClose so they survived. Skip any .popUpClose
+	   that lives inside an MFP overlay — MFP's own close machinery handles
+	   that path. */
+	$("body").on("click", ".popUpClose", function() {
+		if ($(this).closest(".mfp-wrap, .mfp-container").length) return;
+		closeSidebar();
+	});
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
 	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
