@@ -1586,6 +1586,15 @@ body,
 		margin: auto;
 		text-align: center;
 	}
+	/* Sub-line under the "No Matching Applications Found" message when the
+	   "Limit searches to name" setting is on — explains the empty result
+	   and offers a one-click "Show All Results" to widen the search. */
+	.ca_searchLimitNote {
+		font-size: 1.3rem;
+		margin: 0.5rem auto 0;
+		text-align: center;
+		opacity: 0.8;
+	}
 
 	/* 3.4) Links, badges, and metadata */
 	.additionalRequirements {
@@ -3533,6 +3542,13 @@ input[type="button"] {
 		text-overflow: ellipsis;
 		outline: none;
 		box-shadow: none;
+		/* .caButton is `display: inline-flex; gap: 0.5rem;` — applied to a
+		   suggestion chip that's literally "<text><mark>match</mark><text>",
+		   the gap promotes each text-node + the <mark> to a separate flex
+		   item and visibly splits the word ("d oll ar" instead of "dollar").
+		   Drop back to plain inline so the highlight sits flush. */
+		display: inline-block;
+		gap: 0;
 	}
 	/* No hover/selected styling for now — plain text baseline */
 	body.ca_searchModalOpen #searchFilter .awesomplete mark {

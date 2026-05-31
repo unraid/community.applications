@@ -589,11 +589,11 @@ $(function() {
 
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
-							<span><?tr("Limit searches to name");?></span>
+							<span><?tr("Limit search results");?></span>
 							<input type='hidden' name='searchLimitToName' value='no'>
 							<input type='checkbox' class='switch caSettingSwitch' name='searchLimitToName' value='yes' <?=($GLOBALS['caSettings']['searchLimitToName'] ?? "no") == "yes" ? "checked" : ""; ?>>
 						</div>
-						<div class='ca_settingDescription'><?tr("Only match search terms against Application Name or Author / Maintainer. Not generally recommended.");?></div>
+						<div class='ca_settingDescription'><?tr("Limits results to name, author, repository.");?></div>
 					</div>
 
 					<?php /* Same pattern as Use whole display window above —

@@ -22,6 +22,7 @@ $_SERVER['REQUEST_URI'] = "docker/apps";
 @require_once "$docroot/plugins/dynamix/include/Translations.php";
 
 require_once "$docroot/plugins/community.applications/include/paths.php";
+require_once "$docroot/plugins/community.applications/include/helpers.php";
 require_once "$docroot/plugins/dynamix/include/Wrappers.php";
 require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
 
@@ -152,6 +153,9 @@ function addCloseButton() {
 	echo "<br>".tr("Downloading docker icons")."<br>";
 	$DockerTemplates->getAllInfo();
 	exec("$docroot/plugins/dynamix.docker.manager/scripts/dockerupdate check nonotify > /dev/null 2>&1");
+	/* Containers just installed — wipe the cache so the next page load
+	   shows them with correct running / url / template state. */
+	caDropInfoCache();
 
 	if ( $failFlag || !$_GET['plugin']) {
 		echo "<br>".tr("Docker Application Installation finished")."<br><script>addCloseButton();</script>";

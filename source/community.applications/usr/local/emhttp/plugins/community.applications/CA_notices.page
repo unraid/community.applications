@@ -29,6 +29,13 @@ $(function() {
 	var isAppsChild = (p.indexOf("/Apps/") === 0) && !isAppsRoot;
 	if (isAppsChild) {
 		$.cookie("ca_apps_referrer","true",{expires: 1,path:"/;SameSite=Lax"});
+		// User just arrived on a CA child page (Install / Edit / etc.) — drop
+		// the docker info cache so when they bounce back to /Apps the listing
+		// rebuilds from live state. Fire-and-forget; no UI on these pages.
+		try {
+			$.post("/plugins/community.applications/include/exec.php",
+				{ action: "dropInfoCache", noSpinner: 1 });
+		} catch (e) { /* no-op */ }
 	} else if (p.indexOf("/Apps") !== 0) {
 		// Off CA entirely — reset. On the bare /Apps root, leave the cookie alone
 		// so the restore branch in Apps.page can still see "true" from a prior

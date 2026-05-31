@@ -38,4 +38,8 @@ foreach ($plugins as $plugin) {
 	@unlink(CA_PATHS['pluginPending']."/".$pluginName);
 }
 passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
+/* Any plugin / language install/update can ripple through fields that
+   getAllInfo merges into its cache — drop it so the next Apps load
+   rebuilds from live state. */
+caDropInfoCache();
 ?>

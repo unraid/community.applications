@@ -286,6 +286,8 @@ data.prevpage = 0;
 data.currentpage = 1;
 data.searchFlag = false;
 data.searchActive = false; // Sets whether changepage re-sorts the displayed templates.
+data.searchLimitOverride = false; // One-shot "Show All Results" override on the display-count line: widens the current search past the searchLimitToName setting until the next user-typed search resets it.
+data.searchLimitOverrideFilter = ""; // Filter string that earned the override — once it changes, the override is dropped.
 data.previousAppsSection = ""; // The section the user is on within previous apps
 data.searchInProgress = false;
 data.deprecated = false; // Only set by reinstalling a deprecated plugin
@@ -1071,6 +1073,10 @@ function updateContent(button,skipAppfeed=true) {
 	$.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
 	disableSearch();
 	var postAction = skipAppfeed ? "force_update_skip" : "force_update";
+	/* No feed update on this init? Wipe the docker info cache so a stale
+	   snapshot can't leak through. (A feed update path already wipes the
+	   whole tempFiles dir, so we don't double-fire there.) */
+	if (skipAppfeed && typeof caDropInfoCache === "function") caDropInfoCache();
 	post({action:postAction}, function(result) {
 		if ( result.data ) {
 			updateDisplay(result.data);
@@ -1258,6 +1264,15 @@ function doSearch(button,newSearch) {
 	filter = $.trim(filter);
 	filter = stripTags(filter);
 
+	/* Drop the one-shot "Show All Results" override the moment the user
+	   edits the search term. The override is scoped to the exact filter
+	   that earned it; anything else and we're back to whatever the user
+	   set under "Limit searches to name". */
+	if (data.searchLimitOverride && filter !== data.searchLimitOverrideFilter) {
+		data.searchLimitOverride = false;
+		data.searchLimitOverrideFilter = "";
+	}
+
 	/* No-op: term hasn't changed from the currently committed search.
 	   Close the modal; if maxPerPage changed (viewport/layout changed), re-render current
 	   search pagination via changePage so cards-per-page and page mapping stay consistent. */
@@ -1346,7 +1361,7 @@ function doSearch(button,newSearch) {
 	caSyncHomeSearchSubtitle();
 
 	data.maxPerPage = getMaxPerPage();
-	post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage},function(result) {
+	post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage,searchLimitOverride:data.searchLimitOverride?1:0},function(result) {
 		enableButtons();
 		$(".selectedMenu").removeClass("selectedMenu");
 		$(".subCategory").hide();
@@ -1448,7 +1463,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 		if ( description && ! filter ) {
 		 // $(".category").html(description);
 		}
-		post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice")},function(result) {
+		post({action:'get_content',maxPerPage:data.maxPerPage,filter:filter,category:category,newApp:newApp,startupDisplay:startupDisplay,maxHomeApps:maxHomeApps,mobileDevice:cssVar("--mobileDevice"),searchLimitOverride:data.searchLimitOverride?1:0},function(result) {
 			updateDisplay(result.display_data || result.display);
 			if ( initialize ) {
 				populateAutoComplete();
@@ -2601,7 +2616,37 @@ function caUpdateDisplayCount() {
 	if (last > total) last = total;
 	if (last < first) last = first;
 
-	$el.text(tr("Displaying") + " " + first + " - " + last + " " + tr("of") + " " + total).show();
+	var countText = tr("Displaying") + " " + first + " - " + last + " " + tr("of") + " " + total;
+	/* Append a hint + "Show All Results" affordance when the user has
+	   narrowed search via the "Limit searches to name" setting and a
+	   search is actually active — makes a quiet result set explainable
+	   without digging into Settings, and offers a one-click way to widen
+	   the current search.
+	   Skipped while the one-shot override is already in effect (we
+	   already widened this search). The flag class is emitted on
+	   #caSettingsFlags by skin.php when the live setting differs from
+	   default.cfg. */
+	var searchOn = !!(data.searchActive || data.searchFlag);
+	var limitedByName = $("#caSettingsFlags").hasClass("ca_searchLimitToName");
+	/* Docker Hub search uses a completely different code path on the server
+	   (no searchLimitToName involvement), so the limit-note is irrelevant
+	   and would mislead. */
+	var isDockerSearch = !!data.docker;
+	if (searchOn && limitedByName && !data.searchLimitOverride && !isDockerSearch) {
+		var note  = stripTags(tr("Search results limited due to user settings"));
+		var allTx = stripTags(tr("Show All Results"));
+		$el.html(
+			$("<span></span>").text(countText).prop("outerHTML")
+			+ " — "
+			+ $("<span></span>").text(note).prop("outerHTML")
+			+ " "
+			+ "<span class='caShowAllResults' role='button' tabindex='0' style='cursor:pointer;text-decoration:underline;'>"
+			+ $("<span></span>").text(allTx).html()
+			+ "</span>"
+		).show();
+	} else {
+		$el.text(countText).show();
+	}
 }
 
 /**
@@ -2756,6 +2801,10 @@ function caReadSavedState() {
  */
 function saveState() {
 	if (data.ignoreUnload) return;
+	/* Leaving /Apps for a child page or unload — drop the docker info cache
+	   so whatever happens off-page (install/edit/uninstall) doesn't return
+	   to a stale snapshot. */
+	if (typeof caDropInfoCache === "function") caDropInfoCache();
 	var isHome = !$("#templates_content .ca_templatesDisplay").length;
 	var state = {
 		v: 1,
@@ -2786,6 +2835,9 @@ function saveState() {
  * @returns {void}
  */
 function restoreState(s) {
+	/* Coming back to /Apps from anywhere — drop the docker info cache so
+	   the restore renders against fresh container state. */
+	if (typeof caDropInfoCache === "function") caDropInfoCache();
 	$.removeCookie("ca_languageSwitch", { path: "/" });
 
 	$(".multi_installDiv").toggle(!!s.installMulti);

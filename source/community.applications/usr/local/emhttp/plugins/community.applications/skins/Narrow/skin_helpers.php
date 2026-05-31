@@ -302,13 +302,15 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		   of opening a sidebar before the background feed download finishes
 		   on a slow connection. */
 		$diffFeedReady = is_file(CA_PATHS['rawAppFeed']);
-		/* Diff is container-only — plugin .plg payloads don't survive the
-		   array→XML round-trip cleanly and the resulting diff is more noise
-		   than signal. */
-		if ($diffFeedReady && empty($template['Plugin']) && $templateUrl !== "") {
+		/* Diff source URL: containers use TemplateURL, plugins use PluginURL.
+		   Backend (getTemplateDiff) handles both — see PluginURL fallback in
+		   include/diff.php. */
+		$diffFeedUrl = !empty($template['Plugin']) ? $diffPluginUrl : $diffContainerUrl;
+		$diffFeedSrc = !empty($template['Plugin']) ? (string)($template['PluginURL'] ?? "") : $templateUrl;
+		if ($diffFeedReady && $diffFeedSrc !== "") {
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
-				"action" => "caShowTemplateDiff({$diffContainerUrl},{$diffName},'feed')",
+				"action" => "caShowTemplateDiff({$diffFeedUrl},{$diffName},'feed')",
 				"text"   => tr("Diff"),
 				"class"  => "ca_devMode",
 			];

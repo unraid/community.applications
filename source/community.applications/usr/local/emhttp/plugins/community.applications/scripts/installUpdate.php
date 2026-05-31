@@ -21,6 +21,13 @@ $_SERVER['REQUEST_URI'] = "docker/apps";
 @require_once "$docroot/plugins/dynamix/include/Translations.php";
 
 require_once "/usr/local/emhttp/plugins/dynamix/include/Helpers.php";
+require_once "/usr/local/emhttp/plugins/community.applications/include/paths.php";
+require_once "/usr/local/emhttp/plugins/community.applications/include/helpers.php";
+
+/* Docker container update is about to run — drop the getAllInfo cache so
+   whatever's coming next (running state, image id, template path) rebuilds
+   from live state on the next Apps load. */
+caDropInfoCache();
 
 $_GET['updateContainer'] = "true";
 $_GET['mute'] = false;
