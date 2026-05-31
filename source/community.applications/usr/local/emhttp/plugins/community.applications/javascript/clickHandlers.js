@@ -1234,6 +1234,25 @@ function caInitializeClickHandlers() {
 		});
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
+	/**
+	 * "Show All Results" affordance on the display-count line: widens the
+	 * current search by setting the one-shot override flag and re-running
+	 * doSearch. Delegated to body since caUpdateDisplayCount re-renders
+	 * .ca_displayCount on every refresh and would tear off a directly-
+	 * bound handler.
+	 */
+	$("body").on("click keydown", ".caShowAllResults", function(e) {
+		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+		e.preventDefault();
+		var currentFilter = $.trim($("#searchBox").val() || "");
+		if (!currentFilter) return;
+		data.searchLimitOverride = true;
+		data.searchLimitOverrideFilter = currentFilter;
+		/* Bypass doSearch's "same filter" early-return guard so the
+		   re-run actually fires against the server. */
+		data.committedSearchFilter = "";
+		doSearch(false);
+	});
 	$(".multi_installClear").click(function() { clearMultiInstall(); });
 	$(".multi_deleteButton").click(function() { deleteMulti(); });
 	$(".multi_installAll").click(function() { selectAllPrevious(); enableMultiInstall(); });

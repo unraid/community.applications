@@ -26,6 +26,9 @@ $apps = readJsonFile(CA_PATHS['community-templates-info']);
 if ( searchArray($apps,"PluginURL",$pluginURL) !== false || $argv[1] == "update" || $argv[1] == "remove") {
 	passthru("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin ".escapeshellarg($argv[1])." ".escapeshellarg($argv[2]));
 	passthru("/usr/local/emhttp/plugins/community.applications/scripts/updatePluginSupport.php");
+	/* Plugin install/update/remove can change docker container template paths
+	   and other fields getAllInfo merges in — drop the cache. */
+	caDropInfoCache();
 }
 else
 	echo "URL passed for installation does not exist in application feed\n";

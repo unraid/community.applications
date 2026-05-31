@@ -1805,6 +1805,20 @@ function write_ini_file($file,$array) {
  * @param  bool  $force  Bypass the on-disk cache and re-query.
  * @return array<int,array<string,mixed>>
  */
+/**
+ * Delete the on-disk getAllInfo() cache file. Call at every point where the
+ * container fleet (or any field getAllInfo merges in — running state, url,
+ * tailscale url, template path) is about to change or is suspected to have
+ * changed: install / uninstall / update, edit, language switch, returning
+ * from a CA child page, save/restore-state, init paths without a feed update,
+ * etc. The next getAllInfo() call rebuilds from live state.
+ *
+ * @return void
+ */
+function caDropInfoCache(): void {
+	@unlink(CA_PATHS['info']);
+}
+
 function getAllInfo($force=false) {
 	global $DockerTemplates, $DockerClient;
 

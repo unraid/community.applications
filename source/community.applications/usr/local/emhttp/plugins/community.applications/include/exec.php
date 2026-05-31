@@ -305,6 +305,14 @@ switch ($_POST['action']) {
 	case 'clearStartUpDisplayed':
 		clearStartUpDisplayed();
 		break;
+	case 'dropInfoCache':
+		/* Fire-and-forget cache invalidation from JS. Used by saveState /
+		   restoreState, init, the CA_notices.page child-page detection, etc.
+		   Server-side action paths drop the cache inline; this is for the
+		   client-driven spots. */
+		caDropInfoCache();
+		postReturn(['status'=>'ok']);
+		break;
 	###############################################
 	# Return an error if the action doesn't exist #
 	###############################################
@@ -1299,6 +1307,14 @@ function get_content() {
 	if ( $mobileDevice ) {
 		$GLOBALS['caSettings']['maxPerPage'] = 6;
 	}
+	/* One-shot override from the "Show All Results" affordance on the
+	   display-count line: client sets searchLimitOverride=1 when the user
+	   asks to widen the current search, and we temporarily ignore the
+	   "Limit searches to name" setting for this request only. The cfg
+	   on disk is untouched. */
+	if ( filter_var(getPost("searchLimitOverride", false), FILTER_VALIDATE_BOOLEAN) ) {
+		$GLOBALS['caSettings']['searchLimitToName'] = "no";
+	}
 	$maxHomeApps = getPost("maxHomeApps",6);
 
 	$GLOBALS['caSettings']['startup'] = getPost("startupDisplay",false);
@@ -1669,6 +1685,7 @@ function remove_application() {
 		if ( pathinfo($application,PATHINFO_EXTENSION) == "xml" || pathinfo($application,PATHINFO_EXTENSION) == "plg" )
 			@unlink($application);
 	}
+	caDropInfoCache();
 	postReturn(['status'=>"ok"]);
 }
 
@@ -1726,7 +1743,7 @@ function uninstall_docker() {
 	$DockerClient->removeContainer($containerName,$dockerRunning[$container]['Id']);
 	$DockerClient->removeImage($dockerRunning[$container]['ImageId']);
 	exec("/usr/bin/docker volume prune");
-	getAllInfo(true);
+	caDropInfoCache();
 	postReturn(['status'=>"Uninstalled"]);
 }
 
@@ -2748,6 +2765,7 @@ function createXML() {
 		@mkdir(dirname($xmlFile),0777,true);
 		ca_file_put_contents($xmlFile,$xml);
 	}
+	caDropInfoCache();
 	postReturn(["status"=>"ok","cache"=>$cacheVolume ?? ""]);
 }
 
@@ -2772,6 +2790,7 @@ function switchLanguage() {
 	$dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'],true);
 	$dynamixSettings['display']['locale'] = $language;
 	write_ini_file(CA_PATHS['dynamixSettings'],$dynamixSettings);
+	caDropInfoCache();
 	postReturn(["status"=> "ok"]);
 }
 
@@ -2797,6 +2816,7 @@ function remove_multiApplications() {
 		}
 		@unlink($app);
 	}
+	caDropInfoCache();
 	if ( $error )
 		postReturn(["error"=>$error]);
 	else
@@ -3020,6 +3040,7 @@ function convert_docker() {
 	$convertToken = bin2hex(random_bytes(8));
 	$installXmlPath = CA_PATHS['tempFiles']."/dockerConvert_{$convertToken}.xml";
 	ca_file_put_contents($installXmlPath, $dockerXML);
+	caDropInfoCache();
 	postReturn(['xml' => $installXmlPath]);
 }
 

@@ -20,6 +20,29 @@
 require_once __DIR__.'/skin_helpers.php';
 
 /**
+ * Build the "Search results limited due to user settings" note + clickable
+ * "Show All Results" affordance, returned as HTML ready to inject under the
+ * empty-result banner. Returns "" when the note shouldn't appear (no active
+ * search filter, setting off, override already in effect, etc.).
+ *
+ * get_content() applies any incoming searchLimitOverride to $GLOBALS BEFORE
+ * the template work runs, so checking searchLimitToName === "yes" here
+ * implicitly means "the override is not in effect".
+ */
+function caBuildSearchLimitHintHtml(): string {
+	$filter = trim((string)getPost("filter", ""));
+	if ($filter === "") return "";
+	if (($GLOBALS['caSettings']['searchLimitToName'] ?? "no") !== "yes") return "";
+	$note = tr("Search results limited due to user settings");
+	$all  = tr("Show All Results");
+	return "<div class='ca_searchLimitNote'>"
+		. htmlspecialchars($note, ENT_QUOTES, 'UTF-8')
+		. " <span class='caShowAllResults' role='button' tabindex='0' style='cursor:pointer;text-decoration:underline;'>"
+		. htmlspecialchars($all, ENT_QUOTES, 'UTF-8')
+		. "</span></div>";
+}
+
+/**
  * Remove orphan and duplicate dividers from action arrays.
  *
  * Strips leading dividers, collapses consecutive dividers into one, and trims trailing dividers.
@@ -894,7 +917,7 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
 		return my_display_apps($communityApplications,$pageNumber,$selectedApps,$startup,$returnArray);
 	}
 
-	$emptyHtml = "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>$('.multi_installDiv').hide();hideSortIcons();</script>";
+	$emptyHtml = "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>".caBuildSearchLimitHintHtml()."<script>$('.multi_installDiv').hide();hideSortIcons();</script>";
 
 	if ($returnArray) {
 		return [
@@ -1050,7 +1073,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	$ct .= $navScript;
 
 	if (! $count) {
-		$displayHeader .= "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div><script>hideSortIcons();</script>";
+		$displayHeader .= "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>".caBuildSearchLimitHintHtml()."<script>hideSortIcons();</script>";
 	}
 
 	if ($count == 1 && ! isset($template['homeScreen']) && $pageNumber == 1) {

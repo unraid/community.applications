@@ -126,27 +126,28 @@ function stripTags(str) {
 	return str.replace(/(<([^>]+)>)/ig,"");
 }
 
-var spinnerTimer = null;
-
 /**
- * Show the global spinner overlay after a short delay (avoids flicker on fast responses).
+ * Fire-and-forget invalidate of the server-side getAllInfo() cache file.
+ * Used by saveState / restoreState, init paths that don't trigger a feed
+ * update, and the CA_notices.page child-page detector — all spots where
+ * the container fleet might have changed under us. Uses postNoSpin so it
+ * never raises a spinner or otherwise disturbs the UI.
  */
-function mySpinner() {
-	if ( ! spinnerTimer ) {
-		spinnerTimer = setTimeout(function() {
-			spinnerTimer = null;
-			$("div.spinner,.spinnerBackground").show();
-		}, 250);
-	}
+function caDropInfoCache() {
+	try { postNoSpin({ action: "dropInfoCache" }); } catch (e) { /* no-op */ }
 }
 
 /**
- * Cancel pending spinner delay and hide overlay.
+ * Show the global spinner overlay immediately.
+ */
+function mySpinner() {
+	$("div.spinner,.spinnerBackground").show();
+}
+
+/**
+ * Hide the spinner overlay.
  */
 function myCloseSpinner() {
-	clearTimeout(spinnerTimer);
-	spinnerTimer = null;
-
 	$("div.spinner,.spinnerBackground").hide();
 }
 

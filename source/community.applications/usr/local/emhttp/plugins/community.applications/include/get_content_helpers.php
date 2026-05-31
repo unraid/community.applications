@@ -344,15 +344,19 @@ class GetContentHelpers {
 			return;
 		}
 
-		/* "Limit searches to name" setting (Settings panel, default off) —
+		/* "Limit search results" setting (Settings panel, default off) —
 		   when enabled, only Name and Author/RepoName count; Overview text,
-		   category translations, language metadata, and maintainer-supplied
-		   ExtraSearchTerms are excluded. Cuts false-positive hits at the
-		   cost of fuzzy discovery, which is the trade-off users opt into
-		   here. Hoisted ahead of the SortName/RepoShort/Language block so
-		   that block can respect the same flag (Language / LanguageLocal
-		   are unambiguously non-name fields — they'd otherwise still match
-		   even when the user asked to narrow the search). */
+		   category translations, language metadata, maintainer-supplied
+		   ExtraSearchTerms, AND the docker-hub Repository path are excluded.
+		   Repository is dropped on purpose: a term like "test" would
+		   otherwise pull in every container tagged ":latest" (or anything
+		   with the word in its image path) and undo the narrowing the user
+		   asked for. Slash-path filters ("owner/container") still hit
+		   Repository via the dedicated branch above. Hoisted ahead of the
+		   SortName/RepoShort/Language block so that block can respect the
+		   same flag (Language / LanguageLocal are unambiguously non-name
+		   fields — they'd otherwise still match even when the user asked
+		   to narrow the search). */
 		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
 
 		$nameLikeFields = $limitToName
@@ -380,7 +384,7 @@ class GetContentHelpers {
 
 		$anyHitFields = $limitToName
 			? [$template['Author']??null, $template['RepoName']??null]
-			: [$template['Author']??null, $template['RepoName']??null, $template['Overview']??null, $template['translatedCategories']??null];
+			: [$template['Author']??null, $template['RepoName']??null, $template['Repository']??null, $template['Overview']??null, $template['translatedCategories']??null];
 
 		if ( filterMatch($filter,$anyHitFields) ) {
 			if ( $template['RepoName'] == ($GLOBALS['caSettings']['favourite']??null) ) {
