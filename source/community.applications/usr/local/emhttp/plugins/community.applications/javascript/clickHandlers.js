@@ -983,6 +983,17 @@ function caInitializeClickHandlers() {
 	$(".favouriteRepo").on("click", function() {
 		if ($(this).hasClass("caMenuDisabled")) return;
 		var repo = $(this).attr("data-repository");
+		/* Same as the section-menu items — wipe the search input + close
+		   any open suggestion strip before launching the repo search,
+		   so we don't show stale chips from the prior query. doSearch
+		   below re-populates #searchBox with the repo name. */
+		if (typeof clearSearchBox === "function") clearSearchBox();
+		if (typeof inlineSearchAwesomplete !== "undefined" && inlineSearchAwesomplete) {
+			try { inlineSearchAwesomplete.close(); } catch (e) { /* no-op */ }
+		}
+		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
+		}
 		caClearHomeSectionSubtitle();
 		var sortButton = false;
 		$(".sortIcons").each(function() { if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true; });
@@ -1174,6 +1185,17 @@ function caInitializeClickHandlers() {
 		   only peeks at the subs. The auto-generated "All" entry inside the
 		   sub list is what dispatches the parent's action. */
 		if ($(this).next(".subCategory").length) return;
+		/* Switching into Installed / Previous / Pinned / Action Centre /
+		   Favourite Repo means the user is leaving the search context —
+		   wipe the search input and close the suggestion strip so the
+		   new section isn't shown alongside a stale query. */
+		if (typeof clearSearchBox === "function") clearSearchBox();
+		if (typeof inlineSearchAwesomplete !== "undefined" && inlineSearchAwesomplete) {
+			try { inlineSearchAwesomplete.close(); } catch (e) { /* no-op */ }
+		}
+		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
+		}
 		caClearHomeSectionSubtitle();
 		var section = $(this).attr("data-category");
 		showSortIcons();
@@ -1265,6 +1287,35 @@ function caInitializeClickHandlers() {
 	 * dropped — a true "Home" should land on the clean Apps URL.
 	 */
 	$("body").on("click", ".startupButton", function() {
+		/* Two modes (label-driven, see caSyncHomeMenuLabel):
+		   - "Clear Search"  -> a search / docker / category filter is active.
+		                        Just unwind that state in-page via appStore()
+		                        so the home sections come back without a full
+		                        page reload. Same path the search-box clear
+		                        uses when there's no .startupButton.
+		   - "Home"          -> nothing's active. Fall through to the original
+		                        full-navigate behaviour so query-string / state
+		                        debris is wiped cleanly. */
+		var d = (typeof data !== "undefined" && data) ? data : null;
+		var committed = d ? $.trim(String(d.committedSearchFilter || "")) : "";
+		var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
+		var isClearMode = !!committed || hasActive;
+		if (isClearMode) {
+			if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+			/* Prefer the inline-search soft-clear so a snapshot taken
+			   when the user started typing restores them to that menu
+			   item instead of dumping them on home. Falls back to
+			   appStore inside caInlineSoftClear when there's no
+			   snapshot. */
+			if (typeof caInlineSoftClear === "function") {
+				caInlineSoftClear();
+				return;
+			}
+			if (typeof appStore === "function") {
+				appStore();
+				return;
+			}
+		}
 		/* Home should start fresh — block saveState from re-writing on the way
 		   out via showSidebarApp() or guiSearchOnUnload(). */
 		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
@@ -1647,6 +1698,242 @@ function caInitializeEventHandlers() {
 	$("#searchBox").on("input", function() {
 		caSyncSearchFilterCollapsed();
 	});
+
+	/**
+	 * Desktop inline search input (skin.html .caDesktopSearchInline):
+	 * - Debounced 300ms.
+	 * - Fires doSearch once the trimmed value is at least 3 chars.
+	 * - When the value drops below 3 (backspace, clear), if a search was
+	 *   actually committed before, soft-reset to home via appStore() so the
+	 *   sections come back without a full page reload.
+	 * - Mirrors the value into #searchBox so the rest of CA's search code
+	 *   (which reads from #searchBox) keeps working unchanged.
+	 * Bound on body so it survives any future re-render of #searchFilter.
+	 */
+	(function() {
+		var lastCommitted = "";
+		/* 300ms debounce coalesces fast typing (and fast backspacing) so a
+		   burst of keystrokes doesn't fire one search per char. Concurrency
+		   gate on top: when the debounce fires, if a search is already in
+		   flight we only stash the latest value in pendingVal (mid-burst
+		   keystrokes get dropped), and caInlineSearchOnComplete flushes it
+		   when the in-flight chain settles. */
+		var inlineTimer = null;
+		var inFlightVal = null;
+		var pendingVal  = null;
+		/* Snapshot of what menu item was selected when the user started
+		   typing (and no search was already active). On clear we restore
+		   by clicking that menu item so the user lands back where they
+		   were instead of being dumped to home. */
+		var snapshotState = null;
+
+		function captureSnapshotIfFresh() {
+			/* Already snapshotted for this typing session, or nothing
+			   selected to record. Stale snapshots (from a prior typing
+			   session) get cleared by the body click handler below and by
+			   caInlineSearchResetState. */
+			if (snapshotState !== null) return;
+			/* Pick the actual selected menu (filter to .caCategoryAll first
+			   when the data-category is shared between a parent header and
+			   its synthetic "All" sub — only the All sub is ever truly
+			   selected in that scheme). */
+			var $allSelected = $(".selectedMenu");
+			if (!$allSelected.length) return;
+			var $sel = $allSelected.filter(".caCategoryAll").first();
+			if (!$sel.length) $sel = $allSelected.first();
+			snapshotState = {
+				selectedMenu: $sel.data("category") || "",
+				isAllSub:     $sel.hasClass("caCategoryAll"),
+				isStartup:    $sel.hasClass("startupButton")
+			};
+		}
+
+		window.caInlineSearchClearSnapshot = function() { snapshotState = null; };
+
+		/* Exposed so the .startupButton "Clear Search" path can route
+		   through the same snapshot-restore-or-appStore-fallback flow
+		   the backspace / X paths use. Caller is responsible for any
+		   accompanying UI cleanup (we just handle the search-state +
+		   restore here). */
+		window.caInlineSoftClear = inlineSoftClear;
+
+		/* Any direct user click on a menu item invalidates the snapshot —
+		   the next typing session should snapshot from the new menu state,
+		   not the one we captured before this click. inlineSoftClear's
+		   own restore trigger("click") also lands here, but the snapshot
+		   is already nullified by then (we read it into a local var
+		   first), so this is a harmless no-op for that path. Same goes
+		   for .sectionMenu and .startupButton clicks. */
+		$("body").on("click", ".caMenuItem, .startupButton", function() {
+			snapshotState = null;
+		});
+
+		function fireInlineSearch(val) {
+			inFlightVal = val;
+			pendingVal  = null;
+			$("#searchBox").val(val);
+			if (typeof doSearch === "function") doSearch(false, val);
+		}
+
+		function inlineSoftClear() {
+			inFlightVal = null;
+			pendingVal  = null;
+			$("#searchBox").val("");
+
+			/* Have a snapshot of where the user was before they started
+			   typing? Restore that menu item so they land back where they
+			   left off. Startup button gets the in-page appStore path so
+			   we don't full-navigate. */
+			if (snapshotState !== null && snapshotState.selectedMenu) {
+				var snap = snapshotState;
+				snapshotState = null;
+				if (snap.isStartup) {
+					if (typeof appStore === "function") {
+						appStore();
+					} else if (typeof clearSearchBox === "function") {
+						clearSearchBox();
+					}
+					return;
+				}
+				var $menu = $(".caMenuItem[data-category='" + snap.selectedMenu + "']");
+				if (snap.isAllSub && $menu.filter(".caCategoryAll").length) {
+					$menu = $menu.filter(".caCategoryAll");
+				}
+				if ($menu.length) {
+					if (typeof clearSearchBox === "function") clearSearchBox();
+					/* If the restored item lives inside a collapsed
+					   .subCategory wrapper (e.g. Multimedia → Photos), the
+					   sub-tree is display:none and the click handler would
+					   land us on the right content but the sidebar would
+					   show the parent collapsed with nothing highlighted.
+					   Open the wrapper first so the active branch is
+					   visible alongside its restored selection. */
+					$menu.first().closest(".subCategory").show();
+					$menu.first().trigger("click");
+					return;
+				}
+			}
+
+			/* No snapshot — fall back to the home / appStore reset so the
+			   user doesn't get stranded on stale search results. */
+			var d = (typeof data !== "undefined" && data) ? data : null;
+			var hadSearch = d && !!(d.searchActive || d.searchFlag || d.docker ||
+				(d.committedSearchFilter && String(d.committedSearchFilter).length));
+			if (hadSearch && typeof appStore === "function") {
+				appStore();
+			}
+		}
+
+		/* Exposed so clearSearchBox (Apps.page) can wipe the closure's
+		   lastCommitted / queue state synchronously. Without this, a Home
+		   click that resets #searchBox externally leaves lastCommitted at
+		   the prior term, and the user re-typing the same term within the
+		   next 250ms mirror-tick would be treated as a no-op. */
+		window.caInlineSearchResetState = function() {
+			lastCommitted = "";
+			inFlightVal   = null;
+			pendingVal    = null;
+			snapshotState = null;
+			clearTimeout(inlineTimer);
+		};
+
+		/* Exposed globally so the search chain in Apps.page can hand control
+		   back here once data.searchInProgress flips false again. Safe to
+		   call from any doSearch path — if nothing's queued it's a no-op. */
+		window.caInlineSearchOnComplete = function() {
+			inFlightVal = null;
+			if (pendingVal === null) return;
+			var next = pendingVal;
+			pendingVal = null;
+			if (next === "") {
+				if (lastCommitted !== "") {
+					lastCommitted = "";
+					inlineSoftClear();
+				}
+				return;
+			}
+			if (next !== lastCommitted) {
+				lastCommitted = next;
+				fireInlineSearch(next);
+			}
+		};
+
+
+		$("body").on("input", "#caInlineSearchBox", function() {
+			var $in = $(this);
+			var val = $.trim($in.val() || "");
+			$(".caInlineSearchClear").toggleClass("ca_hide", val === "");
+			/* User started typing into an empty box and there's no active
+			   search yet → remember the current menu state so a later
+			   clear restores them here. captureSnapshotIfFresh is a no-op
+			   when a snapshot already exists or when a search is in flight. */
+			if (val !== "") captureSnapshotIfFresh();
+			clearTimeout(inlineTimer);
+			inlineTimer = setTimeout(function() {
+				/* In-flight? Stash latest only — older queued values get
+				   dropped. caInlineSearchOnComplete will flush whatever's
+				   parked here once the in-flight chain settles. */
+				if (inFlightVal !== null) {
+					pendingVal = val;
+					return;
+				}
+				if (val === "") {
+					if (lastCommitted !== "") {
+						lastCommitted = "";
+						inlineSoftClear();
+					}
+				} else if (val !== lastCommitted) {
+					lastCommitted = val;
+					fireInlineSearch(val);
+				}
+			}, 300);
+		});
+
+		$("body").on("click keydown", ".caInlineSearchClear", function(e) {
+			if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			clearTimeout(inlineTimer);
+			var $in = $("#caInlineSearchBox");
+			$in.val("").trigger("focus");
+			$(".caInlineSearchClear").addClass("ca_hide");
+			lastCommitted = "";
+			inlineSoftClear();
+		});
+
+		/* Initial-load focus: when nothing in #searchBox and home is the
+		   landing view, drop focus into the inline so the user can start
+		   typing immediately. Delayed one tick so the bootstrap's existing
+		   focus shuffles (the modal init, etc.) don't fight us. */
+		setTimeout(function() {
+			if (typeof caFocusInlineSearchIfHome === "function") {
+				caFocusInlineSearchIfHome();
+			}
+		}, 0);
+
+		/* External writes (Home button soft-reset, restoreState filter
+		   restore, etc.) land in #searchBox. Mirror those back into the
+		   inline input so it doesn't show a stale query. lastCommitted is
+		   also re-synced from #searchBox so the input handler doesn't
+		   treat the user re-typing the same term as a no-op after the
+		   Home button cleared things behind our back. */
+		var lastMirror = null;
+		setInterval(function() {
+			var $inline = $("#caInlineSearchBox");
+			if (!$inline.length) return;
+			var sb = $("#searchBox").val() || "";
+			if (sb === lastMirror) return;
+			lastMirror = sb;
+			/* Always re-sync lastCommitted so a Home click that clears
+			   #searchBox to "" doesn't leave the closure thinking the
+			   user is "still" on their previous search term. */
+			if (lastCommitted !== sb) lastCommitted = sb;
+			if ($inline.is(":focus")) return; // don't fight user typing
+			if (($inline.val() || "") !== sb) {
+				$inline.val(sb);
+				$(".caInlineSearchClear").toggleClass("ca_hide", sb === "");
+			}
+		}, 250);
+	})();
 
 	$("#searchBox").on("focus", function() {
 		if ($("body").hasClass("ca_searchModalOpen")) {

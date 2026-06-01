@@ -245,7 +245,7 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/diff.js");?>'></script>
 <?endif;?>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
-<!-- marked (named `markdown.js` inside dockerMan) — shipped by dynamix already,
+<!-- marked (named markdown.js inside dockerMan) — shipped by dynamix already,
      so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
      to render README.md client-side instead of going through PHP. -->
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
@@ -254,13 +254,14 @@ function tr($string,$ret=false) {
      a fixed window instead of a frame-by-frame Chart.js redraw. -->
 <script src='<?autov("/webGui/javascript/smoothie.js");?>'></script>
 
-<!-- Settings-difference flags. Class list is `ca_<key>` for every key in
-     default.cfg whose runtime value in $GLOBALS['caSettings'] differs from
-     the shipped default — built up top in PHP. Never displayed; queried via
-     JS or scoped CSS selectors when something needs to branch on a user-
-     configured deviation. htmlspecialchars on the interpolation as a
-     belt-and-braces hygiene pass (the keys are filtered to [A-Za-z0-9_]
-     above, so they're already safe). -->
+<?php /* Settings-difference flags. Class list is `ca_KEY` (one entry per
+         default.cfg key) for every key whose runtime value in
+         $GLOBALS['caSettings'] differs from the shipped default — built
+         up top in PHP. Never displayed; queried via JS or scoped CSS
+         selectors when something needs to branch on a user-configured
+         deviation. htmlspecialchars on the interpolation as a belt-and-
+         braces hygiene pass (the keys are filtered to safe identifier
+         chars above, so they're already safe). */ ?>
 <div id='caSettingsFlags' class='ca_hide <?= htmlspecialchars($caSettingsClasses, ENT_QUOTES) ?>' aria-hidden='true'></div>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
@@ -271,6 +272,7 @@ const execURL = "/plugins/<?=$plugin?>/include/exec.php";
 
 var searchBoxInput;
 var searchBoxAwesomplete;
+var inlineSearchAwesomplete;
 
 var data = new Object();
 data.committedSearchFilter = "";
@@ -288,6 +290,7 @@ data.searchFlag = false;
 data.searchActive = false; // Sets whether changepage re-sorts the displayed templates.
 data.searchLimitOverride = false; // One-shot "Show All Results" override on the display-count line: widens the current search past the searchLimitToName setting until the next user-typed search resets it.
 data.searchLimitOverrideFilter = ""; // Filter string that earned the override — once it changes, the override is dropped.
+data.searchEpoch = 0; // Per-search token. Bumped on each doSearch and on any clearSearchBox; live-search callbacks compare their captured value against the current and bail out if the user has moved on.
 data.previousAppsSection = ""; // The section the user is on within previous apps
 data.searchInProgress = false;
 data.deprecated = false; // Only set by reinstalling a deprecated plugin
@@ -742,6 +745,210 @@ $(function(){
 			return li;
 		}
 	});
+
+	/* Desktop inline-search Awesomplete: shares the same list as the modal
+	   instance but renders as a single-row horizontal strip of .caButton
+	   chips with caret scrollers on either side (styled in
+	   community.applications.css under .caDesktopSearchInline .awesomplete).
+	   populateAutoComplete() pushes the list into both instances. */
+	var inlineSearchInput = $("#caInlineSearchBox").get(0);
+	if (inlineSearchInput && typeof Awesomplete === "function") {
+		inlineSearchAwesomplete = new Awesomplete(inlineSearchInput, {
+			item: function(text, input) {
+				var li = Awesomplete.ITEM(text, input);
+				try {
+					li.classList.add("caButton");
+					li.classList.add("caInlineSuggestion");
+				} catch (e) { /* no-op */ }
+				return li;
+			},
+			minChars: 2,
+			maxItems: 100
+		});
+		/* Move the suggestion <ul> out of its Awesomplete wrapper and into
+		   a new strip-wrapper that lives at the END of .searchArea, so
+		   flex layout naturally puts it inline after .ca_displayCount and
+		   it fills the rest of the row. Carets become siblings of the ul
+		   inside that strip-wrapper. Awesomplete's `this.ul` still
+		   references the original node, so opens / closes / list refreshes
+		   all keep working from the original instance. */
+		try {
+			var awesompleteContainer = inlineSearchAwesomplete.container;
+			var stripUl    = awesompleteContainer && awesompleteContainer.querySelector("ul");
+			var searchArea = document.querySelector(".searchArea");
+			if (stripUl && searchArea && !searchArea.querySelector(".caInlineStripWrap")) {
+				var stripWrap = document.createElement("div");
+				stripWrap.className = "caInlineStripWrap";
+
+				var leftBtn = document.createElement("span");
+				leftBtn.className = "caInlineCaret caInlineCaretLeft";
+				leftBtn.setAttribute("role", "button");
+				leftBtn.setAttribute("tabindex", "0");
+				leftBtn.setAttribute("aria-label", "Scroll left");
+				leftBtn.innerHTML = "<i class='fa fa-chevron-left' aria-hidden='true'></i>";
+
+				var rightBtn = document.createElement("span");
+				rightBtn.className = "caInlineCaret caInlineCaretRight";
+				rightBtn.setAttribute("role", "button");
+				rightBtn.setAttribute("tabindex", "0");
+				rightBtn.setAttribute("aria-label", "Scroll right");
+				rightBtn.innerHTML = "<i class='fa fa-chevron-right' aria-hidden='true'></i>";
+
+				stripWrap.appendChild(leftBtn);
+				stripWrap.appendChild(stripUl);   // move the live awesomplete ul
+				stripWrap.appendChild(rightBtn);
+				searchArea.appendChild(stripWrap);
+
+				var scrollByStep = function(dir) {
+					var step = Math.max(60, Math.floor(stripUl.clientWidth * 0.7));
+					stripUl.scrollBy({ left: dir * step, behavior: "smooth" });
+				};
+				/* Awesomplete closes on the input losing focus / "outside"
+				   click. Carets live in .searchArea, outside the awesomplete
+				   wrapper — so a normal click would steal focus from the
+				   input and Awesomplete would close before the scroll even
+				   happens. preventDefault on mousedown keeps focus on the
+				   input; the click still fires. stopPropagation guards
+				   against any document-level "click outside the widget"
+				   listener Awesomplete may install. */
+				$(stripWrap).on("mousedown", ".caInlineCaret", function(e) {
+					e.preventDefault();
+					e.stopPropagation();
+				});
+				$(stripWrap).on("click", ".caInlineCaret", function(e) {
+					e.stopPropagation();
+				});
+				$(stripWrap).on("click keydown", ".caInlineCaretLeft", function(e) {
+					if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+					e.preventDefault();
+					scrollByStep(-1);
+				});
+				$(stripWrap).on("click keydown", ".caInlineCaretRight", function(e) {
+					if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+					e.preventDefault();
+					scrollByStep(1);
+				});
+
+				/* Scroll-position-aware caret fade — see CSS for
+				   .caInlineCaretsAtStart on the wrap (left caret) and
+				   .caInlineCaretsAtEnd on the right caret itself (it's
+				   position:fixed outside the wrap so the wrap's class
+				   wouldn't reach it). */
+				var updateCaretState = function() {
+					var atStart = stripUl.scrollLeft <= 1;
+					var atEnd   = (stripUl.scrollLeft + stripUl.clientWidth) >= (stripUl.scrollWidth - 1);
+					stripWrap.classList.toggle("caInlineCaretsAtStart", atStart);
+					rightBtn.classList.toggle("caInlineCaretsAtEnd", atEnd);
+				};
+				$(stripUl).on("scroll", updateCaretState);
+				/* Awesomplete fires awesomplete-open every time evaluate()
+				   produces matches (not just on the closed→open transition),
+				   so this single hook also covers the fast-typer scenario. */
+				$("#caInlineSearchBox").on("awesomplete-open", function() {
+					stripUl.scrollLeft = 0;
+					updateCaretState();
+				});
+
+				/* Continuously snap focus back to the inline search input
+				   after any click on the page — UNLESS the sidebar is
+				   open, a sweetalert is up, the search modal is open
+				   (mobile), the modal scrim is visible, the user is
+				   actively typing in some other input, OR we're on a
+				   touch device (phone / tablet) where focusing an input
+				   would pop the virtual keyboard on every single click.
+				   Delayed one tick so any DOM state the click triggered
+				   (.sidenavShow getting added, etc.) is in place before
+				   we check. */
+				if (typeof window.caShouldKeepSearchInFocus !== "function") {
+					window.caShouldKeepSearchInFocus = function() {
+						/* The ca_keepSearchInFocus class is added to
+						   #caSettingsFlags when the live value differs from
+						   default.cfg ("yes"). Its presence therefore means
+						   the user explicitly turned the setting off. */
+						return !$("#caSettingsFlags").hasClass("ca_keepSearchInFocus");
+					};
+				}
+				if (typeof window.caIsLikelyTouchDevice !== "function") {
+					window.caIsLikelyTouchDevice = function() {
+						try {
+							/* (pointer:coarse) is the canonical "primary
+							   input is touch" signal. (hover:none) adds
+							   "no fine hover mechanism" so an iPad with a
+							   mouse plugged in (which exposes fine pointer
+							   AND hover) is treated as desktop. */
+							if (window.matchMedia &&
+							    window.matchMedia("(pointer: coarse)").matches &&
+							    window.matchMedia("(hover: none)").matches) return true;
+							/* Fallback for older Edge/iPadOS Safari where
+							   the media-query reporting is unreliable.
+							   maxTouchPoints + a Mobile UA token is a
+							   reasonable heuristic. */
+							var ua = navigator.userAgent || "";
+							if ((navigator.maxTouchPoints || 0) > 1 &&
+							    /Mobi|Android|iPhone|iPad|iPod|Tablet|Touch/i.test(ua)) return true;
+						} catch (e) { /* no-op */ }
+						return false;
+					};
+				}
+				document.addEventListener("click", function() {
+					if (!caShouldKeepSearchInFocus()) return;
+					if (caIsLikelyTouchDevice()) return;
+					setTimeout(function() {
+						if ($(".sidenav").hasClass("sidenavShow")) return;
+						if (document.body.classList.contains("ca_sweetalert_open")) return;
+						if (document.body.classList.contains("ca_searchModalOpen")) return;
+						if ($(".sweet-alert.showSweetAlert").length) return;
+						/* MagnificPopup paints its own .mfp-bg scrim + .mfp-wrap
+						   container outside the .ca_modal_overlay flow. Skip
+						   the refocus when its wrap is mounted so clicks in
+						   the lightbox don't get yanked back to the search box. */
+						if ($(".mfp-wrap").length || $(".mfp-bg").length) return;
+						var $scrim = $(".ca_modal_overlay");
+						if ($scrim.length && $scrim.is(":visible") && parseFloat($scrim.css("opacity")) > 0.01) return;
+						var ae = document.activeElement;
+						if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.id !== "caInlineSearchBox") return;
+						if (ae && ae.isContentEditable) return;
+						var $inline = $("#caInlineSearchBox");
+						if (!$inline.length || !$inline.is(":visible")) return;
+						$inline.trigger("focus");
+					}, 0);
+				});
+
+				/* Suggestions stay open for the duration of any active
+				   search — once the user typed something that landed a
+				   doSearch, the strip should stick around until they clear
+				   the input. Awesomplete will close on blur / selection /
+				   no-match etc.; this handler re-opens it whenever an
+				   active search is in flight. The mirror poll in
+				   clickHandlers.js (and clearSearchBox) takes care of
+				   suppressing the re-open when #searchBox is wiped. */
+				$("#caInlineSearchBox").on("awesomplete-close", function() {
+					var d = (typeof data !== "undefined" && data) ? data : null;
+					if (!d) return;
+					var active = !!(d.searchActive || d.searchFlag) && !d.docker;
+					if (!active) return;
+					var val = $.trim($(this).val() || "");
+					if (val.length < (inlineSearchAwesomplete.minChars || 1)) return;
+					/* Defer a tick so the close handler unwinds before we
+					   ask Awesomplete to re-render its open state. */
+					setTimeout(function() {
+						try { inlineSearchAwesomplete.evaluate(); } catch (e) { /* no-op */ }
+					}, 0);
+				});
+			}
+		} catch (e) { /* no-op */ }
+
+		/* Selecting a chip drops its text into the inline input AND mirrors
+		   to #searchBox, then fires doSearch directly so the keystroke
+		   pipeline isn't waiting on the debounce. */
+		$("#caInlineSearchBox").on("awesomplete-selectcomplete", function() {
+			var val = $.trim($(this).val());
+			if (val !== "" && typeof doSearch === "function") {
+				$("#searchBox").val(val);
+				doSearch(false, val);
+			}
+		});
+	}
 
 	// While the Awesomplete dropdown is open, disable other click handlers by toggling a body class.
 	$("#searchBox").on("awesomplete-open", function() {
@@ -1216,7 +1423,14 @@ function changePage(pageNumber, append) {
 	var selected = data.selected;
 	data.currentpage = pageNumber;
 
-	post({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
+	/* When this fires as part of an in-flight live search (doSearch sets
+	   data.searchInProgress around its postNoSpin chain), route through
+	   postNoSpin so the spinner doesn't flash and the inline pill doesn't
+	   collapse mid-stream. User-driven infinite-scroll / pagination falls
+	   through to plain post() — that's the very interaction we want to
+	   trigger the collapse. */
+	var postFn = data.searchInProgress ? postNoSpin : post;
+	postFn({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
 		updateDisplay(result.display_data || result.display, doAppend);
 		if (!doAppend) scrollToTop();
 	});
@@ -1361,7 +1575,20 @@ function doSearch(button,newSearch) {
 	caSyncHomeSearchSubtitle();
 
 	data.maxPerPage = getMaxPerPage();
-	post({action:'get_content',filter:filter,maxPerPage:data.maxPerPage,searchLimitOverride:data.searchLimitOverride?1:0},function(result) {
+	/* Per-request epoch token. Each doSearch call bumps the counter
+	   and snapshots the new value; if a later side-action (e.g. user
+	   switching to Installed / Previous / a section menu — which call
+	   caInvalidateSearchEpoch via clearSearchBox) changes the global,
+	   our two callbacks below detect that and bail out instead of
+	   stomping the new view with stale search results. */
+	var myEpoch = ++data.searchEpoch;
+	/* Live search uses postNoSpin: no spinner flash on every keystroke,
+	   and because postNoSpin sets noSpinner=true the post() callback's
+	   inline-pill collapse + unselected-subs hide are both skipped — so
+	   typing doesn't fold the input away or fight menu state. Nested
+	   getCategoriesPresent uses the same route. */
+	postNoSpin({action:'get_content',filter:filter,maxPerPage:data.maxPerPage,searchLimitOverride:data.searchLimitOverride?1:0},function(result) {
+		if (myEpoch !== data.searchEpoch) return; // user moved on
 		enableButtons();
 		$(".selectedMenu").removeClass("selectedMenu");
 		$(".subCategory").hide();
@@ -1369,13 +1596,17 @@ function doSearch(button,newSearch) {
 		updateDisplay(result.display_data || result.display);
 		caSyncSearchFilterCollapsed();
 		data.section = "AppStore";
-		post({action:'getCategoriesPresent'},function(result) {
+		postNoSpin({action:'getCategoriesPresent'},function(result) {
+			if (myEpoch !== data.searchEpoch) return; // user moved on
 			$(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
 			result.forEach(function(category) {
 				var menuItem = $.find(".caMenuItem[data-category='"+category+"']");
 				$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
 			});
 			data.searchInProgress = false;
+			/* Tell the inline-search input we're free again so it can flush
+			   any keystrokes the user typed while this search was in flight. */
+			if (typeof caInlineSearchOnComplete === "function") caInlineSearchOnComplete();
 		});
 	});
 }
@@ -1410,7 +1641,11 @@ function changeSortOrder(button,buttonClass,previousApps) {
 	} else {
 		data.allLoaded = false;
 	}
-	post(postOpts,function(result) {
+	/* Same gating as changePage(): if we're mid live-search, stay silent
+	   (no spinner, no inline-collapse). Otherwise treat it as a user
+	   interaction that should fold the pill away. */
+	var postFn = data.searchInProgress ? postNoSpin : post;
+	postFn(postOpts,function(result) {
 		updateDisplay(result.display_data || result.display);
 	});
 }
@@ -1506,6 +1741,13 @@ function populateAutoComplete(after) {
 		searchBoxAwesomplete.list = result.autocomplete;
 		searchBoxAwesomplete.maxItems = 20;
 		searchBoxAwesomplete.minChars = 3;
+		/* Same list feeds the desktop inline strip; keep its display caps
+		   wider since it lays out as a horizontal scroller. */
+		if (inlineSearchAwesomplete) {
+			inlineSearchAwesomplete.list = result.autocomplete;
+			inlineSearchAwesomplete.maxItems = 100;
+			inlineSearchAwesomplete.minChars = 2;
+		}
 		
 		$("#searchBox").off("awesomplete-selectcomplete", awesompleteSearch);
 		$("#searchBox").on("awesomplete-selectcomplete", awesompleteSearch);
@@ -1559,8 +1801,19 @@ function openNewWindow(newURL,target='_self') {
  * Clear `#searchBox`, re-enable all category rows, reset search/docker flags, and sync collapsed search / Home menu labels.
  */
 function clearSearchBox() {
+	/* Invalidate any in-flight live-search response so its callback
+	   can't repaint App Store state over whatever view the caller is
+	   about to show (Installed / Previous / Pinned / a category / etc.). */
+	data.searchEpoch = (data.searchEpoch || 0) + 1;
 	$(".categoryMenu").removeClass("caMenuDisabled").addClass("caMenuEnabled");
 	$("#searchBox").val("");
+	/* Mirror to the desktop inline input (skin.html .caDesktopSearchInline) so
+	   it doesn't show a stale query after Home / soft-clear / restore. Also
+	   reset the inline closure's bookkeeping (lastCommitted etc.) so re-typing
+	   the just-cleared term immediately works as a fresh search. */
+	$("#caInlineSearchBox").val("");
+	$(".caInlineSearchClear").addClass("ca_hide");
+	if (typeof caInlineSearchResetState === "function") caInlineSearchResetState();
 	hideSortIcons();
 	data.committedSearchFilter = "";
 	/* Reset search-state flags so the Home menu reverts from "Clear Search" to
@@ -1641,6 +1894,19 @@ function closeSidebar(keepIdentity=false,visible=false) {
 	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide").scrollTop(0);
 	$(".nav-user.show").show();
 	enableSearch();
+	/* Sidebar closed → refocus the inline search input so the user can
+	   keep typing without re-clicking the search box. Skipped when the
+	   "Keep Search In Focus" setting is off, on touch devices (would
+	   pop the virtual keyboard), or while a MagnificPopup is still open
+	   (closeSidebar is called from MFP's beforeOpen hook). */
+	if (typeof caShouldKeepSearchInFocus === "function" && !caShouldKeepSearchInFocus()) return;
+	if (typeof caIsLikelyTouchDevice === "function" && caIsLikelyTouchDevice()) return;
+	setTimeout(function() {
+		if ($(".mfp-wrap").length || $(".mfp-bg").length) return;
+		var $inline = $("#caInlineSearchBox");
+		if (!$inline.length || !$inline.is(":visible")) return;
+		$inline.trigger("focus");
+	}, 0);
 }
 
 /**
@@ -2054,6 +2320,11 @@ function appStore() {
 	updateContent();
 	clearCategory();
 	data.docker = "";
+	/* Soft-reset back to home — drop focus into the desktop inline search
+	   so the user can immediately start typing. Bails on mobile / when a
+	   search is still showing. Wrap in a microtask so it lands after the
+	   updateContent post starts and any in-flight focus shuffles settle. */
+	setTimeout(caFocusInlineSearchIfHome, 0);
 }
 
 /**
@@ -2616,31 +2887,21 @@ function caUpdateDisplayCount() {
 	if (last > total) last = total;
 	if (last < first) last = first;
 
-	var countText = tr("Displaying") + " " + first + " - " + last + " " + tr("of") + " " + total;
-	/* Append a hint + "Show All Results" affordance when the user has
-	   narrowed search via the "Limit searches to name" setting and a
-	   search is actually active — makes a quiet result set explainable
-	   without digging into Settings, and offers a one-click way to widen
-	   the current search.
-	   Skipped while the one-shot override is already in effect (we
-	   already widened this search). The flag class is emitted on
-	   #caSettingsFlags by skin.php when the live setting differs from
-	   default.cfg. */
+	var countText = first + " - " + last + " " + tr("of") + " " + total;
+	/* Append an "ALL RESULTS" affordance when the user has narrowed search
+	   via the "Limit search results" setting and a search is actually
+	   active — one click to widen the current search. Skipped while the
+	   one-shot override is already in effect, and on Docker Hub search
+	   (different code path on the server, the setting doesn't apply). */
 	var searchOn = !!(data.searchActive || data.searchFlag);
 	var limitedByName = $("#caSettingsFlags").hasClass("ca_searchLimitToName");
-	/* Docker Hub search uses a completely different code path on the server
-	   (no searchLimitToName involvement), so the limit-note is irrelevant
-	   and would mislead. */
 	var isDockerSearch = !!data.docker;
 	if (searchOn && limitedByName && !data.searchLimitOverride && !isDockerSearch) {
-		var note  = stripTags(tr("Search results limited due to user settings"));
-		var allTx = stripTags(tr("Show All Results"));
+		var allTx = stripTags(tr("ALL RESULTS"));
 		$el.html(
 			$("<span></span>").text(countText).prop("outerHTML")
 			+ " — "
-			+ $("<span></span>").text(note).prop("outerHTML")
-			+ " "
-			+ "<span class='caShowAllResults' role='button' tabindex='0' style='cursor:pointer;text-decoration:underline;'>"
+			+ "<span class='caShowAllResults' role='button' tabindex='0'>"
 			+ $("<span></span>").text(allTx).html()
 			+ "</span>"
 		).show();
@@ -2924,6 +3185,26 @@ function caHideUnselectedSubs($keepOpen) {
 /* Back-compat alias for older call sites. */
 function caCollapseUnselectedSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
 function caNormalizeSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
+
+/**
+ * Focus the desktop inline search input. Called from paths that land the
+ * user on the Home page (initial bootstrap, soft-reset via appStore,
+ * "Clear Search" click, etc.) so they can immediately start typing. Bails
+ * silently on mobile — the inline isn't visible there.
+ */
+function caFocusInlineSearchIfHome() {
+	/* Skip the auto-focus when the user has explicitly disabled the
+	   "Keep Search In Focus" setting, OR when we detect a touch device
+	   (phones/tablets) where focusing an input would pop the virtual
+	   keyboard. The user can still tap the input themselves when they
+	   actually want the keyboard. */
+	if (typeof caShouldKeepSearchInFocus === "function" && !caShouldKeepSearchInFocus()) return;
+	if (typeof caIsLikelyTouchDevice === "function" && caIsLikelyTouchDevice()) return;
+	var $inline = $("#caInlineSearchBox");
+	if (!$inline.length || !$inline.is(":visible")) return;
+	if (($("#searchBox").val() || "") !== "") return; // active search — don't steal focus
+	$inline.trigger("focus");
+}
 
 /**
  * Collapse mobile menu when the close control is in the expanded state.
@@ -4615,6 +4896,9 @@ function caInitSidebarReadmore($scope) {
  * Supported in every browser we target (Chrome 64+, Firefox 68+, Safari 15+).
  */
 function slideInSidebar() {
+	/* If the mobile hamburger menu happens to be open, fold it away so
+	   the sidebar isn't sliding in over a competing fullscreen overlay. */
+	if (typeof closeMenu === "function") closeMenu();
 	$(".sidenav").addClass("sidenavShow").removeClass("sidenavHide");
 	var el = document.querySelector(".sidenav.sidenavShow");
 	if (el) el.focus({ preventScroll: true });

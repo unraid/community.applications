@@ -20,24 +20,20 @@
 require_once __DIR__.'/skin_helpers.php';
 
 /**
- * Build the "Search results limited due to user settings" note + clickable
- * "Show All Results" affordance, returned as HTML ready to inject under the
- * empty-result banner. Returns "" when the note shouldn't appear (no active
- * search filter, setting off, override already in effect, etc.).
- *
- * get_content() applies any incoming searchLimitOverride to $GLOBALS BEFORE
- * the template work runs, so checking searchLimitToName === "yes" here
- * implicitly means "the override is not in effect".
+ * Build the "ALL RESULTS" affordance shown beneath "No Matching Applications
+ * Found" when "Limit search results" narrowed everything away. Returns "" when
+ * the link shouldn't appear (no active search filter, setting off, or the
+ * override is already in effect — get_content() applies any incoming
+ * searchLimitOverride to $GLOBALS BEFORE this runs, so checking
+ * searchLimitToName === "yes" here implicitly means override-not-in-effect).
  */
 function caBuildSearchLimitHintHtml(): string {
 	$filter = trim((string)getPost("filter", ""));
 	if ($filter === "") return "";
 	if (($GLOBALS['caSettings']['searchLimitToName'] ?? "no") !== "yes") return "";
-	$note = tr("Search results limited due to user settings");
-	$all  = tr("Show All Results");
+	$all = tr("ALL RESULTS");
 	return "<div class='ca_searchLimitNote'>"
-		. htmlspecialchars($note, ENT_QUOTES, 'UTF-8')
-		. " <span class='caShowAllResults' role='button' tabindex='0' style='cursor:pointer;text-decoration:underline;'>"
+		. "<span class='caShowAllResults' role='button' tabindex='0'>"
 		. htmlspecialchars($all, ENT_QUOTES, 'UTF-8')
 		. "</span></div>";
 }
@@ -1076,16 +1072,10 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 		$displayHeader .= "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>".caBuildSearchLimitHintHtml()."<script>hideSortIcons();</script>";
 	}
 
-	if ($count == 1 && ! isset($template['homeScreen']) && $pageNumber == 1) {
-		if ($template['RepositoryTemplate']) {
-			$displayHeader .= "<script>showRepoPopup('".htmlentities($template['RepoName'], ENT_QUOTES)."');</script>";
-		} else {
-			if ($template['InstallPath']) {
-				$template['Path'] = $template['InstallPath'];
-			}
-			$displayHeader .= "<script>showSidebarApp('{$template['Path']}','{$template['Name']}');</script>";
-		}
-	}
+	/* Auto-opening the sidebar (or repo popup) when a query returns exactly
+	   one match was previously emitted here. Removed — surprising behaviour
+	   when typing live in the new desktop inline search (every narrowed
+	   query that briefly hits one match would slam the sidebar open). */
 
 	if ($returnArray) {
 		return [
