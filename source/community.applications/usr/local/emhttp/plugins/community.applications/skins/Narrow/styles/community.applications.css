@@ -3322,13 +3322,6 @@ input[type="button"] {
 		color: var(--text-color);
 		min-width: 0;
 	}
-	/* Visible keyboard-focus ring on the inline pill: the input itself
-	   has outline:none, so we promote the pill to the focus target via
-	   :focus-within. Mouse focus stays quiet via :focus-visible. */
-	#searchFilter .caDesktopSearchInline:focus-within {
-		outline: 2px solid var(--brand-orange);
-		outline-offset: 2px;
-	}
 	#searchFilter .caInlineSearchIcon {
 		padding: 0.4rem 0.6rem 0.4rem 0.9rem;
 		font-size: 1.3rem;
