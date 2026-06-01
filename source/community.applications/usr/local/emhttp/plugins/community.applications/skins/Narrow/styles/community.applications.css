@@ -3426,7 +3426,7 @@ input[type="button"] {
 	}
 	.searchArea > .caInlineStripWrap > ul > li mark {
 		background: transparent;
-		color: var(--brand-orange);
+		color: var(--ca-suggestion-mark-color);
 	}
 	.caInlineCaret {
 		display: inline-flex;
