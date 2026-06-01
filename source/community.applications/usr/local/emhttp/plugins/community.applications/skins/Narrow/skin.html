@@ -554,15 +554,6 @@ $(function() {
 						<div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
 					</div>
 
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
-							<span><?tr("Autoplay videos");?></span>
-							<input type='hidden' name='autoplayVideos' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='autoplayVideos' value='yes' <?=($GLOBALS['caSettings']['autoplayVideos'] ?? "no") == "yes" ? "checked" : ""; ?>>
-						</div>
-						<div class='ca_settingDescription'><?tr("Automatically start playing videos when opened from an application sidebar.");?></div>
-					</div>
-
 					<?php /* Always rendered; caBindSettingsFormHandlers() in
 					         clickHandlers.js checks for `.Theme--responsive` on
 					         <html> at panel-open time and applies the disabled

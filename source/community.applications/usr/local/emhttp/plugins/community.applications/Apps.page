@@ -368,12 +368,12 @@ var ca_done_override = false;
 
 /* MagnificPopup iframe URL patterns for the media gallery. The lib's defaults
    only match `youtube.com/watch?v=...` (so `youtu.be/...` short links never
-   get rewritten to the embed URL with autoplay). Override to handle both
-   forms and add `mute=1` so the autoplay rule isn't blocked by the browser
-   when the user has opted in to autoplay via settings. */
-var caAutoplayVideos = caHasSetting("autoplayVideos");
-var caYtParams    = caAutoplayVideos ? "?autoplay=1&mute=1&playsinline=1" : "?playsinline=1";
-var caVimeoParams = caAutoplayVideos ? "?autoplay=1&muted=1" : "";
+   get rewritten to the embed URL). Override to handle both forms.
+   The full-size MFP popup never autoplays — opening it is a deliberate
+   "watch this" action, so the user presses play. (Inline sidebar tiles are
+   the opposite: they always autoplay muted — see caMountInlineVideoPreviews.) */
+var caYtParams    = "?playsinline=1";
+var caVimeoParams = "";
 
 /* ────────────────────────────────────────────────────────────────────────
    YouTube resume-from-timestamp for MagnificPopup video galleries.
@@ -649,6 +649,78 @@ var caMfpIframePatterns = {
 		src: "//player.vimeo.com/video/%id%" + caVimeoParams
 	}
 };
+
+/* ────────────────────────────────────────────────────────────────────────
+   Inline autoplaying video preview for sidebar media tiles.
+
+   Instead of a static poster, the first video tile in a sidebar gallery can
+   render a live, muted, looping embed in the small tile itself; clicking it
+   still opens the full-size MFP popup (the iframe is pointer-events:none, so
+   the click falls through to the .screenshot delegate MFP is bound to). We do
+   this ourselves rather than asking MFP to render inline — MFP is a single-
+   instance popup, not built to mount an always-open player in a tile.
+
+   Deliberately NOT reusing caMfpIframePatterns: the popup embeds carry
+   enablejsapi/origin/resume params for the resume-from-timestamp feature,
+   whereas a preview wants the opposite — chromeless, looping, no controls,
+   no keyboard. Different intent, so a dedicated builder is clearer than
+   threading a mode flag through the shared map. */
+function caYtPreviewEmbed(id) {
+	/* nocookie host since this now loads on every sidebar open, not just on a
+	   click. playlist=<id> is required for loop=1 to loop a single video (a
+	   long-standing YouTube quirk). controls/disablekb/fs off so the preview
+	   reads as non-interactive. */
+	return "https://www.youtube-nocookie.com/embed/" + id +
+		"?autoplay=1&mute=1&loop=1&playlist=" + id +
+		"&controls=0&playsinline=1&modestbranding=1&rel=0&disablekb=1&fs=0";
+}
+function caBuildInlinePreviewEmbed(url) {
+	if (!url) return null;
+	var m;
+	if (url.indexOf("youtube.com/") > -1 && (m = url.match(/[?&]v=([A-Za-z0-9_-]+)/))) return caYtPreviewEmbed(m[1]);
+	if ((m = url.match(/youtu\.be\/([A-Za-z0-9_-]+)/)))                               return caYtPreviewEmbed(m[1]);
+	/* Vimeo's background=1 is purpose-built for this: chromeless, muted,
+	   looping autoplay with no UI. */
+	if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)))                             return "https://player.vimeo.com/video/" + m[1] + "?background=1&autoplay=1&muted=1&loop=1";
+	return null; // unknown provider — leave the static thumbnail in place
+}
+/* Mount an inline muted-autoplay preview into every sidebar video tile.
+   Always on — sidebar tiles are previews, so they always autoplay muted (the
+   full-size MFP popup is the one that never autoplays). Multiple videos on one
+   app are rare, so the extra embeds are just bandwidth, not a real concern. */
+function caMountInlineVideoPreviews() {
+	$(".caMediaGallery .screenshot.mfp-iframe").each(function() {
+		var $tile = $(this);
+		if ($tile.data("caInlinePreview")) return;
+		var src = caBuildInlinePreviewEmbed($tile.attr("data-mfp-src"));
+		if (!src) return;
+		var $img = $tile.find("img.screen");
+		if (!$img.length) return;
+		$tile.data("caInlinePreview", true);
+		/* The poster img drives the tile's size (variable width, fixed height).
+		   Overlay the iframe exactly on top of it, retrying until layout settles
+		   (the sidebar slides in, so offsetWidth can be 0 on the first frame). */
+		var attempts = 0;
+		var mount = function() {
+			var img = $img[0];
+			var w = img.offsetWidth, h = img.offsetHeight;
+			if ((!w || !h) && attempts++ < 30) { setTimeout(mount, 60); return; }
+			if (!w || !h) return;
+			$("<iframe class='caInlineVideoPreview' frameborder='0' tabindex='-1' aria-hidden='true' allow='autoplay; encrypted-media' referrerpolicy='strict-origin-when-cross-origin'></iframe>")
+				.attr("src", src)
+				.css({ top: img.offsetTop + "px", left: img.offsetLeft + "px", width: w + "px", height: h + "px" })
+				.appendTo($tile);
+			$img.css("visibility", "hidden"); // keep it holding layout; the iframe covers it
+			/* Pin the play-icon overlay to the iframe's exact center instead of the
+			   tile's 50%/50% — the tile box (poster + margins) and the absolutely
+			   positioned iframe can diverge, which slides the icon off the video.
+			   The ::after reads these vars (falling back to 50% when unset). */
+			$tile[0].style.setProperty("--caPlayLeft", (img.offsetLeft + w / 2) + "px");
+			$tile[0].style.setProperty("--caPlayTop",  (img.offsetTop  + h / 2) + "px");
+		};
+		mount();
+	});
+}
 
 // handle 3rd party links on older versions of OS
 <?php
@@ -4549,11 +4621,11 @@ function showSidebarApp(apppath,appname) {
 						/* MFP binds keydown(left/right) to gallery.next/prev
 						   regardless of item count. With the default loop:true,
 						   a single-item gallery wraps back to itself on each
-						   key, which re-runs updateItemHTML() and recreates
-						   the iframe with ?autoplay=1 — restarting the video.
-						   Disabling loop makes next()/prev() early-return at
-						   both boundaries (0 and length-1), so the keys are
-						   effectively no-ops when items.length === 1. */
+						   key, which re-runs updateItemHTML() and rebuilds the
+						   iframe from scratch — reloading the video and losing
+						   playback position. Disabling loop makes next()/prev()
+						   early-return at both boundaries (0 and length-1), so
+						   the keys are no-ops when items.length === 1. */
 						this.st.gallery.loop = (this.items && this.items.length > 1);
 					},
 					afterClose: function() {
@@ -4589,6 +4661,7 @@ function showSidebarApp(apppath,appname) {
 				var $gallery = $('.caMediaGallery');
 				if ($gallery.length) $gallery.magnificPopup('open', 0);
 			});
+			caMountInlineVideoPreviews();
 			slideInSidebar();
 
 			if (!data.caReadmoreTopLessBound) {
@@ -4988,7 +5061,7 @@ function showRepoPopup(repository) {
 					closeSidebar(true);
 					/* See app-popup gallery: disable loop for 1-item galleries
 					   so arrow keys can't re-trigger updateItemHTML() and
-					   restart the autoplay iframe. */
+					   rebuild the iframe (reloading the video). */
 					this.st.gallery.loop = (this.items && this.items.length > 1);
 				},
 				afterClose: function() {
@@ -5020,6 +5093,7 @@ function showRepoPopup(repository) {
 			var $gallery = $('.caMediaGallery');
 			if ($gallery.length) $gallery.magnificPopup('open', 0);
 		});
+		caMountInlineVideoPreviews();
 	});
 }
 
