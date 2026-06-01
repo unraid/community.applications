@@ -2436,9 +2436,9 @@ body,
 		cursor: pointer;
 		color: var(--brand-orange) !important;
 	}
-	/* .caShowAllResults is rendered as a native <button> for keyboard /
-	   screen-reader semantics — strip the browser chrome so it reads
-	   visually as the same inline orange link the .homeMore span does. */
+	/* caShowAllResults renders as a native button element for keyboard
+	   and screen-reader semantics. Strip the browser chrome so it reads
+	   visually as the same inline orange link the homeMore span does. */
 	button.caShowAllResults {
 		background: none;
 		border: 0;
@@ -3323,8 +3323,8 @@ input[type="button"] {
 		min-width: 0;
 	}
 	/* Visible keyboard-focus ring on the inline pill: the input itself
-	   has `outline: none` so we promote the pill to the focus target
-	   via :focus-within. Mouse focus stays quiet via :focus-visible. */
+	   has outline:none, so we promote the pill to the focus target via
+	   :focus-within. Mouse focus stays quiet via :focus-visible. */
 	#searchFilter .caDesktopSearchInline:focus-within {
 		outline: 2px solid var(--brand-orange);
 		outline-offset: 2px;

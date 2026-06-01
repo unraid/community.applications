@@ -32,10 +32,10 @@ function caBuildSearchLimitHintHtml(): string {
 	if ($filter === "") return "";
 	if (($GLOBALS['caSettings']['searchLimitToName'] ?? "no") !== "yes") return "";
 	$all = tr("ALL RESULTS");
-	/* <button type="button"> instead of span[role=button] so Enter/Space
-	   activation, focus ring, and screen-reader semantics come from the
-	   platform. The existing .caShowAllResults click delegate fires
-	   regardless of the element kind. */
+	/* Native button element instead of a span with role=button so Enter
+	   and Space activation, focus ring, and screen-reader semantics come
+	   from the platform. The existing .caShowAllResults click delegate
+	   fires regardless of the element kind. */
 	return "<div class='ca_searchLimitNote'>"
 		. "<button type='button' class='caShowAllResults'>"
 		. htmlspecialchars($all, ENT_QUOTES, 'UTF-8')

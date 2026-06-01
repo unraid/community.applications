@@ -138,21 +138,21 @@ $(function() {
 <div id='caDiffView' class='ca_hide' role='dialog' aria-modal='true' aria-label='<?tr("Template diff");?>'>
 	<!-- Standalone close — deliberately NOT class='popUpClose' so the body
 	     delegate that calls closeSidebar() doesn't fire alongside the
-	     diff-only dismissal. <div> rather than <button> so .caButton styling
-	     applies without fighting the browser's UA <button> defaults — every
-	     other .caButton in CA is a <div>. Click handler bound in diff.js;
+	     diff-only dismissal. A div rather than a button so .caButton styling
+	     applies without fighting the browser's UA button defaults — every
+	     other .caButton in CA is a div. Click handler bound in diff.js;
 	     the Escape-key dismiss in clickHandlers.js synthesizes a click on
 	     this element so both paths run the same code. -->
 	<div class='caButton caDiffClose' aria-label='<?tr("Close");?>' title='<?tr("Close");?>'>&times;</div>
 	<div id='caDiffContent'></div>
 </div>
 <!-- Loading placeholder cloned into #caDiffContent while the feed JSON is
-     being downloaded / parsed. The `.caDownloadProgress` <div> below is the
-     same class the page-level nchan subscriber (Apps.page) targets — it sets
-     .html(message), and after 5s of activity it removes .ca_hide, so progress
-     text shows up inside this overlay without any z-index gymnastics.
-     Wrapped in .caDiffLoadingBox so flex auto-margins center the content
-     block inside the flex-column #caDiffContent. -->
+     being downloaded / parsed. The .caDownloadProgress div below is the
+     same class the page-level nchan subscriber (Apps.page) targets — it
+     sets .html(message), and after 5s of activity it removes .ca_hide,
+     so progress text shows up inside this overlay without any z-index
+     gymnastics. Wrapped in .caDiffLoadingBox so flex auto-margins center
+     the content block inside the flex-column #caDiffContent. -->
 <div class='ca_hide'>
 	<!-- Class-based template marker (no id) so diff.js can clone the inner
 	     HTML into #caDiffContent without risking a duplicate-id DOM (the

@@ -116,8 +116,8 @@
 	--ca-dark-purple-color: #854153;
 	--ca-teal-color: #1fa67a;
 
-	/* Orange-tinted card hover shadow. Derived from `--brand-orange` via
-	   `color-mix` so the shadow tint tracks whichever orange the active
+	/* Orange-tinted card hover shadow. Derived from --brand-orange via
+	   color-mix so the shadow tint tracks whichever orange the active
 	   theme is using. Fully opaque (100% mix with transparent leaves the
 	   orange at full alpha). */
 	--ca-shadow-color: color-mix(in srgb, var(--brand-orange) 100%, transparent);

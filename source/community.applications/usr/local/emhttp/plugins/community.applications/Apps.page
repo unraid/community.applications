@@ -245,7 +245,7 @@ function tr($string,$ret=false) {
 <script src='<?autov("/plugins/community.applications/javascript/diff.js");?>'></script>
 <?endif;?>
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/docker.js");?>'></script>
-<!-- marked (named `markdown.js` inside dockerMan) — shipped by dynamix already,
+<!-- marked (named markdown.js inside dockerMan) — shipped by dynamix already,
      so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
      to render README.md client-side instead of going through PHP. -->
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
@@ -254,13 +254,14 @@ function tr($string,$ret=false) {
      a fixed window instead of a frame-by-frame Chart.js redraw. -->
 <script src='<?autov("/webGui/javascript/smoothie.js");?>'></script>
 
-<!-- Settings-difference flags. Class list is `ca_<key>` for every key in
-     default.cfg whose runtime value in $GLOBALS['caSettings'] differs from
-     the shipped default — built up top in PHP. Never displayed; queried via
-     JS or scoped CSS selectors when something needs to branch on a user-
-     configured deviation. htmlspecialchars on the interpolation as a
-     belt-and-braces hygiene pass (the keys are filtered to [A-Za-z0-9_]
-     above, so they're already safe). -->
+<?php /* Settings-difference flags. Class list is `ca_KEY` (one entry per
+         default.cfg key) for every key whose runtime value in
+         $GLOBALS['caSettings'] differs from the shipped default — built
+         up top in PHP. Never displayed; queried via JS or scoped CSS
+         selectors when something needs to branch on a user-configured
+         deviation. htmlspecialchars on the interpolation as a belt-and-
+         braces hygiene pass (the keys are filtered to safe identifier
+         chars above, so they're already safe). */ ?>
 <div id='caSettingsFlags' class='ca_hide <?= htmlspecialchars($caSettingsClasses, ENT_QUOTES) ?>' aria-hidden='true'></div>
 
 <!-- Include the skin via PHP include so that embedded PHP are executed during page render by dynamix -->
@@ -2897,9 +2898,9 @@ function caUpdateDisplayCount() {
 	var isDockerSearch = !!data.docker;
 	if (searchOn && limitedByName && !data.searchLimitOverride && !isDockerSearch) {
 		var allTx = stripTags(tr("ALL RESULTS"));
-		/* Native <button> for built-in Enter/Space activation + focus
-		   ring + screen-reader semantics. The body-delegated click
-		   handler doesn't care about the element kind. */
+		/* Native button element for built-in Enter and Space activation
+		   plus focus ring and screen-reader semantics. The body-delegated
+		   click handler doesn't care about the element kind. */
 		$el.html(
 			$("<span></span>").text(countText).prop("outerHTML")
 			+ " — "
