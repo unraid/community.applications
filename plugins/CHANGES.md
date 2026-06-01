@@ -24,6 +24,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 ## Unreleased
 
 - Changed: Sidebar video thumbnails/previews are now shown in a 16:9 frame (the natural video shape) instead of being cropped to the screenshot tile's aspect
+- Changed: Hovering a sidebar screenshot or video now enlarges it to twice its size (was a slight 1.2× zoom for screenshots)
 
 - Added: Videos in an app's sidebar now autoplay a muted, looping preview right in the thumbnail. Clicking still opens the full-size player (which stays paused until you press play). The separate "Autoplay videos" setting has been removed — sidebar previews are always on now
 - Fixed: Dev-mode "Diff" button now works for plugins — it was comparing against the plugin's install file instead of its template, so it never found a match

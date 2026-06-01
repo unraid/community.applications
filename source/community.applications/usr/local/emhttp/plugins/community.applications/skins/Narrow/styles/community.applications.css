@@ -3288,7 +3288,7 @@ input[type="button"] {
 	}
 
 	.screen:hover {
-		transform: scale(1.2);
+		transform: scale(2);
 		transition: transform 0.3s ease;
 		z-index: 10;
 		position: relative;
@@ -4714,6 +4714,20 @@ input[type="button"] {
 		/* JS sizes this to the poster's border-box; keep our own border inside
 		   that box so we don't overhang the tile by 2px. */
 		box-sizing: border-box;
+		transition: transform 0.3s ease;
+	}
+
+	/* Hovering a video tile scales the live preview 2× to match the
+	   screenshot hover (.screen:hover). The poster img is visibility:hidden
+	   once the iframe mounts, so .screen:hover never fires for video tiles —
+	   we scale the iframe instead. z-index on the (position:relative) tile
+	   lifts the enlarged preview above neighbouring tiles. Scale is from the
+	   center, so the var-positioned play icon stays centered. */
+	.screenshot.mfp-iframe:hover {
+		z-index: 10;
+	}
+	.screenshot.mfp-iframe:hover .caInlineVideoPreview {
+		transform: scale(2);
 	}
 
 	/* Video Play Overlay */
