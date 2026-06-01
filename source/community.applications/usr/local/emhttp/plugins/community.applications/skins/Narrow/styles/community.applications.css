@@ -4705,7 +4705,7 @@ input[type="button"] {
 	/* Video Play Overlay */
 	.videoPlayOverlay::after {
 		content: '\f144'; /* Font Awesome play-circle icon */
-		font-family: 'fontAwesome';
+		font-family: fontAwesome;
 		font-weight: 900;
 		position: absolute;
 		/* caMountInlineVideoPreviews() sets --caPlayLeft/--caPlayTop to the
