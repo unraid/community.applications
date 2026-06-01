@@ -1263,7 +1263,8 @@ function caInitializeClickHandlers() {
 	 * .ca_displayCount on every refresh and would tear off a directly-
 	 * bound handler.
 	 */
-	$("body").on("click", ".caShowAllResults", function(e) {
+	$("body").on("click keydown", ".caShowAllResults", function(e) {
+		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
 		e.preventDefault();
 		var currentFilter = $.trim($("#searchBox").val() || "");
 		if (!currentFilter) return;

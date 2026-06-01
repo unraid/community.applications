@@ -23,11 +23,16 @@
    `--red-300` (`#ff9e9e`) is the closest palette entry that lifts
    cleanly off the sidebar surface. */
 
-/* White theme: Awesomplete suggestion-chip mark highlight uses the CA
-   red accent so matched text stays legible against the pale chip
-   background. */
-.Theme--white {
+/* Per-theme Awesomplete suggestion-chip mark highlight:
+   - White / Azure → CA red accent (better contrast against pale chip)
+   - Black / Gray  → brand orange (matches the rest of the dark chrome) */
+.Theme--white,
+.Theme--azure {
 	--ca-suggestion-mark-color: var(--ca-red-color);
+}
+.Theme--black,
+.Theme--gray {
+	--ca-suggestion-mark-color: var(--brand-orange);
 }
 
 

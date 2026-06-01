@@ -2436,21 +2436,6 @@ body,
 		cursor: pointer;
 		color: var(--brand-orange) !important;
 	}
-	/* caShowAllResults renders as a native button element for keyboard
-	   and screen-reader semantics. Strip the browser chrome so it reads
-	   visually as the same inline orange link the homeMore span does. */
-	button.caShowAllResults {
-		background: none;
-		border: 0;
-		padding: 0;
-		font: inherit;
-		text-align: inherit;
-	}
-	button.caShowAllResults:focus-visible {
-		outline: 2px solid var(--brand-orange);
-		outline-offset: 2px;
-		border-radius: 2px;
-	}
 
 	.fav,
 	.pinPopup.pinned {

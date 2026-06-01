@@ -2898,15 +2898,12 @@ function caUpdateDisplayCount() {
 	var isDockerSearch = !!data.docker;
 	if (searchOn && limitedByName && !data.searchLimitOverride && !isDockerSearch) {
 		var allTx = stripTags(tr("ALL RESULTS"));
-		/* Native button element for built-in Enter and Space activation
-		   plus focus ring and screen-reader semantics. The body-delegated
-		   click handler doesn't care about the element kind. */
 		$el.html(
 			$("<span></span>").text(countText).prop("outerHTML")
 			+ " — "
-			+ "<button type='button' class='caShowAllResults'>"
+			+ "<span class='caShowAllResults' role='button' tabindex='0'>"
 			+ $("<span></span>").text(allTx).html()
-			+ "</button>"
+			+ "</span>"
 		).show();
 	} else {
 		$el.text(countText).show();
