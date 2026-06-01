@@ -3294,6 +3294,20 @@ input[type="button"] {
 		position: relative;
 	}
 
+	/* Video tiles are forced to a 16:9 box (the natural video frame) rather
+	   than the poster's own aspect. Height stays the shared 8rem; aspect-ratio
+	   derives the width (≈14.2rem), overriding .screen's 8–12rem clamp.
+	   object-fit:cover fills the box without letterboxing. The inline preview
+	   iframe is sized from this img's box in caMountInlineVideoPreviews(), so
+	   it inherits 16:9 automatically. */
+	.screenshot.mfp-iframe img.screen {
+		aspect-ratio: 16 / 9;
+		width: auto;
+		min-width: 0;
+		max-width: none;
+		object-fit: cover;
+	}
+
 	.screenshot {
 		cursor: pointer;
 	}
