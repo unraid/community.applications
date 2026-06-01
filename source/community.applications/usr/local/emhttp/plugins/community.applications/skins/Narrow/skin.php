@@ -20,8 +20,9 @@
 require_once __DIR__.'/skin_helpers.php';
 
 /**
- * Build the "ALL RESULTS" affordance shown beneath "No Matching Applications
- * Found" when "Limit search results" narrowed everything away. Returns "" when
+ * Build the "Settings limited the search results." note plus the "ALL RESULTS"
+ * affordance shown beneath "No Matching Applications Found" when "Limit search
+ * results" narrowed everything away. Returns "" when
  * the link shouldn't appear (no active search filter, setting off, or the
  * override is already in effect — get_content() applies any incoming
  * searchLimitOverride to $GLOBALS BEFORE this runs, so checking
@@ -32,7 +33,11 @@ function caBuildSearchLimitHintHtml(): string {
 	if ($filter === "") return "";
 	if (($GLOBALS['caSettings']['searchLimitToName'] ?? "no") !== "yes") return "";
 	$all = tr("ALL RESULTS");
+	$note = tr("Settings limited the search results.");
 	return "<div class='ca_searchLimitNote'>"
+		. "<div class='ca_searchLimitNoteText'>"
+		. htmlspecialchars($note, ENT_QUOTES, 'UTF-8')
+		. "</div>"
 		. "<span class='caShowAllResults' role='button' tabindex='0'>"
 		. htmlspecialchars($all, ENT_QUOTES, 'UTF-8')
 		. "</span></div>";

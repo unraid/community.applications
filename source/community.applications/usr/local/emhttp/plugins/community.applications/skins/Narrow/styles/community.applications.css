@@ -1593,12 +1593,20 @@ body,
 	}
 	/* Sub-line under the "No Matching Applications Found" message when the
 	   "Limit searches to name" setting is on — explains the empty result
-	   and offers a one-click "Show All Results" to widen the search. */
+	   and offers a one-click "Show All Results" to widen the search.
+	   flex-basis:100% forces it onto its own row inside the flex-wrap
+	   .ca_templatesDisplay container; without it .ca_NoAppsFound's
+	   margin:auto shoves this note out to the far right of the same line. */
 	.ca_searchLimitNote {
+		flex-basis: 100%;
 		font-size: 1.3rem;
 		margin: 0.5rem auto 0;
 		text-align: center;
 		opacity: 0.8;
+	}
+	.ca_searchLimitNote .caShowAllResults {
+		display: inline-block;
+		margin-top: 0.5rem;
 	}
 
 	/* 3.4) Links, badges, and metadata */
@@ -2521,6 +2529,7 @@ body,
 	.caMenuItem:hover,
 	a.ca_repoPopup:hover,
 	.popUpLink:hover,
+	.additionalRequirements a:hover,
 	.chartMenu:hover,
 	li.context:hover,
 	.sortIcons:hover {
@@ -3155,12 +3164,14 @@ input[type="button"] {
 	#displaybox {
 		margin-top: 0 !important;
 	}
-	.popUpLink {
+	.popUpLink,
+	.additionalRequirements a {
 		cursor: pointer;
 		color: var(--link-text-color);
 	}
 
-	a.popUpLink {
+	a.popUpLink,
+	.additionalRequirements a {
 		text-decoration: none;
 	}
 
@@ -4675,17 +4686,40 @@ input[type="button"] {
 		opacity: 0;
 	}
 
+	/* Inline autoplaying preview iframe overlaid on a sidebar video tile.
+	   Mounted by caMountInlineVideoPreviews(); JS sets top/left/width/height
+	   to match the poster img it covers. pointer-events:none is the crux —
+	   clicks pass through to the .screenshot span so MFP opens the full-size
+	   popup instead of the embedded player swallowing them as a pause. */
+	.caInlineVideoPreview {
+		position: absolute;
+		z-index: 1;
+		pointer-events: none;
+		border: 1px solid var(--brand-orange);
+		border-radius: 5px;
+		/* JS sizes this to the poster's border-box; keep our own border inside
+		   that box so we don't overhang the tile by 2px. */
+		box-sizing: border-box;
+	}
+
 	/* Video Play Overlay */
 	.videoPlayOverlay::after {
 		content: '\f144'; /* Font Awesome play-circle icon */
 		font-family: 'fontAwesome';
 		font-weight: 900;
 		position: absolute;
-		top: 50%;
-		left: 50%;
+		/* caMountInlineVideoPreviews() sets --caPlayLeft/--caPlayTop to the
+		   mounted iframe's center so the icon tracks the video box exactly;
+		   falls back to the tile center for tiles with no inline preview. */
+		top: var(--caPlayTop, 50%);
+		left: var(--caPlayLeft, 50%);
+		/* Above .caInlineVideoPreview (z-index:1) so the play affordance stays
+		   visible over a live preview. */
+		z-index: 2;
 		transform: translate(-50%, -50%) scale(0.75);
 		font-size: 3em;
 		color: rgba(255, 255, 255, 0.9);
+		opacity: 0.5;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 		pointer-events: none;
 		transition: all 0.3s ease;
@@ -4693,6 +4727,7 @@ input[type="button"] {
 
 	.videoPlayOverlay:hover::after {
 		color: var(--brand-orange);
+		opacity: 1;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 		transform: translate(-50%, -50%) scale(1.0);
 	}

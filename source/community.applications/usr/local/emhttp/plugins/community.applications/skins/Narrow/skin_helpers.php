@@ -302,11 +302,16 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		   of opening a sidebar before the background feed download finishes
 		   on a slow connection. */
 		$diffFeedReady = is_file(CA_PATHS['rawAppFeed']);
-		/* Diff source URL: containers use TemplateURL, plugins use PluginURL.
-		   Backend (getTemplateDiff) handles both — see PluginURL fallback in
-		   include/diff.php. */
-		$diffFeedUrl = !empty($template['Plugin']) ? $diffPluginUrl : $diffContainerUrl;
-		$diffFeedSrc = !empty($template['Plugin']) ? (string)($template['PluginURL'] ?? "") : $templateUrl;
+		/* Feed diff downloads this URL, parses it as the upstream source XML,
+		   and locates the matching appfeed entry. For BOTH containers and
+		   plugins that source is the TemplateURL — the maintainer's template the
+		   appfeed entry is actually built from. PluginURL points at the .plg
+		   install script, whose XML shape is nothing like the template, so
+		   feeding it here made the download/parse and the appfeed lookup chase
+		   the wrong document. (PluginURL is only correct for the internal diff
+		   below, where it's the key into CA's internal templates cache.) */
+		$diffFeedUrl = $diffContainerUrl;
+		$diffFeedSrc = $templateUrl;
 		if ($diffFeedReady && $diffFeedSrc !== "") {
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",

@@ -23,6 +23,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Added: Videos in an app's sidebar now autoplay a muted, looping preview right in the thumbnail. Clicking still opens the full-size player (which stays paused until you press play). The separate "Autoplay videos" setting has been removed — sidebar previews are always on now
+- Fixed: Dev-mode "Diff" button now works for plugins — it was comparing against the plugin's install file instead of its template, so it never found a match
+- Fixed: When "Limit search results" narrows everything away, the "ALL RESULTS" link no longer floats off to the side of "No Matching Applications Found" — it now sits on its own line beneath a "Settings limited the search results." note
+- Changed: Links inside an app's "Additional Requirements" text now match the rest of the sidebar's links (orange, with a hover highlight)
 - Changed: App / repo / docker template cards have rounded corners (1rem radius) and more breathing room between them (2rem right + bottom margin)
 - Changed: Card hover shadow uses the brand orange at full opacity for a stronger lift
 - Added: Desktop search has moved into the main toolbar. Type directly into the always-visible input — results stream in live with a 300ms debounce; only one search is in flight at a time, and middle keystrokes during a burst are dropped so a fast-typed "tester" runs one search for "t" and one for "tester" instead of one per character. Suggestions show as a horizontal strip of chip buttons inline after the results count, with left/right chevrons to scroll through them; the right chevron is pinned to the viewport so it can't disappear off-screen. Each chevron greys out when scrolling that direction is a no-op. Clearing the input (backspace, the × icon, or "Clear Search" from the menu) restores the exact menu state the user was on when they started typing — including expanding the parent of a restored sub-category — so they land back where they were instead of being dumped to Home. Mobile keeps the existing search-modal flow untouched

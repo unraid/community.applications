@@ -56,7 +56,7 @@ function caDebug() {
  * div existing in any particular spot — if a future caller moves or dupes
  * the flag div, the lookup still works.
  *
- * @param {string} name Setting key from default.cfg (eg. "dev", "autoplayVideos").
+ * @param {string} name Setting key from default.cfg (eg. "dev", "displayUsageGraphs").
  * @returns {boolean}
  */
 function caHasSetting(name) {
