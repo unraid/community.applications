@@ -56,6 +56,24 @@ $(function() {
 		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
 			<div class='caSearchModalTopRow'>
 				<div class="searchButton caButton"><span class='caBtnLabel'><?tr('SEARCH');?></span></div>
+				<!-- Desktop-only inline search: replaces .searchButton above 767px.
+				     Always visible on desktop; auto-focused when the user lands
+				     on Home. Debounced live search; on mobile this element is
+				     display:none and the modal launcher takes over instead. -->
+				<div class="caDesktopSearchInline hideWithMenu" role="search">
+					<span class="caInlineSearchIcon" aria-hidden="true">
+						<i class="fa fa-search"></i>
+					</span>
+					<input type="text" id="caInlineSearchBox" maxlength="100"
+						autocomplete="off" spellcheck="false"
+						placeholder="<?tr('Search');?>"
+						aria-label="<?tr('Search');?>">
+					<span class="caInlineSearchClear ca_hide" role="button"
+						tabindex="0" title="<?tr('Clear search');?>"
+						aria-label="<?tr('Clear search');?>">
+						<i class="fa fa-times" aria-hidden="true"></i>
+					</span>
+				</div>
 				<div class="caSearchModalIconControls">
 					<span class="searchModalQueryBtn" title="<?tr('Search');?>"><i class="fa fa-question fa-lg" aria-hidden="true"></i></span>
 					<span class="searchModalClearBtn ca_hide" title="<?tr('Clear search');?>"><i class="fa fa-remove fa-lg" aria-hidden="true"></i></span>
@@ -520,24 +538,6 @@ $(function() {
 				<div class='ca_settingsGrid'>
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
-							<span><?tr("Hide Deprecated Applications");?></span>
-							<input type='hidden' name='hideDeprecated' value='false'>
-							<input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($GLOBALS['caSettings']['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
-						</div>
-						<div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
-					</div>
-
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
-							<span><?tr("Hide Incompatible Applications");?></span>
-							<input type='hidden' name='hideIncompatible' value='false'>
-							<input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($GLOBALS['caSettings']['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
-						</div>
-						<div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
-					</div>
-
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
 							<span><?tr("Allow install of second instance");?></span>
 							<input type='hidden' name='defaultReinstall' value='false'>
 							<input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($GLOBALS['caSettings']['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
@@ -552,15 +552,6 @@ $(function() {
 							<input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($GLOBALS['caSettings']['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
 						</div>
 						<div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
-					</div>
-
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
-							<span><?tr("Disable Featured Applications");?></span>
-							<input type='hidden' name='featuredDisable' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
-						</div>
-						<div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
 					</div>
 
 					<div class='ca_settingCard'>
@@ -596,6 +587,15 @@ $(function() {
 						<div class='ca_settingDescription'><?tr("Limits results to name, author, repository.");?></div>
 					</div>
 
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Keep Search In Focus");?></span>
+							<input type='hidden' name='keepSearchInFocus' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='keepSearchInFocus' value='yes' <?=($GLOBALS['caSettings']['keepSearchInFocus'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Some mobile devices might require this to be disabled.");?></div>
+					</div>
+
 					<?php /* Same pattern as Use whole display window above —
 					         always rendered; caBindSettingsFormHandlers()
 					         disables the switch when <html> lacks
@@ -611,6 +611,33 @@ $(function() {
 							<input type='checkbox' class='switch caSettingSwitch' name='displayUsageGraphs' value='yes' <?=($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") == "yes" ? "checked" : ""; ?>>
 						</div>
 						<div class='ca_settingDescription'><?tr("Show live CPU / Memory / Network on running containers.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Hide Deprecated Applications");?></span>
+							<input type='hidden' name='hideDeprecated' value='false'>
+							<input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($GLOBALS['caSettings']['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Hide Incompatible Applications");?></span>
+							<input type='hidden' name='hideIncompatible' value='false'>
+							<input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($GLOBALS['caSettings']['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Disable Featured Applications");?></span>
+							<input type='hidden' name='featuredDisable' value='no'>
+							<input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
+						</div>
+						<div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
 					</div>
 
 					<div class='ca_settingCard'>

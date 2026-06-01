@@ -180,6 +180,17 @@ body:has(.ca_useWholeDisplayWindow) {
 		--ca-menu-height: 8rem;
 	}
 
+	/* Mobile: undo the desktop inline-search defaults — hide the inline
+	   search entirely and bring back the modal-launcher .searchButton +
+	   its icon controls (main CSS hides them by default). */
+	#searchFilter .caDesktopSearchInline {
+		display: none;
+	}
+	#searchFilter .searchButton,
+	#searchFilter .caSearchModalIconControls {
+		display: inline-flex;
+	}
+
 	/* On very narrow viewports the top-bar action buttons (SEARCH /
 	   DockerHub / Apps / Sort) drop their text label and show as icon-
 	   only. The icon ::before margin-right also gets zeroed since

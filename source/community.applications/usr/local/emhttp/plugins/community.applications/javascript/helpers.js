@@ -309,6 +309,14 @@ function caRestoreCommittedSearchTermIntoBoxIfEmpty() {
  * @param {object} [options] noRefocus: if true, do not move focus to #searchBox (e.g. focus handler already has it).
  */
 function caOpenSearchModal(options) {
+	/* Desktop uses the always-visible inline search input + horizontal
+	   suggestion strip in .searchArea instead of the modal flow. Bail out
+	   so body.ca_searchModalOpen never gets set on desktop — that class
+	   is what the .ca_modal_overlay click handler (and a handful of
+	   other places) checks to decide "click outside should close" /
+	   "input got focus while modal is open", and it would otherwise
+	   tear the inline strip down whenever the user clicks a caret. */
+	if (window.innerWidth >= 768) return;
 	options = options || {};
 	caRestoreCommittedSearchTermIntoBoxIfEmpty();
 	$("body").addClass("ca_searchModalOpen");

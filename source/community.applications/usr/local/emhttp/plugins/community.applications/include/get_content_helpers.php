@@ -360,7 +360,7 @@ class GetContentHelpers {
 		$limitToName = ($GLOBALS['caSettings']['searchLimitToName'] ?? "no") === "yes";
 
 		$nameLikeFields = $limitToName
-			? [$template['SortName']??null, $template['RepoShort']??null]
+			? [$template['SortName']??null, $template['RepoName']??null]
 			: [$template['SortName']??null, $template['RepoShort']??null, $template['Language']??null, $template['LanguageLocal']??null];
 
 		if ( filterMatch($filter,$nameLikeFields) ) {

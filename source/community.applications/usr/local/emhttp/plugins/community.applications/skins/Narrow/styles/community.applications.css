@@ -151,8 +151,12 @@ body:not(:has(.sidenavShow)) :is(.ca_back_to_top, .ca_move_to_end).caSidebarScro
    fadeIn/fadeOut still drives the visibility based on the sidebar's
    scroll position (caGetActiveScroller returns the sidebar's scroller
    when sidenavShow is set). */
-.ca_back_to_top.caSidebarScroll,
-.ca_move_to_end.caSidebarScroll {
+/* Lift the scroll affordances above the .popupActionsArea — but only when
+   that strip is actually rendered. The action strip is suppressed for
+   menu-driven alternate views (see the matching :has() list above); when
+   it's hidden the scroll buttons can sit at their default bottom offset. */
+body:not(:has(#sidenavContent :is(.ca_settingsForm, .ca_statistics, .credits, .caChangelogTitle, .moderationContainer))) .ca_back_to_top.caSidebarScroll,
+body:not(:has(#sidenavContent :is(.ca_settingsForm, .ca_statistics, .credits, .caChangelogTitle, .moderationContainer))) .ca_move_to_end.caSidebarScroll {
 	bottom: 10rem;
 }
 /*
@@ -2426,7 +2430,8 @@ body,
 	}
 
 	.enabledIcon,
-	.homeMore {
+	.homeMore,
+	.caShowAllResults {
 		cursor: pointer;
 		color: var(--brand-orange) !important;
 	}
@@ -2569,7 +2574,6 @@ input[type="button"] {
 		display: inline-block;
 		margin-left: 1rem;
 		font-size: 1.2rem;
-		opacity: 0.7;
 		white-space: nowrap;
 		vertical-align: middle;
 	}
@@ -2771,6 +2775,19 @@ input[type="button"] {
 		opacity: 0;
 		transition: transform 500ms ease, opacity 500ms ease;
 	}
+	/* Settings / Statistics / Credits / Changelog opened from the menu
+	   don't have per-app actions — hide the bottom action strip so it
+	   doesn't reserve viewport real estate for empty content. Each
+	   alternate view has its own unique class/id injected into
+	   #sidenavContent, so the rule scopes via :has() without any JS.
+	   Add the unique marker for any new alternate view to this list. */
+	body:has(#sidenavContent .ca_settingsForm) .popupActionsArea,
+	body:has(#sidenavContent .ca_statistics) .popupActionsArea,
+	body:has(#sidenavContent .credits) .popupActionsArea,
+	body:has(#sidenavContent .caChangelogTitle) .popupActionsArea,
+	body:has(#sidenavContent .moderationContainer) .popupActionsArea {
+		display: none !important;
+	}
 
 	body:has(.sidenavShow) .popupCloseArea {
 		position: fixed;
@@ -2859,7 +2876,7 @@ input[type="button"] {
 		z-index: 5;
 		max-width: 70rem;
 		right: 0;
-		bottom: 3rem;
+		bottom: 2.5rem;
 		/* Specificity override — the bare `.popupActionsArea, ...`
 		   rules above force translateX(100%) + opacity 0 as the
 		   default off-screen state. This rule needs to redeclare
@@ -3272,13 +3289,186 @@ input[type="button"] {
 	#displayBox {
 		padding-top: 0;
 	}
+	/* Desktop inline search (skin.html .caDesktopSearchInline).
+	   Default = always visible on desktop. responsive.css hides it and
+	   restores the modal-launcher .searchButton on <=767px instead. */
+	#searchFilter .searchButton,
+	#searchFilter .caSearchModalIconControls {
+		display: none;
+	}
+	#searchFilter .caDesktopSearchInline {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		padding: 0.1rem 0.4rem 0.1rem 0;
+		border-radius: 0.6rem;
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
+		color: var(--text-color);
+		min-width: 0;
+	}
+	#searchFilter .caInlineSearchIcon {
+		padding: 0.4rem 0.6rem 0.4rem 0.9rem;
+		font-size: 1.3rem;
+		line-height: 1;
+		opacity: 0.7;
+		cursor: default;
+	}
+	#searchFilter #caInlineSearchBox {
+		width: 20ch;
+		max-width: 100%;
+		background: transparent;
+		border: none;
+		outline: none;
+		color: var(--text-color);
+		font-size: 1.4rem;
+		padding: 0.4rem 0;
+	}
+	#searchFilter #caInlineSearchBox::placeholder {
+		opacity: 0.55;
+	}
+	#searchFilter .caInlineSearchClear {
+		cursor: pointer;
+		opacity: 0.7;
+		font-size: 1.2rem;
+		padding: 0.1rem 0.4rem;
+		line-height: 1;
+	}
+	#searchFilter .caInlineSearchClear:hover {
+		opacity: 1;
+	}
+
+	/* Awesomplete on the desktop inline input renders as a horizontal
+	   strip of .caButton chips inline at the END of .searchArea, not as
+	   a vertical dropdown. The <ul> + caret scrollers live inside a
+	   .caInlineStripWrap that's appended to .searchArea (see Apps.page
+	   init) so flex layout naturally puts it after .ca_displayCount and
+	   it fills the rest of the row. The library's own wrapper around
+	   the input keeps its default behaviour for everything else. */
+	#searchFilter .caDesktopSearchInline .awesomplete {
+		display: inline-flex;
+		flex: 0 1 auto;
+		min-width: 0;
+	}
+	.searchArea > .caInlineStripWrap {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	/* Collapse to nothing when the strip's ul is hidden (no suggestions
+	   to show), so the search row's other items get the freed space. */
+	.searchArea > .caInlineStripWrap:has(> ul[hidden]) {
+		display: none;
+	}
+	.searchArea > .caInlineStripWrap > ul {
+		flex: 1 1 auto;
+		min-width: 0;
+		margin: 0;
+		padding: 0.4rem 0.6rem;
+		list-style: none;
+		display: flex;
+		flex-direction: row;
+		gap: 0.5rem;
+		align-items: center;
+		overflow-x: auto;
+		overflow-y: hidden;
+		white-space: nowrap;
+		background: color-mix(in srgb, var(--text-color) 8%, transparent);
+		border-radius: 0.6rem;
+		/* Hide the native scrollbar entirely; scrolling still works via
+		   trackpad gestures, shift+wheel, or the caret buttons. */
+		scrollbar-width: none;
+	}
+	.searchArea > .caInlineStripWrap > ul::-webkit-scrollbar {
+		display: none;
+	}
+	.searchArea > .caInlineStripWrap > ul[hidden] {
+		display: none !important;
+	}
+	.searchArea > .caInlineStripWrap > ul > li {
+		flex: 0 0 auto;
+		margin: 0;
+		max-width: none;
+		width: auto;
+		white-space: nowrap;
+		text-overflow: clip;
+	}
+	/* Trim the .caButton baseline so suggestion chips fit the row height
+	   next to Sort / DockerHub instead of looming over them. The display
+	   override is critical: .caButton is `inline-flex` with `gap: 0.5rem`,
+	   which would promote a chip's "<text><mark>match</mark><text>" into
+	   three flex items and inject visible spaces around the highlight
+	   (the same bug the modal awesomplete chips hit). */
+	.searchArea > .caInlineStripWrap > ul > li.caButton {
+		display: inline-block;
+		gap: 0;
+		font-size: 1.25rem;
+		padding: 0.4rem 0.9rem;
+		line-height: 1.25;
+	}
+	.searchArea > .caInlineStripWrap > ul > li mark {
+		background: transparent;
+		color: var(--brand-orange);
+	}
+	.caInlineCaret {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.2rem;
+		min-height: 2.6rem;
+		cursor: pointer;
+		color: var(--text-color);
+		opacity: 0.85;
+		font-size: 1.4rem;
+		user-select: none;
+		background: color-mix(in srgb, var(--text-color) 14%, transparent);
+		border-radius: 0.5rem;
+		transition: opacity 120ms ease, background 120ms ease;
+	}
+	.caInlineCaret:hover,
+	.caInlineCaret:focus {
+		opacity: 1;
+		outline: none;
+		background: color-mix(in srgb, var(--text-color) 22%, transparent);
+	}
+	/* Left caret stays in the flex flow at the start of the strip. */
+	.searchArea > .caInlineStripWrap > .caInlineCaretLeft {
+		flex: 0 0 auto;
+	}
+	/* Right caret floats at the viewport's right edge whenever an inline
+	   suggestion strip is open — no need for JS-computed width math. */
+	.caInlineCaretRight {
+		display: none;
+		position: fixed;
+		top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--search-area-top) + 0.4rem);
+		right: 1rem;
+		z-index: 7;
+	}
+	body:has(.searchArea > .caInlineStripWrap > ul:not([hidden])) .caInlineCaretRight {
+		display: inline-flex;
+	}
+	/* Scroll-position-aware fade: left greys out at start, right at end. */
+	.searchArea > .caInlineStripWrap.caInlineCaretsAtStart > .caInlineCaretLeft {
+		opacity: 0.2;
+		pointer-events: none;
+		cursor: default;
+	}
+	.caInlineCaretRight.caInlineCaretsAtEnd {
+		opacity: 0.2;
+		pointer-events: none;
+		cursor: default;
+	}
+
 	/* 3.13) Search area, sort controls, and spotlight section */
 	.searchAreaHolder {
 		top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--search-area-top));
 		left: var(--search-area-left);
+		right: 0;            /* span to viewport right so the inline strip can't push the row past the viewport */
 		position: fixed;
 		z-index: 6;
-		padding-left: 2rem;
+		padding-right: 4.4rem; /* reserved gutter for the position:fixed .caInlineCaretRight */
 	}
 	/* When the search modal is open, raise the holder's stacking context above
 	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
