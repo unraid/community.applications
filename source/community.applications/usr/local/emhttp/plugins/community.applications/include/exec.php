@@ -910,19 +910,25 @@ function clearTempForReload() {
  *
  * Replaces the old dynamix form → /update.php → progressFrame submit, whose
  * iframe completion reloaded the page before the reload-notice countdown could
- * run. Whitelists keys against default.cfg, accepts only boolean values, merges
- * them into the saved cfg (read raw so runtime-only keys and the escaped
- * `favourite` value aren't corrupted), and writes it.
+ * run. Accepts only the boolean switches the Settings panel actually renders,
+ * only with boolean values, and merges them into the saved cfg (read raw so
+ * runtime-only keys and the escaped `favourite` value aren't corrupted).
  *
  * @return void
  */
 function saveSettings() {
-	global $docroot;
-	$root     = $docroot ?: ($_SERVER['DOCUMENT_ROOT'] ?: "/usr/local/emhttp");
-	$defaults = @parse_ini_file("$root/plugins/community.applications/default.cfg") ?: [];
-	$cfg      = @parse_ini_file(CA_PATHS['pluginSettings']) ?: [];
-	$allowed  = ["yes", "no", "true", "false"];
-	foreach (array_keys($defaults) as $key) {
+	$cfg     = @parse_ini_file(CA_PATHS['pluginSettings']) ?: [];
+	$allowed = ["yes", "no", "true", "false"];
+	/* Explicit allowlist of the switches in the Settings panel
+	   (caSettingSwitchInputs in skin.html) — keep in sync with that form. Using
+	   this instead of every default.cfg key stops a crafted POST from flipping
+	   non-UI settings (eg. `debugging`) that happen to be booleans. */
+	$switches = [
+		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
+		"keepSearchInFocus", "displayUsageGraphs", "hideDeprecated", "hideIncompatible",
+		"featuredDisable", "dev",
+	];
+	foreach ($switches as $key) {
 		$posted = getPost($key, null);
 		if ($posted === null) continue;
 		$posted = (string)$posted;

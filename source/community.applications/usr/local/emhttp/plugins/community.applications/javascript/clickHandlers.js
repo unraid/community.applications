@@ -2136,9 +2136,18 @@ function caBindSettingsFormHandlers(initialFormState) {
 				? this.value
 				: ($localForm.find("input[type=hidden][name='" + this.name + "']").val() || this.value);
 		});
-		postNoSpin(settings, function() {});
-
-		caShowReloadNoticeBanner();
+		/* Only raise the reload countdown once the save is confirmed — a failed
+		   save (network/server error) shouldn't reload the page onto settings
+		   that never persisted. On failure, clear the submitting guard and warn
+		   so the user can retry. */
+		postNoSpin(settings, function(result) {
+			if (!result || !result.ok) {
+				$localForm.data("submitting", false);
+				addBannerWarning(tr("Failed to save settings. Please try again."), false, true);
+				return;
+			}
+			caShowReloadNoticeBanner();
+		});
 		return false;
 	});
 }
