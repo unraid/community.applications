@@ -31,7 +31,11 @@ $(function() {
 	<? endif; ?>
 
 	// Move the sidebar to the body so it fills the entire screen.
-	$(".sidebar,.ca_statusArea").appendTo("body");
+	$(".sidebar").appendTo("body");
+	// Status area sits just before the page footer spacer (falls back to body).
+	var $caFooterSpacer = $(".footer-spacer");
+	if ($caFooterSpacer.length) $(".ca_statusArea").insertBefore($caFooterSpacer.first());
+	else $(".ca_statusArea").appendTo("body");
 
 	$("body,.content").addClass("menuAdjust");
 

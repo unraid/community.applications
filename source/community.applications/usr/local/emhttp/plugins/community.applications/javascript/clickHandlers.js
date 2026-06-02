@@ -1399,7 +1399,7 @@ function caInitializeClickHandlers() {
 function caQuitUpdate() {
 	data.quittingUpdate = true;
 	try { if (typeof swal !== "undefined") swal.close(); } catch (err) { /* no-op */ }
-	$("div.spinner, .spinnerBackground").hide();
+	myCloseSpinner();
 
 	var $banner = $(".ca_bottomBanner");
 	var $msg = $banner.find(".ca_pageGeometryChange");

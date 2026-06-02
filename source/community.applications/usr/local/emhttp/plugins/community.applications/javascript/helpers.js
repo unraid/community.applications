@@ -171,18 +171,33 @@ function caDropInfoCache() {
 	try { postNoSpin({ action: "dropInfoCache" }); } catch (e) { /* no-op */ }
 }
 
+/* Pending show-spinner timer. The spinner is shown 250ms after it's requested,
+   not immediately, so quick operations that finish inside that window never
+   flash it. myCloseSpinner cancels a still-pending show. */
+var caSpinnerTimer = null;
+
 /**
- * Show the global spinner overlay immediately.
+ * Show the global spinner after a 250ms delay (skipped if the operation
+ * completes first).
  */
 function mySpinner() {
-	$("div.spinner,.spinnerBackground").show();
+	if (caSpinnerTimer !== null) return;            // a show is already pending
+	if ($("div.spinner").is(":visible")) return;    // already showing
+	caSpinnerTimer = setTimeout(function() {
+		caSpinnerTimer = null;
+		$("div.spinner").show();
+	}, 250);
 }
 
 /**
- * Hide the spinner overlay.
+ * Hide the spinner (and cancel any pending delayed show).
  */
 function myCloseSpinner() {
-	$("div.spinner,.spinnerBackground").hide();
+	if (caSpinnerTimer !== null) {
+		clearTimeout(caSpinnerTimer);
+		caSpinnerTimer = null;
+	}
+	$("div.spinner").hide();
 }
 
 /**
