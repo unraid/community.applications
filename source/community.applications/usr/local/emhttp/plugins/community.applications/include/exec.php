@@ -305,7 +305,7 @@ switch ($_POST['action']) {
 		break;
 	case 'dropInfoCache':
 		/* Fire-and-forget cache invalidation from JS. Used by saveState /
-		   restoreState, init, the CA_notices.page child-page detection, etc.
+		   restoreState, init, the ca_browser_back_helper.page child-page detection, etc.
 		   Server-side action paths drop the cache inline; this is for the
 		   client-driven spots. */
 		caDropInfoCache();

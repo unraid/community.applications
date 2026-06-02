@@ -23,6 +23,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Chore: Renamed the hidden browser-back helper page (CA_notices.page → ca_browser_back_helper.page) to better reflect what it does
 - Changed: The status-message area now sits inline just before the page footer instead of pinned to the bottom-left corner
 - Chore: Removed the unused `.spinnerBackground` overlay (dead element reference + CSS)
 - Fixed: A card's Install / Manage button now matches its "installed" badge. Containers installed without an explicit tag (Docker reports them as `:latest`), as well as plugins and language packs (including in the Installed Apps view), correctly show "Manage" instead of "Install"

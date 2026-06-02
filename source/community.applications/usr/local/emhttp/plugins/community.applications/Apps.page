@@ -1172,7 +1172,7 @@ $(function(){
 	}	else {
 		/* Restore state when we came back from a child URL of /Apps (Docker, plugin
 		   install pages, etc.). document.referrer covers the "Done" button case;
-		   the ca_apps_referrer cookie — set by CA_notices.page on every Unraid
+		   the ca_apps_referrer cookie — set by ca_browser_back_helper.page on every Unraid
 		   page load while the URL is under /Apps/ and cleared as soon as it
 		   isn't — covers the browser-back case where the referrer is empty.
 		   State now lives in sessionStorage (was cookies); saveState() writes
