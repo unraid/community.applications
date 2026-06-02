@@ -99,7 +99,7 @@ $date = (date("n/d"));
    that sequence appears inside a block comment. Same applies to the
    block-comment close sequence. Keep both out of comment text. */
 $ca_apps_referrer = (($_COOKIE['ca_apps_referrer'] ?? "false") === "true") ? "true" : "false";
-$startupDisplayed = is_file(CA_PATHS['startupDisplayed']) ? "true" : "false";
+$startupDisplayed = caStartupDisplayed() ? "true" : "false";
 if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
 	$killCookie = "true";
 else
@@ -689,6 +689,7 @@ function caBuildInlinePreviewEmbed(url) {
    full-size MFP popup is the one that never autoplays). Multiple videos on one
    app are rare, so the extra embeds are just bandwidth, not a real concern. */
 function caMountInlineVideoPreviews() {
+	caBindMediaHoverShift();
 	$(".caMediaGallery .screenshot.mfp-iframe").each(function() {
 		var $tile = $(this);
 		if ($tile.data("caInlinePreview")) return;
@@ -719,6 +720,59 @@ function caMountInlineVideoPreviews() {
 			$tile[0].style.setProperty("--caPlayTop",  (img.offsetTop  + h / 2) + "px");
 		};
 		mount();
+	});
+}
+
+/* Media tiles scale 2× on hover (CSS). Near an edge the enlarged tile can spill
+   past the sidebar — measure the post-scale box and add a corrective translate
+   so it stays inside the sidebar panel (clamped to the viewport as a fallback).
+   Both edges matter: a left-column tile overflows left, a right-column one
+   overflows right. The scaled element is the preview iframe for videos, else
+   the poster img. Delegated on body and bound once, so it survives sidebar
+   re-renders; jQuery synthesizes delegated mouseenter/leave. On enter we null
+   the transform first to read the true unscaled box, then re-apply
+   translate()+scale(); on leave we hand control back to the CSS rule. */
+function caBindMediaHoverShift() {
+	if (caBindMediaHoverShift._bound) return;
+	caBindMediaHoverShift._bound = true;
+	var MARGIN = 8, SCALE = 2;
+	var scaledEl = function(tile) {
+		return tile.querySelector(".caInlineVideoPreview") || tile.querySelector("img.screen");
+	};
+	$("body").on("mouseenter.caMediaShift", ".caMediaGallery .screenshot", function() {
+		var el = scaledEl(this);
+		if (!el) return;
+		/* Clamp inside the sidebar panel, intersected with the viewport so we
+		   never overshoot off-screen even if the panel does. */
+		var panel = this.closest(".sidebar");
+		var pr = panel ? panel.getBoundingClientRect() : null;
+		var minX = Math.max(MARGIN, pr ? pr.left  + MARGIN : MARGIN);
+		var maxX = Math.min(window.innerWidth  - MARGIN, pr ? pr.right  - MARGIN : window.innerWidth  - MARGIN);
+		var minY = Math.max(MARGIN, pr ? pr.top   + MARGIN : MARGIN);
+		var maxY = Math.min(window.innerHeight - MARGIN, pr ? pr.bottom - MARGIN : window.innerHeight - MARGIN);
+		el.style.transform = "none";                 // force the unscaled layout box
+		var r = el.getBoundingClientRect();
+		var halfW = SCALE * r.width / 2, halfH = SCALE * r.height / 2;
+		var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+		var dx = 0, dy = 0;
+		/* Prefer aligning the left/top edge when the scaled tile is too big to
+		   fit between both bounds (the left `if` wins over the right `else`). */
+		if (cx - halfW < minX)       dx = minX - (cx - halfW);
+		else if (cx + halfW > maxX)  dx = maxX - (cx + halfW);
+		if (cy - halfH < minY)       dy = minY - (cy - halfH);
+		else if (cy + halfH > maxY)  dy = maxY - (cy + halfH);
+		el.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + SCALE + ")";
+		/* The play-icon overlay is pinned to the iframe's *unshifted* center, so
+		   carry the same translate into it (via the ::after's transform vars) to
+		   keep it centered on the enlarged, edge-clamped video. */
+		this.style.setProperty("--caPlayDX", dx + "px");
+		this.style.setProperty("--caPlayDY", dy + "px");
+	});
+	$("body").on("mouseleave.caMediaShift", ".caMediaGallery .screenshot", function() {
+		var el = scaledEl(this);
+		if (el) el.style.transform = "";             // back to the CSS :hover/base rule
+		this.style.setProperty("--caPlayDX", "0px");
+		this.style.setProperty("--caPlayDY", "0px");
 	});
 }
 
@@ -931,37 +985,6 @@ $(function(){
 				   Delayed one tick so any DOM state the click triggered
 				   (.sidenavShow getting added, etc.) is in place before
 				   we check. */
-				if (typeof window.caShouldKeepSearchInFocus !== "function") {
-					window.caShouldKeepSearchInFocus = function() {
-						/* The ca_keepSearchInFocus class is added to
-						   #caSettingsFlags when the live value differs from
-						   default.cfg ("yes"). Its presence therefore means
-						   the user explicitly turned the setting off. */
-						return !$("#caSettingsFlags").hasClass("ca_keepSearchInFocus");
-					};
-				}
-				if (typeof window.caIsLikelyTouchDevice !== "function") {
-					window.caIsLikelyTouchDevice = function() {
-						try {
-							/* (pointer:coarse) is the canonical "primary
-							   input is touch" signal. (hover:none) adds
-							   "no fine hover mechanism" so an iPad with a
-							   mouse plugged in (which exposes fine pointer
-							   AND hover) is treated as desktop. */
-							if (window.matchMedia &&
-							    window.matchMedia("(pointer: coarse)").matches &&
-							    window.matchMedia("(hover: none)").matches) return true;
-							/* Fallback for older Edge/iPadOS Safari where
-							   the media-query reporting is unreliable.
-							   maxTouchPoints + a Mobile UA token is a
-							   reasonable heuristic. */
-							var ua = navigator.userAgent || "";
-							if ((navigator.maxTouchPoints || 0) > 1 &&
-							    /Mobi|Android|iPhone|iPad|iPod|Tablet|Touch/i.test(ua)) return true;
-						} catch (e) { /* no-op */ }
-						return false;
-					};
-				}
 				document.addEventListener("click", function() {
 					if (!caShouldKeepSearchInFocus()) return;
 					if (caIsLikelyTouchDevice()) return;
@@ -1971,8 +1994,8 @@ function closeSidebar(keepIdentity=false,visible=false) {
 	   "Keep Search In Focus" setting is off, on touch devices (would
 	   pop the virtual keyboard), or while a MagnificPopup is still open
 	   (closeSidebar is called from MFP's beforeOpen hook). */
-	if (typeof caShouldKeepSearchInFocus === "function" && !caShouldKeepSearchInFocus()) return;
-	if (typeof caIsLikelyTouchDevice === "function" && caIsLikelyTouchDevice()) return;
+	if (!caShouldKeepSearchInFocus()) return;
+	if (caIsLikelyTouchDevice()) return;
 	setTimeout(function() {
 		if ($(".mfp-wrap").length || $(".mfp-bg").length) return;
 		var $inline = $("#caInlineSearchBox");
@@ -3270,8 +3293,8 @@ function caFocusInlineSearchIfHome() {
 	   (phones/tablets) where focusing an input would pop the virtual
 	   keyboard. The user can still tap the input themselves when they
 	   actually want the keyboard. */
-	if (typeof caShouldKeepSearchInFocus === "function" && !caShouldKeepSearchInFocus()) return;
-	if (typeof caIsLikelyTouchDevice === "function" && caIsLikelyTouchDevice()) return;
+	if (!caShouldKeepSearchInFocus()) return;
+	if (caIsLikelyTouchDevice()) return;
 	var $inline = $("#caInlineSearchBox");
 	if (!$inline.length || !$inline.is(":visible")) return;
 	if (($("#searchBox").val() || "") !== "") return; // active search — don't steal focus

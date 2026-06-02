@@ -2112,22 +2112,33 @@ function caBindSettingsFormHandlers(initialFormState) {
 	 * banner, and reload once the progress iframe fires `load` (or after a
 	 * short fallback delay).
 	 */
-	$sidenav.off("submit.caSettings", ".ca_settingsForm").on("submit.caSettings", ".ca_settingsForm", function() {
+	$sidenav.off("submit.caSettings", ".ca_settingsForm").on("submit.caSettings", ".ca_settingsForm", function(e) {
+		/* preventDefault is the crux: the form's native submit goes to
+		   /update.php targeting the dynamix progressFrame iframe, and dynamix
+		   reloads the page when that iframe completes — which killed our reload
+		   countdown a second or two in. We never let that happen: save the
+		   toggles ourselves via the saveSettings action, then drive the reload
+		   from the countdown modal. */
+		e.preventDefault();
 		var $localForm = $(this);
 		if ($localForm.data("submitting")) return false;
 		$localForm.data("submitting", true);
+		/* Mark the form clean so closeSidebar() (called from inside the reload
+		   modal) doesn't see dirty fields and try to re-submit. */
+		$localForm.data("caInitialState", $localForm.serialize());
 
-		addBannerWarning(tr("Saving settings..."), false, true);
-		var onSaved = function() {
-			addBannerWarning(tr("Settings saved. Refreshing..."), false, true);
-			setTimeout(function() { window.location.reload(); }, 400);
-		};
+		/* Collect each toggle's effective value — the checkbox's value when
+		   checked, otherwise its paired hidden ("off") input — and persist them. */
+		var settings = { action: "saveSettings" };
+		$localForm.find("input.caSettingSwitch").each(function() {
+			if (!this.name) return;
+			settings[this.name] = this.checked
+				? this.value
+				: ($localForm.find("input[type=hidden][name='" + this.name + "']").val() || this.value);
+		});
+		postNoSpin(settings, function() {});
 
-		var $progressFrame = $("iframe[name='progressFrame']");
-		if ($progressFrame.length) {
-			$progressFrame.off("load.caSettings").one("load.caSettings", function() { setTimeout(onSaved, 100); });
-		} else {
-			setTimeout(onSaved, 800);
-		}
+		caShowReloadNoticeBanner();
+		return false;
 	});
 }

@@ -150,8 +150,38 @@ function renderModerationRepositories(payload) {
 		$row.append($("<td></td>").append($("<a class='popUpLink' target='_blank' rel='noopener noreferrer'></a>").attr("href", url).text(url)));
 		$table.append($row);
 	});
+	/* Filter link — show only the disabled (ignored) repos, with a toggle back
+	   to the full list. Only meaningful when at least one repo is disabled, so
+	   it starts hidden and caUpdateRepoFilterBar() shows/hides it as the user
+	   toggles rows. */
+	const hasDisabled = repos.some(function(r) {
+		return ignoredSet[r.name] && !/github\.com\/unraid\//i.test(r.url || "");
+	});
+	const $filterBar = $("<div class='caRepoFilterBar'></div>");
+	$filterBar.append($("<span class='caRepoFilterToggle popUpLink' role='button' tabindex='0'></span>").text(tr("Show disabled only")));
+	if (!hasDisabled) $filterBar.addClass("ca_hide");
+	$body.append($filterBar);
 	$body.append($tableWrap);
 	return $("<div></div>").append($shell).html();
+}
+
+/**
+ * Show/hide the "Show disabled only" link based on whether any repo is currently
+ * disabled, and drop out of filtered mode when the last disabled repo is
+ * re-enabled (so the table never ends up showing nothing).
+ *
+ * @returns {void}
+ */
+function caUpdateRepoFilterBar() {
+	const $table = $(".caModerationRepoTable");
+	const $bar = $(".caRepoFilterBar");
+	if (!$table.length || !$bar.length) return;
+	const hasDisabled = $table.find("tr.caRepoIgnored[data-repo-name]").length > 0;
+	$bar.toggleClass("ca_hide", !hasDisabled);
+	if (!hasDisabled && $table.hasClass("caShowDisabledOnly")) {
+		$table.removeClass("caShowDisabledOnly");
+		$(".caRepoFilterToggle").text(tr("Show disabled only"));
+	}
 }
 
 /* Click handler for the +/- icon — toggles the row's ignored state and
@@ -187,6 +217,18 @@ $(function() {
 		post({ action: "saveIgnoredRepos", ignored: JSON.stringify(current) }, function(result) {
 			if (result && result.changed) window.caRepoIgnoreDirty = true;
 		});
+		caUpdateRepoFilterBar();
+	});
+
+	/* "Show disabled only" / "Show all repositories" filter toggle. Adds a class
+	   the CSS uses to hide non-ignored rows; flips the link label each click. */
+	$("body").on("click keydown", ".caRepoFilterToggle", function(e) {
+		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+		e.preventDefault();
+		const $table = $(".caModerationRepoTable");
+		if (!$table.length) return;
+		const disabledOnly = $table.toggleClass("caShowDisabledOnly").hasClass("caShowDisabledOnly");
+		$(this).text(disabledOnly ? tr("Show all repositories") : tr("Show disabled only"));
 	});
 });
 
@@ -221,7 +263,12 @@ function caCollectIgnoredRepos() {
 function caRestartIfRepoIgnoreDirty() {
 	if (!window.caRepoIgnoreDirty) return;
 	window.caRepoIgnoreDirty = false;
-	try { $(".startupButton").first().trigger("click"); } catch (e) { /* no-op */ }
+	/* Show the reload-notice banner for 10s, THEN wipe /tmp and reload. The
+	   wipe is deferred into the banner's beforeReload callback so it doesn't
+	   take effect until the countdown elapses. */
+	caShowReloadNoticeBanner(function(done) {
+		post({ action: "clearTempForReload" }, function() { done(); });
+	});
 }
 
 /**
@@ -504,6 +551,63 @@ function showStatistics() {
 		$content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
 		$content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
 
+		/* Dev/admin-only diagnostics. The server includes stats.tabId only when
+		   dev+admin (caIsAdmin) is satisfied, so its presence is the admin
+		   signal. Set the tab-id row synchronously (it's cloned into the live
+		   view by showAlternateView below). */
+		const isAdminDiag = stats.tabId !== undefined;
+		if (isAdminDiag) {
+			setText("tabId", stats.tabId, "");
+			$content.find("#caTabIdRow").removeClass("ca_hide");
+		}
+
 		$content.showAlternateView();
+
+		/* Feed SHA comparison is a separate, slower call (downloads both mirrors
+		   server-side), so fetch it after the view is up and patch the LIVE
+		   #sidenavContent clone — modifying the template now would be ignored. */
+		if (isAdminDiag) {
+			postNoSpin({ action: "caCompareFeedShas" }, function(shaResult) {
+				if (!shaResult || !shaResult.enabled || !shaResult.results) return;
+				const $cell = $("#sidenavContent [data-stat-html='feedShaCheck']");
+				if (!$cell.length) return; // user navigated away before it returned
+				$cell.html(caBuildFeedShaHtml(shaResult.results));
+				$("#sidenavContent #caFeedShaCheckRow").removeClass("ca_hide");
+			});
+		}
 	});
+}
+
+/**
+ * Build the primary-vs-GitHub-backup feed SHA comparison markup for the
+ * statistics popup (dev/admin diagnostic). `results` is keyed small/full/
+ * statistics, each { primary, backup, match } with null shas on fetch failure.
+ *
+ * @param {object} results
+ * @returns {string} HTML
+ */
+function caBuildFeedShaHtml(results) {
+	const order = [
+		{ key: "small",      label: tr("Application feed (small)") },
+		{ key: "full",       label: tr("Application feed (full)") },
+		{ key: "statistics", label: tr("Statistics feed") }
+	];
+	const rows = order.map(function(item) {
+		const r = results[item.key];
+		if (!r) return "";
+		let status;
+		if (r.primary === null || r.backup === null) {
+			let which;
+			if (r.primary === null && r.backup === null) which = tr("both fetches failed");
+			else if (r.primary === null)                 which = tr("primary fetch failed");
+			else                                         which = tr("backup fetch failed");
+			status = "<i class='fa fa-question-circle ca_serverWarning' aria-hidden='true'></i> " + which;
+		} else if (r.match) {
+			status = "<i class='fa fa-check' aria-hidden='true'></i> " + tr("in sync");
+		} else {
+			status = "<i class='fa fa-exclamation-triangle ca_serverWarning' aria-hidden='true'></i> " + tr("mismatch");
+		}
+		return "<div>" + item.label + ": " + status + "</div>";
+	});
+	return "<div class='ca_bold'>" + tr("Primary vs backup feed check") + "</div>" + rows.join("");
 }

@@ -206,7 +206,7 @@ $(function() {
 				<li class='categoryMenu caMenuItem allApps onlyShowWithFeed nonDockerSearch' data-category='All'><span class='caAllAppsMenuLabel' data-all-apps-label="<?tr('All Apps');?>" data-all-results-label="<?tr('All Results');?>"><?tr("All Apps");?></span></li>
 				<li class='caMenuItem'><hr class='category_hr onlyShowWithFeed'></li>
 				<li class='categoryMenu caMenuItem caRepositoryMenu onlyShowWithFeed nonDockerSearch' data-category='repos'><?tr("Repositories");?></li>
-				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes" && is_file(CA_PATHS['caAdmin'])):?>
+				<?if (caIsAdmin()):?>
 				<li class='categoryMenu caMenuItem caDuplicatesMenu onlyShowWithFeed nonDockerSearch' data-category='duplicates'><?tr("Duplicates");?></li>
 				<?endif;?>
 				<li><hr class='category_hr onlyShowWithFeed'/></li>
@@ -369,7 +369,7 @@ $(function() {
 			<div class='ca_center ca_creditheader'><?tr("Development");?></div>
 			<div class='ca_center ca_credit'>Andrew Zawadzki, Lime Technology Inc</div>
 			<div class='ca_center ca_creditheader'><?tr("Additional Contributions");?></div>
-			<div class='ca_center ca_credit'>bonienl, Claude Shannon</div>
+			<div class='ca_center ca_credit'>bonienl, Claude Shannon, Alexa Sterling</div>
 			<div class='ca_center ca_creditheader'><?tr("GUI Layout Design");?></div>
 			<div class='ca_center ca_credit'>Magnus Engø, Andrew Zawadzki, Lime Technology Inc</div>
 			<div class='ca_center ca_creditheader'><?tr("Application Feed");?></div>
@@ -539,8 +539,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Allow install of second instance");?></span>
-							<input type='hidden' name='defaultReinstall' value='false'>
-							<input type='checkbox' class='switch caSettingSwitch' name='defaultReinstall' value='true' <?=($GLOBALS['caSettings']['defaultReinstall'] ?? "false") == "true" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('defaultReinstall', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Show reinstall options to install additional instances of an already installed app using default template values.");?></div>
 					</div>
@@ -548,8 +547,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Allow CA to check for updates to applications");?></span>
-							<input type='hidden' name='updateCheck' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='updateCheck' value='yes' <?=($GLOBALS['caSettings']['updateCheck'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('updateCheck', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Enable background checks for application updates.");?></div>
 					</div>
@@ -563,8 +561,7 @@ $(function() {
 					<div class='ca_settingCard caUseWholeDisplayWindowCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Use whole display window");?></span>
-							<input type='hidden' name='useWholeDisplayWindow' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='useWholeDisplayWindow' value='yes' <?=($GLOBALS['caSettings']['useWholeDisplayWindow'] ?? "no") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('useWholeDisplayWindow', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Use the entire height — automatically done on mobile.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
@@ -572,8 +569,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Limit search results");?></span>
-							<input type='hidden' name='searchLimitToName' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='searchLimitToName' value='yes' <?=($GLOBALS['caSettings']['searchLimitToName'] ?? "no") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('searchLimitToName', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Limits results to name, author, repository.");?></div>
 					</div>
@@ -581,8 +577,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Keep Search In Focus");?></span>
-							<input type='hidden' name='keepSearchInFocus' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='keepSearchInFocus' value='yes' <?=($GLOBALS['caSettings']['keepSearchInFocus'] ?? "yes") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('keepSearchInFocus', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Some mobile devices might require this to be disabled.");?></div>
 					</div>
@@ -598,8 +593,7 @@ $(function() {
 					<div class='ca_settingCard caDisplayUsageGraphsCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Display usage graphs");?></span>
-							<input type='hidden' name='displayUsageGraphs' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='displayUsageGraphs' value='yes' <?=($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('displayUsageGraphs', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Show live CPU / Memory / Network on running containers.");?> <span class='caVersionTag'>(<?tr("7.2+ only");?>)</span></div>
 					</div>
@@ -607,8 +601,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Hide Deprecated Applications");?></span>
-							<input type='hidden' name='hideDeprecated' value='false'>
-							<input type='checkbox' class='switch caSettingSwitch' name='hideDeprecated' value='true' <?=($GLOBALS['caSettings']['hideDeprecated'] ?? "false") == "true" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('hideDeprecated', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Hide deprecated applications from available apps. Deprecated apps will still show in installed and previous apps.");?></div>
 					</div>
@@ -616,8 +609,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Hide Incompatible Applications");?></span>
-							<input type='hidden' name='hideIncompatible' value='false'>
-							<input type='checkbox' class='switch caSettingSwitch' name='hideIncompatible' value='true' <?=($GLOBALS['caSettings']['hideIncompatible'] ?? "false") == "true" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('hideIncompatible', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Hide applications marked as incompatible with your current Unraid version.");?></div>
 					</div>
@@ -625,8 +617,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Disable Featured Applications");?></span>
-							<input type='hidden' name='featuredDisable' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='featuredDisable' value='yes' <?=($GLOBALS['caSettings']['featuredDisable'] ?? "no") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('featuredDisable', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Disable featured applications on the Home view.");?></div>
 					</div>
@@ -634,8 +625,7 @@ $(function() {
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
 							<span><?tr("Enable developer mode");?></span>
-							<input type='hidden' name='dev' value='no'>
-							<input type='checkbox' class='switch caSettingSwitch' name='dev' value='yes' <?=($GLOBALS['caSettings']['dev'] ?? "no") == "yes" ? "checked" : ""; ?>>
+							<?=caSettingSwitchInputs('dev', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Unlock additional developer-focused features. Not generally recommended.");?></div>
 					</div>

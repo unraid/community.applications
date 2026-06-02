@@ -1033,15 +1033,11 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 		}
 
 		if (! $template['Plugin']) {
-			$tmpRepo = $template['Repository'];
-			if (! strpos($tmpRepo, "/")) {
-				$tmpRepo = "library/$tmpRepo";
-			}
-			foreach ($dockerContext['info'] as $testDocker) {
-				if (($tmpRepo == $testDocker['Image'] || "$tmpRepo:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name'])) {
-					$template['Installed'] = true;
-					break;
-				}
+			/* Same detection the card's Install/Manage button uses
+			   (caProcessDockerTemplate → caDockerInstalledName) so the badge and
+			   the button can't disagree on a no-tag-vs-:latest image. */
+			if (caDockerInstalledName($template, $dockerContext['info']) !== "") {
+				$template['Installed'] = true;
 			}
 		} else {
 			$pluginName = basename($template['PluginURL']);
@@ -1312,7 +1308,7 @@ function getRepoDescriptionSkin($repository) {
 	   moderators can spot accidental double-listings without trawling all the
 	   repo's cards. Both copies of each duplicate group are shown. */
 	$repoDuplicatesButton = "";
-	if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && is_file(CA_PATHS['caAdmin'])) {
+	if (caIsAdmin()) {
 		$repoDuplicatesButton = "<div class='caButton ca_repoDuplicates' data-repository='{$encodedRepository}'>".tr("Duplicates")."</div>";
 	}
 

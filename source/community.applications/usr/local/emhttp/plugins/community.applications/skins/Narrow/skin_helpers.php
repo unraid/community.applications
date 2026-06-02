@@ -323,7 +323,7 @@ function caBuildSupportContext(array $template, array $allRepositories) {
 		/* Internal diff (appfeed vs CA's internal templates_full.json) — only
 		   when the admin marker file exists. Available for plugins too since
 		   neither side does a source-XML round-trip. */
-		if ($diffFeedReady && is_file(CA_PATHS['caAdmin'])) {
+		if ($diffFeedReady && caIsAdmin()) {
 			$diffUrl = !empty($template['Plugin']) ? $diffPluginUrl : $diffContainerUrl;
 			$supportContext[] = [
 				"icon"   => "ca_fa-diff",
@@ -801,6 +801,38 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
 }
 
 /**
+ * Find the installed/running docker container matching a template, or "" if
+ * none. Single source of truth for "is this docker template installed" so the
+ * card's installed badge and its Install/Manage button can never disagree.
+ *
+ * Match rules (mirrors what the installed badge has always used):
+ *   - a bare image name with no registry slash is treated as a `library/` image;
+ *   - a template Repository with no tag matches docker's implicit `:latest`
+ *     (and an explicit `:latest` matches the bare-tag form);
+ *   - the container Name must also match.
+ * Registry-port colons (eg. `registry:5000/ns/app`) are never mistaken for a
+ * tag because we don't parse the tag — we just test both `repo` and `repo:latest`.
+ *
+ * @param  array<string,mixed>             $template
+ * @param  array<int,array<string,mixed>>  $dockerInfo
+ * @return string Matched container Name, or "" when not installed.
+ */
+function caDockerInstalledName(array $template, array $dockerInfo): string {
+	$repo = (string)($template['Repository'] ?? "");
+	if ($repo !== "" && strpos($repo, "/") === false) {
+		$repo = "library/$repo";
+	}
+	$name = (string)($template['Name'] ?? "");
+	foreach ($dockerInfo as $d) {
+		$image = (string)($d['Image'] ?? "");
+		if ( ($repo === $image || "$repo:latest" === $image) && $name === (string)($d['Name'] ?? "") ) {
+			return (string)($d['Name'] ?? "");
+		}
+	}
+	return "";
+}
+
+/**
  * Build action contexts and flags for docker templates when rendering cards.
  *
  * Reads `$GLOBALS['caSettings']` and template XML files via readXmlFile() (filesystem I/O).
@@ -812,24 +844,11 @@ function caApplyModerationOverrides(array $template, array $extraBlacklist, arra
  */
 function caProcessDockerTemplate(array $template, array $info, array $dockerUpdateStatus): array {
 	$actionsContext = [];
-	$selected = false;
 	$name = "";
 
 	if (caIsDockerRunning()) {
-		foreach ($info as $testDocker) {
-			/* Tag-vs-port colon disambiguation — see comment in caGenerateActionsContext. */
-			$lastSlash = strrpos($template['Repository'], "/");
-			$hasTag = $lastSlash !== false
-				? strpos($template['Repository'], ":", $lastSlash) !== false
-				: strpos($template['Repository'], ":") !== false;
-			$tmpRepo = $hasTag ? $template['Repository'] : "{$template['Repository']}:latest";
-			$tmpRepo = strpos($tmpRepo, "/") !== false ? $tmpRepo : "library/$tmpRepo";
-			if ((($tmpRepo == $testDocker['Image'] && $template['Name'] == $testDocker['Name']) || "{$tmpRepo}:latest" == $testDocker['Image']) && ($template['Name'] == $testDocker['Name'])) {
-				$selected = true;
-				$name = $testDocker['Name'];
-				break;
-			}
-		}
+		$name = caDockerInstalledName($template, $info);
+		$selected = ($name !== "");
 
 		$template['Installed'] = $selected;
 		if ($selected) {
@@ -1682,17 +1701,18 @@ function caBuildBottomLineSection(
 		/* Install vs Manage label — dummy button, no own click handler.
 		   Clicking it just bubbles to the .ca_holder click that opens the
 		   sidebar (same as clicking Details or the card background). The
-		   only signal is the LABEL: "Install" when the user hasn't yet
-		   added this app to their stack, "Manage" once it's already
-		   installed. InstallPath is set by the feed merge whenever a local
-		   user template exists for this app (docker or plugin), so it's
-		   the same signal the sidebar uses to decide whether to render
-		   Install vs Reinstall in the actions row.
-		   Skipped on repository cards (RepositoryTemplate) — they're
-		   virtual aggregations with no InstallPath of their own. */
+		   only signal is the LABEL: "Install" when the app isn't installed,
+		   "Manage" once it is. Uses $template['Installed'] — the SAME signal
+		   that drives the installed corner badge (docker image match incl.
+		   no-tag↔:latest, checkInstalledPlugin, language dir check) — so the
+		   badge and the button can never disagree. (Previously this read
+		   InstallPath, "a user template exists", which diverged: a running
+		   container with no my-*.xml showed the badge but said "Install".)
+		   Skipped on repository cards (RepositoryTemplate) — virtual
+		   aggregations that are never "installed". */
 		$installManageButton = "";
 		if (empty($template['RepositoryTemplate'])) {
-			$isInstalled = !empty($template['InstallPath']);
+			$isInstalled = !empty($template['Installed']);
 			$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
 			$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
 			$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";

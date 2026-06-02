@@ -23,6 +23,17 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: A card's Install / Manage button now matches its "installed" badge. Containers installed without an explicit tag (Docker reports them as `:latest`), as well as plugins and language packs, correctly show "Manage" instead of "Install"
+- Changed: Changing a setting, or enabling/disabling a repository, now puts up a blurred full-screen notice with a live 10-second countdown before reloading, instead of reloading instantly (or not at all). The setting is saved immediately; the reload just applies it
+- Changed: "Keep Search In Focus" now defaults to off
+- Added: The Repositories list has a "Show disabled only" link to filter to just the disabled repositories, with a toggle back to the full list (appears only when at least one repo is disabled)
+- Changed: Sidebar video previews now render in a 16:9 frame, and hovering any sidebar screenshot or video enlarges it to twice its size while keeping it within the sidebar (it no longer spills off the edge); the play icon stays centered on the enlarged video
+- Fixed: Long branch descriptions in the "Choose A Branch To Install" prompt now wrap to the next line instead of overflowing
+- Changed: Links inside an app's README in the sidebar now match the rest of the sidebar's link styling
+- Fixed: Dev-mode "Diff" and "CA" buttons now appear in app sidebars when developer mode is turned on after the app feed has already loaded (the feed snapshot they need wasn't being created in that case)
+- Fixed: The Statistics page now shows the session (tab) ID and a primary-vs-backup feed sync check when admin mode is enabled (the backup statistics feed location was also missing)
+- Added: Alexa Sterling added to the Credits
+- Chore: Removed some unused internal actions and consolidated the developer/admin-mode checks
 - Added: Videos in an app's sidebar now autoplay a muted, looping preview right in the thumbnail. Clicking still opens the full-size player (which stays paused until you press play). The separate "Autoplay videos" setting has been removed — sidebar previews are always on now
 - Fixed: Dev-mode "Diff" button now works for plugins — it was comparing against the plugin's install file instead of its template, so it never found a match
 - Fixed: When "Limit search results" narrows everything away, the "ALL RESULTS" link no longer floats off to the side of "No Matching Applications Found" — it now sits on its own line beneath a "Settings limited the search results." note
