@@ -65,6 +65,40 @@ function caHasSetting(name) {
 }
 
 /**
+ * Whether the "Keep Search In Focus" setting is on. default.cfg ships it
+ * "no", so "on" == "differs from default" == caHasSetting("keepSearchInFocus").
+ *
+ * @returns {boolean}
+ */
+function caShouldKeepSearchInFocus() {
+	return caHasSetting("keepSearchInFocus");
+}
+
+/**
+ * Heuristic: is the primary input a touch screen (phone / tablet)? Used to skip
+ * auto-refocusing the search input, which would pop the virtual keyboard on
+ * every click. Treats an iPad-with-mouse as desktop.
+ *
+ * @returns {boolean}
+ */
+function caIsLikelyTouchDevice() {
+	try {
+		/* (pointer:coarse) is the canonical "primary input is touch" signal;
+		   (hover:none) adds "no fine hover mechanism" so an iPad with a mouse
+		   plugged in (fine pointer AND hover) is treated as desktop. */
+		if (window.matchMedia &&
+		    window.matchMedia("(pointer: coarse)").matches &&
+		    window.matchMedia("(hover: none)").matches) return true;
+		/* Fallback for older Edge / iPadOS Safari where media-query reporting
+		   is unreliable: maxTouchPoints + a Mobile UA token. */
+		var ua = navigator.userAgent || "";
+		if ((navigator.maxTouchPoints || 0) > 1 &&
+		    /Mobi|Android|iPhone|iPad|iPod|Tablet|Touch/i.test(ua)) return true;
+	} catch (e) { /* no-op */ }
+	return false;
+}
+
+/**
  * Parse `url` with the URL API; returns a `URL` instance or `false` if invalid.
  *
  * @param {string} url
@@ -783,6 +817,71 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		if ($homeBtn.length) $homeBtn.trigger("click");
 		else window.location.reload();
 	}
+}
+
+/**
+ * Show the bottom banner announcing a required reload, wait `delayMs`
+ * (default 10s), then run the reload routine. Used in place of an immediate
+ * auto-reload after a settings change or a repository enable/disable so the
+ * user sees why the page is about to refresh.
+ *
+ * An optional `beforeReload(done)` callback runs when the countdown elapses and
+ * MUST call `done()` to perform the reload. The repository path uses this to
+ * defer its /tmp wipe until after the countdown — nothing destructive happens
+ * while the banner is up.
+ *
+ * @param {function} [beforeReload] Optional pre-reload step; receives a `done` callback.
+ * @param {number}   [delayMs]      Countdown in ms (default 10000).
+ */
+function caShowReloadNoticeBanner(beforeReload, delayMs) {
+	if (window.ca_reloadPending) return;
+	window.ca_reloadPending = true;
+	delayMs = (typeof delayMs === "number") ? delayMs : 10000;
+
+	try { if (typeof closeSidebar === "function") closeSidebar(true, true); } catch (e) {}
+
+	/* Blurred, full-screen blocker so the user can't interact with the
+	   about-to-be-stale page while the countdown runs (z-index 9999, below the
+	   .ca_bottomBanner toast at 10000 so the message stays crisp on top). */
+	$("#caViewportBlocker").addClass("caReloadBlur").removeClass("ca_hide");
+
+	var baseMsg = tr("Community Applications needs to reload for the changes to take effect");
+	var $banner = $(".ca_bottomBanner");
+	var $msg = $(".ca_fatalReloadBanner");
+	var secs = Math.ceil(delayMs / 1000);
+	/* baseMsg is a fixed translated string (no user input) so .html() is safe;
+	   the live countdown sits on its own line beneath it. */
+	var render = function() {
+		$msg.html(baseMsg + "<br><span class='caReloadCountdown'>" + tr("Reloading in") + " " + secs + "s</span>");
+	};
+	if ($banner.length && $msg.length) {
+		$(".ca_pageGeometryChange").addClass("ca_hide");
+		render();
+		$msg.removeClass("ca_hide");
+		$banner.removeClass("ca_hide");
+	}
+
+	var tick = setInterval(function() {
+		secs = Math.max(0, secs - 1);
+		render();
+		if (secs <= 0) clearInterval(tick);
+	}, 1000);
+
+	var doReload = function() {
+		/* Prefer the Home button (re-runs the feed pipeline) over a raw reload,
+		   matching the previous restart behaviour. */
+		var $homeBtn = $(".startupButton").first();
+		if ($homeBtn.length) $homeBtn.trigger("click");
+		else window.location.reload();
+	};
+
+	setTimeout(function() {
+		clearInterval(tick);
+		if (typeof beforeReload === "function") {
+			try { beforeReload(doReload); return; } catch (e) { /* fall through */ }
+		}
+		doReload();
+	}, delayMs);
 }
 
 /**

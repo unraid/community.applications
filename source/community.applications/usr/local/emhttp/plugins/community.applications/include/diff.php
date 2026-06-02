@@ -48,7 +48,7 @@ function getTemplateDiff() {
 	}
 	/* Internal mode is gated by the admin marker file — both client and server
 	   check it so the response can't be coaxed open without the file. */
-	if ($mode === "internal" && !is_file(CA_PATHS['caAdmin'])) {
+	if ($mode === "internal" && !caIsAdmin()) {
 		postReturn(["ok"=>false, "message"=>tr("Internal diff is not available")]);
 		return;
 	}

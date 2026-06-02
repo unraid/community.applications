@@ -182,6 +182,12 @@ switch ($_POST['action']) {
 	case 'saveIgnoredRepos':
 		saveIgnoredRepos();
 		break;
+	case 'clearTempForReload':
+		clearTempForReload();
+		break;
+	case 'saveSettings':
+		saveSettings();
+		break;
 	case 'populateAutoComplete':
 		populateAutoComplete();
 		break;
@@ -285,8 +291,6 @@ switch ($_POST['action']) {
 	case 'enableActionCentre':
 		enableActionCentre();
 		break;
-	case 'var_dump':
-		break;
 	case 'checkRequirements':
 		checkRequirements();
 		break;
@@ -298,12 +302,6 @@ switch ($_POST['action']) {
 		break;
 	case 'checkPluginInProgress':
 		checkPluginInProgress();
-		break;
-	case 'networkAlreadyCreated':
-		networkAlreadyCreated();
-		break;
-	case 'clearStartUpDisplayed':
-		clearStartUpDisplayed();
 		break;
 	case 'dropInfoCache':
 		/* Fire-and-forget cache invalidation from JS. Used by saveState /
@@ -623,8 +621,12 @@ function hydrateFullFeedWork(): string {
 	$devMode = ($GLOBALS['caSettings']['dev'] ?? null) === "yes";
 	/* tempFiles gets wiped on every DownloadApplicationFeed() entry, so the
 	   full cache file's mere existence means it was written by either a
-	   full-feed download or a prior hydrate — no stale state to worry about. */
-	if ( is_file(CA_PATHS['community-templates-info-full']) ) {
+	   full-feed download or a prior hydrate — no stale state to worry about.
+	   Exception: in dev mode the Diff/CA buttons need the raw applicationFeed
+	   snapshot (written below). If dev mode was turned on after a non-dev
+	   hydrate already built the full cache, that snapshot is missing — so don't
+	   short-circuit until it exists, otherwise the buttons never appear. */
+	if ( is_file(CA_PATHS['community-templates-info-full']) && ( ! $devMode || is_file(CA_PATHS['rawAppFeed']) ) ) {
 		return 'already_fresh';
 	}
 
@@ -880,12 +882,62 @@ function saveIgnoredRepos() {
 	} else {
 		writeJsonFile(CA_PATHS['ignoredRepos'], $decoded);
 	}
-	/* Wipe the working temp tree so the next page load re-downloads the
-	   feed and re-runs DownloadApplicationFeed() with the new ignore list
-	   in effect. dirname() gives the parent of tempFiles ('/tmp/$CA'), which
-	   is the entire CA temp area. */
-	exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
+	/* The /tmp wipe that forces a feed rebuild is deferred to the
+	   clearTempForReload action — the client fires it only after the 10-second
+	   reload-notice banner elapses, so nothing destructive happens while the
+	   user is still on the page. Here we only persist the new ignore list. */
 	postReturn(["ok" => true, "changed" => true, "count" => count($decoded), "restart" => true]);
+}
+
+/**
+ * Wipe the CA working temp tree ('/tmp/$CA', the parent of tempFiles) so the
+ * next page load re-downloads the feed and re-runs DownloadApplicationFeed()
+ * with the current ignore list in effect.
+ *
+ * Split out of saveIgnoredRepos() so the destructive wipe can be deferred to
+ * the end of the client's reload-notice countdown rather than firing the moment
+ * a repository is toggled.
+ *
+ * @return void
+ */
+function clearTempForReload() {
+	exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
+	postReturn(["ok" => true]);
+}
+
+/**
+ * Persist the CA settings toggles posted from the Settings sidebar.
+ *
+ * Replaces the old dynamix form → /update.php → progressFrame submit, whose
+ * iframe completion reloaded the page before the reload-notice countdown could
+ * run. Accepts only the boolean switches the Settings panel actually renders,
+ * only with boolean values, and merges them into the saved cfg (read raw so
+ * runtime-only keys and the escaped `favourite` value aren't corrupted).
+ *
+ * @return void
+ */
+function saveSettings() {
+	$cfg     = @parse_ini_file(CA_PATHS['pluginSettings']) ?: [];
+	$allowed = ["yes", "no", "true", "false"];
+	/* Explicit allowlist of the switches in the Settings panel
+	   (caSettingSwitchInputs in skin.html) — keep in sync with that form. Using
+	   this instead of every default.cfg key stops a crafted POST from flipping
+	   non-UI settings (eg. `debugging`) that happen to be booleans. */
+	$switches = [
+		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
+		"keepSearchInFocus", "displayUsageGraphs", "hideDeprecated", "hideIncompatible",
+		"featuredDisable", "dev",
+	];
+	foreach ($switches as $key) {
+		$posted = getPost($key, null);
+		if ($posted === null) continue;
+		$posted = (string)$posted;
+		if (in_array($posted, $allowed, true)) {
+			$cfg[$key] = $posted;
+		}
+	}
+	write_ini_file(CA_PATHS['pluginSettings'], $cfg);
+	postReturn(["ok" => true]);
 }
 
 /**
@@ -1064,7 +1116,7 @@ function appOfDay($file) {
 				if ( ! isset($template['trends']) ) continue;
 				if ( count($template['trends']) < 6 ) continue;
 				if ( startsWith($template['Repository'],"ich777/steamcmd") ) continue; // because a ton of apps all use the same repo
-				if ( $template['trending'] && ( ($template['PluginURL']??false) || ($template['downloads'] > 100000) ) ) {
+				if ( $template['trending'] && ! ($template['PluginURL']??false) && ($template['downloads'] > 100000) ) {   // plugins have their own "Most Popular Plugins" home section
 					if ( checkRandomApp($template) ) {
 						if ( in_array($template['Repository'],$repos) )
 							continue;
@@ -1110,7 +1162,7 @@ function appOfDay($file) {
 			foreach ($file as $template) {
 				if ( isset($template['trends']) && count($template['trends'] ) < 3 ) continue;
 				if ( startsWith($template['Repository'],"ich777/steamcmd") ) continue; // because a ton of apps all use the same repo`
-				if ( isset($template['trending']) && ( ($template['PluginURL']??false) || ($template['downloads'] > 10000) ) ) {
+				if ( isset($template['trending']) && ! ($template['PluginURL']??false) && ($template['downloads'] > 10000) ) {   // plugins have their own "Most Popular Plugins" home section
 					if ( checkRandomApp($template) ) {
 						if ( in_array($template['Repository'],$repos) )
 							continue;
@@ -1218,7 +1270,7 @@ function displayRepositories() {
 		$templates = $temp['community'] ?? [];
 	}
 
-	if ( is_file(CA_PATHS['startupDisplayed']) ) {
+	if ( caStartupDisplayed() ) {
 		$templates = $GLOBALS['templates'] ?? [];
 	}
 
@@ -1334,7 +1386,7 @@ function get_content() {
 		/* Defense in depth — the menu item is hidden when these conditions
 		   aren't met, but a hand-crafted POST shouldn't be able to enumerate
 		   the duplicates dataset either. */
-		if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+		if (!caIsAdmin()) {
 			postReturn(["error"=>tr("Not authorized")]);
 			return;
 		}
@@ -1928,7 +1980,7 @@ function statistics() {
 	/* Dev/admin-only diagnostic: include the requesting tab's session id
 	   so the statistics popup can display it. Normal users get no tabId
 	   field in the response and the row in the template stays hidden. */
-	if (($GLOBALS['caSettings']['dev'] ?? "no") === "yes" && is_file(CA_PATHS['caAdmin'])) {
+	if (caIsAdmin()) {
 		$statistics['tabId'] = (string)($_POST['tabId'] ?? '');
 	}
 
@@ -1959,7 +2011,7 @@ function statistics() {
  * @return void
  */
 function caCompareFeedShas() {
-	if (($GLOBALS['caSettings']['dev'] ?? "no") !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+	if (!caIsAdmin()) {
 		postReturn(['enabled' => false]);
 		return;
 	}
@@ -2288,7 +2340,7 @@ function caFindDuplicateTemplates(array $templates, $repository = null) {
  * @return void
  */
 function getRepoDuplicates() {
-	if (($GLOBALS['caSettings']['dev'] ?? null) !== "yes" || !is_file(CA_PATHS['caAdmin'])) {
+	if (!caIsAdmin()) {
 		postReturn(["error"=>tr("Not authorized")]);
 		return;
 	}
@@ -2852,7 +2904,7 @@ function getCategoriesPresent() {
 		   Repositories. The item is only rendered into the DOM when the
 		   same gate passes server-side, so listing the category here
 		   doesn't leak its existence to non-admin sessions. */
-		if (($GLOBALS['caSettings']['dev'] ?? null) === "yes" && is_file(CA_PATHS['caAdmin'])) {
+		if (caIsAdmin()) {
 			$categories[] = "duplicates";
 		}
 	}
@@ -2974,7 +3026,7 @@ function defaultSortOrder() {
  */
 function onStartupScreen() {
 
-	postReturn(['status'=>is_file(CA_PATHS['startupDisplayed'])]);
+	postReturn(['status'=>caStartupDisplayed()]);
 }
 
 /**
@@ -3484,24 +3536,6 @@ function checkPluginInProgress() {
 	postReturn(['inProgress' => is_file($flag) ? "$flag" : ""]);
 }
 
-/**
- * AJAX noop: reserved hook for "network already exists" handling.
- *
- * @return void
- */
-function networkAlreadyCreated() {
-}
-
-/**
- * Unlink the startup-displayed flag file to recover from a stuck home screen.
- *
- * @return void
- */
-function clearStartUpDisplayed() {
-
-	@unlink(CA_PATHS['startupDisplayed']);
-	postReturn(['done']);
-}
 
 /**
  * Log client-side JavaScript errors posted from the browser (no-op return path).

@@ -126,7 +126,8 @@ define("CA_PATHS",[
 	'pinnedV2'                            => "$flashDrive/pinned_appsV2.json",
 	'appOfTheDay'                         => "$tempFiles/appOfTheDay.json",
 	'statistics'                          => "$tempFiles/statistics.json",
-	'statisticsURL'                       => "https://preview.ca.unraid.net/assets/feed/statistics.json",
+	'statisticsURL'                       => "https://ca.unraid.net/assets/feed/statistics.json",
+	'statisticsURLBackup'                 => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/statistics.json",
 	'pluginSettings'                      => "$flashDrive/community.applications.cfg",
 	'fixedTemplates_txt'                  => "$tempFiles/caFixed.txt",
 	'invalidXML_txt'                      => "$tempFiles/invalidxml.txt",
@@ -161,6 +162,9 @@ define("CA_PATHS",[
 	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
 	'downloadLocksDir'                    => "$tempFiles/locks",
 	'SpotlightIcon-backup'                => "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}",
+	/* TEMP demo override — restore the original line below when done.
 	'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}"
+	*/
+	'SpotlightIcon'                       => "/plugins/community.applications/spotlight-black.png?v=123"
 ]);
 ?>

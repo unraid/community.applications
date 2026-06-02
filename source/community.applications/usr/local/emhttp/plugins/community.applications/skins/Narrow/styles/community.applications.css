@@ -109,6 +109,27 @@ body:has(.sidenavShow) {
 .xmlInstall:hover {
 	color: var(--brand-orange);
 }
+/* Branch chooser table (displayTags): cap it at the swal width so long branch
+   descriptions wrap to the next line instead of widening the table and forcing
+   a horizontal scroll. width:100% lets auto-layout wrap cell text; overflow-wrap
+   handles any unbreakable token (e.g. a URL). */
+.caBranchChooser {
+	width: 100%;
+	border-collapse: collapse;
+}
+.caBranchChooser td {
+	text-align: left;
+	vertical-align: top;
+	white-space: normal;
+}
+/* Only the description column (last cell) breaks anywhere; the label column
+   wraps at spaces only so short names like "Default" aren't chopped into
+   "Def/aul/t" when the table squeezes that column. padding-left keeps a clear
+   gap between the label and its description. */
+.caBranchChooser td:last-child {
+	overflow-wrap: anywhere;
+	padding-left: 5rem;
+}
 .ca_back_to_top::before {
 	content: "\f062"; /* fa-arrow-up — plain glyph, no circle */
 }
@@ -354,7 +375,7 @@ body,
 	height: 24rem;
 	width: 36rem;
 	padding: 1.25rem 0.625rem 1.25rem 1.25rem;
-	margin: 0 2rem 2rem 0;
+	margin: 0.5rem 2rem 2rem 0.5rem;
 	font-size: 1.2rem;
 	position: relative; /* anchor for the corner-ribbon flag */
 	flex-shrink: 0;     /* keep fixed width inside flex containers (home strip, templatesDisplay) */
@@ -377,7 +398,9 @@ body,
 
 .ca_holder:hover {
 	background-color: var(--template-hover-background);
-	box-shadow: 5px 5px 5px -3px var(--ca-shadow-color);
+	/* No x/y offset + a small positive spread → an even glow on all four
+	   edges (the old 5px 5px offset only lit the right and bottom). */
+	box-shadow: 0 0 12px 2px var(--ca-shadow-color);
 }
 
 .ca_holderFav {
@@ -388,7 +411,7 @@ body,
 .ca_homeTemplates {
 	display: flex;
 	flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
-	height: 29.5rem;
+	height: 30.5rem;
 	overflow-x: auto; /* Enable horizontal scrolling */
 	overflow-y: hidden; /* Hide vertical scrollbar */
 }
@@ -1211,6 +1234,22 @@ body,
 		background: transparent;
 		pointer-events: auto;
 	}
+	/* Reload-notice variant: dim + blur the page behind the countdown toast so
+	   the user can't interact with the about-to-be-stale UI. Matches the blur
+	   used by .ca_modal_overlay. */
+	.ca_viewportBlocker.caReloadBlur {
+		background: var(--ca-medium-overlay-color);
+		backdrop-filter: blur(var(--ca-scrim-blur));
+		-webkit-backdrop-filter: blur(var(--ca-scrim-blur));
+	}
+	/* Live countdown line inside the reload toast. */
+	.caReloadCountdown {
+		display: inline-block;
+		margin-top: 0.5rem;
+		font-size: 1.6rem;
+		font-weight: 700;
+		color: var(--brand-orange);
+	}
 
 	/* 2.7) Sidebar Navigation */
 	.sidebar {
@@ -1431,6 +1470,13 @@ body,
 	.caModerationRepoTable tr.caRepoIgnored .caRepoName {
 		text-decoration: line-through;
 		opacity: 0.6;
+	}
+	/* "Show disabled only" filter — hide every repo row that isn't disabled. */
+	.caModerationRepoTable.caShowDisabledOnly tr[data-repo-name]:not(.caRepoIgnored) {
+		display: none;
+	}
+	.caRepoFilterBar {
+		margin: 0 0 1rem 0;
 	}
 	.caRepoIgnoreCell {
 		width: 2rem;
@@ -2334,6 +2380,28 @@ body,
 		font-weight: bold;
 	}
 
+	/* Live-stats chart tabs read as plain popUpLink-style text — hover is just
+	   the brand-orange colour (from .chartMenu:hover), never a filled pill.
+	   Unraid's stock <button> paint shows an orange box on hover/focus on
+	   themes other than .Theme--sidebar (whose override is scoped away), so
+	   strip the box in every state here. Scoped to .popupLiveStatsBlock for the
+	   specificity to win without relying on theme context. */
+	.popupLiveStatsBlock button.caLiveStatsTab,
+	.popupLiveStatsBlock button.caLiveStatsTab:hover,
+	.popupLiveStatsBlock button.caLiveStatsTab:focus,
+	.popupLiveStatsBlock button.caLiveStatsTab:active,
+	.popupLiveStatsBlock button.caLiveStatsTab:focus-visible {
+		background: transparent !important;
+		border: none !important;
+		box-shadow: none !important;
+	}
+	/* Orange hover, matching the <span>-based download/trend chart tabs. Needs
+	   to win over Unraid's stock button:hover colour, hence the scope + the
+	   !important. */
+	.popupLiveStatsBlock button.caLiveStatsTab:hover {
+		color: var(--brand-orange) !important;
+	}
+
 	.charts {
 		font-size: 1.5rem;
 	}
@@ -2530,6 +2598,7 @@ body,
 	a.ca_repoPopup:hover,
 	.popUpLink:hover,
 	.additionalRequirements a:hover,
+	.ca_readme_body a:hover,
 	.chartMenu:hover,
 	li.context:hover,
 	.sortIcons:hover {
@@ -3165,13 +3234,15 @@ input[type="button"] {
 		margin-top: 0 !important;
 	}
 	.popUpLink,
-	.additionalRequirements a {
+	.additionalRequirements a,
+	.ca_readme_body a {
 		cursor: pointer;
 		color: var(--link-text-color);
 	}
 
 	a.popUpLink,
-	.additionalRequirements a {
+	.additionalRequirements a,
+	.ca_readme_body a {
 		text-decoration: none;
 	}
 
@@ -3288,10 +3359,24 @@ input[type="button"] {
 	}
 
 	.screen:hover {
-		transform: scale(1.2);
+		transform: scale(2);
 		transition: transform 0.3s ease;
 		z-index: 10;
 		position: relative;
+	}
+
+	/* Video tiles are forced to a 16:9 box (the natural video frame) rather
+	   than the poster's own aspect. Height stays the shared 8rem; aspect-ratio
+	   derives the width (≈14.2rem), overriding .screen's 8–12rem clamp.
+	   object-fit:cover fills the box without letterboxing. The inline preview
+	   iframe is sized from this img's box in caMountInlineVideoPreviews(), so
+	   it inherits 16:9 automatically. */
+	.screenshot.mfp-iframe img.screen {
+		aspect-ratio: 16 / 9;
+		width: auto;
+		min-width: 0;
+		max-width: none;
+		object-fit: cover;
 	}
 
 	.screenshot {
@@ -3909,17 +3994,17 @@ input[type="button"] {
 
 	.spotlightIconArea {
 		float: left;
-		width: 10rem;
+		/* width: 9rem; */
 	}
 
 	.spotlightIcon {
-		height: 15rem;
-		margin-bottom: -2.5rem;
+		height: 11rem;
+		margin-bottom: -3.5rem;
 		margin-left: -4rem;
-		margin-top: -3rem;
+		/* margin-top: -3rem; */
 	}
 	.spotlightIconArea img.spotlightIcon {
-		margin-left: -2rem !important;
+		margin-left: 0rem;
 	}
 
 	.spotlightInfoArea {
@@ -4700,6 +4785,20 @@ input[type="button"] {
 		/* JS sizes this to the poster's border-box; keep our own border inside
 		   that box so we don't overhang the tile by 2px. */
 		box-sizing: border-box;
+		transition: transform 0.3s ease;
+	}
+
+	/* Hovering a video tile scales the live preview 2× to match the
+	   screenshot hover (.screen:hover). The poster img is visibility:hidden
+	   once the iframe mounts, so .screen:hover never fires for video tiles —
+	   we scale the iframe instead. z-index on the (position:relative) tile
+	   lifts the enlarged preview above neighbouring tiles. Scale is from the
+	   center, so the var-positioned play icon stays centered. */
+	.screenshot.mfp-iframe:hover {
+		z-index: 10;
+	}
+	.screenshot.mfp-iframe:hover .caInlineVideoPreview {
+		transform: scale(2);
 	}
 
 	/* Video Play Overlay */
@@ -4716,7 +4815,10 @@ input[type="button"] {
 		/* Above .caInlineVideoPreview (z-index:1) so the play affordance stays
 		   visible over a live preview. */
 		z-index: 2;
-		transform: translate(-50%, -50%) scale(0.75);
+		/* --caPlayDX/DY carry the hover edge-clamp shift (set in
+		   caBindMediaHoverShift) so the icon stays centered on the enlarged,
+		   shifted video; default 0 when not hovering. */
+		transform: translate(calc(-50% + var(--caPlayDX, 0px)), calc(-50% + var(--caPlayDY, 0px))) scale(0.75);
 		font-size: 3em;
 		color: rgba(255, 255, 255, 0.9);
 		opacity: 0.5;
@@ -4729,7 +4831,7 @@ input[type="button"] {
 		color: var(--brand-orange);
 		opacity: 1;
 		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-		transform: translate(-50%, -50%) scale(1.0);
+		transform: translate(calc(-50% + var(--caPlayDX, 0px)), calc(-50% + var(--caPlayDY, 0px))) scale(1.0);
 	}
 
 	.ReadmeSection .inline_help {

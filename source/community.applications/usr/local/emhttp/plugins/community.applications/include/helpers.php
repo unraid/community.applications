@@ -22,6 +22,34 @@
 require_once __DIR__ . "/paths.php";
 
 /**
+ * Emit the hidden + checkbox <input> pair for a boolean settings toggle in the
+ * Settings panel, driven entirely by the shipped default in default.cfg so that
+ * changing a default can never desync the form (the bug class where a hardcoded
+ * `?? "yes"` / `value='false'` drifted out of step with default.cfg).
+ *
+ * The default value tells us the vocabulary — true/false vs yes/no. The hidden
+ * input carries the "off" value (posted when the box is unchecked); the checkbox
+ * carries the "on" value; the box is checked when the live value (falling back
+ * to the default when absent) equals the "on" value. So a setting whose default
+ * is "yes"/"true" correctly renders checked.
+ *
+ * @param  string $name       Setting key — matches default.cfg and caSettings.
+ * @param  array  $caDefaults Parsed default.cfg (Apps.page builds this).
+ * @return string HTML for the two inputs.
+ */
+function caSettingSwitchInputs(string $name, array $caDefaults): string {
+	$default = (string)($caDefaults[$name] ?? "no");
+	$isBool  = ($default === "true" || $default === "false");
+	$on      = $isBool ? "true"  : "yes";
+	$off     = $isBool ? "false" : "no";
+	$live    = (string)($GLOBALS['caSettings'][$name] ?? $default);
+	$checked = ($live === $on) ? " checked" : "";
+	$safeName = htmlspecialchars($name, ENT_QUOTES);
+	return "<input type='hidden' name='{$safeName}' value='{$off}'>"
+		. "<input type='checkbox' class='switch caSettingSwitch' name='{$safeName}' value='{$on}'{$checked}>";
+}
+
+/**
  * Populate $GLOBALS['templates'] from the on-disk templates JSON when not already set.
  *
  * Also calls getSettings(). Clears the stat cache so file_exists() is fresh.
@@ -82,6 +110,37 @@ function getSettings() {
 	if ( ! caIsDockerRunning() ) {
 		$GLOBALS['caSettings']['dockerSearch'] = "no";
 	}
+}
+
+/**
+ * Admin mode = dev mode on AND the on-disk admin marker present
+ * (/boot/config/plugins/community.applications/admin). Single source of truth
+ * for the gate on moderator-only affordances (internal "CA" diff, the per-repo
+ * and global Duplicates finders) — previously duplicated inline across exec.php,
+ * skin.php, skin_helpers.php, skin.html and diff.php.
+ *
+ * clearstatcache on the marker so a freshly-created file is picked up without a
+ * php-fpm restart; the call is cheap and admin mode is a dev-box-only path.
+ *
+ * @return bool
+ */
+function caIsAdmin() {
+	if ( ($GLOBALS['caSettings']['dev'] ?? "no") !== "yes" ) return false;
+	clearstatcache(true, CA_PATHS['caAdmin']);
+	return is_file(CA_PATHS['caAdmin']);
+}
+
+/**
+ * Whether the home/startup screen has already been rendered this session — i.e.
+ * the per-tab startupDisplayed marker exists. Single source of truth for the
+ * check so if the marker's storage (file vs. something else) ever changes, only
+ * this function needs updating instead of every is_file() call site.
+ *
+ * @return bool
+ */
+function caStartupDisplayed() {
+	clearstatcache(true, CA_PATHS['startupDisplayed']);
+	return is_file(CA_PATHS['startupDisplayed']);
 }
 /**
  * Persist the in-memory templates array to the slim on-disk JSON cache.
@@ -407,6 +466,16 @@ function writeJsonFile($filename,$jsonArray) {
  */
 function ca_file_put_contents($filename,$data,$flags=0) {
 	$result = @file_put_contents($filename."~",$data,$flags);
+
+	/* A false result usually means the parent directory doesn't exist yet.
+	   Create the path and try once more before surfacing the error. */
+	if ( $result === false ) {
+		debug("Failed to write to $filename - creating ".dirname($filename)." and retrying");
+		@unlink($filename."~");
+		@mkdir(dirname($filename), 0777, true);
+		$result = @file_put_contents($filename."~",$data,$flags);
+	}
+
 	if ( $result === strlen($data) ) {
 		@rename($filename."~",$filename);
 	}
@@ -1688,7 +1757,7 @@ function formatTags($leadTemplate,$rename="false") {
 		);
 	}
 
-	return "<table>" . implode("", $rows) . "</table>";
+	return "<table class='caBranchChooser'>" . implode("", $rows) . "</table>";
 }
 /**
  * Echo the POST-response payload as JSON (or raw string) and flush.
