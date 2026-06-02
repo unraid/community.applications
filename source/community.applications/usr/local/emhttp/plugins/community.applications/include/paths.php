@@ -162,6 +162,9 @@ define("CA_PATHS",[
 	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
 	'downloadLocksDir'                    => "$tempFiles/locks",
 	'SpotlightIcon-backup'                => "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}",
+	/* TEMP demo override — restore the original line below when done.
 	'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}"
+	*/
+	'SpotlightIcon'                       => "/plugins/community.applications/spotlight-black.png?v=123"
 ]);
 ?>

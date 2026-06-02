@@ -3994,17 +3994,17 @@ input[type="button"] {
 
 	.spotlightIconArea {
 		float: left;
-		width: 10rem;
+		/* width: 9rem; */
 	}
 
 	.spotlightIcon {
-		height: 15rem;
-		margin-bottom: -2.5rem;
+		height: 11rem;
+		margin-bottom: -3.5rem;
 		margin-left: -4rem;
-		margin-top: -3rem;
+		/* margin-top: -3rem; */
 	}
 	.spotlightIconArea img.spotlightIcon {
-		margin-left: -2rem !important;
+		margin-left: 0rem;
 	}
 
 	.spotlightInfoArea {

@@ -1050,7 +1050,10 @@ function caProcessPluginTemplate(array $template): array {
 function caProcessLanguageTemplate(array $template, array $actionsContext): array {
 	$countryCode = $template['LanguageDefault'] ? "en_US" : $template['LanguagePack'];
 	$dynamixSettings = @parse_ini_file(CA_PATHS['dynamixSettings'], true);
-	$currentLanguage = $dynamixSettings['display']['locale'] ?? "en_US";
+	/* `?:` not `??` — an empty locale ("") means English is active, same as
+	   "en_US". With `??` the empty string slipped through and never equalled
+	   "en_US", so the en_US card always offered "Switch to this language". */
+	$currentLanguage = ($dynamixSettings['display']['locale'] ?? "") ?: "en_US";
 	$installedLanguages = array_diff(scandir("/usr/local/emhttp/languages"), [".", ".."]);
 	$installedLanguages = array_filter($installedLanguages, function ($v) {
 		return is_dir("/usr/local/emhttp/languages/$v");
@@ -1712,7 +1715,13 @@ function caBuildBottomLineSection(
 		   aggregations that are never "installed". */
 		$installManageButton = "";
 		if (empty($template['RepositoryTemplate'])) {
-			$isInstalled = !empty($template['Installed']);
+			/* Exact same test the installed badge uses (caCollectBadges):
+			   Installed OR Uninstall. The Installed Apps / Previous Apps views
+			   stamp Uninstall=true on rows (e.g. language packs) which zeroes
+			   $template['Installed'] (is_dir && !Uninstall) — so checking only
+			   Installed made the badge say INSTALLED while the button said
+			   "Install". Keeping them on the same signal fixes that. */
+			$isInstalled = !empty($template['Installed']) || !empty($template['Uninstall']);
 			$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
 			$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
 			$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";

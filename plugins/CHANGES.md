@@ -23,7 +23,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
-- Fixed: A card's Install / Manage button now matches its "installed" badge. Containers installed without an explicit tag (Docker reports them as `:latest`), as well as plugins and language packs, correctly show "Manage" instead of "Install"
+- Fixed: A card's Install / Manage button now matches its "installed" badge. Containers installed without an explicit tag (Docker reports them as `:latest`), as well as plugins and language packs (including in the Installed Apps view), correctly show "Manage" instead of "Install"
+- Fixed: The English (en_US) language card no longer offers "Switch to this language" when English is already the active language (an empty/blank locale now counts as English)
 - Changed: Changing a setting, or enabling/disabling a repository, now puts up a blurred full-screen notice with a live 10-second countdown before reloading, instead of reloading instantly (or not at all). The setting is saved immediately; the reload just applies it
 - Changed: "Keep Search In Focus" now defaults to off
 - Added: The Repositories list has a "Show disabled only" link to filter to just the disabled repositories, with a toggle back to the full list (appears only when at least one repo is disabled)
