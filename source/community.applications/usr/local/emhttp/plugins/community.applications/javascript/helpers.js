@@ -163,7 +163,7 @@ function stripTags(str) {
 /**
  * Fire-and-forget invalidate of the server-side getAllInfo() cache file.
  * Used by saveState / restoreState, init paths that don't trigger a feed
- * update, and the CA_notices.page child-page detector — all spots where
+ * update, and the ca_browser_back_helper.page child-page detector — all spots where
  * the container fleet might have changed under us. Uses postNoSpin so it
  * never raises a spinner or otherwise disturbs the UI.
  */
