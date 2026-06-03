@@ -415,12 +415,6 @@ body,
 	overflow-x: auto; /* Enable horizontal scrolling */
 	overflow-y: hidden; /* Hide vertical scrollbar */
 }
-.ca_homeTemplates::-webkit-scrollbar {
-	height: 0px;  /* horizontal scrollbar height */
-}
-.ca_homeTemplates:hover::-webkit-scrollbar {
-	height: 2px; /* horizontal scrollbar height */
-}
 .ca_homeTemplatesHeader {
 	font-size: 2rem;
 }
@@ -876,41 +870,30 @@ body,
 		z-index: 2;
 		background-color: var(--background-color);
 	}
-	.menuItems::-webkit-scrollbar {
-		width: 0px;  /* vertical scrollbar width */
+	/* ==========================================================================
+	   Native scrollbars for CA's scrollable panes.
+
+	   Replaces the former fixed-overlay JS scrollbar (the .ca_fixed_* indicators
+	   and #ca_fixed_scroll_root, removed from clickHandlers.js). WebKit/Blink get
+	   px-precise sizing plus a rounded brand-orange thumb; Firefox gets the
+	   standard scrollbar-width / scrollbar-color styling (it cannot set an
+	   arbitrary px width or round the thumb, so it renders a thin orange bar).
+	   ========================================================================== */
+	.menuItems,
+	.sidenav,
+	.ca_homeTemplates,
+	.mainArea,
+	.ca_diffCol {
+		scrollbar-width: thin;
+		scrollbar-color: var(--brand-orange) transparent;
 	}
-	.menuItems:hover::-webkit-scrollbar:vertical,
-	.sidenav:hover::-webkit-scrollbar:vertical,
-	.ca_homeTemplates:hover::-webkit-scrollbar:vertical,
-	.mainArea::-webkit-scrollbar:vertical,
-	.ca_diffCol::-webkit-scrollbar:vertical {
-		width: 2px;  /* vertical scrollbar width */
-	}
-	.menuItems:hover::-webkit-scrollbar:horizontal,
-	.sidenav:hover::-webkit-scrollbar:horizontal,
-	.ca_homeTemplates:hover::-webkit-scrollbar:horizontal,
-	.mainArea::-webkit-scrollbar:horizontal,
-	.ca_diffCol::-webkit-scrollbar:horizontal {
-		height: 2px; /* horizontal scrollbar height */
-	}
-	.menuItems::-webkit-scrollbar-thumb,
-	.sidenav::-webkit-scrollbar-thumb,
-	.ca_homeTemplates::-webkit-scrollbar-thumb,
-	.mainArea::-webkit-scrollbar-thumb,
-	.ca_diffCol::-webkit-scrollbar-thumb {
-		background-color: transparent;
-		background-image: linear-gradient(var(--brand-orange), var(--brand-orange));
-		background-repeat: no-repeat;
-		background-position: center;
-		background-size: 100% 20rem;
-		border-radius: 999px;
-	}
-	.menuItems::-webkit-scrollbar-thumb:horizontal,
-	.sidenav::-webkit-scrollbar-thumb:horizontal,
-	.ca_homeTemplates::-webkit-scrollbar-thumb:horizontal,
-	.mainArea::-webkit-scrollbar-thumb:horizontal,
-	.ca_diffCol::-webkit-scrollbar-thumb:horizontal {
-		background-size: 20rem 100%;
+	.menuItems::-webkit-scrollbar,
+	.sidenav::-webkit-scrollbar,
+	.ca_homeTemplates::-webkit-scrollbar,
+	.mainArea::-webkit-scrollbar,
+	.ca_diffCol::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
 	}
 	.menuItems::-webkit-scrollbar-track,
 	.sidenav::-webkit-scrollbar-track,
@@ -918,237 +901,34 @@ body,
 	.mainArea::-webkit-scrollbar-track,
 	.ca_diffCol::-webkit-scrollbar-track {
 		background: transparent;
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 28%, transparent);
-		border-radius: 999px;
 	}
-	.menuItems::-webkit-scrollbar-corner,
-	.sidenav::-webkit-scrollbar-corner,
-	.ca_homeTemplates::-webkit-scrollbar-corner,
-	.mainArea::-webkit-scrollbar-corner,
-	.ca_diffCol::-webkit-scrollbar-corner {
-		background: var(--brand-orange);
+	.menuItems::-webkit-scrollbar-thumb,
+	.sidenav::-webkit-scrollbar-thumb,
+	.ca_homeTemplates::-webkit-scrollbar-thumb,
+	.mainArea::-webkit-scrollbar-thumb,
+	.ca_diffCol::-webkit-scrollbar-thumb {
+		background-color: var(--brand-orange);
+		border-radius: 999px;
+		/* Transparent border + padding-box clip insets the thumb so it reads as a
+		   slim pill with breathing room (echoing the old overlay's thin thumb). */
+		border: 3px solid transparent;
+		background-clip: padding-box;
 	}
 	.menuItems::-webkit-scrollbar-thumb:hover,
 	.sidenav::-webkit-scrollbar-thumb:hover,
 	.ca_homeTemplates::-webkit-scrollbar-thumb:hover,
 	.mainArea::-webkit-scrollbar-thumb:hover,
 	.ca_diffCol::-webkit-scrollbar-thumb:hover {
-		background-color: transparent;
-		background-image: linear-gradient(var(--brand-orange), var(--brand-orange));
-		background-repeat: no-repeat;
-		background-position: center;
-		background-size: 100% 20rem;
+		/* Fill the full track width on hover, approximating the overlay's
+		   thin-to-thick grow (WebKit cannot transition scrollbar metrics). */
+		border-width: 0;
 	}
-	.menuItems::-webkit-scrollbar-thumb:hover:horizontal,
-	.sidenav::-webkit-scrollbar-thumb:hover:horizontal,
-	.ca_homeTemplates::-webkit-scrollbar-thumb:hover:horizontal,
-	.mainArea::-webkit-scrollbar-thumb:hover:horizontal,
-	.ca_diffCol::-webkit-scrollbar-thumb:hover:horizontal {
-		background-size: 20rem 100%;
-	}
-
-	#ca_fixed_scroll_root {
-		position: fixed;
-		left: 0;
-		top: 0;
-		width: 0;
-		height: 0;
-		pointer-events: auto;
-		z-index: 1000;
-	}
-	/* While CA search modal is open, block interaction with custom scrollbars */
-	body.ca_searchModalOpen #ca_fixed_scroll_root,
-	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
-	body.ca_searchModalOpen .ca_fixed_hscroll_thumb,
-	body.ca_searchModalOpen .ca_fixed_vscroll_indicator,
-	body.ca_searchModalOpen .ca_fixed_vscroll_thumb {
-		pointer-events: none !important;
-	}
-
-	:root {
-		--ca-fixed-scrollbar-thickness: 10px;
-	}
-	/* Horizontal indicator: always visible (subtle, transparent track) at any
-	   resolution; track styling fades in only while actively scrolling, hovered,
-	   or being dragged. */
-	.ca_fixed_hscroll_indicator {
-		position: fixed;
-		height: var(--ca-fixed-scrollbar-thickness);
-		opacity: 1;
-		pointer-events: auto;
-		cursor: default;
-		z-index: 1000;
-		transition: opacity 120ms ease-in-out;
-		background: transparent;
-		box-shadow: none;
-		border-radius: 999px;
-	}
-	body:has(.ca_homeTemplatesHeader):not(:has(#caDiffView:not(.ca_hide))) .ca_fixed_hscroll_indicator {
-		height: revert;
-	}
-	.ca_fixed_hscroll_indicator.visible {
-		opacity: 1;
-	}
-	.ca_fixed_hscroll_indicator:hover,
-	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover),
-	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging),
-	.ca_fixed_hscroll_indicator.ca_scroll_active,
-	.ca_fixed_hscroll_indicator.ca_scroll_target_hover {
-		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
-	}
-	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
-	.ca_fixed_hscroll_thumb {
-		position: absolute;
-		top: auto;
-		bottom: 0;
-		left: 0;
-		height: 3px;
-		border-radius: 999px;
-		background: var(--brand-orange);
-		pointer-events: auto;
-		cursor: default;
-		transition: height 150ms ease-out;
-	}
-	.ca_fixed_hscroll_indicator:hover > .ca_fixed_hscroll_thumb,
-	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb:hover) > .ca_fixed_hscroll_thumb,
-	.ca_fixed_hscroll_indicator:has(.ca_fixed_hscroll_thumb.dragging) > .ca_fixed_hscroll_thumb,
-	.ca_fixed_hscroll_indicator.ca_scroll_active > .ca_fixed_hscroll_thumb,
-	.ca_fixed_hscroll_indicator.ca_scroll_target_hover > .ca_fixed_hscroll_thumb {
-		height: var(--ca-fixed-scrollbar-thickness);
-	}
-
-	.ca_fixed_vscroll_indicator {
-		position: fixed;
-		width: var(--ca-fixed-scrollbar-thickness);
-		opacity: 0;
-		pointer-events: auto;
-		cursor: default;
-		z-index: 1000;
-		transition: opacity 120ms ease-in-out;
-		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
-		border-radius: 999px;
-	}
-	.ca_fixed_vscroll_indicator.visible {
-		opacity: 1;
-	}
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always {
-		opacity: 1;
-		background: transparent;
-		box-shadow: none;
-	}
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:hover,
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb:hover),
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always:has(.ca_fixed_vscroll_thumb.dragging),
-	.ca_fixed_vscroll_indicator.ca_mainarea_v_always.ca_scroll_active {
-		background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-orange) 20%, transparent);
-	}
-	/* Thumb: thin by default, expands to full thickness on active/hover/drag. */
-	.ca_fixed_vscroll_thumb {
-		position: absolute;
-		top: 0;
-		left: auto;
-		right: 0;
-		width: 3px;
-		border-radius: 999px;
-		background: var(--brand-orange);
-		pointer-events: auto;
-		cursor: default;
-		transition: width 150ms ease-out;
-	}
-	.ca_fixed_vscroll_indicator:hover > .ca_fixed_vscroll_thumb,
-	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb:hover) > .ca_fixed_vscroll_thumb,
-	.ca_fixed_vscroll_indicator:has(.ca_fixed_vscroll_thumb.dragging) > .ca_fixed_vscroll_thumb,
-	.ca_fixed_vscroll_indicator.ca_scroll_active > .ca_fixed_vscroll_thumb,
-	.ca_fixed_vscroll_indicator.ca_scroll_target_hover > .ca_fixed_vscroll_thumb {
-		width: var(--ca-fixed-scrollbar-thickness);
-	}
-	.ca_fixed_hscroll_thumb.dragging,
-	.ca_fixed_vscroll_thumb.dragging {
-		cursor: default;
-	}
-	/* Keep JS-based scroll indicators available in sidenav too. */
-	.sidenavShow .ca_scroll_mainarea,
-	body:has(.sidenavShow) .ca_scroll_mainarea {
-		display: none !important;
-		opacity: 0 !important;
-		pointer-events: none !important;
-	}
-	/* When the sidebar is open, disable all other overlay scrollbars (e.g. home templates). */
-	body:has(.sidenavShow) .ca_scroll_nonsidenav {
-		display: none !important;
-		opacity: 0 !important;
-		pointer-events: none !important;
-	}
-	/* When the search modal is open, hide every JS overlay scrollbar (matches sidenav behavior). */
-	body.ca_searchModalOpen .ca_fixed_hscroll_indicator,
-	body.ca_searchModalOpen .ca_fixed_vscroll_indicator {
-		display: none !important;
-		opacity: 0 !important;
-		pointer-events: none !important;
-	}
-	/* While the mobile menu is open, do not show JS horizontal overlay scrollbars at all. */
-	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_indicator,
-	body:has(.mobileMenu.menuShowing) .ca_fixed_hscroll_thumb {
-		display: none !important;
-		opacity: 0 !important;
-		pointer-events: none !important;
-	}
-	/* When an nchan swal (with our scrim above it) is open, kill the JS overlay
-	   scrollbars too — they otherwise float over the dimmed home page. */
-	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_hscroll_indicator,
-	body:has(.sweet-alert.showSweetAlert.nchan) .ca_fixed_vscroll_indicator {
-		display: none !important;
-		opacity: 0 !important;
-		pointer-events: none !important;
-	}
-	.ca_custom_scroll_target::-webkit-scrollbar,
-	.menuItems::-webkit-scrollbar,
-	.sidenav::-webkit-scrollbar,
-	.ca_homeTemplates::-webkit-scrollbar,
-	.mainArea::-webkit-scrollbar {
-		display: none !important;
-		width: 0 !important;
-		height: 0 !important;
-	}
-	.sidenav::-webkit-scrollbar:vertical,
-	.sidenav::-webkit-scrollbar:horizontal,
-	.sidenav::-webkit-scrollbar-thumb,
-	.sidenav::-webkit-scrollbar-track,
+	.menuItems::-webkit-scrollbar-corner,
 	.sidenav::-webkit-scrollbar-corner,
-	.mainArea::-webkit-scrollbar:vertical,
-	.mainArea::-webkit-scrollbar:horizontal,
-	.mainArea::-webkit-scrollbar-thumb,
-	.mainArea::-webkit-scrollbar-track,
-	.mainArea::-webkit-scrollbar-corner {
-		display: none !important;
-		width: 0 !important;
-		height: 0 !important;
-		background: transparent !important;
-		box-shadow: none !important;
-	}
-	/* Firefox fallback for scrollbar styling (WebKit rules stay primary). */
-	@supports not selector(::-webkit-scrollbar) {
-		.menuItems,
-		.sidenav,
-		.ca_homeTemplates,
-		.mainArea,
-		.ca_diffCol {
-			scrollbar-width: none;
-		}
-		.menuItems:hover,
-		.sidenav:hover,
-		.ca_homeTemplates:hover,
-		.mainArea:hover,
-		.ca_diffCol:hover {
-			scrollbar-width: thin;
-			scrollbar-color: var(--brand-orange) color-mix(in srgb, var(--brand-orange) 22%, transparent);
-		}
-		.ca_custom_scroll_target:hover {
-			scrollbar-width: none;
-		}
+	.ca_homeTemplates::-webkit-scrollbar-corner,
+	.mainArea::-webkit-scrollbar-corner,
+	.ca_diffCol::-webkit-scrollbar-corner {
+		background: transparent;
 	}
 	.menuItems.menuHidden {
 		display: block;
@@ -2067,39 +1847,8 @@ body,
 	.ca_diffColInner > .ca_diffRow {
 		min-width: 100%;
 	}
-	/* Both columns' native vertical scrollbars stay hidden — the JS overlay
-	   is the only vertical affordance. Left column has no JS vertical
-	   indicator (diff.js scrollTop sync drives its position from the right's);
-	   right column has the single visible JS overlay scrollbar. Webkit-only
-	   because `scrollbar-width: none` would also drop the horizontal
-	   scrollbar on Chrome 121+/Firefox. */
-	.ca_diffCol::-webkit-scrollbar:vertical {
-		width: 0;
-		height: 0;
-	}
-	/* When the diff overlay is open: lift the entire JS-scrollbar root above
-	   #caDiffView (1001) so the diff column indicators paint on top. Bumping
-	   z-index on the indicators alone doesn't work — #ca_fixed_scroll_root
-	   (their fixed-positioned parent) creates a stacking context at 1000 and
-	   the children can't escape it. */
-	body:has(#caDiffView:not(.ca_hide)) #ca_fixed_scroll_root {
-		z-index: 1002;
-	}
-	/* The diff opens while the sidebar is showing, which triggers the
-	   line-806 rule that hides all `.ca_scroll_nonsidenav` overlay scrollbars.
-	   Re-show the diff-tagged ones; hide everything else (mainArea etc. is
-	   covered by the diff view anyway, so its indicators would just paint
-	   on top of nothing useful). */
-	body:has(#caDiffView:not(.ca_hide)) .ca_fixed_hscroll_indicator.ca_scroll_diff,
-	body:has(#caDiffView:not(.ca_hide)) .ca_fixed_vscroll_indicator.ca_scroll_diff {
-		display: block !important;
-		opacity: 1 !important;
-		pointer-events: auto !important;
-	}
-	body:has(#caDiffView:not(.ca_hide)) .ca_fixed_hscroll_indicator:not(.ca_scroll_diff),
-	body:has(#caDiffView:not(.ca_hide)) .ca_fixed_vscroll_indicator:not(.ca_scroll_diff) {
-		display: none !important;
-	}
+	/* Both diff columns use native scrollbars; diff.js keeps their scrollTop
+	   in sync, so dragging either column's bar scrolls both. */
 	.ca_diffRow {
 		display: block;
 		white-space: pre;
@@ -4104,16 +3853,6 @@ input[type="button"] {
 	body:has() walks the subtree so the awesomplete inside #searchFilter still triggers it. */
 	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems {
 		overflow: hidden !important;
-	}
-
-	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:vertical,
-	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .menuItems:hover::-webkit-scrollbar:horizontal {
-		width: 0px !important;
-		height: 0px !important;
-	}
-
-	body.ca_searchModalOpen:has(#searchFilter .awesomplete > ul:not([hidden]):not(:empty)) .ca_scroll_menuitems {
-		display: none !important;
 	}
 
 	/* When Awesomplete is open, block clicks except the dropdown, toolbar SEARCH, and modal ? / X.
