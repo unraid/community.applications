@@ -1358,17 +1358,6 @@ function caBuildRepoStatsSection(array $repo, array $totals): string {
 }
 
 /**
- * Render pagination controls for Docker Hub search results.
- *
- * @param  int $num_pages  Total number of Docker Hub result pages (25 per page).
- * @param  int $pageNumber Current 1-based page index.
- * @return string Pagination `<script>` markup (from getPageNavigation).
- */
-function dockerNavigate($num_pages, $pageNumber) {
-	return getPageNavigation($pageNumber,$num_pages * 25, true);
-}
-
-/**
  * Attempt to find a template matching a repository name (with :latest fallback).
  *
  * @param  array<int,array<string,mixed>> $templates  Full template listing.
@@ -1396,13 +1385,18 @@ function findTemplateMatch(array $templates, string $repository) {
  * @param  bool                            $installsDisabled When true, omit the install action.
  * @return array<string,mixed> Enriched result ready for displayCard().
  */
-function buildDockerHubResult(array $result, array $templates, bool $installsDisabled): array {
+function buildDockerHubResult(array $result, array $templates, bool $installsDisabled, string $searchTerm = ""): array {
 	$result['Icon'] = $result['Icon'] ?? "/plugins/dynamix.docker.manager/images/question.png";
 	$result['Category'] = $result['Category'] ?? "Docker&nbsp;Hub&nbsp;Search";
 	$result['Description'] = $result['Description'] ?: tr("No description present");
 	$result['Compatible'] = true;
-	$result['display_dockerName'] = "<a class='ca_applicationName ellipsis' style='cursor:pointer;' onclick='mySearch(this.innerText);' title='".tr("Search for similar containers")."'>{$result['Name']}</a>";
-	$result['similarSearch'] = $result['Name'];
+	/* "Similar" repeats the search for this container's name, so it's pointless
+	   when the name already IS the query — hide it then (empty similarSearch). */
+	$result['similarSearch'] = (strcasecmp(trim((string)$result['Name']), trim($searchTerm)) === 0) ? "" : $result['Name'];
+	/* Show the full repository where the owner/author normally renders
+	   (e.g. "ubuntu/mysql" rather than just "ubuntu"); Docker Hub's search
+	   response carries no default tag, so none is appended. */
+	$result['Author'] = (string)($result['Repository'] ?? $result['Author'] ?? "");
 
 	if ($installsDisabled) {
 		unset($result['actionsContext']);
@@ -1422,12 +1416,21 @@ function buildDockerHubResult(array $result, array $templates, bool $installsDis
 	$templateIndex = findTemplateMatch($templates, $result['Repository']);
 
 	if ($templateIndex !== false && ! $templates[$templateIndex]['Deprecated'] && ! $templates[$templateIndex]['Blacklist']) {
+		/* This Docker Hub image already has a CA template, so substitute the
+		   template icon and description and stash its TemplateURL. The card then
+		   renders a single Show in Apps button via caBuildBottomLineSection
+		   instead of the Docker Hub, Similar and Install affordances. That button
+		   jumps back to the app store and shows just this template via
+		   caShowInApps. */
 		$result['caTemplateExists'] = true;
 		$result['Icon'] = $templates[$templateIndex]['Icon'];
 		$result['Description'] = $templates[$templateIndex]['Overview'] ?: $templates[$templateIndex]['Description'];
 		unset($result['IconFA']);
 		$result['ID'] = $templates[$templateIndex]['ID'];
-		$result['actionsContext'] = [["icon" => "ca_fa-template", "text" => tr("Show Template"), "action" => "doSearch(false,'{$templates[$templateIndex]['Repository']}');"]];
+		$result['caTemplateURL'] = $templates[$templateIndex]['TemplateURL'];
+		$result['caTemplateName'] = $templates[$templateIndex]['Name'];
+		$result['similarSearch'] = "";   // no Similar button on a matched card
+		$result['actionsContext'] = [];  // Show in Apps is the bottom line button
 	}
 
 	return $result;
@@ -1690,14 +1693,29 @@ function caBuildBottomLineSection(
 
 	if (!empty($template['DockerHub']) && validURL($template['DockerHub'])) {
 		$backgroundClickable = "dockerCardBackground";
-		$safeDockerHub = htmlspecialchars($template['DockerHub'], ENT_QUOTES);
 		$cardStart = "
 			<div class='ca_holder ca_dockerTemplate {$popupType}'>";
-		$card .= "
-			<div class='ca_bottomLine {$bottomClass}'>
-			<div class='caButton infoButton_docker ca_href' data-href='{$safeDockerHub}'>".tr("Docker Hub")."</div>
-			{$favSpan}{$pinnedSpan}
-			<div class='caButton actionsButton similarSearch' data-search='".($template['similarSearch'] ?? "")."'>".tr("Similar")."</div>";
+		if (!empty($template['caTemplateExists'])) {
+			/* Already in Apps, so render a single Show in Apps button that jumps
+			   to the app store and shows just this template. No Docker Hub or
+			   Similar buttons here. */
+			$urlJs  = htmlspecialchars(json_encode((string)($template['caTemplateURL'] ?? "")), ENT_QUOTES);
+			$nameJs = htmlspecialchars(json_encode((string)($template['caTemplateName'] ?? "")), ENT_QUOTES);
+			$card .= "
+				<div class='ca_bottomLine {$bottomClass}'>
+				<div class='caButton actionsButton ca_showInApps' onclick='caShowInApps({$urlJs},{$nameJs});'>".tr("Show in Apps")."</div>
+				{$favSpan}{$pinnedSpan}";
+		} else {
+			$safeDockerHub = htmlspecialchars($template['DockerHub'], ENT_QUOTES);
+			$similarButton = empty($template['similarSearch'])
+				? ""
+				: "<div class='caButton actionsButton similarSearch' data-search='".htmlspecialchars((string)$template['similarSearch'], ENT_QUOTES)."'>".tr("Similar")."</div>";
+			$card .= "
+				<div class='ca_bottomLine {$bottomClass}'>
+				<div class='caButton infoButton_docker ca_href' data-href='{$safeDockerHub}'>".tr("Docker Hub")."</div>
+				{$favSpan}{$pinnedSpan}
+				{$similarButton}";
+		}
 	} else {
 		$backgroundClickable = "ca_backgroundClickable";
 		$dataPluginURL = empty($template['PluginURL']) ? "" : "data-pluginurl='".htmlspecialchars((string)$template['PluginURL'], ENT_QUOTES)."'";

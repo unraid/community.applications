@@ -972,7 +972,6 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 				$template['bio'] = strip_tags(markdown($template['bio']));
 				$template['Description'] = $template['bio'];
 			}
-			$template['display_dockerName'] = $template['RepoName'];
 			$template['ca_fav'] = $GLOBALS['caSettings']['favourite'] && ($GLOBALS['caSettings']['favourite'] == $template['RepoName']);
 
 			$cardHtml = displayCard($template);
@@ -1355,26 +1354,35 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 
 	$searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
 	$numPages = $searchData['num_pages'] ?? 0;
+	/* Total result count drives the page count and the "of Z" indicator. Prefer
+	   num_results (reliably present from Docker Hub's search response); fall back
+	   to num_pages*25 only for an older cache that predates num_results. The last
+	   page is then ceil(num_results / 25), which is what "move to end" jumps to. */
+	$numResults = (int)($searchData['num_results'] ?? 0);
+	if ($numResults <= 0) $numResults = (int)($numPages * 25);
 	$results = $searchData['results'] ?? [];
 	$templates = &$GLOBALS['templates'];
 	$GLOBALS['caSettings']['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
 
+	$searchTerm = (string)($searchData['filter'] ?? "");
 	$cards = array_map(
-		function ($result) use ($templates) {
-			$preparedResult = buildDockerHubResult($result, $templates, $GLOBALS['caSettings']['NoInstalls']);
+		function ($result) use ($templates, $searchTerm) {
+			$preparedResult = buildDockerHubResult($result, $templates, $GLOBALS['caSettings']['NoInstalls'], $searchTerm);
 			return displayCard($preparedResult);
 		},
 		$results
 	);
 
-	$navScript = dockerNavigate($numPages, $pageNumber);
+	/* Page nav (and data.totalApps) derived from the real result count, so the
+	   last page = ceil(num_results / 25). */
+	$navScript = getPageNavigation($pageNumber, $numResults, true);
 
 	if ($returnArray) {
 		return [
 			'header' => '',
 			'cards' => array_values($cards),
 			'scripts' => $navScript,
-			'totalApps' => (int)($numPages * 25),
+			'totalApps' => $numResults,
 			'pageNumber' => (int)$pageNumber,
 		];
 	}

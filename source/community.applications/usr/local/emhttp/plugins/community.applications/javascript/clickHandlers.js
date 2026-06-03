@@ -1003,7 +1003,20 @@ function caInitializeClickHandlers() {
 		} else doSearch(false, repo);
 	});
 
-	$("body").on("click", ".templateSearch", function() { caClearHomeSectionSubtitle(); doSearch(false); });
+	$("body").on("click", ".templateSearch", function() {
+		caClearHomeSectionSubtitle();
+		/* The Apps button is the one thing that leaves Docker Hub mode. Clear
+		   data.docker first so the doSearch sticky docker intercept does not keep
+		   the search in docker, and it runs against the app store instead. Also
+		   clear committedSearchFilter: dockerSearch set it to the docker term,
+		   which still equals the box text, so the doSearch same term no op guard
+		   would otherwise early return and the app search would never run. */
+		if (typeof data !== "undefined" && data) {
+			data.docker = "";
+			data.committedSearchFilter = "";
+		}
+		doSearch(false);
+	});
 	/**
 	 * Click an XML install button: POST `createXML` with the selected
 	 * template type and any pending port-adjust answer, then redirect to
@@ -1369,7 +1382,15 @@ function caInitializeClickHandlers() {
 		closeSidebar();
 	});
 	$("body").on("click", ".popUpStat", function() { showStatistics(); });
-	$("body").on("click", ".similarSearch", function() { doSearch(false, $(this).data("search")); });
+	$("body").on("click", ".similarSearch", function() {
+		var term = String($(this).data("search") || "");
+		/* Reflect the term in the visible search input so the user sees what's
+		   being searched (in docker mode the sticky intercept keeps it a Docker
+		   Hub search for similar containers). */
+		$("#caInlineSearchBox").val(term);
+		$(".caInlineSearchClear").toggleClass("ca_hide", term === "");
+		doSearch(false, term);
+	});
 	$("body").on("click", ".ca_quitUpdate", caQuitUpdate);
 
 	/* MagnificPopup gallery: route arrow keys to the video iframe when the
@@ -1779,6 +1800,8 @@ function caInitializeEventHandlers() {
 			inFlightVal = null;
 			pendingVal  = null;
 			$("#searchBox").val("");
+			/* Clearing the search leaves Docker Hub mode (back to the app store) —
+			   appStore() below resets data.docker. */
 
 			/* Have a snapshot of where the user was before they started
 			   typing? Restore that menu item so they land back where they
@@ -1837,6 +1860,19 @@ function caInitializeEventHandlers() {
 			clearTimeout(inlineTimer);
 		};
 
+		/* Seed the closure committed term without firing a search. Used by
+		   caShowInApps, which drops a synthetic URL label into the box
+		   programmatically. Setting lastCommitted to match makes the box treat
+		   it as a normal active term, so backspacing to empty triggers the
+		   usual clear and restore instead of being read as a no op. */
+		window.caInlineSearchSetCommitted = function(v) {
+			lastCommitted = String(v == null ? "" : v);
+			inFlightVal   = null;
+			pendingVal    = null;
+			snapshotState = null;
+			clearTimeout(inlineTimer);
+		};
+
 		/* Exposed globally so the search chain in Apps.page can hand control
 		   back here once data.searchInProgress flips false again. Safe to
 		   call from any doSearch path — if nothing's queued it's a no-op. */
@@ -1845,6 +1881,12 @@ function caInitializeEventHandlers() {
 			if (pendingVal === null) return;
 			var next = pendingVal;
 			pendingVal = null;
+			/* Same docker rule as the input handler: a parked sub 2 char term
+			   must not auto revert to the app store. Stay in docker and wait for
+			   the user to type a real term or hit Apps or Clear Search. */
+			if (typeof data !== "undefined" && data && data.docker && next.length < 2) {
+				return;
+			}
 			if (next === "") {
 				if (lastCommitted !== "") {
 					lastCommitted = "";
@@ -1869,9 +1911,21 @@ function caInitializeEventHandlers() {
 			   when a snapshot already exists or when a search is in flight. */
 			if (val !== "") captureSnapshotIfFresh();
 			clearTimeout(inlineTimer);
+			/* Docker Hub searches hit Docker's API live (no cache), so use a
+			   slower 1s debounce in docker mode vs 300ms for the local app store. */
+			var debounceMs = (typeof data !== "undefined" && data && data.docker) ? 1000 : 300;
 			inlineTimer = setTimeout(function() {
-				/* In-flight? Stash latest only — older queued values get
-				   dropped. caInlineSearchOnComplete will flush whatever's
+				/* Docker mode: while the term is below the 2 char minimum,
+				   including empty, do nothing. Do not fire a docker search and
+				   do not fall back to the app store. The user is mid edit, so
+				   let them backspace all the way out and type a new term.
+				   Leaving docker only happens via the Apps or Clear Search
+				   buttons, never an auto revert on backspace. */
+				if (typeof data !== "undefined" && data && data.docker && val.length < 2) {
+					return;
+				}
+				/* In-flight? Stash latest only. Older queued values get
+				   dropped. caInlineSearchOnComplete will flush whatever is
 				   parked here once the in-flight chain settles. */
 				if (inFlightVal !== null) {
 					pendingVal = val;
@@ -1886,7 +1940,7 @@ function caInitializeEventHandlers() {
 					lastCommitted = val;
 					fireInlineSearch(val);
 				}
-			}, 300);
+			}, debounceMs);
 		});
 
 		$("body").on("click keydown", ".caInlineSearchClear", function(e) {
