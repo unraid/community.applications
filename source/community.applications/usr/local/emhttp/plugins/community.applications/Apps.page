@@ -145,6 +145,12 @@ $ServerDateCorrect = checkServerDate() ? "true": "false";
    handles edge characters (trailing backslash, U+2028/U+2029, etc.) cleanly. */
 $startupSearch = (string)($_GET['search'] ?? "");
 
+/* Deep link to a single template by its TemplateURL, the GET entry point for
+   the Show in Apps view. Akin to the search GET param but matches one template
+   by URL instead of running a text search. The Name for the search box is
+   resolved by the showInApps server action and adopted on the client. */
+$startupTemplateURL = (string)($_GET['templateURL'] ?? "");
+
 $classList = [];
 if ( ! $responsiveOS ) {
 	$classList[] = "Theme--legacyOS";
@@ -276,6 +282,8 @@ var inlineSearchAwesomplete;
 
 var data = new Object();
 data.committedSearchFilter = "";
+data.committedSearchSubtitle = ""; // Optional subtitle override for the Clear Search line when it should differ from the box text. caShowInApps shows the Name in the box but the URL here.
+data.committedSearchSubtitleFor = ""; // The committedSearchFilter value the subtitle override belongs to. The override is ignored once committedSearchFilter changes, so it self clears on any new search or navigation.
 data.docker = "";
 data.section = "AppStore";
 data.selected_category = "";
@@ -364,6 +372,7 @@ var restoreStateMenu = false;
 var resizeTimer;
 var portsInUse = [];
 var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+var startupTemplateURL = <?= json_encode($startupTemplateURL, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var ca_done_override = false;
 
 /* MagnificPopup iframe URL patterns for the media gallery. The lib's defaults
@@ -1200,7 +1209,11 @@ $(function(){
 			|| <?=$ca_apps_referrer?>
 		);
 		var caCanRestore = (
-			"<?=$startupDisplayed?>" != "true"
+			/* An explicit templateURL deep link is a direct request for one
+			   template and must win over saved-state restore, otherwise this tab
+			   would reopen the prior view instead of the requested app. */
+			!startupTemplateURL
+			&& "<?=$startupDisplayed?>" != "true"
 			&& caCameFromAppsChild
 			&& ("<?=$dockerConvertFlag?>" != "true")
 			&& caSavedState
@@ -1384,7 +1397,13 @@ function updateContent(button,skipAppfeed=true) {
 			updateDisplay(result.data);
 		} else {
 			data.searchActive = false;
-			if ( startupSearch ) {
+			if ( startupTemplateURL ) {
+				/* Deep link by TemplateURL. caShowInApps manages its own button
+				   visibility and resolves the Name from the server response. */
+				caShowInApps(startupTemplateURL);
+				populateAutoComplete();
+				startupTemplateURL = "";
+			} else if ( startupSearch ) {
 				doSearch(false,startupSearch);
 				populateAutoComplete();
 				startupSearch = "";
@@ -1551,7 +1570,16 @@ function myCloseAlert(force=false) {
 function doSidebarSearch(newSearch) {
 	swal.close();
 	closeSidebar();
-	doSearch(false,newSearch);
+	var term = String(newSearch == null ? "" : newSearch);
+	/* A URL: prefix means jump straight to that one template by its TemplateURL,
+	   the Show in Apps view, instead of running a general text search. The
+	   prefix match is case insensitive. */
+	var urlMatch = term.match(/^\s*URL:(.+)$/i);
+	if (urlMatch && typeof caShowInApps === "function") {
+		caShowInApps($.trim(urlMatch[1]));
+		return;
+	}
+	doSearch(false, term);
 }
 
 /**
@@ -1580,6 +1608,23 @@ function doSearch(button,newSearch) {
 	if (data.searchLimitOverride && filter !== data.searchLimitOverrideFilter) {
 		data.searchLimitOverride = false;
 		data.searchLimitOverrideFilter = "";
+	}
+
+	/* Sticky Docker Hub search: once a Docker Hub search has run, keep search
+	   input (live typing, Enter, autocomplete picks) going to Docker Hub
+	   instead of reverting to the app store. Only the Apps / Home button and
+	   menu navigation drop out of docker mode (they clear data.docker). An
+	   empty filter falls through to the normal clear handling below. */
+	if (data.docker && filter) {
+		$('#searchBox').val(filter);
+		data.searchInProgress = false;
+		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+		if (filter !== $.trim(String(data.committedSearchFilter || ""))) {
+			dockerSearch(1);
+		} else if (typeof caInlineSearchOnComplete === "function") {
+			caInlineSearchOnComplete();   // same term — just free the inline-search gate
+		}
+		return;
 	}
 
 	/* No-op: term hasn't changed from the currently committed search.
@@ -1667,6 +1712,10 @@ function doSearch(button,newSearch) {
 
 	data.searchInProgress = true;
 	data.committedSearchFilter = filter;
+	/* A real text search owns its own subtitle, so drop any caShowInApps URL
+	   override here to keep it from reappearing under a same named query. */
+	data.committedSearchSubtitle = "";
+	data.committedSearchSubtitleFor = "";
 	caSyncHomeSearchSubtitle();
 
 	data.maxPerPage = getMaxPerPage();
@@ -1756,6 +1805,11 @@ function changeSortOrder(button,buttonClass,previousApps) {
  */
 function getContent(init,category,description,newApp,startupDisplay) {
 	data.currentpage = 1;
+	/* Any app-content load (a category, Installed/Previous/Pinned, Home, etc.)
+	   leaves Docker Hub mode — the docker flow never routes through getContent
+	   (it uses dockerSearch directly), so this is always the right place to drop
+	   sticky docker when the user navigates the menu. */
+	data.docker = "";
 	var initialize;
 	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
 	data.maxPerPage = getMaxPerPage();
@@ -2951,7 +3005,14 @@ function caUpdateDisplayCount() {
 	if (!$el.length) return;
 	var loaded = $.isArray(caCardCache.cache) ? caCardCache.cache.length : 0;
 	var total = parseInt(data.totalApps, 10) || 0;
-	if (total < 2 || loaded === 0) {
+	var committed = $.trim(String(data.committedSearchFilter || ""));
+	/* The caShowInApps single template view also carries an ALL RESULTS
+	   affordance. One click runs a normal Apps search for the box term, even
+	   though only one card is present. It is detected by the subtitle override
+	   still belonging to the current committed term, the same signal the
+	   subtitle uses, so it self clears the moment the user searches or navigates. */
+	var inShowInApps = !!(data.committedSearchSubtitleFor && data.committedSearchSubtitleFor === committed);
+	if ((total < 2 && !inShowInApps) || loaded === 0) {
 		$el.empty().hide();
 		return;
 	}
@@ -2991,7 +3052,7 @@ function caUpdateDisplayCount() {
 	var searchOn = !!(data.searchActive || data.searchFlag);
 	var limitedByName = $("#caSettingsFlags").hasClass("ca_searchLimitToName");
 	var isDockerSearch = !!data.docker;
-	if (searchOn && limitedByName && !data.searchLimitOverride && !isDockerSearch) {
+	if (!isDockerSearch && (inShowInApps || (searchOn && limitedByName && !data.searchLimitOverride))) {
 		var allTx = stripTags(tr("ALL RESULTS"));
 		$el.html(
 			$("<span></span>").text(countText).prop("outerHTML")
@@ -5139,6 +5200,95 @@ function checkSortOrder() {
 }
 
 /**
+ * Show in Apps from a Docker Hub result that matched an existing CA template:
+ * leave Docker Hub mode and render just that one template (by TemplateURL) in
+ * the app store. Posts the showInApps action, the single result counterpart to
+ * doSearch.
+ *
+ * @param {string} templateURL Matched template's TemplateURL.
+ * @param {string} [name]      Matched template's display Name (shown in the box).
+ */
+function caShowInApps(templateURL, name) {
+	templateURL = String(templateURL == null ? "" : templateURL);
+	if (templateURL === "") return;
+	name = String(name == null ? "" : name);
+
+	/* The box shows the friendly template Name. The Clear Search line shows the
+	   URL plus the templateURL. The actual lookup posts the raw TemplateURL. */
+	var boxTerm = name || templateURL;
+
+	data.docker = "";
+	data.section = "AppStore";
+	/* Seed the box and inline search state as a committed term so the search
+	   input, the Clear Search toggle and the clear or backspace flow all behave
+	   exactly like a normal text search. */
+	$("#searchBox").val(boxTerm);
+	$("#caInlineSearchBox").val(boxTerm);
+	$(".caInlineSearchClear").removeClass("ca_hide");
+	if (typeof caInlineSearchSetCommitted === "function") caInlineSearchSetCommitted(boxTerm);
+	data.committedSearchFilter = boxTerm;
+	data.searchActive = true;
+	data.searchFlag = true;
+	/* Subtitle override: show the URL on the Clear Search line while the box
+	   keeps the Name. Tagged to this committed term so it self clears on any
+	   later search or navigation. */
+	data.committedSearchSubtitle = "URL:" + templateURL;
+	data.committedSearchSubtitleFor = boxTerm;
+	caSyncHomeSearchSubtitle(); // flip Home to Clear Search immediately
+
+	$(".multi_installDiv").hide();
+	scrollToTop();
+	if (typeof caCloseSearchModal === "function") caCloseSearchModal();
+	caClearHomeSectionSubtitle();
+	$("#sortIconArea").show();
+	/* Back to normal app store chrome. The Docker Hub button is available and
+	   the docker templateSearch toggle is hidden. */
+	if (!dockerNotEnabled) {
+		$('.dockerSearch').removeClass("ca_hide");
+		$('.templateSearch').addClass("ca_hide");
+	} else {
+		$('.dockerSearch,.templateSearch').addClass("ca_hide");
+	}
+
+	/* Same epoch and callback shape as doSearch so this jump runs the normal
+	   app store render path. Select All Apps, then refresh the category menu
+	   via getCategoriesPresent so only the displayed template categories stay
+	   enabled. */
+	var myEpoch = ++data.searchEpoch;
+	post({ action: 'showInApps', templateURL: templateURL }, function(result) {
+		if (myEpoch !== data.searchEpoch) return; // user moved on
+		if (typeof enableButtons === "function") enableButtons();
+		$(".selectedMenu").removeClass("selectedMenu");
+		$(".subCategory").hide();
+		$(".allApps").addClass("selectedMenu");
+		updateDisplay(result.display_data || result.display);
+		caSyncSearchFilterCollapsed();
+		data.section = "AppStore";
+		/* A TemplateURL deep link has no Name on the client, so adopt the Name
+		   the server resolved and show it in the box instead of the raw URL.
+		   Re-tag the subtitle override to the new committed term so it keeps
+		   matching. Skipped when a Name was passed in, the docker click path. */
+		if (!name && result && result.name) {
+			var srvName = String(result.name);
+			$("#searchBox").val(srvName);
+			$("#caInlineSearchBox").val(srvName);
+			if (typeof caInlineSearchSetCommitted === "function") caInlineSearchSetCommitted(srvName);
+			data.committedSearchFilter = srvName;
+			data.committedSearchSubtitleFor = srvName;
+		}
+		caSyncHomeSearchSubtitle();
+		postNoSpin({ action: 'getCategoriesPresent' }, function(result) {
+			if (myEpoch !== data.searchEpoch) return; // user moved on
+			$(".categoryMenu").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+			result.forEach(function(category) {
+				var menuItem = $.find(".caMenuItem[data-category='" + category + "']");
+				$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
+			});
+		});
+	});
+}
+
+/**
  * Enter Docker Hub search mode: disable non-docker categories, hide sort icons, clear section labels, {@link dockerSearch} page 1.
  */
 function initDockerSearch() {
@@ -5147,10 +5297,16 @@ function initDockerSearch() {
 	data.section = "";
 	data.selected_category = "";
 	$(".selectedMenu").removeClass("selectedMenu");
-	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
+	/* Categories stay enabled in docker mode — clicking one is a valid way to
+	   leave docker and return to the app store (getContent clears data.docker). */
 	hideSortIcons();
 	$(".subCategory").hide();
 	caSyncSearchFilterCollapsed();
+	/* Entering docker: the Clear Search line should track the input field, so
+	   drop any caShowInApps URL override. Its committed term can equal the
+	   docker filter, which would otherwise keep it stuck. */
+	data.committedSearchSubtitle = "";
+	data.committedSearchSubtitleFor = "";
 	caSyncHomeSearchSubtitle();
 	dockerSearch(1);
 }
@@ -5163,11 +5319,20 @@ function initDockerSearch() {
  */
 function dockerSearch(pageNumber, append) {
 	var doAppend = !!append;
-	caRestoreCommittedSearchIfDrafted();
+	/* Per request token. The Apps button, caShowInApps and getContent all leave
+	   docker by clearing data.docker, so a slow Docker Hub response must not
+	   repaint over the app store view the user already moved to. The callback
+	   bails if a newer docker search started or docker mode was left. */
+	var myDockerEpoch = (data.dockerSearchEpoch || 0) + 1;
+	data.dockerSearchEpoch = myDockerEpoch;
+	/* Only restore the committed term when paging/appending (infinite scroll).
+	   A fresh search (page 1) must use whatever is currently in the box — else
+	   typing a new term in sticky-docker mode gets reverted to the previous
+	   search and nothing appears to happen. */
+	if (doAppend) caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
 	if (!doAppend) scrollToTop();
 	$(".selectedMenu").removeClass("selectedMenu");
-	$(".nonDockerSearch").removeClass("caMenuEnabled").addClass("caMenuDisabled");
 	var filter = $('#searchBox').val();
 	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
 	data.docker = "searching docker";
@@ -5176,10 +5341,20 @@ function dockerSearch(pageNumber, append) {
 	$(".templateSearch").removeClass("ca_hide");
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+		/* Stale response guard: a newer docker search ran, or the user left
+		   docker (Apps / Show in Apps / a category click cleared data.docker). */
+		if (myDockerEpoch !== data.dockerSearchEpoch || !data.docker) return;
+		/* The Clear Search line always tracks the docker input field, so drop
+		   any caShowInApps URL override carried in from the single result view. */
+		data.committedSearchSubtitle = "";
+		data.committedSearchSubtitleFor = "";
 		data.committedSearchFilter = $.trim(String(filter || ""));
 		caSyncHomeSearchSubtitle();
 		updateDisplay(result.display_data || result.display, doAppend);
 		caSyncSearchFilterCollapsed();
+		/* Free the inline-search concurrency gate so live typing in sticky
+		   docker mode flushes any keystrokes queued while this was in flight. */
+		if (typeof caInlineSearchOnComplete === "function") caInlineSearchOnComplete();
 	});
 }
 
@@ -5604,8 +5779,11 @@ function caInitInfiniteScroll() {
 		var atTop = s.scrollTop <= 0;
 		var atBottom = s.scrollTop + s.clientHeight >= s.scrollHeight - 1;
 		var canScroll = s.scrollHeight - s.clientHeight > 1;
-		var showBack = canScroll && !atTop;
-		var showEnd  = canScroll && !atBottom;
+		/* Docker Hub mode: no scroll controls — results are paginated and only
+		   scroll forward, and the deep-page jumps proved unreliable. App-grid only. */
+		var inDocker = !!(typeof data !== "undefined" && data && data.docker);
+		var showBack = !inDocker && canScroll && !atTop;
+		var showEnd  = !inDocker && canScroll && !atBottom;
 		if ($bt.length && ($bt.data("caShown") || false) !== showBack) {
 			$bt.data("caShown", showBack);
 			$bt.stop(true, true)[showBack ? "fadeIn" : "fadeOut"](500);

@@ -716,7 +716,15 @@ function caSetHomeSectionSubtitle(text) {
 function caSyncHomeSearchSubtitle() {
 	var $el = $("#ca_homeSearchSubtitle");
 	if ($el.length && typeof data !== "undefined" && data) {
-		var v = $.trim(String(data.committedSearchFilter || ""));
+		var committed = $.trim(String(data.committedSearchFilter || ""));
+		/* caShowInApps puts the template Name in the search box but wants the
+		   subtitle to read the URL instead. The override only applies while it
+		   still belongs to the current committed term. Any new search or
+		   navigation changes committedSearchFilter and the override is dropped. */
+		var override = (data.committedSearchSubtitleFor && data.committedSearchSubtitleFor === committed)
+			? $.trim(String(data.committedSearchSubtitle || ""))
+			: "";
+		var v = override || committed;
 		if (!v) {
 			$el.empty().addClass("ca_hide");
 		} else {

@@ -282,6 +282,10 @@ switch ($_POST['action']) {
 		caRequireSkin();
 		search_dockerhub();
 		break;
+	case 'showInApps':
+		caRequireSkin();
+		showInApps();
+		break;
 	case 'getPortsInUse':
 		postReturn(["portsInUse"=>getPortsInUse()]);
 		break;
@@ -3157,15 +3161,27 @@ function search_dockerhub() {
 
 	$filter     = getPost("filter","");
 	$pageNumber = getPost("page","1");
+	$rawFilter  = trim((string)$filter);   // for the "hide Similar when name == query" check
 
 	$filter = str_replace(" ","%20",$filter);
 	$filter = str_replace("/","%20",$filter);
-	$jsonPage = download_url("https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber");
-	//$jsonPage = shell_exec("curl -s -X GET 'https://registry.hub.docker.com/v1/search?q=$filter&page=$pageNumber'");
-	$pageresults = json_decode($jsonPage,true);
-	$num_pages = $pageresults['num_pages'];
+	/* Docker Hub v2 search/repositories endpoint: real page/page_size pagination
+	   and an honest total `count`, unlike the deprecated v1 endpoint which 500'd
+	   on deep pages. Browser User-Agent + 30s timeout — the API throttles bare
+	   (curl-default-UA) requests, and the timeout means a slow page fails clean. */
+	$pageSize = 25;
+	$jsonPage = download_url(
+		"https://hub.docker.com/v2/search/repositories/?query=$filter&page=$pageNumber&page_size=$pageSize",
+		"",
+		30,
+		"Mozilla/5.0 (X11; Linux x86_64) CommunityApplications"
+	);
+	$pageresults = json_decode((string)$jsonPage, true);
 
-	if ($pageresults['num_results'] == 0) {
+	/* Fetch failed / unparseable / no results / page past the end → graceful
+	   empty, never a 500. */
+	$num_results = is_array($pageresults) ? (int)($pageresults['count'] ?? 0) : 0;
+	if ($num_results === 0 || empty($pageresults['results'])) {
 		$o['display'] = "<div class='ca_NoDockerAppsFound'>".tr("No Matching Applications Found On Docker Hub")."</div>";
 		$o['script'] = "$('#dockerSearch').hide();";
 		postReturn($o);
@@ -3173,26 +3189,30 @@ function search_dockerhub() {
 		@unlink(CA_PATHS['dockerSearchActive']);
 		return;
 	}
+	$num_pages = (int)ceil($num_results / $pageSize);
 
 	touch(CA_PATHS['dockerSearchActive']);
 	$i = 0;
 	foreach ($pageresults['results'] as $result) {
 		unset($o);
+		/* v2 field names differ from v1: repo_name / short_description, and there
+		   is no is_trusted. */
+		$repoName = (string)($result['repo_name'] ?? "");
+		$details  = explode("/", $repoName);
 		$o['IconFA'] = "docker";
-		$o['Repository'] = $result['name'];
-		$details = explode("/",$result['name']);
-		$o['Author'] = $details[0];
-		$o['Name'] = $details[1]??"";
-		$o['Description'] = $result['description'];
-		$o['Automated'] = $result['is_automated'];
-		$o['Stars'] = $result['star_count'];
-		$o['Official'] = $result['is_official'];
-		$o['Trusted'] = $result['is_trusted'];
+		$o['Repository'] = $repoName;
+		$o['Author'] = $details[0] ?? "";
+		$o['Name'] = $details[1] ?? "";
+		$o['Description'] = $result['short_description'] ?? "";
+		$o['Automated'] = $result['is_automated'] ?? false;
+		$o['Stars'] = $result['star_count'] ?? 0;
+		$o['Official'] = $result['is_official'] ?? false;
+		$o['Trusted'] = false;
 		if ( $o['Official'] ) {
-			$o['DockerHub'] = "https://hub.docker.com/_/".$result['name']."/";
+			$o['DockerHub'] = "https://hub.docker.com/_/".$repoName."/";
 			$o['Name'] = $o['Author'];
 		} else
-			$o['DockerHub'] = "https://hub.docker.com/r/".$result['name']."/";
+			$o['DockerHub'] = "https://hub.docker.com/r/".$repoName."/";
 
 		$o['ID'] = $i;
 		$searchName = str_replace("docker-","",$o['Name']);
@@ -3202,12 +3222,60 @@ function search_dockerhub() {
 		$i=++$i;
 	}
 	$dockerFile['num_pages'] = $num_pages;
+	$dockerFile['num_results'] = $num_results;
 	$dockerFile['page_number'] = $pageNumber;
+	$dockerFile['filter'] = $rawFilter;
 	$dockerFile['results'] = $dockerResults;
 
 	writeJsonFile(CA_PATHS['dockerSearchResults'],$dockerFile);
 	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);
 }
+
+/**
+ * Render just the single CA template with the posted TemplateURL, the app store
+ * view for a Docker Hub result that matched an existing template (the Show in
+ * Apps button). Mirrors get_content render path (writes
+ * community-templates-displayed, then display_apps) but scoped to one template.
+ *
+ * @return void
+ */
+function showInApps() {
+	clearstatcache();
+	if ( !is_file(CA_PATHS['community-templates-info']) || empty($GLOBALS['templates']) ) {
+		postReturn(['script' => "caShowFatalReloadBanner(tr('An error occurred. Click anywhere to reload the page.'));"]);
+		return;
+	}
+	$templateURL = (string)getPost("templateURL", "");
+	/* Case insensitive match so the deep link is forgiving of case differences
+	   in the TemplateURL. */
+	$index = $templateURL !== "" ? searchArray($GLOBALS['templates'], 'TemplateURL', $templateURL, 0, true) : false;
+	/* Mirror get_content's duplicates branch: clear every competing display
+	   cache up front so the follow-up getCategoriesPresent (the menu refresh)
+	   keys off the file written below and never a stale prior view, whether or
+	   not a match was found. */
+	@unlink(CA_PATHS['repositoriesDisplayed']);
+	@unlink(CA_PATHS['community-templates-allSearchResults']);
+	@unlink(CA_PATHS['community-templates-catSearchResults']);
+	@unlink(CA_PATHS['dockerSearchActive']);
+	@unlink(CA_PATHS['startupDisplayed']);
+	if ($index === false) {
+		/* No match: write an empty displayed file so getCategoriesPresent
+		   returns nothing and the category menu ends up fully disabled, the
+		   same as a zero result search, rather than re-enabling the prior
+		   view's categories. */
+		writeJsonFile(CA_PATHS['community-templates-displayed'], ['community' => []]);
+		postReturn(['display_data' => ["header"=>"<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>", "cards"=>[], "scripts"=>"", "totalApps"=>0, "pageNumber"=>1]]);
+		return;
+	}
+	writeJsonFile(CA_PATHS['community-templates-displayed'], ['community' => [$GLOBALS['templates'][$index]]]);
+	/* Return the Name too so a TemplateURL deep link (which has no Name on the
+	   client) can show the friendly Name in the search box. */
+	postReturn([
+		'display_data' => display_apps(1, false, false, true),
+		'name'         => (string)($GLOBALS['templates'][$index]['Name'] ?? "")
+	]);
+}
+
 /**
  * Look up the last-updated date of a container from registry.hub.docker.com.
  *

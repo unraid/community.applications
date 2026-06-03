@@ -496,7 +496,7 @@ function ca_file_put_contents($filename,$data,$flags=0) {
  * @param int $timeout Seconds; 0 uses libcurl default
  * @return string|false Response body or false on failure
  */
-function download_url($url, $path = "", $timeout = 0) {
+function download_url($url, $path = "", $timeout = 0, $userAgent = "") {
 	static $proxycfg = null;
 
 	// Serialize concurrent downloads of the same URL to the same $path.
@@ -551,6 +551,10 @@ function download_url($url, $path = "", $timeout = 0) {
 		if ( $timeout > 0 ) {
 			$curl_options[CURLOPT_TIMEOUT] = $timeout;
 			$curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
+		}
+
+		if ( $userAgent !== "" ) {
+			$curl_options[CURLOPT_USERAGENT] = $userAgent;
 		}
 
 		if ( $proxycfg ) {
@@ -889,19 +893,30 @@ function favouriteSort($a,$b) {
  * Returns the index, or `false` when not found. Iteration starts at
  * $startingIndex which lets callers resume past previously matched rows.
  *
+ * When $caseInsensitive is true the match is a lowercased string compare
+ * (both sides cast to string), useful for things like TemplateURL lookups.
+ * Otherwise the comparison is the loose == used historically.
+ *
  * @param  array<int|string,array<string,mixed>>  $array
  * @param  string                                 $key
  * @param  mixed                                  $value
  * @param  int                                    $startingIndex
+ * @param  bool                                   $caseInsensitive
  * @return int|string|false
  */
-function searchArray($array,$key,$value,$startingIndex=0) {
+function searchArray($array,$key,$value,$startingIndex=0,$caseInsensitive=false) {
 	if (is_array($array) && count($array) ) {
+		$needle = $caseInsensitive ? strtolower((string)$value) : null;
 		foreach ($array as $i => $item) {
 			if ( $i < $startingIndex ) {
 				continue;
 			}
-			if ( ($item[$key] ?? null) == $value ) {
+			$itemValue = $item[$key] ?? null;
+			if ( $caseInsensitive ) {
+				if ( strtolower((string)$itemValue) === $needle ) {
+					return $i;
+				}
+			} else if ( $itemValue == $value ) {
 				return $i;
 			}
 		}
@@ -2153,7 +2168,7 @@ function addMissingVars($o) {
 		'downloads', 'FirstSeen', 'OriginalDescription', 'Deprecated', 'RecommendedRaw', 'Language',
 		'RequiresFile', 'Requires', 'trends', 'Description', 'Overview', 'Repository', 'Tag',
 		'CaComment', 'IncompatibleVersion', 'Private', 'BranchName', 'display', 'RepositoryTemplate',
-		'bio', 'NoInstall', 'Twitter', 'Discord', 'Reddit', 'Facebook', 'ReadMe', 'display_dockerName',
+		'bio', 'NoInstall', 'Twitter', 'Discord', 'Reddit', 'Facebook', 'ReadMe',
 		'actionCentre', 'SupportLanguage', 'DockerHub', 'Official', 'Removable', 'IconFA',
 		'imageNoClick', 'RecommendedDate', 'UpdateAvailable', 'Installed', 'Uninstall',
 		'caTemplateExists', 'Support', 'Beta', 'Project', 'Trusted', 'InstallPath', 'LanguagePack',
