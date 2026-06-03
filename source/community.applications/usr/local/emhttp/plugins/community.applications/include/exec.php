@@ -3249,19 +3249,24 @@ function showInApps() {
 	/* Case insensitive match so the deep link is forgiving of case differences
 	   in the TemplateURL. */
 	$index = $templateURL !== "" ? searchArray($GLOBALS['templates'], 'TemplateURL', $templateURL, 0, true) : false;
-	if ($index === false) {
-		postReturn(['display_data' => ["header"=>"<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>", "cards"=>[], "scripts"=>"", "totalApps"=>0, "pageNumber"=>1]]);
-		return;
-	}
 	/* Mirror get_content's duplicates branch: clear every competing display
-	   cache so both display_apps (the render) and a follow-up
-	   getCategoriesPresent (the menu refresh) key off our single-template
-	   community-templates-displayed file and nothing stale. */
+	   cache up front so the follow-up getCategoriesPresent (the menu refresh)
+	   keys off the file written below and never a stale prior view, whether or
+	   not a match was found. */
 	@unlink(CA_PATHS['repositoriesDisplayed']);
 	@unlink(CA_PATHS['community-templates-allSearchResults']);
 	@unlink(CA_PATHS['community-templates-catSearchResults']);
 	@unlink(CA_PATHS['dockerSearchActive']);
 	@unlink(CA_PATHS['startupDisplayed']);
+	if ($index === false) {
+		/* No match: write an empty displayed file so getCategoriesPresent
+		   returns nothing and the category menu ends up fully disabled, the
+		   same as a zero result search, rather than re-enabling the prior
+		   view's categories. */
+		writeJsonFile(CA_PATHS['community-templates-displayed'], ['community' => []]);
+		postReturn(['display_data' => ["header"=>"<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>", "cards"=>[], "scripts"=>"", "totalApps"=>0, "pageNumber"=>1]]);
+		return;
+	}
 	writeJsonFile(CA_PATHS['community-templates-displayed'], ['community' => [$GLOBALS['templates'][$index]]]);
 	/* Return the Name too so a TemplateURL deep link (which has no Name on the
 	   client) can show the friendly Name in the search box. */

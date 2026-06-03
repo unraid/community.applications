@@ -1209,7 +1209,11 @@ $(function(){
 			|| <?=$ca_apps_referrer?>
 		);
 		var caCanRestore = (
-			"<?=$startupDisplayed?>" != "true"
+			/* An explicit templateURL deep link is a direct request for one
+			   template and must win over saved-state restore, otherwise this tab
+			   would reopen the prior view instead of the requested app. */
+			!startupTemplateURL
+			&& "<?=$startupDisplayed?>" != "true"
 			&& caCameFromAppsChild
 			&& ("<?=$dockerConvertFlag?>" != "true")
 			&& caSavedState
@@ -5315,6 +5319,12 @@ function initDockerSearch() {
  */
 function dockerSearch(pageNumber, append) {
 	var doAppend = !!append;
+	/* Per request token. The Apps button, caShowInApps and getContent all leave
+	   docker by clearing data.docker, so a slow Docker Hub response must not
+	   repaint over the app store view the user already moved to. The callback
+	   bails if a newer docker search started or docker mode was left. */
+	var myDockerEpoch = (data.dockerSearchEpoch || 0) + 1;
+	data.dockerSearchEpoch = myDockerEpoch;
 	/* Only restore the committed term when paging/appending (infinite scroll).
 	   A fresh search (page 1) must use whatever is currently in the box — else
 	   typing a new term in sticky-docker mode gets reverted to the previous
@@ -5331,6 +5341,9 @@ function dockerSearch(pageNumber, append) {
 	$(".templateSearch").removeClass("ca_hide");
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+		/* Stale response guard: a newer docker search ran, or the user left
+		   docker (Apps / Show in Apps / a category click cleared data.docker). */
+		if (myDockerEpoch !== data.dockerSearchEpoch || !data.docker) return;
 		/* The Clear Search line always tracks the docker input field, so drop
 		   any caShowInApps URL override carried in from the single result view. */
 		data.committedSearchSubtitle = "";
