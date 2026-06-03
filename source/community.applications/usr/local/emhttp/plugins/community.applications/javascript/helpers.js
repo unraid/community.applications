@@ -1359,9 +1359,81 @@ function caOffsetTopWithinAncestor(el, ancestor) {
  *
  * @returns {number}
  */
+/**
+ * Measure the outer box (border-box + margins) of an app card. Prefers a real
+ * rendered `.ca_holder`; when none exists yet (first load) it appends a hidden
+ * throwaway one so the very first fetch is already viewport-sized. The result
+ * is cached on `window._caCardDims` for calls made while the grid is empty
+ * (e.g. between views).
+ *
+ * @returns {{w:number,h:number}|null}
+ */
+function caMeasureCardDims() {
+	/* Card size scales with font-size / zoom, so the fallback cache is keyed to
+	   the current viewport geometry — a measurement taken at one size is never
+	   reused after a resize/zoom. */
+	var key = (window.innerWidth || 0) + "x" + (window.innerHeight || 0);
+	var cached = window._caCardDims;
+	var $sample = $("#templates_content .ca_holder").first();
+	if (!$sample.length) $sample = $(".ca_holder").first();
+	var el = $sample[0];
+	var $temp = null;
+	if (!el) {
+		var $host = $("#templates_content .ca_templatesDisplay").first();
+		if (!$host.length) $host = $("#templates_content").first();
+		if (!$host.length) return (cached && cached.key === key) ? cached : null;
+		/* .ca_holder has a fixed CSS width/height, so an empty probe still
+		   measures the real card box. */
+		$temp = $("<div class='ca_holder'></div>").css("visibility", "hidden").appendTo($host);
+		el = $temp[0];
+	}
+	var r = el.getBoundingClientRect();
+	var cs = getComputedStyle(el);
+	var dims = {
+		w: r.width + (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0),
+		h: r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0),
+		key: key
+	};
+	if ($temp) $temp.remove();
+	if (dims.w > 0 && dims.h > 0) {
+		window._caCardDims = dims;
+		return dims;
+	}
+	return (cached && cached.key === key) ? cached : null;
+}
+/**
+ * Cards to fetch per request: roughly one viewport's worth plus a row of
+ * overscan (minimum 12). Sizing each page to the viewport means infinite scroll
+ * and backfill pull a screenful per request instead of dribbling 12 at a time,
+ * which also gives a fast fling more runway before it reaches a spacer.
+ *
+ * Stays stable across a session's fetches (the offset/backfill math and server
+ * pagination are page-number based); it is only re-evaluated at fresh-query
+ * start, and a viewport change forces a fresh re-render anyway.
+ *
+ * @returns {number}
+ */
 function getMaxPerPage() {
-	/* Pagination is now infinite-scroll: always fetch 12 per request. */
-	return 12;
+	var DEFAULT = 12;
+	/* Upper bound so 4K / ultrawide viewports don't request hundreds of cards in
+	   one fetch (server load + DOM bloat). ~6 viewports of a 12-card layout. */
+	var MAX_PER_PAGE = 150;
+	var ma = $(".mainArea")[0];
+	if (!ma) return DEFAULT;
+	var $grid = $("#templates_content .ca_templatesDisplay").first();
+	if (!$grid.length) $grid = $("#templates_content").first();
+	var gridW = ($grid.length ? $grid[0].clientWidth : 0) || ma.clientWidth;
+	var viewH = ma.clientHeight;
+	if (gridW <= 0 || viewH <= 0) return DEFAULT;
+	var dims = caMeasureCardDims();
+	if (!dims || dims.w <= 0 || dims.h <= 0) return DEFAULT;
+	var perRow = Math.max(1, Math.floor(gridW / dims.w));
+	var rows = Math.max(1, Math.ceil(viewH / dims.h));
+	/* ~2 viewports of cards per page (plus a row of overscan). A single fetch
+	   then covers a thumb-drag / track-click that lands mid-page without a blank
+	   gap, and gives forward/backward scroll extra runway before hitting a
+	   spacer. Minimum 12. */
+	return Math.min(MAX_PER_PAGE, Math.max(DEFAULT, perRow * (rows * 2 + 1)));
 }
 
 /**
