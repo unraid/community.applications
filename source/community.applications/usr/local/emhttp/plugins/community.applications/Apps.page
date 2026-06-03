@@ -5752,7 +5752,12 @@ function caVirtUpdate() {
 	   fresh page-1 fetch instead. */
 	var prevScrollTop = data._prevScrollTop || 0;
 	data._prevScrollTop = scrollTop;
-	if (caCardCache.firstInDom > 0 && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
+	/* Rows exist above the DOM window either as evicted-but-cached rows
+	   (firstInDom) or as not-yet-fetched rows above the cache (offset > 0, e.g.
+	   after a lazy move-to-end). Either case should rebase to page 1 on a big
+	   jump to the top, otherwise the viewport strands in empty top-spacer. */
+	var hasRowsAbove = caCardCache.firstInDom > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
+	if (hasRowsAbove && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
 		caCardCache.firstInDom = 0;
 		caCardCache.lastInDom = -1;
 		caCardCache.offset = 0;
