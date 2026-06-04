@@ -873,20 +873,31 @@ body,
 	/* ==========================================================================
 	   Native scrollbars for CA's scrollable panes.
 
-	   Replaces the former fixed-overlay JS scrollbar (the .ca_fixed_* indicators
-	   and #ca_fixed_scroll_root, removed from clickHandlers.js). WebKit/Blink get
-	   px-precise sizing plus a rounded brand-orange thumb; Firefox gets the
-	   standard scrollbar-width / scrollbar-color styling (it cannot set an
-	   arbitrary px width or round the thumb, so it renders a thin orange bar).
+	   Always visible (not auto-hidden): a rounded brand-orange thumb that sits at
+	   ~2px normally and fills to ~5px on interaction. WebKit/Blink get the full
+	   treatment (px sizing, rounded thumb, hover grow); Firefox can only do a
+	   fixed thin bar with two colors and has no hover state, so it stays "thin"
+	   always — as close as Firefox allows.
 	   ========================================================================== */
-	.menuItems,
-	.sidenav,
-	.ca_homeTemplates,
-	.mainArea,
-	.ca_diffCol {
-		scrollbar-width: thin;
-		scrollbar-color: var(--brand-orange) transparent;
+	/* Firefox only. It has no ::-webkit-scrollbar, so give it a normal-width bar
+	   with an orange thumb and a transparent track. Gated behind @supports so
+	   Chrome 121+ (which now also understands scrollbar-width) does NOT pick this
+	   up — if it did, Chrome would ignore the ::-webkit-scrollbar rules below and
+	   revert to its auto-hiding overlay bar. Firefox has no hover state, so it
+	   just stays at normal width. */
+	@supports not selector(::-webkit-scrollbar) {
+		.menuItems,
+		.sidenav,
+		.ca_homeTemplates,
+		.mainArea,
+		.ca_diffCol {
+			scrollbar-width: auto;
+			scrollbar-color: var(--brand-orange) transparent;
+		}
 	}
+	/* Channel reserves the normal (hover/scrolling) bar width; the thumb is inset
+	   to ~2px at rest and fills the full width on interaction. An explicit width
+	   also forces an always-visible bar (overrides the macOS overlay auto-hide). */
 	.menuItems::-webkit-scrollbar,
 	.sidenav::-webkit-scrollbar,
 	.ca_homeTemplates::-webkit-scrollbar,
@@ -902,26 +913,36 @@ body,
 	.ca_diffCol::-webkit-scrollbar-track {
 		background: transparent;
 	}
+	/* Default ~2px rounded pill at half strength (calmer when idle): a transparent
+	   border + padding-box clip insets the visible thumb within the 10px channel. */
 	.menuItems::-webkit-scrollbar-thumb,
 	.sidenav::-webkit-scrollbar-thumb,
 	.ca_homeTemplates::-webkit-scrollbar-thumb,
 	.mainArea::-webkit-scrollbar-thumb,
 	.ca_diffCol::-webkit-scrollbar-thumb {
-		background-color: var(--brand-orange);
+		background-color: color-mix(in srgb, var(--brand-orange) 50%, transparent);
 		border-radius: 999px;
-		/* Transparent border + padding-box clip insets the thumb so it reads as a
-		   slim pill with breathing room (echoing the old overlay's thin thumb). */
-		border: 3px solid transparent;
+		border: 4px solid transparent;
 		background-clip: padding-box;
 	}
+	/* Grow to the full (normal) channel width while the pane is hovered or scrolled. WebKit
+	   won't restyle a scrollbar from the container's :hover state alone (it only
+	   repaints when the bar itself redraws), so caInitScrollbarActivity toggles
+	   .ca_bar_active on the pane via JS; a class change invalidates style
+	   thoroughly enough to repaint the bar on both enter and leave. The direct
+	   thumb:hover is kept as a no-JS fallback for grabbing the bar. */
+	.menuItems.ca_bar_active::-webkit-scrollbar-thumb,
+	.sidenav.ca_bar_active::-webkit-scrollbar-thumb,
+	.ca_homeTemplates.ca_bar_active::-webkit-scrollbar-thumb,
+	.mainArea.ca_bar_active::-webkit-scrollbar-thumb,
+	.ca_diffCol.ca_bar_active::-webkit-scrollbar-thumb,
 	.menuItems::-webkit-scrollbar-thumb:hover,
 	.sidenav::-webkit-scrollbar-thumb:hover,
 	.ca_homeTemplates::-webkit-scrollbar-thumb:hover,
 	.mainArea::-webkit-scrollbar-thumb:hover,
 	.ca_diffCol::-webkit-scrollbar-thumb:hover {
-		/* Fill the full track width on hover, approximating the overlay's
-		   thin-to-thick grow (WebKit cannot transition scrollbar metrics). */
 		border-width: 0;
+		background-color: var(--brand-orange);
 	}
 	.menuItems::-webkit-scrollbar-corner,
 	.sidenav::-webkit-scrollbar-corner,
