@@ -3758,6 +3758,7 @@ input[type="button"] {
 	}
 
 	.spotlightInfoArea {
+		width: 100%;
 		margin-left: 2rem;
 		padding-left: 10rem;
 		margin-top: 2rem;

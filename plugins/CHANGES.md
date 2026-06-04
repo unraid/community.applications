@@ -24,6 +24,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 ## Unreleased
 
 - Changed: The app browser's scrollbars now stay visible as a slim marker and thicken while you hover or scroll the area
+- Fixed: Installing an app from a template no longer briefly flashes an error (most noticeable in Firefox) — a background request was being cancelled as the page navigated and reported as a failure
+- Fixed: The spotlight app's info area now spans the full available width
 - Changed: The Apps browser now uses your browser's native scrollbar instead of a custom one — its length reflects the full number of matching apps, and you can click or drag it to jump straight to any point in the list. Scrolling a large catalogue stays smooth, and moving to the end no longer loads everything at once
 - Chore: Renamed the hidden browser-back helper page (CA_notices.page → ca_browser_back_helper.page) to better reflect what it does
 - Changed: The status-message area now sits inline just before the page footer instead of pinned to the bottom-left corner

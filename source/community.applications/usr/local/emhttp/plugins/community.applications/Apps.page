@@ -3245,10 +3245,6 @@ function caReadSavedState() {
  */
 function saveState() {
 	if (data.ignoreUnload) return;
-	/* Leaving /Apps for a child page or unload — drop the docker info cache
-	   so whatever happens off-page (install/edit/uninstall) doesn't return
-	   to a stale snapshot. */
-	if (typeof caDropInfoCache === "function") caDropInfoCache();
 	var isHome = !$("#templates_content .ca_templatesDisplay").length;
 	var state = {
 		v: 1,
