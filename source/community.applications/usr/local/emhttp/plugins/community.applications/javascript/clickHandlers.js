@@ -86,6 +86,21 @@ function caInitializeClickHandlers() {
 	   can grow while a pane is hovered or scrolled. */
 	caInitScrollbarActivity();
 
+	/* Action buttons (.caButton) carry the action's onclick on their inner
+	   <span>, but the wrapper holds the padding and the icon — so clicks on the
+	   orange padding or the icon miss the handler and only the text itself fires
+	   (the "Install needs two clicks / only the word works" report). Forward a
+	   wrapper click to the span so the whole button is the hit target. The guard
+	   skips clicks that already landed on the span (or its contents) so the
+	   action fires exactly once, and buttons whose handler is elsewhere (no inner
+	   span[onclick]) are untouched. */
+	$("body").on("click", ".caButton", function(e) {
+		var span = $(this).children("span[onclick]")[0];
+		if (!span) return;
+		if (e.target === span || (span.contains && span.contains(e.target))) return;
+		span.click();
+	});
+
 	if (window.caEnableLegacyExternalLinkGuard) {
 		/**
 		 * Legacy external-link guard: intercept clicks on anchors, `.ca_href`,

@@ -1151,14 +1151,33 @@ function versionCheck($template) {
 function removeXMLtags(&$template) {
 	foreach ($template as $key => &$element) {
 		if ( is_array($element) ) {
-				removeXMLtags($element);
+			removeXMLtags($element);
+			continue;
+		}
+
+		$value = (string)($element ?? "");
+
+		/* Normalize the multi line display encoding the feed bakes into text
+		   fields so it does not surface downstream as a literal br or nbsp:
+		   break tags become newlines, carriage returns (including the ones the
+		   feed pads line ends with) are dropped, the non breaking spaces it uses
+		   for indentation collapse to ordinary spaces, and per line leading
+		   indentation is removed. This only converts breaks and collapses
+		   whitespace. It never unescapes content or introduces markup, so the
+		   tag stripping below is unaffected and clean fields keep their
+		   existing entity escaping. */
+		$value = preg_replace('#<br\s*/?>#i', "\n", $value) ?? $value;
+		$value = str_replace(["\r", "&#xD;", "&#13;", "&#x0D;"], "", $value);
+		$value = str_replace(["&nbsp;", "&#160;", "&#xA0;"], " ", $value);
+		$value = preg_replace('/^[ \t]+/m', "", $value) ?? $value;
+
+		/* Existing tag strip pass, preserved: when decoding the value reveals
+		   real tags, remove their angle brackets so nothing can execute. */
+		$decoded = str_replace("<br>", "\n", htmlspecialchars_decode($value));
+		if ( trim($decoded) !== trim(strip_tags($decoded)) ) {
+			$element = str_replace(["<", ">"], ["", ""], $decoded);
 		} else {
-			$tempElement = htmlspecialchars_decode($element??"");
-			$tempElement = str_replace("<br>","\n",$tempElement);
-			if ( trim($tempElement) !== trim(strip_tags($tempElement)) ) {
-				$tempElement = str_replace(["<",">"],["",""],$tempElement);
-				$element = $tempElement;
-			}
+			$element = $value;
 		}
 	}
 }
