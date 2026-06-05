@@ -23,6 +23,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: The action buttons (Install, Update, Uninstall, etc.) now respond to a click anywhere on the button, not just on the label text
+- Changed: App cards now fit up to three status badges on a row before wrapping (was two)
 - Fixed: App descriptions and the "Additional Requirements" panel no longer show stray "br" or "&nbsp;" text from multi-line template fields, and render as clean lines
 - Fixed: After installing an app and returning to the browser, clicking a category now keeps you within your active search instead of dropping back to the whole category
 - Fixed: Returning from an install now restores the Home section heading (e.g. a "Show more" section title) instead of clearing it

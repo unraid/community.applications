@@ -2453,13 +2453,14 @@ input[type="button"] {
 	   to a new row BELOW when more badges than fit in `max-width` accumulate
 	   (rather than letting them slide left over the card icon).
 
-	   `max-width: 20rem` on a 36rem card leaves ~16rem of icon-safe space on
-	   the left. Anything beyond that wraps. */
+	   `max-width: 28rem` on a 36rem card fits three badges on a row before the
+	   fourth wraps below; badges wrap (never slide over the icon), and a
+	   three-badge row's natural width still clears the card icon on the left. */
 	.cardFlagStack {
 		position: absolute;
 		top: 0.75rem;
 		right: 0.75rem;
-		max-width: 20rem;
+		max-width: 28rem;
 		display: flex;
 		flex-direction: row-reverse;
 		flex-wrap: wrap;
