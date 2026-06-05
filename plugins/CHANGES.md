@@ -23,6 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: App descriptions and the "Additional Requirements" panel no longer show stray "br" or "&nbsp;" text from multi-line template fields, and render as clean lines
+- Fixed: After installing an app and returning to the browser, clicking a category now keeps you within your active search instead of dropping back to the whole category
+- Fixed: Returning from an install now restores the Home section heading (e.g. a "Show more" section title) instead of clearing it
 - Changed: The app browser's scrollbars now stay visible as a slim marker and thicken while you hover or scroll the area
 - Fixed: Installing an app from a template no longer briefly flashes an error (most noticeable in Firefox) — a background request was being cancelled as the page navigated and reported as a failure
 - Fixed: The spotlight app's info area now spans the full available width

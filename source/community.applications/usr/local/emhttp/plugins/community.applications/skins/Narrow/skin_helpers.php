@@ -56,6 +56,45 @@ function caApplySidebarSearchLinks($text) {
 }
 
 /**
+ * Normalize a multi-line feed text field before the overview / description
+ * renderers do their tag handling. Removes carriage returns (feed templates pad
+ * line ends with carriage-return entities, which decode to a stray CR that
+ * makes markdown emit a literal br) and strips the common leading indentation
+ * shared by every non-blank line (the template's structural XML indentation,
+ * which would otherwise render as runs of non-breaking spaces). Any deeper,
+ * intentional indentation on a line is preserved.
+ *
+ * Whitespace-only by design: it never adds, removes, or unescapes markup, so
+ * the caller's existing strip_tags and markdown sanitization runs on exactly
+ * the same content (minus CR / structural indent) and security is unchanged.
+ *
+ * @param string $text Field text, already passed through html_entity_decode().
+ * @return string
+ */
+function caNormalizeFeedText(string $text): string {
+	$text = str_replace("\r", "", $text);
+
+	$lines = explode("\n", $text);
+	$min = null;
+	foreach ($lines as $line) {
+		if (trim($line) === "") {
+			continue;
+		}
+		$indent = strlen($line) - strlen(ltrim($line, " \t"));
+		if ($min === null || $indent < $min) {
+			$min = $indent;
+		}
+	}
+	if ($min) {
+		foreach ($lines as $i => $line) {
+			$lines[$i] = (trim($line) === "") ? "" : substr($line, $min);
+		}
+		$text = implode("\n", $lines);
+	}
+	return $text;
+}
+
+/**
  * Build sanitized overview HTML for a template card (markdown, limited tags).
  *
  * @param array<string,mixed> $template
@@ -70,6 +109,7 @@ function caFormatOverview(array $template) {
 	}
 
 	$ovr = html_entity_decode($ovr);
+	$ovr = caNormalizeFeedText($ovr);
 	$ovr = str_replace(["[","]"],["<",">"],$ovr);
 	$ovr = str_replace("\n","<br>",$ovr);
 	$ovr = str_replace("    ","&nbsp;&nbsp;&nbsp;&nbsp;",$ovr);
@@ -1951,6 +1991,7 @@ function caNormalizeOverview(array $template, string $name): string {
 	}
 
 	$normalized = html_entity_decode($overview);
+	$normalized = caNormalizeFeedText($normalized);
 	$normalized = trim($normalized);
 	$normalized = str_replace(["[", "]"], ["<", ">"], $normalized);
 	$normalized = str_replace("\n", "<br>", $normalized);

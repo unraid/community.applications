@@ -3258,6 +3258,10 @@ function saveState() {
 		state.installMulti  = $(".multi_installDiv").is(":visible");
 		state.selectedMenu  = $(".selectedMenu").data("category") || "";
 		state.categoryName  = $(".categoryMenuName").html() || "";
+		/* The Home section subtitle (the Show More section description) is not a
+		   search, so state.filter does not capture it. Save its text so a
+		   return-from-install restores it too. */
+		state.homeSectionSubtitle = $("#ca_homeSectionSubtitle").text() || "";
 		state.currentpage   = parseInt(data.currentpage, 10) || 1;
 		var _ma = $(".mainArea")[0];
 		state.scrollY       = _ma ? (_ma.scrollTop || 0) : 0;
@@ -3290,12 +3294,20 @@ function restoreState(s) {
 	$("#searchBox").val(s.filter || "");
 	data.committedSearchFilter = $.trim(s.filter || "");
 	data.searchActive = (s.filter || "") !== "";
+	/* Restore searchFlag too, not just searchActive. The category-menu click
+	   handler clears the search box and committed term unless data.searchFlag is
+	   set, so without this a category click after a restore drops back to the
+	   full category instead of subsetting the restored search. */
+	data.searchFlag = data.searchActive;
 	$(".categoryMenuName").html(s.categoryName || "");
 	restoreStateMenu = s.selectedMenu || "";
 	data.currentpage = parseInt(s.currentpage, 10) || 1;
 	data.maxPerPage = getMaxPerPage();
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
+	/* Restore the Home section subtitle (e.g. from a Show More) — empty text
+	   just hides it. */
+	if (typeof caSetHomeSectionSubtitle === "function") caSetHomeSectionSubtitle(s.homeSectionSubtitle || "");
 
 	post({action:"getSortOrder"}, function(sortOrder) {
 		$(".sortIcons").removeClass("enabledIcon");
@@ -5018,12 +5030,23 @@ function caRenderSidebarRequires() {
 		if (typeof raw !== "string" || raw === "") {
 			$section.text("");
 		} else {
-			/* Normalize newlines the way the old PHP path did before handing
-			   to markdown: drop \r and the &#xD; entity, turn \n into a
-			   markdown hard-break (two trailing spaces + newline). marked
-			   treats "  \n" as <br> regardless of the `breaks` option, which
-			   matches caSanitizeReadme's defaults. */
-			var normalized = raw.replace(/\r/g, "").replace(/&#xD;/g, "").replace(/\n/g, "  \n");
+			/* Normalize the feed/template multi-line encoding before handing to
+			   markdown. The feed stores breaks as <br> and indentation as &nbsp;
+			   runs; left in, caSanitizeReadme's stripTags drops the < > and leaves
+			   a literal "br", and marked escapes the &nbsp; into visible text. So:
+			   convert <br> to newlines, collapse &nbsp; to spaces, drop carriage
+			   returns (incl. the &#xD; the feed pads lines with), strip the
+			   structural leading indentation, then turn \n into a markdown
+			   hard-break (two trailing spaces + newline; marked treats "  \n" as a
+			   break regardless of the `breaks` option). Whitespace/break only — the
+			   result still goes through caSanitizeReadme (stripTags + marked +
+			   DOMPurify), so sanitization is unchanged. */
+			var normalized = raw
+				.replace(/<br\s*\/?>/gi, "\n")
+				.replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
+				.replace(/&#xD;|&#13;|\r/gi, "")
+				.replace(/^[ \t]+/gm, "")
+				.replace(/\n/g, "  \n");
 			var html = caSanitizeReadme(normalized);
 			html = caApplySidebarSearchLinksJs(html);
 			$section.html(html);
