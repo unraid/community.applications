@@ -3781,12 +3781,6 @@ input[type="button"] {
 		align-items: center;
 	}
 
-	.spotlightIcon {
-		height: 11rem;
-		margin-bottom: -3.5rem;
-		margin-left: -4rem;
-		/* margin-top: -3rem; */
-	}
 	.spotlightIconArea .spotlightIcon {
 		/* Sidebar icon: set height, width follows the symbol aspect via the
 		   --ca-spotlight-* vars shipped in the sprite cache (see

@@ -200,3 +200,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: In Docker Hub search, the "Apps" button now switches back to the app store and immediately searches for what's typed (it previously did nothing). Backspacing the term below the two-character minimum no longer bounces you back to Apps — you stay in Docker Hub search to enter a new term, and only leave via the "Apps" or "Clear Search" buttons
 - Added: A new "Autoplay videos" setting (on by default) to turn the muted, autoplaying video previews in the app sidebar on or off
 - Changed: The monthly spotlight artwork now renders as a crisp, scalable graphic on app cards and in the sidebar, and the sidebar spotlight uses a tidier two-column layout
+- Chore: Removed dead spotlight styling left behind after the switch to the scalable inline graphic
