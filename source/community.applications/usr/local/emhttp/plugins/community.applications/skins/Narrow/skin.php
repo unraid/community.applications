@@ -1481,7 +1481,7 @@ function displayCard($template) {
 
 	if (!empty($template['RecommendedDate'])) {
 		$card .= "
-			<div class='homespotlightIconArea ca_center''>
+			<div class='homespotlightIconArea ca_center'>
 				<div><svg class='spotlightIcon' role='img' aria-label='Spotlight'><use href='#ca-monthly-spotlight'></use></svg></div>
 				<div class='spotlightDate'>".tr(date("M Y", $template['RecommendedDate']), 0)."</div>
 			</div>

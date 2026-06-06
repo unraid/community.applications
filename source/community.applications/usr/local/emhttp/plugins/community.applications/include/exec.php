@@ -554,7 +554,9 @@ function caSanitizeSpotlightSvg(string $svg): string {
 		foreach ($el->attributes as $attr) {
 			$name  = strtolower($attr->nodeName);   // includes any prefix, e.g. xlink:href
 			$local = strtolower((string)$attr->localName);
-			if (strpos($name, "on") === 0) {
+			// Match the on* handler prefix on both the prefixed name and the bare
+			// local name, so a namespaced foo:onclick is caught too.
+			if (strpos($name, "on") === 0 || strpos($local, "on") === 0) {
 				$drop[] = $attr;
 			} else if ($local === "href" && preg_match('/^\s*javascript:/i', (string)$attr->nodeValue)) {
 				$drop[] = $attr;
