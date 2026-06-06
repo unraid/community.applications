@@ -2350,11 +2350,39 @@ body,
 	}
 
 	.homespotlightIconArea {
-		display: inline-block;
-		position: relative;
-		top: -25rem;
-		left: 24rem;
+		/* Anchored to the card itself (.ca_holder is position:relative) so it sits
+		   in a fixed spot no matter where it lands in the DOM flow, instead of
+		   being dragged up from after the description with negative margins. top
+		   clears the corner badge row; right matches the badge stack inset
+		   (.cardFlagStack right:0.75rem). width:fit-content takes the svg's width
+		   so the date below centers under the icon. Tune top to sit beneath the
+		   badges once the icon width is settled. */
+		position: absolute;
+		top: 4.5rem;
+		right: 1.75rem;
+		width: fit-content;
+		text-align: center;
 		cursor: pointer;
+	}
+	.homespotlightIconArea .spotlightIcon {
+		/* Size knob for the home card icon. Scoped here so it overrides the
+		   shared .spotlightIcon sizing / negative-margin hacks (still used by the
+		   sidebar img) without touching them. Set height; width follows from the
+		   art aspect ratio. The ratio is not known here (the viewBox lives in the
+		   fetched svg), so the sprite cache ships a :root style setting
+		   --ca-spotlight-w / --ca-spotlight-h from that viewBox (see
+		   caBuildSpotlightSprite). The fallbacks cover the cold-load window
+		   before the sprite is injected. */
+		display: block;
+		height: 4rem;
+		width: auto;
+		aspect-ratio: var(--ca-spotlight-w, 1903) / var(--ca-spotlight-h, 609);
+		margin: 0 auto;
+	}
+	.homespotlightIconArea .spotlightDate {
+		/* Centered under the icon within the fit-content width; drop the shared
+		   negative left margin from the old absolute-less layout. */
+		margin-left: 0;
 	}
 
 	.initDockerSearch {
@@ -3736,7 +3764,10 @@ input[type="button"] {
 	}
 
 	.spotlightDateSidebar {
-		margin-left: 0.5rem !important;
+		/* Centered beneath the svg by the flex column; just neutralize the shared
+		   .spotlightDate negative left margin (this rule wins by source order). */
+		margin-left: 0;
+		text-align: center;
 	}
 
 	.spotlightHeader {
@@ -3744,8 +3775,10 @@ input[type="button"] {
 	}
 
 	.spotlightIconArea {
-		float: left;
-		/* width: 9rem; */
+		/* Col 1 of the sidebar spotlight: svg on top, date centered beneath. */
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
 
 	.spotlightIcon {
@@ -3754,20 +3787,36 @@ input[type="button"] {
 		margin-left: -4rem;
 		/* margin-top: -3rem; */
 	}
-	.spotlightIconArea img.spotlightIcon {
-		margin-left: 0rem;
+	.spotlightIconArea .spotlightIcon {
+		/* Sidebar icon: set height, width follows the symbol aspect via the
+		   --ca-spotlight-* vars shipped in the sprite cache (see
+		   caBuildSpotlightSprite). Scoped to .spotlightIconArea so it overrides
+		   the shared .spotlightIcon base without touching the home card. */
+		display: block;
+		height: 7rem;
+		width: auto;
+		aspect-ratio: var(--ca-spotlight-w, 1903) / var(--ca-spotlight-h, 609);
+		margin: 0;
 	}
 
 	.spotlightInfoArea {
-		width: 100%;
-		margin-left: 2rem;
-		padding-left: 10rem;
-		margin-top: 2rem;
+		/* Col 2: header / why / message / who. min-width:0 lets long text wrap
+		   inside the grid track instead of forcing the column wider than the
+		   sidebar. The old float-clearing padding-left / margins are gone now
+		   that the layout is a real grid. */
+		min-width: 0;
 	}
 
 	.spotlightPopup {
-		display: inline-block;
+		/* Two columns: col 1 the icon + date stack (sized to the icon), col 2 the
+		   header / why / message / who text. Replaces the old float + padding-left
+		   hack. align-items:start top-aligns the text with the icon. */
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: 1.5rem;
+		align-items: start;
 		margin-top: 0.75rem;
+		margin-left: 1rem;
 	}
 
 	.spotlightWho {

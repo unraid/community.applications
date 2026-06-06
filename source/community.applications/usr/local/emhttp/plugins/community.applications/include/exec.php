@@ -239,6 +239,12 @@ switch ($_POST['action']) {
 		   repeat opens are a disk hit. */
 		caFetchSidebarSource();
 		break;
+	case 'getSpotlightSprite':
+		/* Serve the cached monthly-spotlight symbol sprite (built server-side
+		   during the feed download) so JS can inject it after a live refresh.
+		   Same-origin read of a local file, so no CORS concern. */
+		getSpotlightSprite();
+		break;
 	case 'createXML':
 		createXML();
 		break;
@@ -373,7 +379,224 @@ function DownloadApplicationFeed() {
 	}
 	@unlink($downloadURL);
 
-	return processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
+	$result = processApplicationFeed($smallFeed, $currentFeed) ? 'slim' : false;
+	/* Rebuild the spotlight symbol sprite from the freshly-downloaded asset.
+	   Done here (not in processApplicationFeed) so the background full-feed
+	   hydrate, which also calls processApplicationFeed, does not re-download
+	   the SVG a second time. Runs after the tempFiles wipe above, so the
+	   cache file survives this download cycle. */
+	if ($result) caBuildSpotlightSprite();
+	return $result;
+}
+
+/**
+ * Build the inline SVG symbol sprite for the monthly-spotlight wordmark.
+ *
+ * Downloads CA_PATHS['spotlightSvgSource'] server-side (the asset host sets no
+ * CORS headers, so the browser cannot fetch the text directly), falling back to
+ * CA_PATHS['spotlightSvgSource-backup'] (the GitHub mirror) if the primary fails
+ * to download or returns something that is not well-formed SVG. Rewrites the
+ * root svg element into a symbol wrapped in a hidden sprite svg, and caches the
+ * result at CA_PATHS['spotlightSprite']. skin.html readfile()s that cache on
+ * render, and the getSpotlightSprite action serves it to JS after a live feed
+ * refresh, so the page can reference the art with use href=#ca-monthly-spotlight
+ * instead of inlining the full markup at every call site.
+ *
+ * Best effort: on any download or parse failure it leaves any existing cache
+ * untouched and returns without writing, so the skin simply falls back to not
+ * rendering the symbol.
+ *
+ * Note: the source SVG carries a style block (.st0 / .st1, with .st1 set to
+ * fill currentColor). Inline SVG style is document-global regardless of
+ * nesting, so those class names leak into the page. That is acceptable for a
+ * single sprite; if more sprites are added the classes should be scoped or
+ * prefixed at build time.
+ *
+ * @return void
+ */
+function caBuildSpotlightSprite() {
+	/* Try the primary asset host, then the GitHub mirror. A source counts as
+	   usable only once it both downloads AND survives caSanitizeSpotlightSvg,
+	   so a primary that returns an error page or truncated body falls through
+	   to the backup rather than producing a broken sprite. Sanitize here, in
+	   the DOM, because the script / handler removal it does is the part regex
+	   stripping gets fooled on. */
+	$svg = "";
+	foreach ([CA_PATHS['spotlightSvgSource'], CA_PATHS['spotlightSvgSource-backup']] as $url) {
+		$raw = download_url($url, "", 30);
+		if ( ! is_string($raw) || trim($raw) === "" ) {
+			continue;
+		}
+		$clean = caSanitizeSpotlightSvg($raw);
+		if ( $clean !== "" ) {
+			$svg = $clean;
+			break;
+		}
+	}
+	/* Both tiers failed (download error or unparseable on each). Leave any
+	   existing cache untouched and bail; the skin just renders no symbol. */
+	if ( $svg === "" ) {
+		return;
+	}
+
+	// Pull the inner markup from between the root svg tag and its close.
+	if ( ! preg_match('/<svg\b[^>]*>(.*)<\/svg\s*>/is', $svg, $body) ) {
+		return;
+	}
+	$inner = $body[1];
+
+	// viewBox off the root tag so the symbol scales correctly. Restrict to the
+	// numeric shape a viewBox can legally take; fall back to the known asset
+	// dimensions if it is missing or malformed.
+	$viewBox = "0 0 1903 609";
+	if ( preg_match('/<svg\b[^>]*\bviewBox\s*=\s*"([^"]*)"/i', $svg, $vb) ) {
+		$candidate = trim($vb[1]);
+		if ( preg_match('/^[\d.\s-]+$/', $candidate) ) {
+			$viewBox = $candidate;
+		}
+	}
+
+	// Drop the Generator comment etc. The dangerous-node stripping already
+	// happened in caSanitizeSpotlightSvg; this is just tidy-up.
+	$inner = preg_replace('/<!--.*?-->/s', '', $inner);
+	$inner = trim($inner);
+	if ( $inner === "" ) {
+		return;
+	}
+
+	/* Surface the art width/height (the 3rd and 4th viewBox values) as CSS
+	   custom properties so the consuming <use> can size itself by aspect ratio
+	   without the stylesheet hard-coding a ratio it cannot know - the real
+	   ratio lives in the fetched svg. The home card CSS reads
+	   --ca-spotlight-w / --ca-spotlight-h (with its own fallbacks for the
+	   cold-load window before this cache is injected). viewBox already passed
+	   the [digits dot space minus] gate above, so these tokens are safe to
+	   drop straight into the style block. */
+	$vbParts = preg_split('/\s+/', trim($viewBox));
+	$w = (isset($vbParts[2]) && (float)$vbParts[2] > 0) ? $vbParts[2] : "1903";
+	$h = (isset($vbParts[3]) && (float)$vbParts[3] > 0) ? $vbParts[3] : "609";
+
+	// Hidden sprite container. width/height 0 plus absolute keeps it out of
+	// layout while the symbol stays referenceable by use href=#ca-monthly-spotlight.
+	$sprite  = '<style>:root{--ca-spotlight-w:'.$w.';--ca-spotlight-h:'.$h.';}</style>';
+	$sprite .= '<svg id="caSpotlightSprite" class="caSvgSprite" aria-hidden="true" focusable="false" ';
+	$sprite .= 'style="position:absolute;width:0;height:0;overflow:hidden" ';
+	$sprite .= 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">';
+	$sprite .= '<symbol id="ca-monthly-spotlight" viewBox="'.$viewBox.'">'.$inner.'</symbol>';
+	$sprite .= '</svg>';
+
+	ca_file_put_contents(CA_PATHS['spotlightSprite'], $sprite);
+}
+
+/**
+ * Validate and structurally sanitize a downloaded SVG before it is inlined into
+ * the page. Returns normalized, well-formed SVG markup, or "" when the input is
+ * not well-formed XML so the caller can bail.
+ *
+ * Done with DOM rather than regex because the security-relevant part - removing
+ * anything that can run script - is exactly where regex stripping is fooled
+ * (odd whitespace, self-closing tricks, prefixed names). Removed:
+ *   - script elements (any namespace)
+ *   - foreignObject elements (can host arbitrary HTML, including script)
+ *   - on* event-handler attributes
+ *   - href / xlink:href values using the javascript: scheme
+ *
+ * Note: saveXML normalizes whitespace / attribute quoting and XML-escapes text
+ * nodes, so CSS inside a style block that ever used < or & would be escaped.
+ * The current asset has none; flagged in case the source style block changes.
+ *
+ * LIBXML_NONET keeps the parser off the network; external entity expansion is
+ * off by default in the libxml shipped with our PHP, so no DOCTYPE / XXE path.
+ *
+ * @param string $svg raw downloaded SVG
+ * @return string sanitized SVG markup, or "" on parse failure
+ */
+function caSanitizeSpotlightSvg(string $svg): string {
+	// loadXML throws a ValueError on an empty string under PHP 8, so guard it
+	// here too (the caller already does, but keep this self-contained).
+	if ( trim($svg) === "" ) {
+		return "";
+	}
+
+	$prev = libxml_use_internal_errors(true);
+	libxml_clear_errors();
+
+	$dom = new DOMDocument();
+	$loaded = $dom->loadXML($svg, LIBXML_NONET);
+	if ( ! $loaded || ! $dom->documentElement ) {
+		libxml_clear_errors();
+		libxml_use_internal_errors($prev);
+		return "";
+	}
+
+	// Remove script-hosting elements outright. Collect first - the NodeList is
+	// live, so removing mid-iteration would skip nodes.
+	foreach (["script", "foreignObject"] as $tag) {
+		$kill = [];
+		foreach ($dom->getElementsByTagNameNS("*", $tag) as $node) {
+			$kill[] = $node;
+		}
+		foreach ($kill as $node) {
+			if ($node->parentNode) $node->parentNode->removeChild($node);
+		}
+	}
+
+	// Strip event-handler attributes and javascript: links from everything else.
+	$elements = [];
+	foreach ($dom->getElementsByTagName("*") as $el) {
+		$elements[] = $el;
+	}
+	foreach ($elements as $el) {
+		if ( ! $el->hasAttributes()) {
+			continue;
+		}
+		$drop = [];
+		foreach ($el->attributes as $attr) {
+			$name  = strtolower($attr->nodeName);   // includes any prefix, e.g. xlink:href
+			$local = strtolower((string)$attr->localName);
+			// Match the on* handler prefix on both the prefixed name and the bare
+			// local name, so a namespaced foo:onclick is caught too.
+			if (strpos($name, "on") === 0 || strpos($local, "on") === 0) {
+				$drop[] = $attr;
+			} else if ($local === "href" && preg_match('/^\s*javascript:/i', (string)$attr->nodeValue)) {
+				$drop[] = $attr;
+			}
+		}
+		foreach ($drop as $attr) {
+			$el->removeAttributeNode($attr);
+		}
+	}
+
+	// saveXML on the root element only, so there is no XML prolog to strip.
+	$out = $dom->saveXML($dom->documentElement);
+	libxml_clear_errors();
+	libxml_use_internal_errors($prev);
+	return is_string($out) ? $out : "";
+}
+
+/**
+ * Return the cached monthly-spotlight symbol sprite to the client.
+ *
+ * The page-load path readfile()s the cache directly in skin.html, but a live
+ * feed refresh wipes and rebuilds tempFiles without reloading the page, so JS
+ * re-fetches the sprite through here (same-origin, no CORS) and swaps it into
+ * the DOM. Returns ok=false when the cache is absent (e.g. before the first
+ * successful download) so the caller can simply skip the injection.
+ *
+ * @return void
+ */
+function getSpotlightSprite() {
+	$path = CA_PATHS['spotlightSprite'];
+	if ( ! is_file($path) ) {
+		postReturn(["ok"=>false]);
+		return;
+	}
+	$html = (string)@file_get_contents($path);
+	if ( $html === "" ) {
+		postReturn(["ok"=>false]);
+		return;
+	}
+	postReturn(["ok"=>true, "html"=>$html]);
 }
 
 /**
@@ -930,7 +1153,7 @@ function saveSettings() {
 	$switches = [
 		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
 		"keepSearchInFocus", "displayUsageGraphs", "hideDeprecated", "hideIncompatible",
-		"featuredDisable", "dev",
+		"featuredDisable", "dev", "autoplayVideos",
 	];
 	foreach ($switches as $key) {
 		$posted = getPost($key, null);
@@ -1607,7 +1830,12 @@ function force_update() {
 	   (templates were just re-read from the post-download cache) and
 	   should be re-registered. Either way, idempotent. */
 	ensureTabRegistered();
-	postReturn(['status' => "ok", 'script' => $script]);
+	/* A fresh download rebuilt the spotlight sprite cache (and the tempFiles
+	   wipe took the old DOM-side copy's backing file with it). Flag it so the
+	   calling tab re-fetches and re-injects the sprite without a full reload. */
+	$resp = ['status' => "ok", 'script' => $script];
+	if ($freshlyDownloaded) $resp['spotlightSpriteUpdated'] = true;
+	postReturn($resp);
 }
 
 

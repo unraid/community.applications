@@ -1161,11 +1161,7 @@ function caInitializeEventHandlers() {
 			return;
 		}
 
-		if (target.classList.contains("spotlightIcon")) {
-			target.src = window.caSpotlightIconBackup || "/plugins/dynamix.docker.manager/images/question.png";
-		} else {
-			target.src = "/plugins/dynamix.docker.manager/images/question.png";
-		}
+		target.src = "/plugins/dynamix.docker.manager/images/question.png";
 		target.onerror = null;
 
 		/* Replaced-with-question icons aren't worth fullscreening — strip

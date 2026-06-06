@@ -161,10 +161,13 @@ define("CA_PATHS",[
 	'pluginAttributesCache'               => "$tempFiles/pluginAttributesCache",
 	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
 	'downloadLocksDir'                    => "$tempFiles/locks",
-	'SpotlightIcon-backup'                => "https://github.com/unraid/community.applications/raw/master/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}",
-	/* TEMP demo override — restore the original line below when done.
-	'SpotlightIcon'                       => "https://assets.ca.unraid.net/feed/webImages/spotlight_{$dynamixSettings['theme']}.png?v={$caBuildTime}"
-	*/
-	'SpotlightIcon'                       => "/plugins/community.applications/spotlight-black.png?v=123"
+	// Wide monthly-spotlight wordmark. Downloaded and converted to an inline
+	// SVG symbol sprite server-side during the feed download (see
+	// caBuildSpotlightSprite in exec.php); the processed sprite is cached at
+	// spotlightSprite, which lives under tempFiles so it is wiped and rebuilt
+	// on every feed refresh.
+	'spotlightSvgSource'                  => "https://assets.ca.unraid.net/feed/webImages/monthly_spotlight.svg",
+	'spotlightSprite'                     => "$tempFiles/monthly_spotlight_sprite.svg",
+	'spotlightSvgSource-backup'           => "https://github.com/unraid/community.applications/raw/master/webImages/monthly_spotlight.svg"
 ]);
 ?>
