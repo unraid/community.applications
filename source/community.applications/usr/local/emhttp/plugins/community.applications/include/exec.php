@@ -479,7 +479,7 @@ function caBuildSpotlightSprite() {
 	// Hidden sprite container. width/height 0 plus absolute keeps it out of
 	// layout while the symbol stays referenceable by use href=#ca-monthly-spotlight.
 	$sprite  = '<style>:root{--ca-spotlight-w:'.$w.';--ca-spotlight-h:'.$h.';}</style>';
-	$sprite .= '<svg id="caSpotlightSprite" class="caSvgSprite" aria-hidden="true" focusable="false" ';
+	$sprite .= '<svg id="caSpotlightSprite" aria-hidden="true" focusable="false" ';
 	$sprite .= 'style="position:absolute;width:0;height:0;overflow:hidden" ';
 	$sprite .= 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">';
 	$sprite .= '<symbol id="ca-monthly-spotlight" viewBox="'.$viewBox.'">'.$inner.'</symbol>';
