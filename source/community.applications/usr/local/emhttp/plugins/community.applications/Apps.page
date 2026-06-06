@@ -700,6 +700,10 @@ function caBuildInlinePreviewEmbed(url) {
    app are rare, so the extra embeds are just bandwidth, not a real concern. */
 function caMountInlineVideoPreviews() {
 	caBindMediaHoverShift();
+	/* Autoplay videos setting (default yes). When off, leave the poster
+	   thumbnails as-is - the play overlay and click-to-open MFP still work,
+	   there's just no muted autoplaying iframe overlaid on them. */
+	if (!window.caAutoplayVideos) return;
 	$(".caMediaGallery .screenshot.mfp-iframe").each(function() {
 		var $tile = $(this);
 		if ($tile.data("caInlinePreview")) return;
@@ -798,7 +802,7 @@ if ( version_compare($GLOBALS['caSettings']['unRaidVersion'],"7.0.0-rc1","<") ) 
 ?>
 
 window.caEnableLegacyExternalLinkGuard = <?=version_compare($GLOBALS['caSettings']['unRaidVersion'],"6.12.15","<=") ? "true" : "false"?>;
-window.caSpotlightIconBackup = "<?=CA_PATHS['SpotlightIcon-backup']?>";
+window.caAutoplayVideos = <?=($GLOBALS['caSettings']['autoplayVideos'] ?? "yes") === "yes" ? "true" : "false"?>;
 
 $(function(){
 
@@ -1364,6 +1368,22 @@ function ca_openPlugin(cmd,title,plg,func) {
 }
 
 /**
+ * Pull the cached monthly-spotlight symbol sprite from the server and drop it
+ * into the holder div at the bottom of skin.html. The page-load copy is emitted
+ * into that same holder by skin.html, but a live feed refresh rebuilds the cache
+ * server-side without reloading the page, so this fetches the fresh sprite
+ * (same-origin, no CORS) and replaces the holder's contents. Always the same
+ * spotlight_svg_holder node, so the sprite never moves around the DOM. use
+ * references in the skin resolve regardless of where they sit relative to it.
+ */
+function caInjectSpotlightSprite() {
+	postNoSpin({action:'getSpotlightSprite'}, function(result) {
+		if ( ! result || ! result.ok || ! result.html ) return;
+		$(".spotlight_svg_holder").html(result.html);
+	});
+}
+
+/**
  * Refresh templates and redraw the store: reset search UI, apply startup category from cookie or clicked button, POST `force_update` (or `force_update_skip`), then reload listing or restore an in-progress search.
  *
  * @param {HTMLElement} [button] Optional menu item whose `data-category` becomes the active startup screen
@@ -1394,6 +1414,10 @@ function updateContent(button,skipAppfeed=true) {
 	   whole tempFiles dir, so we don't double-fire there.) */
 	if (skipAppfeed && typeof caDropInfoCache === "function") caDropInfoCache();
 	post({action:postAction}, function(result) {
+		/* A fresh feed download rebuilt the spotlight sprite cache server-side
+		   (the tempFiles wipe took the page-load copy's backing file with it),
+		   so pull the new one and swap it into the DOM without a full reload. */
+		if ( result.spotlightSpriteUpdated ) caInjectSpotlightSprite();
 		if ( result.data ) {
 			updateDisplay(result.data);
 		} else {

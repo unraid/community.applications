@@ -316,7 +316,7 @@ function displayPopup($template) {
 			$RecommendedBlock = "
 			<div class='spotlightPopup'>
 				<div class='spotlightIconArea ca_center'>
-					<div><img class='spotlightIcon' src='".CA_PATHS['SpotlightIcon']."' alt='Spotlight'></img></div>
+					<div><svg class='spotlightIcon' role='img' aria-label='Spotlight'><use href='#ca-monthly-spotlight'></use></svg></div>
 					<div class='spotlightDate spotlightDateSidebar'>".tr(date("M Y", $RecommendedDate), 0)."</div>
 				</div>
 				<div class='spotlightInfoArea'>
@@ -1482,7 +1482,7 @@ function displayCard($template) {
 	if (!empty($template['RecommendedDate'])) {
 		$card .= "
 			<div class='homespotlightIconArea ca_center''>
-				<div><img class='spotlightIcon' src='".CA_PATHS['SpotlightIcon']."' alt='Spotlight'></img></div>
+				<div><svg class='spotlightIcon' role='img' aria-label='Spotlight'><use href='#ca-monthly-spotlight'></use></svg></div>
 				<div class='spotlightDate'>".tr(date("M Y", $template['RecommendedDate']), 0)."</div>
 			</div>
 		";
