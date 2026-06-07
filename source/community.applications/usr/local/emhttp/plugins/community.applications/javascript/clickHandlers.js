@@ -1702,6 +1702,10 @@ function caBindSettingsFormHandlers(initialFormState) {
 	$sidenav.off("click.caSettingsCancel", ".caSettingsCancel")
 		.on("click.caSettingsCancel", ".caSettingsCancel", function() {
 			if ($(this).hasClass("ca_disabled")) return;
+			/* Setting .checked / .prop("checked") programmatically does NOT fire a
+			   change event, so the change.caSettingsDirty handler below stays quiet
+			   during this reset - the final addClass("ca_disabled") is not racing
+			   any removeClass and the form ends up clean + Cancel disabled. */
 			$form.find("input.caSettingSwitch").each(function() { this.checked = this.defaultChecked; });
 			$form.find(".caFactoryReset").prop("checked", false);
 			$form.find("input.caSettingSwitch").prop("disabled", false);

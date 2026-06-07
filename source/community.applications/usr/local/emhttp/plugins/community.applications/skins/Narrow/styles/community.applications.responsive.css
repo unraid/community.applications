@@ -296,7 +296,6 @@ body:has(.ca_useWholeDisplayWindow) {
 	.Theme--sidebar .searchAreaHolder {
 		background-color: var(--background-color);
 		width: 15rem;
-		/* margin-top: -1rem; */
 		padding-bottom: 0.75rem;
 	}
 	/* Only pull the search bar flush-left while the menu is showing. */

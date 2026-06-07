@@ -1170,7 +1170,7 @@ body,
 	   AND the Cancel control is enabled (i.e. there are pending edits). The
 	   .caSettingsCancel:not(.ca_disabled) test covers both at once - that element
 	   only exists in the settings view, and loses .ca_disabled once dirty. */
-	@keyframes caSettingsNoteIn {
+	@keyframes ca-settings-note-in {
 		from { opacity: 0; transform: translate(-50%, calc(-50% - 0.3rem)); }
 		to   { opacity: 0.85; transform: translate(-50%, -50%); }
 	}
@@ -1189,7 +1189,7 @@ body,
 		font-style: italic;
 		opacity: 0.85;
 		z-index: 6;
-		animation: caSettingsNoteIn 220ms ease;
+		animation: ca-settings-note-in 220ms ease;
 	}
 
 	/* Cancel / Default action row at the top of the settings panel. */
