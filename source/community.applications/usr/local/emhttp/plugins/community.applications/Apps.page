@@ -255,10 +255,13 @@ function tr($string,$ret=false) {
      so we get the markdown renderer free. Used by caLoadSidebarReadmeSections
      to render README.md client-side instead of going through PHP. -->
 <script src='<?autov("/plugins/dynamix.docker.manager/javascript/markdown.js");?>'></script>
+<? if ( $responsiveOS ): ?>
 <!-- SmoothieCharts ships with dynamix (see DashStats.page) — used here for the
      sidebar's live CPU stream so we get true streaming-style rendering with
-     a fixed window instead of a frame-by-frame Chart.js redraw. -->
+     a fixed window instead of a frame-by-frame Chart.js redraw. Only needed on
+     7.2+ where the live usage graphs render, so only load it there. -->
 <script src='<?autov("/webGui/javascript/smoothie.js");?>'></script>
+<? endif; ?>
 
 <?php /* Settings-difference flags. Class list is `ca_KEY` (one entry per
          default.cfg key) for every key whose runtime value in
@@ -865,13 +868,11 @@ $(function(){
 			name:"Community Applications",
 			debug:false,
 			priority:true
-		},function(result) {
-			try {
-				var result = JSON.parse(result);
-				$("#caInstalledVersion").html(result.installedVersion);
-			} catch(e) {
-				$("#caInstalledVersion").html("Unknown");
-			}
+		},function() {
+			/* Runs for the update-check side effect only. The CA version used to
+			   be written into the menu's #caInstalledVersion here, but the version
+			   now renders server-side at the top of the Credits panel, so there's
+			   nothing to display from the callback. */
 		}
 	);
 
@@ -936,34 +937,44 @@ $(function(){
 
 				stripWrap.appendChild(leftBtn);
 				stripWrap.appendChild(stripUl);   // move the live awesomplete ul
-				stripWrap.appendChild(rightBtn);
-				searchArea.appendChild(stripWrap);
+				/* Strip (left caret + results ul) goes in the left group, which
+				   grows; the ul scrolls inside it. The right caret goes at the
+				   START of the right group (leftmost, nearest the results, ahead
+				   of the info + gear buttons) so it sits in-flow right at the clip
+				   boundary - no fixed positioning or reserved gutter. The info and
+				   gear stay the last children (visually and in tab order). */
+				var caRowMain = searchArea.querySelector(".caSearchRowMain") || searchArea;
+				var caRowEnd  = searchArea.querySelector(".caSearchRowEnd");
+				caRowMain.appendChild(stripWrap);
+				if (caRowEnd) caRowEnd.insertBefore(rightBtn, caRowEnd.firstElementChild);
+				else searchArea.appendChild(rightBtn);
 
 				var scrollByStep = function(dir) {
 					var step = Math.max(60, Math.floor(stripUl.clientWidth * 0.7));
 					stripUl.scrollBy({ left: dir * step, behavior: "smooth" });
 				};
 				/* Awesomplete closes on the input losing focus / "outside"
-				   click. Carets live in .searchArea, outside the awesomplete
-				   wrapper — so a normal click would steal focus from the
-				   input and Awesomplete would close before the scroll even
-				   happens. preventDefault on mousedown keeps focus on the
-				   input; the click still fires. stopPropagation guards
-				   against any document-level "click outside the widget"
-				   listener Awesomplete may install. */
-				$(stripWrap).on("mousedown", ".caInlineCaret", function(e) {
+				   click. Both carets live outside the awesomplete wrapper (left
+				   in the strip, right in the right group) — so a normal click
+				   would steal focus from the input and Awesomplete would close
+				   before the scroll even happens. preventDefault on mousedown
+				   keeps focus on the input; the click still fires. stopPropagation
+				   guards against any document-level "click outside the widget"
+				   listener Awesomplete may install. Bound directly to each caret
+				   element since they no longer share one container. */
+				$([leftBtn, rightBtn]).on("mousedown", function(e) {
 					e.preventDefault();
 					e.stopPropagation();
 				});
-				$(stripWrap).on("click", ".caInlineCaret", function(e) {
+				$([leftBtn, rightBtn]).on("click", function(e) {
 					e.stopPropagation();
 				});
-				$(stripWrap).on("click keydown", ".caInlineCaretLeft", function(e) {
+				$(leftBtn).on("click keydown", function(e) {
 					if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
 					e.preventDefault();
 					scrollByStep(-1);
 				});
-				$(stripWrap).on("click keydown", ".caInlineCaretRight", function(e) {
+				$(rightBtn).on("click keydown", function(e) {
 					if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
 					e.preventDefault();
 					scrollByStep(1);
@@ -971,9 +982,9 @@ $(function(){
 
 				/* Scroll-position-aware caret fade — see CSS for
 				   .caInlineCaretsAtStart on the wrap (left caret) and
-				   .caInlineCaretsAtEnd on the right caret itself (it's
-				   position:fixed outside the wrap so the wrap's class
-				   wouldn't reach it). */
+				   .caInlineCaretsAtEnd on the right caret itself (it lives in
+				   the right group, not the wrap, so the wrap's class wouldn't
+				   reach it). */
 				var updateCaretState = function() {
 					var atStart = stripUl.scrollLeft <= 1;
 					var atEnd   = (stripUl.scrollLeft + stripUl.clientWidth) >= (stripUl.scrollWidth - 1);
@@ -1999,6 +2010,18 @@ function clearSearchBox() {
 	data.searchActive = false;
 	data.searchFlag = false;
 	data.docker = "";
+	/* Close the autocomplete suggestion strip as part of clearing the search.
+	   searchActive / searchFlag are already false and the inputs are blank by
+	   here, so the #caInlineSearchBox awesomplete-close re-open guard stays quiet
+	   and the strip does not pop back open. Without this, clearing via the X or
+	   the Clear Search menu item left the suggestion chips on screen unless the
+	   search had been started from Home (that path unwinds through appStore). */
+	if (typeof inlineSearchAwesomplete !== "undefined" && inlineSearchAwesomplete) {
+		try { inlineSearchAwesomplete.close(); } catch (e) { /* no-op */ }
+	}
+	if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
+		try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
+	}
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
 	if (typeof caSyncHomeMenuLabel === "function") caSyncHomeMenuLabel();
@@ -2020,6 +2043,9 @@ function clearSearchBox() {
    name `cookie` is kept as an alias because external callers (helpers.js, the
    install/update paths) still use it positionally. */
 function closeSidebar(keepIdentity=false,visible=false) {
+	/* Sidebar is closing - leave the Credits view-stack so a later app-back
+	   doesn't get routed to Credits. */
+	window.caSidebarBackTarget = "";
 	/* Always tear down the live-CPU poll loop on sidebar close — even when
 	   keepIdentity is true (gallery transitions etc.), because the gallery's
 	   afterClose path reopens the sidebar with a fresh popUpChart() call that
@@ -3353,6 +3379,10 @@ function restoreState(s) {
  * Open the Credits panel in the alternate (sidenav) view via jQuery helper.
  */
 function showCredits() {
+	/* Credits is the root of this little view stack, so clear the back target -
+	   no back arrow here, and outside-click closes (handled in the overlay
+	   click via .popUpBack being hidden). */
+	window.caSidebarBackTarget = "";
 	$("#caCredits").showAlternateView();
 }
 
@@ -3438,6 +3468,10 @@ function caChangeLog() {
 	post({action:'caChangeLog'},function(result) {
 		$(".caChanges").html(result.changelog);
 		$("#caChangeLog").showAlternateView();
+		/* Opened from Credits? showAlternateView hides .popUpBack by default;
+		   bring it back so there's a top-left arrow to Credits (the handler in
+		   clickHandlers.js routes it there when caSidebarBackTarget is credits). */
+		if (window.caSidebarBackTarget === "credits") $(".popUpBack").removeClass("ca_hide");
 	});
 }
 
@@ -4711,6 +4745,9 @@ function caSyncSidenavBottomPadding() {
  * @param {string} appname Human-readable application name
  */
 function showSidebarApp(apppath,appname) {
+	/* Opening an app popup leaves the Credits view-stack, so its top-left back
+	   arrow goes back to the app (default), not Credits. */
+	window.caSidebarBackTarget = "";
 	mySpinner();
 	disableSearch();
 	$.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});

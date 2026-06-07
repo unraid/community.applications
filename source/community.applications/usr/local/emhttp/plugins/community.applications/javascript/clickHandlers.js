@@ -430,7 +430,6 @@ function caInitializeClickHandlers() {
 			doSearch(false);
 		}
 	});
-	$(".caChangeLog").on("click", function() { disableSort(); scrollToTop(); caChangeLog(); });
 	$(".mainArea").on("click", ".ca_multiselect", function() { enableMultiInstall(); });
 	/* body-delegated rather than #sidenavContent-delegated because the pin
 	   button gets relocated into .popupCloseAreaButtons (sibling of
@@ -593,14 +592,44 @@ function caInitializeClickHandlers() {
 		   while it's selected is still a no-op. */
 		if ($(this).hasClass("selectedMenu") &&
 		    (!$(".caRepositoryMenu").hasClass("selectedMenu") || $(this).hasClass("caRepositoryMenu"))) return;
-		if ($(this).hasClass("showStatistics")) { e.stopPropagation(); showStatistics(); }
-		else if ($(this).hasClass("showSettings")) { e.stopPropagation(); showSettings(); }
-		else if ($(this).hasClass("showCredits")) { e.stopPropagation(); showCredits(); }
 		/* Parent of a sub-menu: clicking it only expands the subs (no fetch),
 		   so on mobile we keep the menu open until the user actually picks
 		   one — the auto "All" entry or a real sub. */
-		else if ($(this).next(".subCategory").length) { /* leave menu open */ }
+		if ($(this).next(".subCategory").length) { /* leave menu open */ }
 		else { scrollToTop(); closeMenu(); }
+	});
+	/**
+	 * Settings gear (far right of the search area) opens the settings panel.
+	 * Delegated on body because the search area is relocated on some themes.
+	 * It is a role=button, so Enter and Space activate it as well as a click.
+	 */
+	$("body").on("click", ".caSettingsGear", function(e) {
+		e.stopPropagation();
+		showSettings();
+	});
+	$("body").on("keydown", ".caSettingsGear", function(e) {
+		if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+			e.preventDefault();
+			e.stopPropagation();
+			showSettings();
+		}
+	});
+	/**
+	 * Info button (search row, left of the gear) opens the Credits panel. The
+	 * Credits panel itself carries Statistics and Change Log buttons at the top
+	 * that open those panels. All are role=button (Enter / Space activate too) and
+	 * body-delegated, so the handlers also reach the Credits buttons after the
+	 * panel is cloned into the live sidebar.
+	 */
+	$("body").on("click keydown", ".caCreditsInfo, .caCreditsStatistics, .caCreditsChangeLog", function(e) {
+		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+		e.preventDefault();
+		e.stopPropagation();
+		if ($(this).hasClass("caCreditsInfo")) showCredits();
+		/* Mark the origin so Statistics / Change Log show a back arrow to Credits
+		   (and outside-click returns there). showCredits clears it again. */
+		else if ($(this).hasClass("caCreditsStatistics")) { window.caSidebarBackTarget = "credits"; showStatistics(); }
+		else if ($(this).hasClass("caCreditsChangeLog")) { window.caSidebarBackTarget = "credits"; caChangeLog(); }
 	});
 	/**
 	 * Category-menu click: clear the search box (when no in-progress search),
@@ -639,7 +668,12 @@ function caInitializeClickHandlers() {
 		$(".caChart").hide();
 		$("#" + $(this).data("chart")).show();
 	});
-	$(".sidebar").on("click", ".popUpBack", function() { showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName")); });
+	$(".sidebar").on("click", ".popUpBack", function() {
+		/* Statistics / Change Log opened from Credits route back to Credits;
+		   every other sidebar's back arrow returns to the app popup. */
+		if (window.caSidebarBackTarget === "credits") { showCredits(); return; }
+		showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName"));
+	});
 	/**
 	 * Menu-selection state: highlight the clicked `.caMenuItem` as
 	 * `selectedMenu`, slide-open its sub-menu, and collapse siblings when
@@ -1631,7 +1665,10 @@ function caBindSettingsFormHandlers(initialFormState) {
 	   "no" fallback alongside it — disabled fields are excluded from
 	   form serialization, and we want the hidden "no" to still submit
 	   so /update.php always writes a clean value for this key. */
-	if (!$("html").hasClass("Theme--responsive")) {
+	/* Re-appliable so the factory-reset toggle below can restore these locks
+	   after it temporarily disables every switch. */
+	function caApplyLegacyDisables() {
+		if ($("html").hasClass("Theme--responsive")) return;
 		$form.find(".caUseWholeDisplayWindowCard")
 			.addClass("ca_settingDisabled")
 			.find("input[type='checkbox'][name='useWholeDisplayWindow']")
@@ -1644,10 +1681,55 @@ function caBindSettingsFormHandlers(initialFormState) {
 			.find("input[type='checkbox'][name='displayUsageGraphs']")
 				.prop("disabled", true);
 	}
+	caApplyLegacyDisables();
 
 	/* Stash the initial serialized state on the form so closeSidebar() can
 	   detect dirty fields and auto-submit when the panel is dismissed. */
 	$form.data("caInitialState", initialFormState);
+
+	/* Cancel / Default / factory-reset controls. Bound delegated on the
+	   persistent #sidenavContent (off/on so re-opening doesn't stack them).
+	   Nothing here saves - the existing dirty-on-close submit handles that. */
+	/* The Cancel / Default controls are <div role=button> (caButton), so their
+	   disabled state is the .ca_disabled class, not the disabled property. The
+	   real <input> switches still use prop("disabled"). */
+	$sidenav.off("change.caSettingsDirty", "input.caSettingSwitch")
+		.on("change.caSettingsDirty", "input.caSettingSwitch", function() {
+			$sidenav.find(".caSettingsCancel").removeClass("ca_disabled");
+		});
+	/* Cancel: restore every switch to the user's saved (server-rendered) state
+	   via defaultChecked, drop the factory-reset row, re-enable everything. */
+	$sidenav.off("click.caSettingsCancel", ".caSettingsCancel")
+		.on("click.caSettingsCancel", ".caSettingsCancel", function() {
+			if ($(this).hasClass("ca_disabled")) return;
+			$form.find("input.caSettingSwitch").each(function() { this.checked = this.defaultChecked; });
+			$form.find(".caFactoryReset").prop("checked", false);
+			$form.find("input.caSettingSwitch").prop("disabled", false);
+			$form.find(".ca_settingCard").not(".caFactoryResetCard").removeClass("ca_settingDisabled");
+			$sidenav.find(".caSettingsDefault").removeClass("ca_disabled");
+			caApplyLegacyDisables();
+			$(this).addClass("ca_disabled");
+		});
+	/* Default: set every switch to its default.cfg value (data-default-on) and
+	   reveal the factory-reset row. Counts as a change, so Cancel turns on. */
+	$sidenav.off("click.caSettingsDefault", ".caSettingsDefault")
+		.on("click.caSettingsDefault", ".caSettingsDefault", function() {
+			if ($(this).hasClass("ca_disabled")) return;
+			$form.find("input.caSettingSwitch").each(function() {
+				this.checked = ($(this).attr("data-default-on") === "1");
+			});
+			$sidenav.find(".caSettingsCancel").removeClass("ca_disabled");
+		});
+	/* Factory reset: while checked, lock out every other setting option. */
+	$sidenav.off("change.caFactoryReset", ".caFactoryReset")
+		.on("change.caFactoryReset", ".caFactoryReset", function() {
+			var on = this.checked;
+			$sidenav.find(".caSettingsCancel").removeClass("ca_disabled");
+			$form.find("input.caSettingSwitch").prop("disabled", on);
+			$form.find(".ca_settingCard").not(".caFactoryResetCard").toggleClass("ca_settingDisabled", on);
+			$sidenav.find(".caSettingsDefault").toggleClass("ca_disabled", on);
+			if (!on) caApplyLegacyDisables();
+		});
 
 	/**
 	 * Submit handler for `.ca_settingsForm`: guard against re-entry, show a
@@ -1672,6 +1754,10 @@ function caBindSettingsFormHandlers(initialFormState) {
 		/* Collect each toggle's effective value — the checkbox's value when
 		   checked, otherwise its paired hidden ("off") input — and persist them. */
 		var settings = { action: "saveSettings" };
+		/* Factory reset: tell saveSettings to delete the cfg + pinned / accepted /
+		   admin files instead of writing the toggles. The page reload that follows
+		   then comes up on stock defaults. */
+		if ($localForm.find(".caFactoryReset").is(":checked")) settings.caFactoryReset = "1";
 		$localForm.find("input.caSettingSwitch").each(function() {
 			if (!this.name) return;
 			settings[this.name] = this.checked

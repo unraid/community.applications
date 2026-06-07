@@ -562,6 +562,10 @@ function showStatistics() {
 		}
 
 		$content.showAlternateView();
+		/* Opened from Credits? showAlternateView hides .popUpBack by default;
+		   bring it back so there's a top-left arrow to Credits (the handler in
+		   clickHandlers.js routes it there when caSidebarBackTarget is credits). */
+		if (window.caSidebarBackTarget === "credits") $(".popUpBack").removeClass("ca_hide");
 
 		/* Feed SHA comparison is a separate, slower call (downloads both mirrors
 		   server-side), so fetch it after the view is up and patch the LIVE

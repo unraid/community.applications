@@ -1144,6 +1144,18 @@ function clearTempForReload() {
  * @return void
  */
 function saveSettings() {
+	/* Complete factory reset (the Settings panel "Delete all setting files"
+	   toggle): drop the saved settings cfg plus the pinned apps, the accepted-
+	   warning marker, and the admin marker, and skip writing the toggles. The
+	   page reload that follows then comes up on stock defaults. */
+	if ( getPost("caFactoryReset", "") === "1" ) {
+		@unlink(CA_PATHS['pluginSettings']);
+		@unlink(CA_PATHS['pinnedV2']);
+		@unlink(CA_PATHS['warningAccepted']);
+		@unlink(CA_PATHS['caAdmin']);
+		postReturn(["ok" => true]);
+		return;
+	}
 	$cfg     = @parse_ini_file(CA_PATHS['pluginSettings']) ?: [];
 	$allowed = ["yes", "no", "true", "false"];
 	/* Explicit allowlist of the switches in the Settings panel

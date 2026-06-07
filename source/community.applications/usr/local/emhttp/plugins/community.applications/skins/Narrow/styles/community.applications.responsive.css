@@ -210,6 +210,23 @@ body:has(.ca_useWholeDisplayWindow) {
 	#sortByButton::before {
 		margin-right: 0;
 	}
+	/* Icon-only now (labels hidden above) - render them as plain icons like the
+	   menu / search / gear controls: no .caButton pill, same 1.7rem size, tight
+	   padding, brand-orange on hover instead of a hover fill. */
+	.dockerSearch,
+	.templateSearch,
+	#sortByButton {
+		background: transparent;
+		border-radius: 0;
+		padding: 0.25rem 0.5rem;
+		font-size: 1.7rem;
+	}
+	.dockerSearch:hover,
+	.templateSearch:hover,
+	#sortByButton:hover {
+		background: transparent;
+		color: var(--brand-orange);
+	}
 
 	/* "Displaying x of N results" — drop on narrow viewports where the
 	   top-bar real estate is tight and the count isn't worth the row. */
@@ -264,6 +281,11 @@ body:has(.ca_useWholeDisplayWindow) {
 		bottom: 0;
 		margin-bottom: 0;
 	}
+	/* No footer to clear here either, so the popup action bar sits flush at the
+	   bottom (the base rule reserves 2.5rem for the footer). */
+	body:has(.sidenavShow) .popupActionsArea {
+		bottom: 0;
+	}
 	#header {
 		display: none;
 	}
@@ -274,7 +296,12 @@ body:has(.ca_useWholeDisplayWindow) {
 	.Theme--sidebar .searchAreaHolder {
 		background-color: var(--background-color);
 		width: 15rem;
-		margin-top: -1rem;
+		/* margin-top: -1rem; */
+		padding-bottom: 0.75rem;
+	}
+	/* Only pull the search bar flush-left while the menu is showing. */
+	.Theme--sidebar .searchAreaHolder.menuShowing {
+		left: 0;
 	}
 	/* Nav-top: narrow the search bar to make room for the open menu strip. */
 	.Theme--nav-top .searchAreaHolder.menuShowing {
@@ -327,6 +354,7 @@ body:has(.ca_useWholeDisplayWindow) {
 	.Theme--sidebar .menuItems {
 		/* `top` removed — shared calc in main CSS handles it. */
 		bottom: 0;
+		left: 0px;
 	}
 
 	/* `.Theme--sidebar .ca_display_area` top removed — shared calc in
