@@ -44,9 +44,12 @@ function caSettingSwitchInputs(string $name, array $caDefaults): string {
 	$off     = $isBool ? "false" : "no";
 	$live    = (string)($GLOBALS['caSettings'][$name] ?? $default);
 	$checked = ($live === $on) ? " checked" : "";
+	// data-default-on lets the settings panel Default button restore each switch
+	// to its default.cfg value client-side without another round trip.
+	$defaultOn = ($default === $on) ? "1" : "0";
 	$safeName = htmlspecialchars($name, ENT_QUOTES);
 	return "<input type='hidden' name='{$safeName}' value='{$off}'>"
-		. "<input type='checkbox' class='switch caSettingSwitch' name='{$safeName}' value='{$on}'{$checked}>";
+		. "<input type='checkbox' class='switch caSettingSwitch' name='{$safeName}' value='{$on}' data-default-on='{$defaultOn}'{$checked}>";
 }
 
 /**

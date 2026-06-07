@@ -201,3 +201,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: A new "Autoplay videos" setting (on by default) to turn the muted, autoplaying video previews in the app sidebar on or off
 - Changed: The monthly spotlight artwork now renders as a crisp, scalable graphic on app cards and in the sidebar, and the sidebar spotlight uses a tidier two-column layout
 - Chore: Removed dead spotlight styling left behind after the switch to the scalable inline graphic
+- Changed: Settings and Credits now open from a gear and an info icon in the search bar instead of the menu, and the menu is trimmed to match
+- Changed: The Credits panel now shows the installed CA version and carries the Statistics, Change Log, and Help buttons; opening Statistics or Change Log from there shows a back arrow (and outside-click) that returns to Credits
+- Added: Settings panel reset controls — a Cancel button reverts pending changes, a Default button restores defaults, and a "Delete all setting files" option performs a complete factory reset (also clearing pinned apps and favourite repositories). Settings still save when you close the sidebar, with a reminder shown while there are unsaved changes
+- Fixed: Clearing the search now also clears the autocomplete suggestion chips
+- Changed: Polished the search bar, sidebar, and mobile layout — toolbar controls render as plain icons, and the status line moves into the page footer
+- Chore: Removed the "marked" library from the Credits list (it ships with the OS rather than being bundled by Community Applications)

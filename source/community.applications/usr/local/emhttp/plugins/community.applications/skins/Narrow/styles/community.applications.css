@@ -88,7 +88,8 @@ body:has(.sidenavShow) {
 }
 .ca_back_to_top:hover,
 .ca_move_to_end:hover {
-	background: color-mix(in srgb, var(--text-color) 14%, transparent);
+	/* Just recolor the icon on hover - no button background. */
+	color: var(--brand-orange);
 }
 .ca_back_to_top {
 	right: 40px;
@@ -1072,7 +1073,7 @@ body,
 	.sidenav {
 		/* Layout */
 		position: fixed;
-		top: 4rem;
+		top: 5rem;
 		right: 0;
 		bottom: 1.6rem;
 		margin-bottom: 1rem;
@@ -1162,6 +1163,47 @@ body,
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
 		gap: 1.2rem;
+	}
+
+	/* "Settings are saved when closing the sidebar" note. It lives in the sidebar
+	   top bar (.popupCloseArea) and only shows while the settings panel is open
+	   AND the Cancel control is enabled (i.e. there are pending edits). The
+	   .caSettingsCancel:not(.ca_disabled) test covers both at once - that element
+	   only exists in the settings view, and loses .ca_disabled once dirty. */
+	@keyframes ca-settings-note-in {
+		from { opacity: 0; transform: translate(-50%, calc(-50% - 0.3rem)); }
+		to   { opacity: 0.85; transform: translate(-50%, -50%); }
+	}
+	.ca_settingsSaveNote {
+		display: none;
+	}
+	body:has(#sidenavContent .caSettingsCancel:not(.ca_disabled)) .ca_settingsSaveNote {
+		display: block;
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		max-width: 60%;
+		text-align: center;
+		color: var(--text-color);
+		font-style: italic;
+		opacity: 0.85;
+		z-index: 6;
+		animation: ca-settings-note-in 220ms ease;
+	}
+
+	/* Cancel / Default action row at the top of the settings panel. */
+	.ca_settingsToolbar {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-bottom: 1.2rem;
+	}
+	.ca_settingsToolbar .caButton.ca_disabled {
+		opacity: 0.45;
+		cursor: default;
+		pointer-events: none;
 	}
 
 	.ca_settingCard {
@@ -1641,6 +1683,27 @@ body,
 		position: relative;
 		z-index: 1;
 	}
+	/* Statistics + Change Log buttons. They live in the sidebar top bar
+	   (.popupCloseArea) next to the close X, but only while the Credits view is
+	   open. Hidden by default; the body:has() rule below reveals them and centers
+	   the group in the bar (absolute, so it doesn't fight the right-anchored X). */
+	.caCreditsActions {
+		display: none;
+	}
+	body:has(#sidenavContent .credits) .caCreditsActions {
+		display: flex;
+		flex-direction: row;
+		gap: 0.75rem;
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 6;
+	}
+	.ca_creditVersion {
+		margin-bottom: 0.75rem;
+		opacity: 0.85;
+	}
 	/* Dim FA glyph painted behind the sidenav credits view as a watermark.
 	   Lives on body::after rather than .sidenav::after because .sidenav has
 	   transform:translateX(...) for its slide animation, which creates a
@@ -1673,7 +1736,7 @@ body,
 		z-index: 1000;
 		transition: transform 500ms ease, opacity 500ms ease;
 	}
-	body:has(.sidenavShow :is(.credits, .caChanges))::after {
+	body:has(.sidenavShow :is(.credits, .caChanges, .ca_statistics, .moderationContainer))::after {
 		opacity: 0.1;
 		transform: translateX(0);
 	}
@@ -3236,7 +3299,7 @@ input[type="button"] {
 		flex: 0 1 auto;
 		min-width: 0;
 	}
-	.searchArea > .caInlineStripWrap {
+	.caSearchRowMain > .caInlineStripWrap {
 		flex: 1 1 auto;
 		min-width: 0;
 		display: flex;
@@ -3246,10 +3309,10 @@ input[type="button"] {
 	}
 	/* Collapse to nothing when the strip's ul is hidden (no suggestions
 	   to show), so the search row's other items get the freed space. */
-	.searchArea > .caInlineStripWrap:has(> ul[hidden]) {
+	.caSearchRowMain > .caInlineStripWrap:has(> ul[hidden]) {
 		display: none;
 	}
-	.searchArea > .caInlineStripWrap > ul {
+	.caSearchRowMain > .caInlineStripWrap > ul {
 		flex: 1 1 auto;
 		min-width: 0;
 		margin: 0;
@@ -3262,19 +3325,18 @@ input[type="button"] {
 		overflow-x: auto;
 		overflow-y: hidden;
 		white-space: nowrap;
-		background: color-mix(in srgb, var(--text-color) 8%, transparent);
 		border-radius: 0.6rem;
 		/* Hide the native scrollbar entirely; scrolling still works via
 		   trackpad gestures, shift+wheel, or the caret buttons. */
 		scrollbar-width: none;
 	}
-	.searchArea > .caInlineStripWrap > ul::-webkit-scrollbar {
+	.caSearchRowMain > .caInlineStripWrap > ul::-webkit-scrollbar {
 		display: none;
 	}
-	.searchArea > .caInlineStripWrap > ul[hidden] {
+	.caSearchRowMain > .caInlineStripWrap > ul[hidden] {
 		display: none !important;
 	}
-	.searchArea > .caInlineStripWrap > ul > li {
+	.caSearchRowMain > .caInlineStripWrap > ul > li {
 		flex: 0 0 auto;
 		margin: 0;
 		max-width: none;
@@ -3288,14 +3350,14 @@ input[type="button"] {
 	   which would promote a chip's "<text><mark>match</mark><text>" into
 	   three flex items and inject visible spaces around the highlight
 	   (the same bug the modal awesomplete chips hit). */
-	.searchArea > .caInlineStripWrap > ul > li.caButton {
+	.caSearchRowMain > .caInlineStripWrap > ul > li.caButton {
 		display: inline-block;
 		gap: 0;
 		font-size: 1.25rem;
 		padding: 0.4rem 0.9rem;
 		line-height: 1.25;
 	}
-	.searchArea > .caInlineStripWrap > ul > li mark {
+	.caSearchRowMain > .caInlineStripWrap > ul > li mark {
 		background: transparent;
 		color: var(--ca-suggestion-mark-color);
 	}
@@ -3321,23 +3383,22 @@ input[type="button"] {
 		background: color-mix(in srgb, var(--text-color) 22%, transparent);
 	}
 	/* Left caret stays in the flex flow at the start of the strip. */
-	.searchArea > .caInlineStripWrap > .caInlineCaretLeft {
+	.caSearchRowMain > .caInlineStripWrap > .caInlineCaretLeft {
 		flex: 0 0 auto;
 	}
-	/* Right caret floats at the viewport's right edge whenever an inline
-	   suggestion strip is open — no need for JS-computed width math. */
+	/* Right caret is an in-flow flex child of the right group (.caSearchRowEnd),
+	   sitting just left of the gear. It is hidden until an inline suggestion strip
+	   is open. No fixed positioning or reserved gutter - the left group clips the
+	   results at its edge and this caret sits right at that boundary. */
 	.caInlineCaretRight {
 		display: none;
-		position: fixed;
-		top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--search-area-top) + 0.4rem);
-		right: 1rem;
-		z-index: 7;
+		flex: 0 0 auto;
 	}
-	body:has(.searchArea > .caInlineStripWrap > ul:not([hidden])) .caInlineCaretRight {
+	body:has(.caSearchRowMain > .caInlineStripWrap > ul:not([hidden])) .caInlineCaretRight {
 		display: inline-flex;
 	}
 	/* Scroll-position-aware fade: left greys out at start, right at end. */
-	.searchArea > .caInlineStripWrap.caInlineCaretsAtStart > .caInlineCaretLeft {
+	.caSearchRowMain > .caInlineStripWrap.caInlineCaretsAtStart > .caInlineCaretLeft {
 		opacity: 0.2;
 		pointer-events: none;
 		cursor: default;
@@ -3355,7 +3416,7 @@ input[type="button"] {
 		right: 0;            /* span to viewport right so the inline strip can't push the row past the viewport */
 		position: fixed;
 		z-index: 6;
-		padding-right: 4.4rem; /* reserved gutter for the position:fixed .caInlineCaretRight */
+		padding-right: 0;
 	}
 	/* When the search modal is open, raise the holder's stacking context above
 	   the .ca_modal_overlay (z-index 999). Without this, the fixed #searchFilter
@@ -3373,6 +3434,42 @@ input[type="button"] {
 		justify-content: flex-start;
 		align-items: baseline;
 		gap: 0.5rem;
+	}
+	.caSearchRowMain {
+		/* Left group: grows to fill the row. min-width:0 lets the results ul
+		   shrink and scroll inside it (overflow-x:auto + hidden scrollbar) rather
+		   than pushing the right group off the edge. Keeps the row's baseline
+		   alignment for the text controls. */
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: row;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+	.caSearchRowEnd {
+		/* Right group: pinned to the right (the left group's flex:1 pushes it
+		   over). Holds the in-flow right scroll caret and the settings gear. */
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: row;
+		gap: 0.5rem;
+	}
+	.caSettingsGear,
+	.caCreditsInfo {
+		/* Search-row icon buttons (info + settings gear). They live in
+		   .caSearchRowEnd (the right group), already pushed to the right edge, so
+		   no margin or self-alignment is needed here. */
+		flex: 0 0 auto;
+		cursor: pointer;
+		padding: 0.25rem 0.5rem;
+		font-size: 1.7rem;
+		line-height: 1;
+		color: inherit;
+	}
+	.caSettingsGear:hover,
+	.caCreditsInfo:hover {
+		color: var(--brand-orange);
 	}
 	.Theme--width-boxed .searchAreaHolder {
 		max-width: 1920px;
@@ -3431,8 +3528,11 @@ input[type="button"] {
 		pointer-events: auto;
 	}
 	body:has(.mobileMenu.menuShowing) .ca_modal_overlay {
-	  left: 17rem;
-    }
+		left: 17rem;
+	}
+	body.Theme--sidebar:has(.mobileMenu.menuShowing) .ca_modal_overlay {
+		top: 0;
+	}
 	/* Pop the mobile menu above the scrim (default z-index 5 from responsive
 	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
 	body:has(.mobileMenu.menuShowing) .mobileMenu {
@@ -3733,7 +3833,25 @@ input[type="button"] {
 	.closeMenuButton {
 		left: 2rem;
 		top: 2rem;
-		margin-right: 1rem;
+		margin-right: 0;
+	}
+	/* Render the mobile menu toggles and the standalone search launcher as plain
+	   icons like .caSettingsGear / .caCreditsInfo: same 1.7rem size, drop the
+	   .caButton pill background, tight padding so they sit close together, and
+	   recolor to brand-orange on hover instead of a hover fill. */
+	.showMenuButton,
+	.closeMenuButton,
+	.searchButton {
+		background: transparent;
+		border-radius: 0;
+		padding: 0.25rem 0.5rem;
+		font-size: 1.7rem;
+	}
+	.showMenuButton:hover,
+	.closeMenuButton:hover,
+	.searchButton:hover {
+		background: transparent;
+		color: var(--brand-orange);
 	}
 
 	#sortIconArea {

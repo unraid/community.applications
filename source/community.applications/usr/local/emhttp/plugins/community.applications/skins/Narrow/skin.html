@@ -25,17 +25,16 @@ $(function() {
 	// ever sourced from anything beyond the static set in skin.php.
 	$("html").addClass(<?= json_encode($htmlClasses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
 
-	// Position the search area so it's sticky.  (Pre 7.2 sticky isn't supported on azure or gray themes)
-	<? if ( $responsiveOS || ($display['theme'] == 'black' || $display['theme'] == 'white') ):?>
-		$(".searchAreaHolder").insertAfter("#menu");
-	<? endif; ?>
-
-	// Move the sidebar to the body so it fills the entire screen.
-	$(".sidebar").appendTo("body");
-	// Status area sits just before the page footer spacer (falls back to body).
-	var $caFooterSpacer = $(".footer-spacer");
-	if ($caFooterSpacer.length) $(".ca_statusArea").insertBefore($caFooterSpacer.first());
-	else $(".ca_statusArea").appendTo("body");
+	// Status area moves into the page footer as the last child of .footer-left.
+	// Falls back to before the footer spacer, then body, if .footer-left is absent.
+	var $caFooterLeft = $(".footer-left");
+	if ($caFooterLeft.length) {
+		$(".ca_statusArea").appendTo($caFooterLeft.first());
+	} else {
+		var $caFooterSpacer = $(".footer-spacer");
+		if ($caFooterSpacer.length) $(".ca_statusArea").insertBefore($caFooterSpacer.first());
+		else $(".ca_statusArea").appendTo("body");
+	}
 
 	$("body,.content").addClass("menuAdjust");
 
@@ -52,6 +51,10 @@ $(function() {
 <!-- Search Area - This gets moved to body on responsive and black and white themes on legacy OS -->
 <div class="searchAreaHolder menuAdjust">
 	<div class='searchArea onlyShowWithFeed'>
+		<!-- Left group: search controls plus the JS-appended results strip (left
+		     caret + the scrolling ul). flex:1 and min-width:0 so the ul scrolls
+		     inside this group instead of pushing the right group off. -->
+		<div class='caSearchRowMain'>
 		<div class='mobileMenuButton'>
 			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
 			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
@@ -97,6 +100,14 @@ $(function() {
 		<div class='dockerSearch caButton hideWithMenu ca_hide' title="<?tr("Search dockerHub for more containers");?>"><span class='caBtnLabel'><?tr("DockerHub");?></span></div>
 		<div class='templateSearch caButton hideWithMenu ca_hide' title="<?tr("Search for applications from");?>"><span class='caBtnLabel'><?tr("Apps");?></span></div>
 		<div class='ca_displayCount hideWithMenu' aria-live='polite'></div>
+		</div>
+		<!-- Right group: pinned to the right. The right scroll caret (injected by JS
+		     when results overflow, leftmost), the info button (opens Credits), and
+		     the settings gear live here, all in-flow. -->
+		<div class='caSearchRowEnd'>
+		<div class='caCreditsInfo hideWithMenu' role='button' tabindex='0' title="<?tr('Credits');?>" aria-label="<?tr('Credits');?>"><i class='fa fa-info-circle' aria-hidden='true'></i></div>
+		<div class='caSettingsGear hideWithMenu' role='button' tabindex='0' title="<?tr('Settings');?>" aria-label="<?tr('Settings');?>"><i class='fa fa-cog' aria-hidden='true'></i></div>
+		</div>
 	</div>
 </div>
 
@@ -214,19 +225,10 @@ $(function() {
 				<li class='categoryMenu caMenuItem caDuplicatesMenu onlyShowWithFeed nonDockerSearch' data-category='duplicates'><?tr("Duplicates");?></li>
 				<?endif;?>
 				<li><hr class='category_hr onlyShowWithFeed'/></li>
-				<li class='caMenuItem showSettings noSelect'><?tr("Settings");?></li>
-				<li class='caMenuItem showStatistics noSelect'><?tr("Statistics");?></li>
-				<li class='caMenuItem showCredits noSelect'><?tr("Credits");?></li>
-				<li class='caMenuItem noSelect'><a class='caMenuItem' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Support");?></a></li>
-				<li><hr class='category_hr'/></li>
-				<li><?=tr("VERSION");?></li>
-				<li><span id='caInstalledVersion'></span></li>
-				<li class='caMenuItem caChangeLog noSelect'><?tr("Change Log");?></li>
 				<?if ($md5Error):?>
 				<li><span class='modifiedCode'>Modified Code</span></li>
 				<br>
 				<?endif;?>
-				<li><hr/></li>
 				<li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
 				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
 				<li class='caMenuDisabled noSelect'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</li>
@@ -247,6 +249,16 @@ $(function() {
 			<span class='popUpBack caButton' aria-label='<?tr("Back");?>' title='<?tr("Back");?>'></span>
 			<span class="popUpStat caButton" aria-label='<?tr("Back");?>' title='<?tr("Back");?>'></span>
 		</div>
+		<!-- Centered in the top bar, shown only while the Credits view is open
+		     (see body:has(#sidenavContent .credits) in the CSS). -->
+		<div class='caCreditsActions'>
+			<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Stats");?></div>
+			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
+			<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
+		</div>
+		<!-- Shown only while the settings panel is open AND Cancel is enabled
+		     (i.e. there are pending edits) - pure CSS via :has(), see below. -->
+		<div class='ca_settingsSaveNote'><?tr("Settings are saved when closing the sidebar.");?></div>
 	</div>
 	<!-- Mirror of popupCloseArea but at the BOTTOM of the viewport. The
 	     server keeps emitting .popupStickyActions inline with the popup
@@ -368,6 +380,7 @@ $(function() {
 	<!-- Credits view -->
 	<div id='caCredits'>
 		<div class='credits'>
+			<div class='ca_center ca_creditVersion'><?tr("VERSION");?> <?=htmlspecialchars((string)ca_plugin("version","/var/log/plugins/community.applications.plg"), ENT_QUOTES)?><?if ($md5Error):?> <span class='modifiedCode'>Modified Code</span><?endif;?></div>
 			<div class='ca_center caLogoIcon'></div>
 			<div class='ca_center ca_creditTitle'>Community Applications</div>
 			<div class='ca_center ca_creditheader'><?tr("Development");?></div>
@@ -388,7 +401,6 @@ $(function() {
 				<div>XML2Array/Array2XML (Miles Johnson) - Apache 2.0 licence - <?tr("Modified by Andrew Zawadzki");?></div>
 				<div>Magnific-Popup (Dmytro Semenov) - MIT licence - <?tr("Modified by Andrew Zawadzki");?></div>
 				<div>DOMPurify (Cure53 and other contributors) - Apache 2.0 / MPL 2.0 licence</div>
-				<div>marked (Christopher Jeffrey) - MIT licence</div>
 			</div>
 			<br>
 			<div class='ca_center ca_italic'><?tr("Copyright");?> &copy; 2020-2026 Lime Technology, 2015-2026 Andrew Zawadzki</div>
@@ -539,6 +551,11 @@ $(function() {
 			<form class='ca_settingsForm js-confirm-leave' method='POST' action='/update.php' target='progressFrame'>
 				<input type='hidden' name='#file' value='community.applications/community.applications.cfg'>
 
+				<div class='ca_settingsToolbar ca_center'>
+					<div class='caButton caSettingsCancel ca_disabled' role='button' tabindex='0'><?tr("Cancel");?></div>
+					<div class='caButton caSettingsDefault' role='button' tabindex='0'><?tr("Default");?></div>
+				</div>
+
 				<div class='ca_settingsGrid'>
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
@@ -640,6 +657,13 @@ $(function() {
 							<?=caSettingSwitchInputs('dev', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Unlock additional developer-focused features. Not generally recommended.");?></div>
+					</div>
+					<div class='ca_settingCard caFactoryResetCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Delete all setting files");?></span>
+							<input type='checkbox' class='switch caFactoryReset' name='caFactoryReset' value='1'>
+						</div>
+						<div class='ca_settingDescription'><?tr("Complete factory reset. Also removes pinned apps and favourite repositories.");?></div>
 					</div>
 				</div>
 
