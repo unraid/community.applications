@@ -207,3 +207,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: Clearing the search now also clears the autocomplete suggestion chips
 - Changed: Polished the search bar, sidebar, and mobile layout — toolbar controls render as plain icons, and the status line moves into the page footer
 - Chore: Removed the "marked" library from the Credits list (it ships with the OS rather than being bundled by Community Applications)
+- Changed: On phones, the sidebar-style themes now use the full width for the app list and search bar and tuck the side menu away until you open it; the settings and credits icons stay pinned to the top-right
+- Changed: On narrow screens, the Credits panel's Statistics, Change Log, and Help buttons now appear at the top of the Credits page, where there's no room for them beside the close button
+- Fixed: Corrected a spacing glitch in the pop-out search bar
+- Chore: Removed some dead, commented-out styling left behind by earlier search-bar work
