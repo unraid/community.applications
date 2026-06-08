@@ -252,8 +252,8 @@ $(function() {
 		<!-- Centered in the top bar, shown only while the Credits view is open
 		     (see body:has(#sidenavContent .credits) in the CSS). -->
 		<div class='caCreditsActions'>
-			<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Stats");?></div>
-			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
+			<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
+			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Change Log");?></div>
 			<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
 		</div>
 		<!-- Shown only while the settings panel is open AND Cancel is enabled
@@ -380,6 +380,14 @@ $(function() {
 	<!-- Credits view -->
 	<div id='caCredits'>
 		<div class='credits'>
+			<!-- In-body copy of the action buttons, shown only at <=767px where the
+			     top-bar copy is hidden (no room beside the close X). Same handler
+			     classes, so only the visible set is ever clickable. -->
+			<div class='caCreditsActionsBody ca_center'>
+				<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
+				<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Change Log");?></div>
+				<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
+			</div>
 			<div class='ca_center ca_creditVersion'><?tr("VERSION");?> <?=htmlspecialchars((string)ca_plugin("version","/var/log/plugins/community.applications.plg"), ENT_QUOTES)?><?if ($md5Error):?> <span class='modifiedCode'>Modified Code</span><?endif;?></div>
 			<div class='ca_center caLogoIcon'></div>
 			<div class='ca_center ca_creditTitle'>Community Applications</div>

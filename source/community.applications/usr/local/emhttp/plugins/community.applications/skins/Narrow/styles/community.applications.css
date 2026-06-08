@@ -1700,6 +1700,11 @@ body,
 		transform: translate(-50%, -50%);
 		z-index: 6;
 	}
+	/* In-body copy (at the top of the credits content) - desktop uses the top-bar
+	   copy above, so this is hidden until the <=767px rule in responsive.css. */
+	.caCreditsActionsBody {
+		display: none;
+	}
 	.ca_creditVersion {
 		margin-bottom: 0.75rem;
 		opacity: 0.85;
@@ -3427,7 +3432,6 @@ input[type="button"] {
 		z-index: 1000;
 	}
 	.searchArea {
-		/* padding-left: var(--search-area-left); */
 		background-color: revert;
 		display: flex;
 		flex-direction: row;
@@ -3499,7 +3503,7 @@ input[type="button"] {
 	body.ca_searchModalOpen {
 		overflow: hidden;
 	}
-	body.ca_searchModalOpen .caSearchModalToolbarSpaceca_searchModalOpenr {
+	body.ca_searchModalOpen .caSearchModalToolbarSpacer {
 		display: inline-block;
 		width: 2.5rem;
 		min-width: 2.5rem;
@@ -3530,9 +3534,6 @@ input[type="button"] {
 	body:has(.mobileMenu.menuShowing) .ca_modal_overlay {
 		left: 17rem;
 	}
-	body.Theme--sidebar:has(.mobileMenu.menuShowing) .ca_modal_overlay {
-		top: 0;
-	}
 	/* Pop the mobile menu above the scrim (default z-index 5 from responsive
 	   would put it under the z-index 999 overlay). Match the sidebar at 1000. */
 	body:has(.mobileMenu.menuShowing) .mobileMenu {
@@ -3542,6 +3543,12 @@ input[type="button"] {
 	   top 8rem of the viewport — pull the scrim down so the bar shows above it. */
 	body.menuShowing .ca_modal_overlay {
 		top: 8rem;
+	}
+	/* Sidebar theme has no such header bar, so the scrim starts at the very top
+	   whenever the menu (.menuItems.menuShowing) is open. .Theme--sidebar is on
+	   <html> (not body), so no body qualifier. */
+	.Theme--sidebar:has(.menuItems.menuShowing) .ca_modal_overlay {
+		top: 0;
 	}
 
 	/* While a SweetAlert is on screen the overlay must remain visible — other CA
@@ -3737,7 +3744,6 @@ input[type="button"] {
 	}
 
 	#searchBox {
-	/*	left: var(--search-area-left);*/
 		margin-left: 0rem;
 		margin-right: 0;
 		margin-bottom: 1rem;

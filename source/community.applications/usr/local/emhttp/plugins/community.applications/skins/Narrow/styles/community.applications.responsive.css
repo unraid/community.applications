@@ -234,6 +234,21 @@ body:has(.ca_useWholeDisplayWindow) {
 		display: none;
 	}
 
+	/* Credits action buttons: on narrow viewports the top bar has no room beside
+	   the close X, so hide the top-bar copy and show the in-body copy at the top
+	   of the credits content instead. */
+	body:has(#sidenavContent .credits) .caCreditsActions {
+		display: none;
+	}
+	.caCreditsActionsBody {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
 	/* Nav-top theme on narrow viewports — small left inset so the search
 	   row doesn't sit flush against the viewport edge. */
 	.Theme--nav-top .searchArea {
@@ -293,14 +308,41 @@ body:has(.ca_useWholeDisplayWindow) {
 	.Theme--nav-top .searchAreaHolder {
 		padding-left: 0;
 	}
+	.Theme--sidebar {
+		--search-area-top: 0px;
+	}
+	/* Full-width fixed strip so the action icons can reach the viewport's
+	   right edge; the search controls themselves stay ~17rem on the left. */
 	.Theme--sidebar .searchAreaHolder {
 		background-color: var(--background-color);
-		width: 15rem;
-		padding-bottom: 0.75rem;
 	}
-	/* Only pull the search bar flush-left while the menu is showing. */
-	.Theme--sidebar .searchAreaHolder.menuShowing {
-		left: 0;
+	.Theme--sidebar .caSearchRowMain {
+		flex: 0 1 17rem;
+	}
+	/* Pin the info + settings icons to the top-right of the strip. */
+	.Theme--sidebar .caSearchRowEnd {
+		margin-left: auto;
+	}
+	/* Tighten the gap between the row icons on a phone-sized viewport. */
+	.Theme--sidebar .caSearchRowMain,
+	.Theme--sidebar .caSearchRowEnd {
+		gap: 0.125rem;
+	}
+	.Theme--sidebar .caSearchRowEnd :is(.caSettingsGear, .caCreditsInfo) {
+		padding-left: 0.25rem;
+		padding-right: 0.25rem;
+	}
+	/* Sidebar theme on a phone: collapse the OS-rail left offset so CA
+	   content and the search bar span the full width, and hide the
+	   persistent OS #menu. Both revert to their desktop values the moment
+	   the menu is opened (.menuItems.menuShowing), shifting content back
+	   to clear the rail and re-showing #menu as it was. */
+	.Theme--sidebar:not(:has(.menuItems.menuShowing)) {
+		--ca-sidebar-left: 0px;
+		--search-area-left: 0px;
+	}
+	.Theme--sidebar:not(:has(.menuItems.menuShowing)) #menu {
+		display: none;
 	}
 	/* Nav-top: narrow the search bar to make room for the open menu strip. */
 	.Theme--nav-top .searchAreaHolder.menuShowing {
@@ -351,9 +393,9 @@ body:has(.ca_useWholeDisplayWindow) {
 		padding-left: 1rem;
 	}
 	.Theme--sidebar .menuItems {
-		/* `top` removed — shared calc in main CSS handles it. */
+		/* top removed - shared calc in main CSS handles it. left removed -
+		   driven by --ca-sidebar-left (0 on mobile, 65px when the menu opens). */
 		bottom: 0;
-		left: 0px;
 	}
 
 	/* `.Theme--sidebar .ca_display_area` top removed — shared calc in
