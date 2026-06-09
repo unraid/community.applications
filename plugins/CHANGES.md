@@ -23,6 +23,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Installing a container from Docker Hub no longer asks "Determine configuration?" or test-installs a throwaway container — port / volume / env defaults are now pulled directly from the Docker Hub registry API and dropped straight into the Add Container dialog. The test-install path is gone
+- Changed: Docker Hub installs now resolve `:latest` to the most-recently-updated tag automatically when an image doesn't ship `:latest` (e.g. `immcantation/test`), and the resolved tag is written back into the template so the subsequent pull doesn't 404
+- Changed: Docker Hub installs skip auto-config (but still install) when the image isn't amd64 — i386-only / arm64-only / other-arch single-arch images don't get the wrong arch's defaults seeded into the dialog
+- Changed: If you've run `docker login` on the server, the new auto-config uses your Docker Hub credentials — gives you the higher 200/6h rate-limit ceiling and access to private repos. Anonymous fallback when no creds are present
+- Fixed: Returning from an install when you came in via a search now restores the Sort / DockerHub toggle buttons and the autocomplete suggestion strip, instead of an empty top bar
+- Changed: Back-to-top and Move-to-end scroll controls now show in Docker Hub search results too (were previously hidden in that view)
 - Fixed: The action buttons (Install, Update, Uninstall, etc.) now respond to a click anywhere on the button, not just on the label text
 - Changed: App cards now fit up to three status badges on a row before wrapping (was two)
 - Fixed: App descriptions and the "Additional Requirements" panel no longer show stray "br" or "&nbsp;" text from multi-line template fields, and render as clean lines

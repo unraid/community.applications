@@ -3375,6 +3375,27 @@ function restoreState(s) {
 	   set, so without this a category click after a restore drops back to the
 	   full category instead of subsetting the restored search. */
 	data.searchFlag = data.searchActive;
+
+	/* Restore top-bar control visibility — the live search/install paths
+	   show `#sortIconArea` and toggle the `.dockerSearch` / `.templateSearch`
+	   buttons in their post-search callbacks, but on a fresh page-load
+	   restore the DOM defaults (sort row hidden, both toggle buttons
+	   carrying `ca_hide` from skin.html) are still in place. Mirror the
+	   live path here: sort row visible, "DockerHub" toggle exposed so
+	   the user can re-enter docker search, "Apps" toggle hidden because
+	   we always come back to Apps results. Repository-search filters and
+	   no-docker-installed setups suppress the docker toggle, same rules
+	   as the live search code below at L1683. */
+	showSortIcons();
+	if (data.searchActive
+	    && !dockerNotEnabled
+	    && (s.filter || "").indexOf(" Repository") < 1) {
+		$('.dockerSearch').removeClass("ca_hide");
+	} else {
+		$('.dockerSearch').addClass("ca_hide");
+	}
+	$('.templateSearch').addClass("ca_hide");
+
 	$(".categoryMenuName").html(s.categoryName || "");
 	restoreStateMenu = s.selectedMenu || "";
 	data.currentpage = parseInt(s.currentpage, 10) || 1;
@@ -3392,7 +3413,24 @@ function restoreState(s) {
 				$(this).addClass("enabledIcon");
 			}
 		});
-		populateAutoComplete();
+		populateAutoComplete(function() {
+			/* Two awesomplete instances on the page:
+			     - inlineSearchAwesomplete = desktop horizontal strip (minChars=2,
+			       always visible alongside the search input)
+			     - searchBoxAwesomplete    = mobile modal dropdown (minChars=3,
+			       only renders while the search modal is open)
+			   For a restore we just want each to re-evaluate against the
+			   restored query at its NATIVE threshold — the inline strip
+			   then repopulates with chips on desktop, and the mobile
+			   dropdown stays closed (its modal isn't open on restore
+			   anyway). The mobile user opens the modal manually and the
+			   suggestions appear as soon as they re-focus. */
+			if (data.searchActive) {
+				try {
+					if (inlineSearchAwesomplete) inlineSearchAwesomplete.evaluate();
+				} catch (e) { /* no-op */ }
+			}
+		});
 		if (!s.installMulti) clearMultiInstall();
 		caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
@@ -5495,34 +5533,23 @@ function dockerSearch() {
 function dockerConvert(repo, descB64) {
 	/* descB64 is the card's Description as it was rendered, base64-encoded by
 	   the server so it survives passing through an onclick attribute string.
-	   We forward it as-is — the receiving PHP endpoints (dockerConvert.php and
-	   exec.php convert_docker) base64_decode it. Single canonical decode point
-	   on the server side keeps the wire contract unambiguous. */
-	saveState();
-	swal({
-		title: "<?tr("Determine configuration?");?>",
-		text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.');?>',
-		html: true,
-		type: 'info',
-		showCancelButton: true,
-		showConfirmButton: true,
-		confirmButtonText: "<?tr('Yes');?>",
-		cancelButtonText: "<?tr('No');?>"
-	}, function (isConfirm) {
-		if ( isConfirm ) {
-			$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-			var url = '/plugins/<?=$plugin?>/scripts/dockerConvert.php?repo=' + encodeURIComponent(repo);
-			if (descB64) url += '&description=' + encodeURIComponent(descB64);
-			openBox(url,"<?tr('Docker Test Install')?>",600,1100,true);
-		} else {
-			post({action:'convert_docker',repo:repo,description:descB64},function(result) {
-				myCloseAlert();
-				templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
-				openNewWindow(templateURL);
-			});
-		}
-	});
+	   We forward it as-is — `convert_docker` base64_decodes it. Single
+	   canonical decode point on the server side keeps the wire contract
+	   unambiguous.
 
+	   Used to prompt the user "Determine configuration?" — the YES path
+	   spun up a test container via dockerConvert.php so `docker inspect`
+	   could surface ExposedPorts / Env / Mounts. The convert_docker action
+	   now pulls those same fields straight from the Docker Hub registry
+	   API (no pull, no test container), so the prompt isn't needed any
+	   more — the only path goes through convert_docker and the post()
+	   spinner covers the latency of the three API calls. */
+	saveState();
+	post({ action: 'convert_docker', repo: repo, description: descB64 }, function(result) {
+		myCloseAlert();
+		templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
+		openNewWindow(templateURL);
+	});
 }
 
 var caSortMenuObserver = null;
@@ -6450,11 +6477,8 @@ function caInitInfiniteScroll() {
 		var atTop = s.scrollTop <= 0;
 		var atBottom = s.scrollTop + s.clientHeight >= s.scrollHeight - 1;
 		var canScroll = s.scrollHeight - s.clientHeight > 1;
-		/* Docker Hub mode: no scroll controls — results are paginated and only
-		   scroll forward, and the deep-page jumps proved unreliable. App-grid only. */
-		var inDocker = !!(typeof data !== "undefined" && data && data.docker);
-		var showBack = !inDocker && canScroll && !atTop;
-		var showEnd  = !inDocker && canScroll && !atBottom;
+		var showBack = canScroll && !atTop;
+		var showEnd  = canScroll && !atBottom;
 		if ($bt.length && ($bt.data("caShown") || false) !== showBack) {
 			$bt.data("caShown", showBack);
 			$bt.stop(true, true)[showBack ? "fadeIn" : "fadeOut"](500);

@@ -3322,6 +3322,29 @@ function convert_docker() {
 	$dockerfile['Privileged'] = "false";
 	$dockerfile['Networking']['Mode'] = "bridge";
 
+	/* Pull ports / volumes / env vars straight from the Docker Hub registry
+	   instead of doing a test `docker pull` + inspect like the old
+	   dockerConvert.php flow. Split `name:tag` from the Repository string —
+	   default to `latest` when no tag is given. On any API failure (network,
+	   404, rate limit) `caFetchDockerImageConfig()` returns null and we just
+	   skip the Config block; the user can still install with empty defaults.
+
+	   `caFetchDockerImageConfig` resolves `:latest` to the most-recently-
+	   updated tag when the repo doesn't actually have a `latest`. Fold the
+	   resolved tag back into `$dockerfile['Repository']` so dockerMan's
+	   subsequent `docker pull` targets a real tag — without this the pull
+	   would 404 on repos like `immcantation/test` that only ship `devel` /
+	   `4.2.0` and have no `latest`. */
+	$imageRefParts = explode(':', $repo, 2);
+	$imageName     = $imageRefParts[0];
+	$imageTag      = $imageRefParts[1] ?? 'latest';
+	$resolvedTag   = '';
+	$imageConfig   = caFetchDockerImageConfig($imageName, $imageTag, '', $resolvedTag);
+	if (is_array($imageConfig)) {
+		$dockerfile['Config']     = caBuildXmlConfigFromImageConfig($imageConfig);
+		$dockerfile['Repository'] = $resolvedTag !== '' ? "$imageName:$resolvedTag" : $imageName;
+	}
+
 	$existing_templates = array_diff(scandir($dockerManPaths['templates-user']),[".",".."]);
 	foreach ( $existing_templates as $template ) {
 		if ( strtolower($dockerfile['Name']) == strtolower(str_replace(["my-",".xml"],["",""],$template)) )
