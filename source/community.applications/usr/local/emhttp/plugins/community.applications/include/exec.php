@@ -2887,7 +2887,7 @@ function createXML() {
 		if ( $template['OriginalDescription'] ?? false )
 			$template['Description'] = $template['OriginalDescription'];
 
-		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? ($template['Icon'] ?? "");
+		$template['Icon'] = $template['Icon'] ?? "";
 
 // switch from br0 to eth0 if necessary
 		if ( isset($template['Networking']['Mode']) || isset($template['Network']) ) {
@@ -3322,6 +3322,29 @@ function convert_docker() {
 	$dockerfile['Privileged'] = "false";
 	$dockerfile['Networking']['Mode'] = "bridge";
 
+	/* Pull ports / volumes / env vars straight from the Docker Hub registry
+	   instead of doing a test `docker pull` + inspect like the old
+	   dockerConvert.php flow. Split `name:tag` from the Repository string —
+	   default to `latest` when no tag is given. On any API failure (network,
+	   404, rate limit) `caFetchDockerImageConfig()` returns null and we just
+	   skip the Config block; the user can still install with empty defaults.
+
+	   `caFetchDockerImageConfig` resolves `:latest` to the most-recently-
+	   updated tag when the repo doesn't actually have a `latest`. Fold the
+	   resolved tag back into `$dockerfile['Repository']` so dockerMan's
+	   subsequent `docker pull` targets a real tag — without this the pull
+	   would 404 on repos like `immcantation/test` that only ship `devel` /
+	   `4.2.0` and have no `latest`. */
+	$imageRefParts = explode(':', $repo, 2);
+	$imageName     = $imageRefParts[0];
+	$imageTag      = $imageRefParts[1] ?? 'latest';
+	$resolvedTag   = '';
+	$imageConfig   = caFetchDockerImageConfig($imageName, $imageTag, '', $resolvedTag);
+	if (is_array($imageConfig)) {
+		$dockerfile['Config']     = caBuildXmlConfigFromImageConfig($imageConfig);
+		$dockerfile['Repository'] = $resolvedTag !== '' ? "$imageName:$resolvedTag" : $imageName;
+	}
+
 	$existing_templates = array_diff(scandir($dockerManPaths['templates-user']),[".",".."]);
 	foreach ( $existing_templates as $template ) {
 		if ( strtolower($dockerfile['Name']) == strtolower(str_replace(["my-",".xml"],["",""],$template)) )
@@ -3400,7 +3423,11 @@ function caDockerHubUrlFromRepo(string $repo): string {
 function search_dockerhub() {
 
 	$filter     = getPost("filter","");
-	$pageNumber = getPost("page","1");
+	/* Docker Hub search returns a single page of the top 100 matches - no
+	   pagination. A vague query yields thousands of near-identical hits; trusting
+	   Docker Hub's ranking for the first 100 and nudging the user to refine beats
+	   endless scrolling. */
+	$pageNumber = 1;
 	$rawFilter  = trim((string)$filter);   // for the "hide Similar when name == query" check
 
 	$filter = str_replace(" ","%20",$filter);
@@ -3409,7 +3436,7 @@ function search_dockerhub() {
 	   and an honest total `count`, unlike the deprecated v1 endpoint which 500'd
 	   on deep pages. Browser User-Agent + 30s timeout — the API throttles bare
 	   (curl-default-UA) requests, and the timeout means a slow page fails clean. */
-	$pageSize = 25;
+	$pageSize = 100;
 	$jsonPage = download_url(
 		"https://hub.docker.com/v2/search/repositories/?query=$filter&page=$pageNumber&page_size=$pageSize",
 		"",
@@ -3461,11 +3488,20 @@ function search_dockerhub() {
 		$dockerResults[$i] = addMissingVars($o);
 		$i=++$i;
 	}
-	$dockerFile['num_pages'] = $num_pages;
-	$dockerFile['num_results'] = $num_results;
-	$dockerFile['page_number'] = $pageNumber;
-	$dockerFile['filter'] = $rawFilter;
-	$dockerFile['results'] = $dockerResults;
+	/* This handler now only ever fetches the top-100 first page (the
+	   docker-hub-search pagination redesign earlier in this PR), so the
+	   cached `num_pages` / `num_results` must reflect the page we actually
+	   shipped — not Docker Hub's full hit count, which would still let
+	   downstream paginators try to render pages we never fetched. Stash
+	   Hub's global totals under `upstream_*` for any UI that wants to
+	   surface "showing 100 of N matches" hints. */
+	$dockerFile['num_pages']           = 1;
+	$dockerFile['num_results']         = count($dockerResults);
+	$dockerFile['upstream_num_pages']  = $num_pages;
+	$dockerFile['upstream_num_results']= $num_results;
+	$dockerFile['page_number']         = $pageNumber;
+	$dockerFile['filter']              = $rawFilter;
+	$dockerFile['results']             = $dockerResults;
 
 	writeJsonFile(CA_PATHS['dockerSearchResults'],$dockerFile);
 	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);

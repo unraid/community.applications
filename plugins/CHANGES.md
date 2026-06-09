@@ -23,6 +23,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Installing a container from Docker Hub no longer asks "Determine configuration?" or test-installs a throwaway container — port / volume / env defaults are now pulled directly from the Docker Hub registry API and dropped straight into the Add Container dialog. The test-install path is gone
+- Changed: Docker Hub installs now resolve `:latest` to the most-recently-updated tag automatically when an image doesn't ship `:latest` (e.g. `immcantation/test`), and the resolved tag is written back into the template so the subsequent pull doesn't 404
+- Changed: Docker Hub installs skip auto-config (but still install) when the image isn't amd64 — i386-only / arm64-only / other-arch single-arch images don't get the wrong arch's defaults seeded into the dialog
+- Changed: If you've run `docker login` on the server, the new auto-config uses your Docker Hub credentials — gives you the higher 200/6h rate-limit ceiling and access to private repos. Anonymous fallback when no creds are present
+- Fixed: Returning from an install when you came in via a search now restores the Sort / DockerHub toggle buttons and the autocomplete suggestion strip, instead of an empty top bar
+- Changed: Back-to-top and Move-to-end scroll controls now show in Docker Hub search results too (were previously hidden in that view)
 - Fixed: The action buttons (Install, Update, Uninstall, etc.) now respond to a click anywhere on the button, not just on the label text
 - Changed: App cards now fit up to three status badges on a row before wrapping (was two)
 - Fixed: App descriptions and the "Additional Requirements" panel no longer show stray "br" or "&nbsp;" text from multi-line template fields, and render as clean lines
@@ -211,3 +217,17 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: On narrow screens, the Credits panel's Statistics, Change Log, and Help buttons now appear at the top of the Credits page, where there's no room for them beside the close button
 - Fixed: Corrected a spacing glitch in the pop-out search bar
 - Chore: Removed some dead, commented-out styling left behind by earlier search-bar work
+- Changed: The "Modified Code" warning (shown when CA's own files have been altered) now appears in the page footer instead of the left menu
+- Fixed: In Previous Apps, selected apps are now kept when switching between All / Docker / Plugins and cleared when you leave to any other section — previously "All" wrongly cleared the selection and other sections wrongly kept it
+- Changed: The "Debugging" menu item is now a "Logs" button on the Credits screen (with its keyboard shortcut shown beside it), and downloading logs pops a brief "Debugging Logs Downloading" notice
+- Changed: Renamed the Credits "Change Log" button to "Changes"
+- Changed: App and repository icons (on cards and in the sidebar) now get a subtle contrasting outline so a near-white icon stays visible on the white theme and a near-black icon on the black theme
+- Removed: Dropped support for per-theme alternate app icons (the unused `Icon-<theme>` template field)
+- Changed: Long card descriptions now clip cleanly with a trailing ellipsis instead of a fade-out that could land in the wrong spot
+- Fixed: Clicking "Favourite Repo" a second time no longer blanks the search box while the search is still active
+- Fixed: Actions that need a page reload (feed-update notice, the settings/repository change countdown, and fatal-error recovery) now do a full browser reload instead of a soft in-page refresh that could leave a stale view
+- Fixed: On the legacy Unraid themes (sidebar gray / azure and nav-top black / white), selecting apps no longer lets the multi-install action bar cover the bottom of the list — the app area now lifts to make room for it
+- Fixed: Hardened the card-size measurement used for infinite scroll, so a first paint that measures before the layout settles can no longer fall back to a tiny page size and leave the scrollbar/virtualization behaving oddly
+- Changed: Paging deep into a large list no longer keeps every page you scrolled past in memory — infinite scroll now keeps a few pages buffered around what's on screen and re-fetches the rest from the server as you scroll back to them, instead of growing memory without bound
+- Fixed: Using the scrollbar to move around a large list is now reliable — clicking or dragging lands on full rows of cards with context above and below, holding or dragging the thumb no longer snaps the view to the bottom, and dragging to the very top and releasing no longer leaves a blank screen. While you drag over a not-yet-loaded section, a live "X - Y of Z" position label appears centered on screen so you can see where in the list you're scrubbing to before you let go
+- Changed: Docker Hub search now shows the top 100 matches in a single page with no paging. A vague query ("test") returns thousands of near-identical containers nobody scrolls through, so CA shows Docker Hub's best 100 results and, when there are more, prompts you to refine your search instead of scrolling endlessly

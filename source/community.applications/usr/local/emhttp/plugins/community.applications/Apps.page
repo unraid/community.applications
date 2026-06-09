@@ -182,7 +182,7 @@ $htmlClasses = implode(" ",$classList);
    compare its default value against the current $GLOBALS['caSettings']
    entry; if the user has flipped it from the shipped default, emit a
    `ca_<key>` class. Keys not present in default.cfg are skipped (so
-   runtime-only keys like unRaidVersion / dynamixTheme / favourite don't
+   runtime-only keys like unRaidVersion / favourite don't
    leak in). Lets CSS / future JS branch on user-configured deviations
    without re-reading the cfg files. The list rides on a hidden div near
    the top of the page body — never displayed, queried via JS or scoped
@@ -319,7 +319,8 @@ var caCardCache = {
 	cache: [],       // current loaded slice of cards (HTML strings) — array, not necessarily aligned with global index
 	offset: 0,       // global index of caCardCache.cache[0] (non-zero after a jump-load like move-to-end)
 	firstInDom: 0,   // index within caCardCache.cache of the first card currently in the DOM
-	lastInDom: -1    // index within caCardCache.cache of the last card currently in the DOM (-1 when empty)
+	lastInDom: -1,   // index within caCardCache.cache of the last card currently in the DOM (-1 when empty)
+	generation: 0    // bumped whenever the cache is reset (caVirtResetToPageOne); pagination responses captured before a bump are stale and dropped
 };
 
 /* Per-tab id: sessionStorage is scoped per browser-tab and survives reloads of
@@ -1443,7 +1444,7 @@ function updateContent(button,skipAppfeed=true) {
 				doSearch(false,startupSearch);
 				populateAutoComplete();
 				startupSearch = "";
-				$(".dockerSearch,.templateSearch").hide();
+				$(".dockerSearch,.templateSearch").addClass("ca_hide");
 			} else {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
@@ -1537,7 +1538,7 @@ function showSpecialCategory(button) {
 function showSpecials(button) {
 	showSortIcons();
 	$(".caMenuItem").removeClass("selectedMenu");
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	data.selected_category = "DOESNTMATTERWHATSHERE";
 	data.section = "AppStore";
 	changeCategory(button,false);
@@ -1555,7 +1556,7 @@ function changeCategory(button,subSwitch) {
 	var description = $(button).text();
 	var category = $(button).attr("data-category");
 
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	getContent(false,category,description,false);
 }
 
@@ -1582,7 +1583,13 @@ function changePage(pageNumber, append) {
 	   through to plain post() — that's the very interaction we want to
 	   trigger the collapse. */
 	var postFn = data.searchInProgress ? postNoSpin : post;
+	/* Snapshot the cache generation now; if a reset (caVirtResetToPageOne) bumps
+	   it while this request is in flight, the response is stale - applying its
+	   append/prepend would corrupt the freshly reset cache, so drop it. The reset
+	   already cleared data.loadingMore and issued its own page-1 fetch. */
+	var reqGen = caCardCache.generation || 0;
 	postFn({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
+		if ((caCardCache.generation || 0) !== reqGen) return;
 		updateDisplay(result.display_data || result.display, mode);
 		if (mode === false) scrollToTop();
 	});
@@ -1712,11 +1719,11 @@ function doSearch(button,newSearch) {
 		return;
 	}
 
-	data.docker = "";
+	caLeaveDockerMode();
 	data.section = "AppStore";
 
 	$('#searchBox').val(filter);
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 
 	scrollToTop();
 	if (filter) {
@@ -1841,13 +1848,27 @@ function changeSortOrder(button,buttonClass,previousApps) {
  * @param {string} newApp Spotlight / new-app hint passed to PHP
  * @param {string} startupDisplay Startup screen cookie / default view key
  */
+/**
+ * Drop sticky Docker Hub mode and re-enable paged virtualization. Used
+ * by every code path that transitions out of a Docker Hub session
+ * (`doSearch`, `caShowInApps`, `pins`, category clicks, etc.). Always
+ * resets BOTH `data.docker` and `data.allLoaded` together — leaving
+ * `allLoaded` set after exiting docker mode causes the paged App Store
+ * grid to keep virtualization off and grow the DOM unbounded as the
+ * user scrolls.
+ */
+function caLeaveDockerMode() {
+	data.docker = "";
+	data.allLoaded = false;
+}
+
 function getContent(init,category,description,newApp,startupDisplay) {
 	data.currentpage = 1;
 	/* Any app-content load (a category, Installed/Previous/Pinned, Home, etc.)
 	   leaves Docker Hub mode — the docker flow never routes through getContent
 	   (it uses dockerSearch directly), so this is always the right place to drop
 	   sticky docker when the user navigates the menu. */
-	data.docker = "";
+	caLeaveDockerMode();
 	var initialize;
 	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
 	data.maxPerPage = getMaxPerPage();
@@ -2009,7 +2030,7 @@ function clearSearchBox() {
 	   Pinned / Action Centre / Favourite Repo. */
 	data.searchActive = false;
 	data.searchFlag = false;
-	data.docker = "";
+	caLeaveDockerMode();
 	/* Close the autocomplete suggestion strip as part of clearing the search.
 	   searchActive / searchFlag are already false and the inputs are blank by
 	   here, so the #caInlineSearchBox awesomplete-close re-open guard stays quiet
@@ -2263,7 +2284,7 @@ function OpenSidebarAndRefreshDisplay() {
 function previousApps(installed,dontClear=false,filter="") {
 	clearCategory();
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 
 	clearSearchBox();
 	$(".dockerSearch,.templateSearch").addClass("ca_hide");
@@ -2299,7 +2320,7 @@ function previousApps(installed,dontClear=false,filter="") {
 function actionCentre() {
 	clearCategory();
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 	clearSearchBox();
 	$(".dockerSearch,.templateSearch").addClass("ca_hide");
 	showSortIcons();
@@ -2333,7 +2354,7 @@ function getPrevApps(installed,filter,dontClear) {
 	data.maxPerPage = getMaxPerPage();
 	post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
 		if ( installed == true ) {
-			$(".multi_installDiv").hide();
+			hideMultiInstall();
 		} else {
 			$(".multi_installDiv").show();
 			if ( ! dontClear ) {
@@ -2521,7 +2542,7 @@ function appStore() {
 	initializeAppStore();
 	updateContent();
 	clearCategory();
-	data.docker = "";
+	caLeaveDockerMode();
 	/* Soft-reset back to home — drop focus into the desktop inline search
 	   so the user can immediately start typing. Bails on mobile / when a
 	   search is still showing. Wrap in a microtask so it lands after the
@@ -2535,7 +2556,7 @@ function appStore() {
 function initializeAppStore() {
 	data.section = "AppStore";
 	data.selected_category = "";
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 }
 
 /**
@@ -2615,12 +2636,13 @@ function pinnedApps() {
  */
 function pins() {
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 	clearSearchBox();
 	clearCategory();
 	showSortIcons();
 //  $(".category").html("<?tr("Pinned Apps");?>");
-	$(".dockerSearch,.templateSearch,.multi_installDiv").hide();
+	$(".dockerSearch,.templateSearch").addClass("ca_hide");
+	hideMultiInstall();
 	post({action:'pinnedApps'},function(result) {
 		refreshDisplay();
 		myCloseAlert();
@@ -2828,6 +2850,20 @@ function clearMultiInstall() {
 	});
 	$(".multi_install,.multi_installClear").attr("disabled",true);
 	enableMultiInstall();
+}
+
+/**
+ * Hide the multi-install chrome and drop any remembered selection.
+ *
+ * The multi-install row is only ever shown for the Previous Apps subs and
+ * Action Centre, so hiding it means we are leaving that context. Selection
+ * is intentionally kept while moving between the Previous Apps All/Docker/
+ * Plugins subs (that path shows the row again without hiding it first), so
+ * clearing here only fires when the user navigates to any other view.
+ */
+function hideMultiInstall() {
+	$(".multi_installDiv").hide();
+	clearMultiInstall();
 }
 
 
@@ -3076,21 +3112,14 @@ function caUpdateDisplayCount() {
 
 	var mainArea = $(".mainArea")[0];
 	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
-	if (mainArea && $cards.length && typeof caVirtCardsPerRow === "function" && typeof caVirtRowHeight === "function") {
-		var perRow = caVirtCardsPerRow($cards);
-		var rowH = caVirtRowHeight($cards, perRow);
-		if (perRow > 0 && rowH > 0) {
-			var firstInDom = (typeof caCardCache.firstInDom === "number") ? caCardCache.firstInDom : 0;
-			/* The top spacer takes up scrollTop space equal to evicted rows; that
-			   eviction is already encoded in firstInDom, so subtract the spacer
-			   to avoid double-counting. */
-			var spacerH = (typeof caVirtSpacerHeight === "function") ? caVirtSpacerHeight() : 0;
-			var scrollAfterSpacer = Math.max(0, mainArea.scrollTop - spacerH);
-			var scrolledRows = Math.floor(scrollAfterSpacer / rowH);
-			var rowsVisible = Math.max(1, Math.ceil(mainArea.clientHeight / rowH));
-			first = offset + firstInDom + (scrolledRows * perRow) + 1;
-			last  = offset + firstInDom + ((scrolledRows + rowsVisible) * perRow);
-		}
+	/* Same row math as the random-access jump (caVirtScrollRow), so the "X - Y of
+	   Z" the user reads is exactly the position the jump will fetch and land on -
+	   correct whether the viewport is on loaded cards or being dragged over an
+	   empty spacer, with no clamp to the loaded edge while scrubbing. */
+	var posDC = (typeof caVirtScrollRow === "function") ? caVirtScrollRow(mainArea, $cards, total) : null;
+	if (posDC) {
+		first = (posDC.topRow * posDC.perRow) + 1;
+		last  = (posDC.topRow + posDC.rowsVisible) * posDC.perRow;
 	}
 	if (first > total) first = total;
 	if (last > total) last = total;
@@ -3214,6 +3243,14 @@ function updateDisplay(content, append) {
 	   user parked at the top boundary sees them without having to nudge-scroll. */
 	if (append === "prepend" && typeof caVirtUpdate === "function") caVirtUpdate();
 	caEnsureScrollable();
+	/* A scrollbar jump requested while this fetch was in flight was coalesced to
+	   a flag rather than queued. Now that the render is done, re-evaluate once
+	   against the user's current scroll position (caReevaluateJump re-queues
+	   itself if caEnsureScrollable above kicked off another fetch). */
+	if (window.caJumpPending && typeof window.caReevaluateJump === "function") {
+		window.caJumpPending = false;
+		setTimeout(window.caReevaluateJump, 30);
+	}
 	caUpdateDisplayCount();
 	if (typeof caUpdateScrollControls === "function") caUpdateScrollControls();
 	enableSearch();
@@ -3302,6 +3339,11 @@ function saveState() {
 		wasHome: isHome,
 		sidebarAppPath: data.sidebarapppath || "",
 		sidebarAppName: data.sidebarappname || "",
+		/* Persist Docker Hub mode so `restoreState` can pick the right
+		   top-bar chrome (Apps button + no sort icons vs DockerHub button
+		   + sort icons). Without this every restore reverts to Apps-mode
+		   chrome even when the user was mid-Docker-Hub-search. */
+		dockerMode: !!data.docker,
 	};
 	if (!isHome) {
 		state.filter        = $("#searchBox").val() || "";
@@ -3349,6 +3391,37 @@ function restoreState(s) {
 	   set, so without this a category click after a restore drops back to the
 	   full category instead of subsetting the restored search. */
 	data.searchFlag = data.searchActive;
+
+	/* Restore top-bar control visibility — the live search/install paths
+	   show `#sortIconArea` and toggle the `.dockerSearch` / `.templateSearch`
+	   buttons in their post-search callbacks, but on a fresh page-load
+	   restore the DOM defaults (sort row hidden, both toggle buttons
+	   carrying `ca_hide` from skin.html) are still in place. Branch on
+	   the saved `dockerMode` flag so Docker Hub restores get Apps-toggle
+	   chrome and Apps restores get DockerHub-toggle chrome (mirror of
+	   the live search code below at L1683 for the Apps side, and of
+	   initDockerSearch / changeSortOrder's docker-mode chrome for the
+	   Docker side). */
+	if (s.dockerMode) {
+		/* Sticky-docker restore: signal subsequent doSearch calls to
+		   keep traffic on Docker Hub instead of dropping back to the
+		   app store. */
+		data.docker = "searching docker";
+		hideSortIcons();
+		$('.dockerSearch').addClass("ca_hide");
+		$('.templateSearch').removeClass("ca_hide");
+	} else {
+		showSortIcons();
+		if (data.searchActive
+		    && !dockerNotEnabled
+		    && (s.filter || "").indexOf(" Repository") < 1) {
+			$('.dockerSearch').removeClass("ca_hide");
+		} else {
+			$('.dockerSearch').addClass("ca_hide");
+		}
+		$('.templateSearch').addClass("ca_hide");
+	}
+
 	$(".categoryMenuName").html(s.categoryName || "");
 	restoreStateMenu = s.selectedMenu || "";
 	data.currentpage = parseInt(s.currentpage, 10) || 1;
@@ -3366,7 +3439,24 @@ function restoreState(s) {
 				$(this).addClass("enabledIcon");
 			}
 		});
-		populateAutoComplete();
+		populateAutoComplete(function() {
+			/* Two awesomplete instances on the page:
+			     - inlineSearchAwesomplete = desktop horizontal strip (minChars=2,
+			       always visible alongside the search input)
+			     - searchBoxAwesomplete    = mobile modal dropdown (minChars=3,
+			       only renders while the search modal is open)
+			   For a restore we just want each to re-evaluate against the
+			   restored query at its NATIVE threshold — the inline strip
+			   then repopulates with chips on desktop, and the mobile
+			   dropdown stays closed (its modal isn't open on restore
+			   anyway). The mobile user opens the modal manually and the
+			   suggestions appear as soon as they re-focus. */
+			if (data.searchActive) {
+				try {
+					if (inlineSearchAwesomplete) inlineSearchAwesomplete.evaluate();
+				} catch (e) { /* no-op */ }
+			}
+		});
 		if (!s.installMulti) clearMultiInstall();
 		caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
@@ -5324,7 +5414,7 @@ function caShowInApps(templateURL, name) {
 	   URL plus the templateURL. The actual lookup posts the raw TemplateURL. */
 	var boxTerm = name || templateURL;
 
-	data.docker = "";
+	caLeaveDockerMode();
 	data.section = "AppStore";
 	/* Seed the box and inline search state as a committed term so the search
 	   input, the Clear Search toggle and the clear or backspace flow all behave
@@ -5343,7 +5433,7 @@ function caShowInApps(templateURL, name) {
 	data.committedSearchSubtitleFor = boxTerm;
 	caSyncHomeSearchSubtitle(); // flip Home to Clear Search immediately
 
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	scrollToTop();
 	if (typeof caCloseSearchModal === "function") caCloseSearchModal();
 	caClearHomeSectionSubtitle();
@@ -5424,30 +5514,24 @@ function initDockerSearch() {
  * @param {number|string} pageNumber Hub search page index
  * @param {boolean} [append] Append cards vs replace
  */
-function dockerSearch(pageNumber, append) {
-	var doAppend = !!append;
-	/* Per request token. The Apps button, caShowInApps and getContent all leave
-	   docker by clearing data.docker, so a slow Docker Hub response must not
-	   repaint over the app store view the user already moved to. The callback
-	   bails if a newer docker search started or docker mode was left. */
+function dockerSearch() {
+	/* Docker Hub search loads ONE capped page - the server returns up to 100
+	   results (page 1) with no pagination. A vague query ("test") returns
+	   thousands of near-identical hits; showing the top 100 by Docker Hub's own
+	   ranking and nudging the user to a more specific term beats letting them
+	   scroll forever. We mark the result fully loaded, which disables infinite
+	   scroll, the spacers and the random-access jump for this view. */
 	var myDockerEpoch = (data.dockerSearchEpoch || 0) + 1;
 	data.dockerSearchEpoch = myDockerEpoch;
-	/* Only restore the committed term when paging/appending (infinite scroll).
-	   A fresh search (page 1) must use whatever is currently in the box — else
-	   typing a new term in sticky-docker mode gets reverted to the previous
-	   search and nothing appears to happen. */
-	if (doAppend) caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-	if (!doAppend) scrollToTop();
+	scrollToTop();
 	$(".selectedMenu").removeClass("selectedMenu");
 	var filter = $('#searchBox').val();
-	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
 	data.docker = "searching docker";
 	$(".dockerSearch").addClass("ca_hide");
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	$(".templateSearch").removeClass("ca_hide");
- // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
-	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+	post({action:'search_dockerhub',filter:filter,page:1},function(result) {
 		/* Stale response guard: a newer docker search ran, or the user left
 		   docker (Apps / Show in Apps / a category click cleared data.docker). */
 		if (myDockerEpoch !== data.dockerSearchEpoch || !data.docker) return;
@@ -5457,7 +5541,8 @@ function dockerSearch(pageNumber, append) {
 		data.committedSearchSubtitleFor = "";
 		data.committedSearchFilter = $.trim(String(filter || ""));
 		caSyncHomeSearchSubtitle();
-		updateDisplay(result.display_data || result.display, doAppend);
+		data.allLoaded = true;
+		updateDisplay(result.display_data || result.display, false);
 		caSyncSearchFilterCollapsed();
 		/* Free the inline-search concurrency gate so live typing in sticky
 		   docker mode flushes any keystrokes queued while this was in flight. */
@@ -5474,34 +5559,32 @@ function dockerSearch(pageNumber, append) {
 function dockerConvert(repo, descB64) {
 	/* descB64 is the card's Description as it was rendered, base64-encoded by
 	   the server so it survives passing through an onclick attribute string.
-	   We forward it as-is — the receiving PHP endpoints (dockerConvert.php and
-	   exec.php convert_docker) base64_decode it. Single canonical decode point
-	   on the server side keeps the wire contract unambiguous. */
-	saveState();
-	swal({
-		title: "<?tr("Determine configuration?");?>",
-		text: '<?tr('Would you like CA to attempt to determine any applicable paths, ports, and variables for the template?  This will entail performing a test installation of the container.  It will be automatically deleted after processing.  The container will not be started.');?>',
-		html: true,
-		type: 'info',
-		showCancelButton: true,
-		showConfirmButton: true,
-		confirmButtonText: "<?tr('Yes');?>",
-		cancelButtonText: "<?tr('No');?>"
-	}, function (isConfirm) {
-		if ( isConfirm ) {
-			$("#sb-nav-close").css("visibility","hidden"); // Because docker install cannot be aborted so why allow window to close
-			var url = '/plugins/<?=$plugin?>/scripts/dockerConvert.php?repo=' + encodeURIComponent(repo);
-			if (descB64) url += '&description=' + encodeURIComponent(descB64);
-			openBox(url,"<?tr('Docker Test Install')?>",600,1100,true);
-		} else {
-			post({action:'convert_docker',repo:repo,description:descB64},function(result) {
-				myCloseAlert();
-				templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
-				openNewWindow(templateURL);
-			});
-		}
-	});
+	   We forward it as-is — `convert_docker` base64_decodes it. Single
+	   canonical decode point on the server side keeps the wire contract
+	   unambiguous.
 
+	   Used to prompt the user "Determine configuration?" — the YES path
+	   spun up a test container via dockerConvert.php so `docker inspect`
+	   could surface ExposedPorts / Env / Mounts. The convert_docker action
+	   now pulls those same fields straight from the Docker Hub registry
+	   API (no pull, no test container), so the prompt isn't needed any
+	   more — the only path goes through convert_docker and the post()
+	   spinner covers the latency of the three API calls. */
+	saveState();
+	post({ action: 'convert_docker', repo: repo, description: descB64 }, function(result) {
+		myCloseAlert();
+		/* Gate the redirect on a usable response. Without this, a backend
+		   error (network blip on the Hub API path, malformed image config,
+		   etc.) would still navigate the user to
+		   `/Apps/AddContainer?xmlTemplate=default:undefined` and swallow
+		   the real failure reason. Surface an error banner instead. */
+		var xml = $.trim((result && result.xml) || "");
+		if (!xml) {
+			addBannerWarning(tr("Unable to convert this Docker image right now."), true, true);
+			return;
+		}
+		openNewWindow("/Apps/AddContainer?xmlTemplate=default:" + xml);
+	});
 }
 
 var caSortMenuObserver = null;
@@ -5594,6 +5677,20 @@ function postCheckForUpdates() {
 	$(".selectedMenu").click();
 }
 
+/* Sticky "let go of the scrollbar" nudge rendered inside an empty spacer. The
+   spacer reserves the scroll height for rows that are not fetched yet, so while
+   the user drags the thumb over it (body.caScrollGrabbing) it is the natural
+   place to tell them what they are scrubbing past will load when they release.
+   Sticky so it stays pinned near the viewport centre wherever they are in the
+   (often very tall) spacer. */
+function caSpacerHintHtml() {
+	/* The inner span reuses the .ca_displayCount class so caUpdateDisplayCount -
+	   which already targets that class and derives the range from scrollTop -
+	   keeps this label in sync with the toolbar "X - Y of Z" indicator as the
+	   user drags, showing where in the list they are scrubbing to. No extra wiring
+	   needed; the existing scroll-driven update populates it. */
+	return "<div class='caSpacerHint' aria-hidden='true'><span class='ca_displayCount'></span></div>";
+}
 /* Virtualization: evict cards far above the viewport into a top-spacer (so
    scroll height stays the same) and restore them from caCardCache.cache when the
    user scrolls back up. Cards are kept in row-aligned chunks because the float
@@ -5607,7 +5704,7 @@ function caVirtSpacer() {
 		width: "100%",
 		height: "0px",
 		flexBasis: "100%"
-	});
+	}).html(caSpacerHintHtml());
 	$first.before($spacer);
 	return $spacer;
 }
@@ -5646,7 +5743,7 @@ function caVirtBottomSpacer() {
 			width: "100%",
 			height: "0px",
 			flexBasis: "100%"
-		});
+		}).html(caSpacerHintHtml());
 		$display.append($spacer);
 	}
 	return $spacer;
@@ -5699,6 +5796,13 @@ function caVirtUpdateBottomSpacer() {
 	var loadedEnd = (parseInt(caCardCache.offset, 10) || 0) + domEnd;
 	var remainingBelow = Math.max(0, data.totalApps - loadedEnd);
 	var bottomRows = Math.ceil(remainingBelow / perRow);
+	/* Nothing below the loaded window (scrolled to the very end): a 0px spacer
+	   reserves no scroll space, so drop the element entirely rather than leave a
+	   zero-height div whose sticky hint can still peek in at the bottom edge. */
+	if (bottomRows <= 0) {
+		$display.children(".ca_virtBottomSpacer").remove();
+		return;
+	}
 	var $spacer = caVirtBottomSpacer();
 	if (!$spacer.length) return;
 	/* Keep it last so appended/restored cards always sit above it. */
@@ -5715,12 +5819,14 @@ function caVirtUpdateTopSpacer() {
 	var $display = $("#templates_content .ca_templatesDisplay").first();
 	if (!$display.length) return;
 	if (typeof data === "undefined" || data.allLoaded) {
-		$display.children(".ca_virtTopSpacer").css("height", "0px");
+		/* No rows above the window: remove the element rather than leave a 0px div
+		   whose sticky hint could peek in at the top edge (mirrors the bottom). */
+		$display.children(".ca_virtTopSpacer").remove();
 		return;
 	}
 	var aboveCount = (parseInt(caCardCache.offset, 10) || 0) + (caCardCache.firstInDom || 0);
 	if (aboveCount <= 0) {
-		$display.children(".ca_virtTopSpacer").css("height", "0px");
+		$display.children(".ca_virtTopSpacer").remove();
 		return;
 	}
 	var $cards = $display.find(".ca_holder");
@@ -5785,6 +5891,126 @@ function caVirtRowHeight($cards, perRow) {
 	return $cards[perRow].offsetTop - $cards[0].offsetTop;
 }
 /**
+ * Single source of truth for "which global card row sits at the top of the
+ * viewport", derived from the scrollbar fraction across the FULL scroll height
+ * (spacers included). The display-count label AND the random-access jump both
+ * read this, so the position the user sees and the page that gets fetched can
+ * never disagree (a drift there lands you on blank cards). Also returns the
+ * measured per-row / row-height so callers can map the row back to a pixel
+ * scrollTop in the same layout. Null when the grid is not measurable.
+ *
+ * @param {HTMLElement} el Scroll container (.mainArea)
+ * @param {jQuery} $cards Rendered .ca_holder cards
+ * @param {number} total data.totalApps
+ * @returns {{perRow:number,rowHeight:number,rowsVisible:number,totalRows:number,topRow:number}|null}
+ */
+function caVirtScrollRow(el, $cards, total) {
+	if (!el || !$cards || !$cards.length) return null;
+	var perRow = caVirtCardsPerRow($cards);
+	if (perRow < 1) return null;
+	var rowHeight = caVirtRowHeight($cards, perRow);
+	if (rowHeight <= 0) {
+		var rc = $cards[0].getBoundingClientRect();
+		var rs = getComputedStyle($cards[0]);
+		rowHeight = rc.height + (parseFloat(rs.marginTop) || 0) + (parseFloat(rs.marginBottom) || 0);
+	}
+	if (rowHeight <= 0) return null;
+	var t = parseInt(total, 10) || 0;
+	var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowHeight));
+	var totalRows = Math.ceil(t / perRow);
+	var maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
+	var frac = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
+	var topRow = Math.round(frac * Math.max(0, totalRows - rowsVisible));
+	return { perRow: perRow, rowHeight: rowHeight, rowsVisible: rowsVisible, totalRows: totalRows, topRow: topRow };
+}
+/**
+ * Bound the cached-but-evicted rows ABOVE the DOM window. Keeps roughly a few
+ * pages so short scroll-ups still restore instantly from cache, then drops whole
+ * pages off the front of caCardCache.cache and folds their count into `offset`.
+ * That converts "cached above" into "unfetched above" (offset > 0), so a longer
+ * scroll-up re-fetches page-by-page via triggerPrev instead of letting the cache
+ * grow without limit as the user pages deep into a large result set.
+ *
+ * Two invariants keep this safe on the fragile scroll path:
+ *   - offset + firstInDom (the rows-above total the top spacer is sized from) is
+ *     unchanged by the trim, so it is invisible to the spacer/scroll math.
+ *   - Trimming is page-aligned (offset stays a multiple of maxPerPage), so the
+ *     triggerPrev prepend lands exactly on the rows just above the cache with no
+ *     gap or overlap.
+ *
+ * @param {number} perRow Cards per row (fallback page size when maxPerPage absent)
+ */
+function caVirtTrimCacheAbove(perRow) {
+	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || perRow || 1);
+	var keepAbove = perPage * 3; // ~3 pages buffered for smooth short scroll-ups
+	var firstInDom = caCardCache.firstInDom || 0;
+	if (firstInDom <= keepAbove) return;
+	var off = parseInt(caCardCache.offset, 10) || 0;
+	var gStart = off + firstInDom;                              // global index of first DOM card
+	var keepFrom = Math.max(0, Math.floor((gStart - keepAbove) / perPage) * perPage);
+	var drop = keepFrom - off;                                  // page-aligned count to drop off the front
+	if (drop <= 0) return;
+	caCardCache.cache.splice(0, drop);
+	caCardCache.offset = keepFrom;
+	caCardCache.firstInDom -= drop;
+	caCardCache.lastInDom -= drop;
+}
+/**
+ * Mirror of {@link caVirtTrimCacheAbove} for the rows cached BELOW the DOM
+ * window (which accumulate when the user scrolls back up after paging deep).
+ * Keeps ~3 pages buffered for instant short scroll-downs, drops whole pages off
+ * the tail of caCardCache.cache, and re-points `data.nextpage` at the first
+ * dropped page so scrolling back down re-fetches it instead of finding a gap.
+ *
+ * The bottom spacer is sized from lastInDom (the DOM window), which this does
+ * NOT touch, so the spacer stays correct. Skipped while a fetch is in flight so
+ * we never fight the in-flight response's caRenderPageNavigation over
+ * data.nextpage.
+ *
+ * @param {number} perRow Cards per row (fallback page size when maxPerPage absent)
+ */
+function caVirtTrimCacheBelow(perRow) {
+	if (data.loadingMore) return;
+	var lastInDom = caCardCache.lastInDom;
+	if (typeof lastInDom !== "number" || lastInDom < 0) return;
+	var len = (caCardCache.cache && caCardCache.cache.length) || 0;
+	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || perRow || 1);
+	var keepBelow = perPage * 3; // ~3 pages buffered for smooth short scroll-downs
+	if ((len - 1 - lastInDom) <= keepBelow) return;
+	/* Keep up to a page boundary at least keepBelow rows past the DOM window. */
+	var keepEnd = Math.ceil((lastInDom + 1 + keepBelow) / perPage) * perPage;
+	if (keepEnd >= len) return; // under a page of excess; not worth a trim
+	caCardCache.cache.splice(keepEnd);
+	/* offset is page-aligned and keepEnd is a whole number of pages, so the first
+	   dropped row sits exactly on a page boundary - that page is what to re-fetch. */
+	var off = parseInt(caCardCache.offset, 10) || 0;
+	var firstDroppedGlobal = off + keepEnd;
+	var total = parseInt(data.totalApps, 10) || 0;
+	data.nextpage = (total > 0 && firstDroppedGlobal < total)
+		? (Math.floor(firstDroppedGlobal / perPage) + 1)
+		: 0;
+}
+/**
+ * Clear the cache window and re-render page 1 at the top. Used when the viewport
+ * lands near the very top with rows still parked above the DOM window (a fast
+ * scroll-up jump, or a thumb dragged to the top and released) - otherwise the
+ * user strands on empty top-spacer with nothing rendered.
+ */
+function caVirtResetToPageOne() {
+	/* Invalidate any page request already in flight: it was captured against the
+	   pre-reset cache, so its append/prepend would corrupt the page-1 cache we are
+	   about to load. changePage's callback drops responses whose generation no
+	   longer matches. */
+	caCardCache.generation = (caCardCache.generation || 0) + 1;
+	caCardCache.firstInDom = 0;
+	caCardCache.lastInDom = -1;
+	caCardCache.offset = 0;
+	caCardCache.cache = [];
+	data.loadingMore = false;
+	data._prevScrollTop = 0;
+	if (typeof changePage === "function") changePage(1);
+}
+/**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
  */
 function caVirtUpdate() {
@@ -5838,13 +6064,12 @@ function caVirtUpdate() {
 	   jump to the top, otherwise the viewport strands in empty top-spacer. */
 	var hasRowsAbove = caCardCache.firstInDom > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
 	if (hasRowsAbove && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
-		caCardCache.firstInDom = 0;
-		caCardCache.lastInDom = -1;
-		caCardCache.offset = 0;
-		caCardCache.cache = [];
-		data.loadingMore = false;
-		data._prevScrollTop = 0;
-		if (typeof changePage === "function") changePage(1);
+		/* Don't re-render while the user is dragging the scrollbar thumb - it
+		   would change the scroll height under their grip and snap the thumb.
+		   Defer to the mouseup handler, which fires caReevaluateJump (-> the same
+		   page-1 reset) against wherever they release. */
+		if (window.caScrollbarHeld) { window.caJumpPending = true; return; }
+		caVirtResetToPageOne();
 		return;
 	}
 
@@ -5871,6 +6096,7 @@ function caVirtUpdate() {
 			$cards[ka].parentNode.removeChild($cards[ka]);
 		}
 		caCardCache.firstInDom += na;
+		caVirtTrimCacheAbove(perRow);
 		caVirtUpdateTopSpacer();
 		$cards = refreshCards();
 		evicted = true;
@@ -5898,6 +6124,7 @@ function caVirtUpdate() {
 				lastEl.parentNode.removeChild(lastEl);
 			}
 			caCardCache.lastInDom -= removeBelow;
+			caVirtTrimCacheBelow(perRow);
 			caVirtUpdateBottomSpacer();
 			evicted = true;
 		}
@@ -5996,6 +6223,28 @@ function caEnsureScrollable() {
    share the same pagination state. */
 function caInitInfiniteScroll() {
 	var virtScheduled = false;
+	/* True while a mouse button is held. A scroll event that fires while the
+	   button is down can only be a native-scrollbar thumb drag (the mouse can't
+	   scroll content), so while it is set we suppress every virtualization
+	   RE-RENDER (the jump fetch, the near-top reset, caVirtUpdate's big-jump
+	   reset). Re-rendering mid-drag changes the scroll height under the thumb and
+	   the browser snaps it to the bottom. Window-scoped so the top-level
+	   caVirtUpdate can see it. Eviction/restore still run (they keep total height
+	   constant); only the full re-renders defer, firing once on mouseup against
+	   wherever the user released. */
+	window.caScrollbarHeld = false;
+	$(document).on("mousedown.caJumpDrag", function(e) {
+		if (!e || e.which === 1) { window.caScrollbarHeld = true; $("body").addClass("caScrollGrabbing"); }
+	});
+	$(document).on("mouseup.caJumpDrag", function() {
+		$("body").removeClass("caScrollGrabbing");
+		if (!window.caScrollbarHeld) return;
+		window.caScrollbarHeld = false;
+		if (window.caJumpPending && typeof window.caReevaluateJump === "function") {
+			window.caJumpPending = false;
+			setTimeout(window.caReevaluateJump, 30);
+		}
+	});
 	var triggerNext = function() {
 		if (data.loadingMore) return;
 		if (!data.nextpage || data.nextpage <= 0) return;
@@ -6021,6 +6270,37 @@ function caInitInfiniteScroll() {
 		var prevPage = Math.floor((firstGlobal - 1) / perPage) + 1;
 		changePage(prevPage, "prepend");
 	};
+	/* After a random jump renders a single page, pull a page (or two) above and
+	   below it so the viewport has complete rows in both directions immediately,
+	   rather than a clipped final row / blank edge until the user nudges scroll.
+	   Fills below first (append renders straight into the DOM, fixing the clipped
+	   final row), then above. One screen of headroom each way; re-checks every
+	   pass and stops once covered or after `passes` fetches. Reuses the same
+	   triggerNext/triggerPrev the scroll handler uses, so cache + spacer math stay
+	   consistent. */
+	var caJumpFill = function(passes) {
+		if (passes <= 0) return;
+		var m = $(".mainArea")[0];
+		if (!m) return;
+		if (data.loadingMore) { setTimeout(function() { caJumpFill(passes); }, 60); return; }
+		if (!$("#templates_content .ca_templatesDisplay").length) return;
+		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
+		if (!$cards.length) return;
+		var mainTop = m.getBoundingClientRect().top;
+		var firstY = $cards[0].getBoundingClientRect().top - mainTop + m.scrollTop;
+		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + m.scrollTop;
+		var pad = m.clientHeight; // aim for ~one screen of cards past each edge
+		if ((lastY - (m.scrollTop + m.clientHeight)) < pad && (data.nextpage > 0)) {
+			triggerNext();
+			setTimeout(function() { caJumpFill(passes - 1); }, 60);
+			return;
+		}
+		if ((m.scrollTop - firstY) < pad && (parseInt(caCardCache.offset, 10) || 0) > 0) {
+			triggerPrev();
+			setTimeout(function() { caJumpFill(passes - 1); }, 60);
+			return;
+		}
+	};
 	/* Random access: when the user clicks the scrollbar track or drags the thumb
 	   to a spot far from any loaded card, fetch the page for that position
 	   directly (a fresh render that re-bases the cache), instead of sequentially
@@ -6028,7 +6308,15 @@ function caInitInfiniteScroll() {
 	   a page; the dragged scrollTop is restored so the freshly loaded page sits
 	   under the viewport. Apps grid only. */
 	var caJumpToPage = function(el) {
-		if (data.docker || data.loadingMore) return;
+		if (data.docker) return; // Docker Hub loads one capped page; no random-access jump
+		/* Defer (don't drop) while a fetch is in flight OR the user is still
+		   holding the scrollbar thumb: just flag that a jump is wanted. It re-runs
+		   from caReevaluateJump when the fetch settles AND from the mouseup
+		   handler when the drag ends, each re-reading the LIVE scroll position. So
+		   a burst of gutter-clicks / a held drag collapses to a single jump to
+		   wherever the user actually ended up - and crucially no full re-render
+		   fires mid-drag to yank the native thumb to the bottom. */
+		if (data.loadingMore || window.caScrollbarHeld) { window.caJumpPending = true; return; }
 		var total = parseInt(data.totalApps, 10) || 0;
 		if (total <= 0) return;
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
@@ -6042,33 +6330,53 @@ function caInitInfiniteScroll() {
 		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + el.scrollTop;
 		var farGap = el.clientHeight * 2;
 		if ((firstY - (el.scrollTop + el.clientHeight)) <= farGap && (el.scrollTop - lastY) <= farGap) return;
-		var perRow = caVirtCardsPerRow($cards);
-		if (perRow < 1) return;
-		var rowHeight = caVirtRowHeight($cards, perRow);
-		if (rowHeight <= 0) {
-			var rc = $cards[0].getBoundingClientRect();
-			var rs = getComputedStyle($cards[0]);
-			rowHeight = rc.height + (parseFloat(rs.marginTop) || 0) + (parseFloat(rs.marginBottom) || 0);
-		}
-		if (rowHeight <= 0) return;
+		/* Same row math the display-count pill shows, so we fetch exactly the page
+		   for the row the user is reading off it - no drift between the two. */
+		var pos = caVirtScrollRow(el, $cards, total);
+		if (!pos) return;
 		var perPage = parseInt(data.maxPerPage, 10) || 12;
-		var maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
-		var f = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
-		var totalRows = Math.ceil(total / perRow);
-		var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowHeight));
-		var targetRow = Math.round(f * Math.max(0, totalRows - rowsVisible));
-		var targetPage = Math.floor((targetRow * perRow) / perPage) + 1;
-		var jumpScrollTop = el.scrollTop;
+		var targetRow = pos.topRow;
+		var targetPage = Math.floor((targetRow * pos.perRow) / perPage) + 1;
 		data.loadingMore = true;
 		var postFn = data.searchInProgress ? postNoSpin : post;
 		postFn({action:'display_content', pageNumber:targetPage, selected:data.selected, maxPerPage:perPage}, function(result) {
 			updateDisplay(result.display_data || result.display, false);
-			/* Same total scroll height (top spacer + page + bottom spacer), so the
-			   dragged position still lands on the freshly loaded page; edges fill
-			   via the normal triggerNext/triggerPrev on the next scroll events. */
+			/* Land by ROW in the freshly-rendered layout, not the pixel scrollTop
+			   captured before the fetch. The fetched page's cards start at the top
+			   spacer (offset rows) and contain targetRow, so scrolling to
+			   targetRow*rowHeight puts that row at the viewport top ON real cards -
+			   immune to any scroll-height drift between capture and render (the
+			   Safari blank-screen case). Falls back to the row index times the
+			   re-measured row height; if unmeasurable, leaves scroll as-is. */
 			var m = $(".mainArea")[0];
-			if (m) m.scrollTop = jumpScrollTop;
+			if (m) {
+				var pos2 = caVirtScrollRow(m, $("#templates_content .ca_templatesDisplay").find(".ca_holder"), parseInt(data.totalApps, 10) || 0);
+				if (pos2 && pos2.rowHeight > 0) m.scrollTop = targetRow * pos2.rowHeight;
+			}
+			/* A single capped page lands the viewport on a clipped final row (page
+			   size is not a multiple of cards-per-row) with nothing above/below.
+			   Pull a page or two around it so the landing has complete rows in both
+			   directions right away, restoring the surround the old oversized page
+			   count gave us before getMaxPerPage was capped. */
+			caJumpFill(4);
 		});
+	};
+	/* Bridge so updateDisplay (top-level), the mouseup handler, and caVirtUpdate
+	   can run a deferred jump/reset once it is safe. Re-reads the LIVE scroll
+	   position: near the top with rows still above -> clean page-1 reset;
+	   otherwise -> caJumpToPage (whose own gap check bails if the viewport already
+	   sits on loaded cards). Re-queues itself while a fetch is running or the
+	   thumb is still held so it never re-renders mid-flight or mid-drag. */
+	window.caReevaluateJump = function() {
+		if (data.loadingMore || window.caScrollbarHeld) { window.caJumpPending = true; return; }
+		var el = $(".mainArea")[0];
+		if (!el) return;
+		if (el.scrollTop < el.clientHeight) {
+			var hasAbove = (caCardCache.firstInDom || 0) > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
+			if (hasAbove) caVirtResetToPageOne();
+			return;
+		}
+		caJumpToPage(el);
 	};
 	/* Debounced detector: returns true (and schedules a jump) when the viewport
 	   has landed more than ~2 screens from the nearest loaded card — i.e. a real
@@ -6079,20 +6387,25 @@ function caInitInfiniteScroll() {
 		if (data.docker || data.loadingMore) return false;
 		if (!(parseInt(data.totalApps, 10) > 0)) return false;
 		if (!$("#templates_content .ca_templatesDisplay").length) return false;
-		if (el.scrollTop < el.clientHeight) return false; // top jumps handled by the page-1 reset
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 		if (!$cards.length) return false;
 		var mainTop = el.getBoundingClientRect().top;
 		var firstY = $cards[0].getBoundingClientRect().top - mainTop + el.scrollTop;
 		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + el.scrollTop;
-		var viewTop = el.scrollTop;
-		var viewBot = el.scrollTop + el.clientHeight;
 		var farGap = el.clientHeight * 2;
-		var gapAbove = firstY - viewBot; // > 0 when viewport sits above the loaded cards
-		var gapBelow = viewTop - lastY;  // > 0 when viewport sits below the loaded cards
+		var gapAbove = firstY - (el.scrollTop + el.clientHeight); // > 0 when viewport sits above the loaded cards
+		var gapBelow = el.scrollTop - lastY;                      // > 0 when viewport sits below the loaded cards
 		if (gapAbove <= farGap && gapBelow <= farGap) return false;
+		/* Hand off to the deferred/gated path: caReevaluateJump waits out an
+		   in-flight fetch or a held thumb, then re-reads the live position and
+		   does a page-1 reset near the top or a page fetch elsewhere. */
+		window.caJumpPending = true;
 		if (jumpTimer) clearTimeout(jumpTimer);
-		jumpTimer = setTimeout(function() { caJumpToPage($(".mainArea")[0]); }, 120);
+		jumpTimer = setTimeout(function() {
+			if (!window.caJumpPending) return;
+			window.caJumpPending = false;
+			window.caReevaluateJump();
+		}, 120);
 		return true;
 	};
 
@@ -6144,16 +6457,10 @@ function caInitInfiniteScroll() {
 		if (total <= 0) return false;
 
 		if (data.docker) {
-			/* DockerHub API caps each search at 25 results/page — we can't
-			   ask for everything in one shot like the Apps grid path. Jump
-			   to the last page instead; updateDisplay's structured-replace
-			   path sets cardCacheOffset from the server's pageNumber so the
-			   "Displaying X - Y of Z" indicator stays correct, and the
-			   existing jump-to-top reset in caVirtUpdate handles scroll-up
-			   back to page 1 when the user wants it. */
-			var dockerPerPage = 25;
-			var dockerLastPage = Math.max(1, Math.ceil(total / dockerPerPage));
-			dockerSearch(dockerLastPage, false);
+			/* Docker Hub search is a single fully-loaded page now — every result
+			   is already in the DOM, so just scroll to the bottom (no fetch). */
+			$(s).stop(true, true);
+			s.scrollTop = s.scrollHeight;
 			return false;
 		}
 
@@ -6205,11 +6512,8 @@ function caInitInfiniteScroll() {
 		var atTop = s.scrollTop <= 0;
 		var atBottom = s.scrollTop + s.clientHeight >= s.scrollHeight - 1;
 		var canScroll = s.scrollHeight - s.clientHeight > 1;
-		/* Docker Hub mode: no scroll controls — results are paginated and only
-		   scroll forward, and the deep-page jumps proved unreliable. App-grid only. */
-		var inDocker = !!(typeof data !== "undefined" && data && data.docker);
-		var showBack = !inDocker && canScroll && !atTop;
-		var showEnd  = !inDocker && canScroll && !atBottom;
+		var showBack = canScroll && !atTop;
+		var showEnd  = canScroll && !atBottom;
 		if ($bt.length && ($bt.data("caShown") || false) !== showBack) {
 			$bt.data("caShown", showBack);
 			$bt.stop(true, true)[showBack ? "fadeIn" : "fadeOut"](500);

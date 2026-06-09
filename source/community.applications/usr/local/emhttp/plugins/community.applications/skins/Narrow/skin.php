@@ -1194,7 +1194,6 @@ function getPopupDescriptionSkin($appNumber) {
 		$templateIcon = startsWith($template['IconFA'],"icon-") ? "{$template['IconFA']} unraidIcon" : "fa fa-{$template['IconFA']}";
 		$template['display_icon'] = "<i class='$templateIcon popupIcon'></i>";
 	} else {
-		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? $template['Icon'];
 		/* Stricter than validURL: caIsPublicHttpUrl additionally rejects
 		   RFC1918 / link-local / CGNAT / IPv6 ULA / .local (mDNS) hosts. The
 		   icon URL is fetched automatically by the browser when the popup
@@ -1354,12 +1353,10 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 
 	$searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
 	$numPages = $searchData['num_pages'] ?? 0;
-	/* Total result count drives the page count and the "of Z" indicator. Prefer
-	   num_results (reliably present from Docker Hub's search response); fall back
-	   to num_pages*25 only for an older cache that predates num_results. The last
-	   page is then ceil(num_results / 25), which is what "move to end" jumps to. */
-	$numResults = (int)($searchData['num_results'] ?? 0);
-	if ($numResults <= 0) $numResults = (int)($numPages * 25);
+	/* Docker Hub's real match count. Only used to decide whether to show the
+	   "refine your search" note - the grid itself shows just the top 100. */
+	$apiTotal = (int)($searchData['num_results'] ?? 0);
+	if ($apiTotal <= 0) $apiTotal = (int)($numPages * 25);
 	$results = $searchData['results'] ?? [];
 	$templates = &$GLOBALS['templates'];
 	$GLOBALS['caSettings']['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
@@ -1373,22 +1370,31 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 		$results
 	);
 
-	/* Page nav (and data.totalApps) derived from the real result count, so the
-	   last page = ceil(num_results / 25). */
-	$navScript = getPageNavigation($pageNumber, $numResults, true);
+	/* No pagination: totalApps is exactly what we render (<= 100), so the grid is
+	   fully loaded with no spacer / infinite scroll. The nav still runs to keep
+	   the "X of Z" indicator and clear-search state in sync. */
+	$displayedCount = count($cards);
+	$navScript = getPageNavigation($pageNumber, $displayedCount, true);
+
+	/* When Docker Hub had more matches than the 100 we show, tell the user to be
+	   more specific rather than implying there is more to scroll to. */
+	$header = ($apiTotal > $displayedCount)
+		? "<div class='ca_dockerSearchNote'>".sprintf(tr("Showing the top %s of %s Docker Hub matches. Refine your search to narrow them down."), number_format($displayedCount), number_format($apiTotal))."</div>"
+		: "";
 
 	if ($returnArray) {
 		return [
-			'header' => '',
+			'header' => $header,
 			'cards' => array_values($cards),
 			'scripts' => $navScript,
-			'totalApps' => $numResults,
+			'totalApps' => $displayedCount,
+			'maxPerPage' => 100,
 			'pageNumber' => (int)$pageNumber,
 		];
 	}
 
 	$cardsHtml = implode("", $cards);
-	return "<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
+	return $header."<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
 }
 
 /**

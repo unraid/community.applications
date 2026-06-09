@@ -95,14 +95,12 @@ function getFullGlobals() {
  */
 function getSettings() {
 
-	$dynamixSettings = parse_plugin_cfg("dynamix");
 	$unRaidSettings = parse_ini_file("/etc/unraid-version");
 
 	$GLOBALS['caSettings'] = parse_plugin_cfg("community.applications");
 	$GLOBALS['caSettings']['dockerSearch']  = "yes";
 	$GLOBALS['caSettings']['unRaidVersion'] = $unRaidSettings['version'];
 	$GLOBALS['caSettings']['favourite']     = isset($GLOBALS['caSettings']['favourite']) ? str_replace("*","'",$GLOBALS['caSettings']['favourite']) : "";
-	$GLOBALS['caSettings']['dynamixTheme']  = $dynamixSettings['theme'];
 
  // $GLOBALS['caSettings']['maxPerPage']    = (integer)$GLOBALS['caSettings']['maxPerPage'] ?: 12; // Handle possible corruption on file
 	//if ( $GLOBALS['caSettings']['maxPerPage'] < 6 ) $GLOBALS['caSettings']['maxPerPage'] = 12;
@@ -2205,6 +2203,457 @@ function addMissingVars($o) {
 	$missingVars = array_diff_key(array_fill_keys($requiredVars, null), $o);
 
 	return $o + $missingVars;
+}
+
+/* ============================================================================
+   Docker Hub Registry API helpers — fetch image config (ports / volumes / env)
+   directly from the v2 registry instead of doing a test `docker pull` + inspect.
+
+   Three-call chain per image (token + manifest + config blob); each tier is
+   cached so subsequent installs of the same image hit zero network calls.
+   See `convert_docker` in exec.php for the consumer.
+   ============================================================================ */
+
+/**
+ * Read the user's saved Docker Hub credentials (if any) from
+ * `/root/.docker/config.json` and return them as a pre-encoded
+ * `base64("user:password")` string suitable for an HTTP Basic header.
+ *
+ * Mirrors the lookup `dynamix.docker.manager`'s DockerClient::getRegistryAuth()
+ * does — Docker stores Hub creds under the legacy `https://index.docker.io/v1/`
+ * key inside `auths`. Returns null if the config file is missing, malformed,
+ * has no Hub auth entry, or the user is on a credential-helper setup
+ * (`credsStore` / `credHelpers`) instead of an inline `auth` blob.
+ *
+ * Authenticating to the token endpoint with the user's creds gets us a
+ * higher Docker Hub pull-rate ceiling (200 manifest pulls / 6h vs the
+ * 100/6h anonymous tier) and lets us reach any private repos the user
+ * has access to.
+ *
+ * @return string|null  base64-encoded "user:password" or null.
+ */
+/**
+ * Apply CA's proxy.cfg settings to a curl_setopt_array option bag, if
+ * the user has one configured. Mirrors what `download_url()` does — the
+ * three Docker Hub helpers below open their own cURL handles so they
+ * need the same proxy plumbing or they'd silently bypass it.
+ *
+ * Honors the `http_proxy` env var as an override (same precedence
+ * download_url uses): if env is set, the cfg file is ignored so
+ * shell-level routing wins.
+ *
+ * @param array<int,mixed> &$opts  curl option bag to augment in-place.
+ */
+function caApplyProxyCfg(array &$opts): void {
+	static $proxycfg = null;
+	if ($proxycfg === null) {
+		$proxycfg = ((!getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg"))
+			? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg")
+			: false;
+	}
+	if (!$proxycfg) return;
+	$opts[CURLOPT_PROXY]            = $proxycfg['proxy']           ?? '';
+	$opts[CURLOPT_PROXYPORT]        = intval($proxycfg['port']     ?? 0);
+	$opts[CURLOPT_HTTPPROXYTUNNEL]  = intval($proxycfg['tunnel']   ?? 0);
+}
+
+function caGetDockerHubAuthBlob(): ?string {
+	$configPath = '/root/.docker/config.json';
+	if (!is_file($configPath)) return null;
+	$cfg = json_decode((string)@file_get_contents($configPath), true);
+	if (!is_array($cfg)) return null;
+	$auth = $cfg['auths']['https://index.docker.io/v1/']['auth'] ?? null;
+	if (!is_string($auth) || $auth === '') return null;
+	/* Sanity check it's actually `user:password` shape (base64'd) — guards
+	   against weird/corrupt config files smuggling junk into our header. */
+	$decoded = base64_decode($auth, true);
+	if ($decoded === false || strpos($decoded, ':') === false) return null;
+	return $auth;
+}
+
+/**
+ * Cached anonymous-pull token for the Docker Hub registry.
+ *
+ * Docker Hub's auth service issues scope-bound tokens — one per
+ * `repository:{ns}/{repo}:pull` scope. Cached per-scope under tempFiles
+ * with the issued expiry so repeated installs from the same repo
+ * within the token's lifetime don't burn another auth roundtrip.
+ *
+ * @param string $repo  e.g. "library/nginx" or "linuxserver/sonarr"
+ * @return string|null  Bearer token, or null on auth failure.
+ */
+function caGetDockerHubToken(string $repo): ?string {
+	/* Caching intentionally disabled during dev — testing the auto-config
+	   flow needs fresh hits each time. Re-enable by caching to
+	   `tempFiles/dockerHubToken-{sha256(repo)}.json` with `expires_at`
+	   set from the response's `expires_in` (Docker Hub returns ~5 min).
+	   If we re-enable caching, the cache key should also include a hash
+	   of the auth blob — a token issued for an authenticated user is NOT
+	   interchangeable with one issued anonymously (different rate-limit
+	   pools, potentially different scope grants). */
+	$url     = 'https://auth.docker.io/token?service=registry.docker.io&scope='.urlencode("repository:$repo:pull");
+	$headers = [];
+	/* If the user has Docker Hub creds saved (via `docker login` on the
+	   server), authenticate the token request with HTTP Basic. Token
+	   endpoint accepts the same `user:pass` auth pair the registry
+	   `/v2/` endpoints do. Falls back to anonymous when no creds — the
+	   server then returns an anon token with the lower rate limit. */
+	$authBlob = caGetDockerHubAuthBlob();
+	if ($authBlob !== null) {
+		$headers[] = 'Authorization: Basic '.$authBlob;
+	}
+	$opts = [
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_CONNECTTIMEOUT => 10,
+		CURLOPT_TIMEOUT        => 20,
+		CURLOPT_HTTPHEADER     => $headers,
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
+	$body = curl_exec($ch);
+	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+	if ($code !== 200 || !is_string($body) || $body === '') return null;
+
+	$json = json_decode($body, true);
+	if (!is_array($json) || empty($json['token'])) return null;
+	return (string)$json['token'];
+}
+
+/**
+ * Authenticated GET against the Docker Hub v2 registry. Negotiates the
+ * Accept header for image manifests + config blobs and decodes JSON.
+ *
+ * @param string $url
+ * @param string $token   Bearer token from caGetDockerHubToken.
+ * @param array<int,string> $accept  MIME types to send in Accept.
+ * @return array<string,mixed>|null  Decoded JSON body, or null on failure.
+ */
+function caRegistryGet(string $url, string $token, array $accept): ?array {
+	$opts = [
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_HTTPHEADER     => [
+			'Authorization: Bearer '.$token,
+			'Accept: '.implode(', ', $accept),
+		],
+		CURLOPT_CONNECTTIMEOUT => 10,
+		CURLOPT_TIMEOUT        => 30,
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
+	$body = curl_exec($ch);
+	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+	if ($code !== 200 || !is_string($body) || $body === '') return null;
+	$json = json_decode($body, true);
+	return is_array($json) ? $json : null;
+}
+
+/**
+ * Fetch and return the OCI image config for a Docker Hub image without
+ * pulling any layers. Two-stage: GET the manifest for the requested
+ * tag, follow into the platform-specific manifest if it's a multi-arch
+ * manifest list, then GET the referenced config blob.
+ *
+ * The config blob contains:
+ *   - config.ExposedPorts — what convert_docker maps to Port entries
+ *   - config.Volumes      — declared mount points → Path entries
+ *   - config.Env          — default env vars → Variable entries
+ *
+ * Cached per (repo, tag, arch) in tempFiles for an hour. Image configs
+ * are content-addressed (by SHA), so a cached result stays valid until
+ * the tag itself gets repointed upstream — the 1h TTL is just a safety
+ * cap for that case.
+ *
+ * @param string  $repo          e.g. "library/nginx", "linuxserver/sonarr"
+ * @param string  $tag           defaults to "latest"
+ * @param string  $arch          Docker arch name ("amd64", "arm64", "arm/v7").
+ *                               Defaults to whatever this Unraid box is.
+ * @param string &$resolvedTag   OUT param — receives the tag we ended up
+ *                               fetching (same as `$tag` unless the `:latest`
+ *                               fallback kicked in). Empty string when the
+ *                               function returns null. Used by `convert_docker`
+ *                               to write the explicit `repo:tag` back into the
+ *                               generated XML so the subsequent `docker pull`
+ *                               doesn't 404 against a tag that doesn't exist.
+ * @return array<string,mixed>|null  Parsed image config, or null on failure.
+ */
+function caFetchDockerImageConfig(string $repo, string $tag = 'latest', string $arch = '', string &$resolvedTag = ''): ?array {
+	$resolvedTag = '';
+	if (strpos($repo, '/') === false) {
+		/* Official images live under "library/" on the registry even
+		   though the GUI label drops it. */
+		$repo = "library/$repo";
+	}
+	if ($arch === '') {
+		$archMap = ['x86_64' => 'amd64', 'aarch64' => 'arm64', 'armv7l' => 'arm/v7'];
+		$arch    = $archMap[php_uname('m')] ?? 'amd64';
+	}
+
+	/* Caching intentionally disabled during dev — testing the auto-config
+	   flow needs fresh hits. Re-enable by writing the parsed config to
+	   `tempFiles/dockerImageConfig-{sha256(repo:tag:arch)}.json` and
+	   reading it back below if mtime < 1h ago. Config blobs are
+	   content-addressed (by digest), so cached results stay valid until
+	   the tag itself gets repointed upstream. */
+	$token = caGetDockerHubToken($repo);
+	if ($token === null) return null;
+
+	$manifestAccept = [
+		'application/vnd.docker.distribution.manifest.v2+json',
+		'application/vnd.oci.image.manifest.v1+json',
+		'application/vnd.docker.distribution.manifest.list.v2+json',
+		'application/vnd.oci.image.index.v1+json',
+	];
+
+	$manifest = caRegistryGet("https://registry-1.docker.io/v2/$repo/manifests/$tag", $token, $manifestAccept);
+
+	/* `:latest` doesn't exist on every repo — image authors sometimes ship
+	   only dated/semver tags (`v1.2.3`, `2024-09-01`, `nightly`, etc.).
+	   When the requested tag is `latest` and the manifest fetch fails,
+	   fall back to the Hub API's most-recently-updated tag and try that.
+	   For any other explicitly-requested tag, treat the failure as final
+	   — the caller asked for a specific version, don't substitute one. */
+	if (!is_array($manifest) && $tag === 'latest') {
+		/* Pass `$arch` so the fallback walks Hub's tag list and stops on
+		   the first one that ships the requested architecture, instead
+		   of grabbing the globally-freshest tag (which can be a
+		   cross-arch / non-linux build and would fail arch validation
+		   after a wasted manifest + config blob round-trip). */
+		$altTag = caGetMostRecentDockerHubTag($repo, $arch);
+		if ($altTag !== null && $altTag !== $tag) {
+			$tag      = $altTag;
+			$manifest = caRegistryGet("https://registry-1.docker.io/v2/$repo/manifests/$tag", $token, $manifestAccept);
+		}
+	}
+	if (!is_array($manifest)) return null;
+
+	/* Manifest list → follow into the per-arch manifest. The list entries
+	   carry a `platform: { architecture, os, variant? }` shape; pick the
+	   one matching our arch on linux. */
+	if (!empty($manifest['manifests']) && is_array($manifest['manifests'])) {
+		$chosen = null;
+		foreach ($manifest['manifests'] as $entry) {
+			$platform = $entry['platform'] ?? [];
+			if (($platform['os'] ?? '') !== 'linux') continue;
+			if (($platform['architecture'] ?? '') === $arch) {
+				$chosen = $entry;
+				break;
+			}
+		}
+		if ($chosen === null || empty($chosen['digest'])) return null;
+		$manifest = caRegistryGet("https://registry-1.docker.io/v2/$repo/manifests/".$chosen['digest'], $token, $manifestAccept);
+		if (!is_array($manifest)) return null;
+	}
+
+	$configDigest = (string)($manifest['config']['digest'] ?? '');
+	if ($configDigest === '') return null;
+
+	$config = caRegistryGet(
+		"https://registry-1.docker.io/v2/$repo/blobs/$configDigest",
+		$token,
+		['application/json', 'application/vnd.oci.image.config.v1+json']
+	);
+	if (!is_array($config)) return null;
+
+	/* For multi-arch images the manifest-list filter above already gates
+	   on `platform.architecture`. For single-arch images though the
+	   manifest carries no platform info — the architecture lives ONLY
+	   in the config blob (`architecture: amd64` top-level field). Verify
+	   here so a single-arch i386 / arm64 / etc. image doesn't slip
+	   through and seed an Add Container dialog with the wrong arch's
+	   ports/env. */
+	if (!empty($config['architecture']) && (string)$config['architecture'] !== $arch) {
+		return null;
+	}
+
+	$resolvedTag = $tag;
+	return $config;
+}
+
+/**
+ * Most-recently-updated tag for a Docker Hub repo, via the Hub web API
+ * (NOT the registry — different host, different endpoint, no auth needed
+ * for public repos). Used as a fallback when `:latest` doesn't exist
+ * upstream.
+ *
+ * Hub returns tags ordered by `last_updated` descending by default;
+ * `page_size=10` is plenty for picking the freshest one and stays under
+ * the small-payload bar.
+ *
+ * @param string $repo  e.g. "linuxserver/sonarr", "library/nginx"
+ * @return string|null  Tag name (e.g. "v1.2.3"), or null on lookup failure.
+ */
+function caGetMostRecentDockerHubTag(string $repo, string $arch = ''): ?string {
+	$url  = "https://hub.docker.com/v2/repositories/$repo/tags/?page_size=25&ordering=last_updated";
+	$opts = [
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_CONNECTTIMEOUT => 10,
+		CURLOPT_TIMEOUT        => 20,
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
+	$body = curl_exec($ch);
+	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	curl_close($ch);
+	if ($code !== 200 || !is_string($body) || $body === '') return null;
+	$json = json_decode($body, true);
+	if (!is_array($json) || empty($json['results']) || !is_array($json['results'])) return null;
+
+	foreach ($json['results'] as $entry) {
+		$name = (string)($entry['name'] ?? '');
+		if ($name === '') continue;
+		/* Without an arch hint, the freshest tag wins (legacy behavior). */
+		if ($arch === '') return $name;
+		/* With an arch hint, walk the tag's per-image platform breakdown
+		   (Docker Hub's tag endpoint already carries this metadata) and
+		   keep walking the result list until we find a tag that ships
+		   the requested arch on linux. Stops us picking a cross-arch
+		   tag and then failing arch validation in caFetchDockerImageConfig
+		   after a wasted manifest+config fetch round-trip. */
+		$images = is_array($entry['images'] ?? null) ? $entry['images'] : [];
+		foreach ($images as $img) {
+			if ((string)($img['os'] ?? '') !== 'linux') continue;
+			if ((string)($img['architecture'] ?? '') === $arch) return $name;
+		}
+	}
+	return null;
+}
+
+/**
+ * Translate an OCI image config (from `caFetchDockerImageConfig`) into
+ * the Config attribute-bag shape that the dockerMan template XML uses
+ * — one entry per declared port / mount point / env var, plus the CA
+ * marker variable.
+ *
+ * Skips Docker's automatically-set env vars (HOST_HOSTNAME, HOST_OS,
+ * HOST_CONTAINERNAME, TZ, PATH) — they aren't useful to surface in the
+ * Add Container dialog.
+ *
+ * @param array<string,mixed> $imageConfig  Parsed config blob from the registry.
+ * @return array<int,array<string,array<string,string>>>  Suitable for $dockerfile['Config'].
+ */
+function caBuildXmlConfigFromImageConfig(array $imageConfig): array {
+	$cfg    = $imageConfig['config'] ?? [];
+	$ports  = is_array($cfg['ExposedPorts'] ?? null) ? $cfg['ExposedPorts'] : [];
+	$vols   = is_array($cfg['Volumes']      ?? null) ? $cfg['Volumes']      : [];
+	$envArr = is_array($cfg['Env']          ?? null) ? $cfg['Env']          : [];
+
+	$Config       = [];
+	$defaultvars  = ['HOST_HOSTNAME', 'HOST_OS', 'HOST_CONTAINERNAME', 'TZ', 'PATH'];
+
+	/* Strip characters that aren't legal in XML 1.0 attribute values
+	   (NUL, most control chars). Tab / LF / CR are kept since they're
+	   the only control chars XML allows. setAttribute() throws on the
+	   forbidden ones — silently dropping them keeps a single bogus byte
+	   in upstream image config from blowing up the entire install. Also
+	   caps value length to a sane ceiling so a maintainer can't paste a
+	   megabyte of JSON into an env var and have us round-trip it. */
+	$cleanAttr = static function ($v): string {
+		$s = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', (string)$v);
+		return mb_substr($s, 0, 4096);
+	};
+
+	$portCount = 1;
+	foreach (array_keys($ports) as $port) {
+		$pp   = explode('/', (string)$port);
+		$num  = $pp[0];
+		$mode = strtolower((string)($pp[1] ?? 'tcp'));
+		/* Validate strictly — Docker spec says port is 1-65535 integer
+		   and mode is tcp/udp. Anything else is garbage from a hostile
+		   or malformed image config; skip the entry instead of trying
+		   to coerce. */
+		if (!preg_match('/^\d{1,5}$/', $num)) continue;
+		$portNum = (int)$num;
+		if ($portNum < 1 || $portNum > 65535) continue;
+		if ($mode !== 'tcp' && $mode !== 'udp') $mode = 'tcp';
+		$Config[]['@attributes'] = [
+			'Name'        => "Container Port $portCount",
+			'Type'        => 'Port',
+			'Target'      => (string)$portNum,
+			'Default'     => (string)$portNum,
+			'Mode'        => $mode,
+			'Display'     => 'always',
+			'Required'    => 'false',
+			'Mask'        => 'false',
+			'Description' => "Container Port: $portNum",
+		];
+		$portCount++;
+	}
+
+	$pathCount = 1;
+	foreach (array_keys($vols) as $vol) {
+		$volStr = $cleanAttr($vol);
+		/* Skip non-absolute paths and anything carrying shell or
+		   path-traversal metacharacters — Docker volumes are always
+		   absolute container-side paths, no shell expansion in scope,
+		   so the conservative whitelist is fine here. */
+		if ($volStr === '' || $volStr[0] !== '/') continue;
+		if (preg_match('/[`$;&|<>"\'\\\\\\s]/', $volStr)) continue;
+		if (strpos($volStr, '..') !== false) continue;
+		$Config[]['@attributes'] = [
+			'Name'        => "Container Path $pathCount",
+			'Type'        => 'Path',
+			'Target'      => $volStr,
+			'Default'     => '',
+			'Mode'        => 'rw',
+			'Display'     => 'always',
+			'Required'    => 'false',
+			'Mask'        => 'false',
+			'Description' => "Container Path: $volStr",
+		];
+		$pathCount++;
+	}
+
+	$varCount = 1;
+	foreach ($envArr as $entry) {
+		$entry = (string)$entry;
+		$eq    = strpos($entry, '=');
+		if ($eq === false) continue;
+		$name = substr($entry, 0, $eq);
+		$val  = substr($entry, $eq + 1);
+		/* POSIX env-var name rule — `[A-Z_a-z][A-Z0-9_a-z]*`. Reject
+		   anything else outright: legit images don't ship non-conforming
+		   names, and accepting them gives a hostile maintainer free
+		   rein to stuff arbitrary content into the dockerMan template.
+		   Value (right of `=`) stays arbitrary — bash $-expansion etc.
+		   is a legitimate runtime concern inside the container, not a
+		   host-side injection here. Just strip control bytes + cap
+		   length so the XML attribute is well-formed. */
+		if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name)) continue;
+		if (in_array($name, $defaultvars, true)) continue;
+		$Config[]['@attributes'] = [
+			'Name'        => "Container Variable $varCount",
+			'Target'      => $name,
+			'Type'        => 'Variable',
+			'Default'     => $cleanAttr($val),
+			'Description' => "Container Variable: $name",
+			'Required'    => 'false',
+			'Mask'        => 'false',
+			'Display'     => 'always',
+		];
+		$varCount++;
+	}
+
+	/* CA marker — same one the test-install path used to drop on the
+	   template so it shows up in Action Centre as a CA-converted entry. */
+	$Config[]['@attributes'] = [
+		'Name'        => 'Community Applications Conversion',
+		'Target'      => 'Community_Applications_Conversion',
+		'Type'        => 'Variable',
+		'Default'     => 'true',
+		'Description' => '',
+		'Required'    => 'false',
+		'Mask'        => 'false',
+		'Display'     => 'always',
+	];
+
+	return $Config;
 }
 
 /**

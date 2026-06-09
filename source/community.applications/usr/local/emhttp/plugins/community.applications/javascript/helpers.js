@@ -286,7 +286,7 @@ function installSort(a,b) {
  * Full page reload.
  */
 function reloadPage() {
-	location.reload();
+	window.location.reload();
 }
 
 /**
@@ -815,12 +815,7 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		}
 
 		var doHomeReload = function() {
-			var $homeBtn = $(".startupButton").first();
-			if ($homeBtn.length) {
-				$homeBtn.trigger("click");
-			} else {
-				window.location.reload();
-			}
+			window.location.reload();
 		};
 		/* User-driven reload instead of a timer: multiple tabs receiving the
 		   same "feed updated" signal would otherwise all reload simultaneously,
@@ -891,11 +886,7 @@ function caShowReloadNoticeBanner(beforeReload, delayMs) {
 	}, 1000);
 
 	var doReload = function() {
-		/* Prefer the Home button (re-runs the feed pipeline) over a raw reload,
-		   matching the previous restart behaviour. */
-		var $homeBtn = $(".startupButton").first();
-		if ($homeBtn.length) $homeBtn.trigger("click");
-		else window.location.reload();
+		window.location.reload();
 	};
 
 	setTimeout(function() {
@@ -1374,28 +1365,41 @@ function caMeasureCardDims() {
 	   reused after a resize/zoom. */
 	var key = (window.innerWidth || 0) + "x" + (window.innerHeight || 0);
 	var cached = window._caCardDims;
-	var $sample = $("#templates_content .ca_holder").first();
-	if (!$sample.length) $sample = $(".ca_holder").first();
-	var el = $sample[0];
-	var $temp = null;
-	if (!el) {
+
+	/* Outer box (border-box + margins) of one card, or null when the element is
+	   missing or reports a zero box. The zero guard matters: a hidden card such
+	   as the display:none #sampleApp probe measures 0x0, and an early first
+	   paint can briefly measure a real card at 0 before layout settles. Either
+	   case must fall through to the visibility:hidden temp probe (which still
+	   lays out at the fixed .ca_holder CSS size) rather than returning a bogus 0
+	   that makes getMaxPerPage silently drop to its DEFAULT page size. */
+	var measure = function(el) {
+		if (!el) return null;
+		var r = el.getBoundingClientRect();
+		var cs = getComputedStyle(el);
+		var w = r.width + (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0);
+		var h = r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+		return (w > 0 && h > 0) ? { w: w, h: h, key: key } : null;
+	};
+
+	/* Prefer a real rendered card in the grid. */
+	var dims = measure($("#templates_content .ca_holder").first()[0]);
+
+	/* None usable (empty grid, or a zero-box sample): drop a throwaway hidden
+	   .ca_holder into the live grid host and measure that. Not the stray
+	   $(".ca_holder") fallback we used before — that could latch onto the
+	   display:none #sampleApp and keep measuring 0. */
+	if (!dims) {
 		var $host = $("#templates_content .ca_templatesDisplay").first();
 		if (!$host.length) $host = $("#templates_content").first();
-		if (!$host.length) return (cached && cached.key === key) ? cached : null;
-		/* .ca_holder has a fixed CSS width/height, so an empty probe still
-		   measures the real card box. */
-		$temp = $("<div class='ca_holder'></div>").css("visibility", "hidden").appendTo($host);
-		el = $temp[0];
+		if ($host.length) {
+			var $temp = $("<div class='ca_holder'></div>").css("visibility", "hidden").appendTo($host);
+			dims = measure($temp[0]);
+			$temp.remove();
+		}
 	}
-	var r = el.getBoundingClientRect();
-	var cs = getComputedStyle(el);
-	var dims = {
-		w: r.width + (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0),
-		h: r.height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0),
-		key: key
-	};
-	if ($temp) $temp.remove();
-	if (dims.w > 0 && dims.h > 0) {
+
+	if (dims) {
 		window._caCardDims = dims;
 		return dims;
 	}
