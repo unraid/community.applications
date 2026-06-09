@@ -78,6 +78,13 @@
    Nav-top-layout style overrides
    =========================================================================== */
 
+/* Multi-install bar bottom offset for nav-top - shorter toolbar than sidebar
+   layout. Theme--nav-top lives on <html>, so match it directly rather than
+   qualifying body. */
+.Theme--nav-top:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
+	bottom: 6rem;
+}
+
 .Theme--nav-top .ca_display_area {
 	left: 0;
 }
