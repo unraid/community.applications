@@ -507,6 +507,15 @@ function caInitializeClickHandlers() {
 			data.committedSearchFilter = "";
 		}
 		doSearch(false);
+		/* Re-paint the desktop inline-suggestion strip against the current
+		   #searchBox value. Entering Docker Hub mode closed/cleared it and
+		   none of the doSearch paths re-evaluate awesomplete, so without
+		   this nudge the chips stay empty until the user backspaces or
+		   types another character. Mobile dropdown isn't affected — its
+		   modal isn't open on this transition. */
+		if (typeof inlineSearchAwesomplete !== "undefined" && inlineSearchAwesomplete) {
+			try { inlineSearchAwesomplete.evaluate(); } catch (e) { /* no-op */ }
+		}
 	});
 	/**
 	 * Click an XML install button: POST `createXML` with the selected

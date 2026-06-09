@@ -1781,7 +1781,7 @@ body,
 	img.ca_displayIcon {
 		height: 8rem;
 		width: 8rem;
-		filter: drop-shadow(0 0 1px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
+		filter: drop-shadow(0 0 0px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
 	}
 
 	.ca_display_area {
@@ -2909,7 +2909,7 @@ input[type="button"] {
 		border-radius: 1rem 1rem 1rem 1rem;
 		/* Same contrasting halo as the card icons (see img.ca_displayIcon) so a
 		   near-white or near-black logo stays legible against the sidebar. */
-		filter: drop-shadow(0 0 1px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
+		filter: drop-shadow(0 0 0px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
 	}
 
 	/* The icon img used to carry the .screenshot class (cursor:pointer
