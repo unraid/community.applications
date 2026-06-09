@@ -5729,6 +5729,13 @@ function caVirtUpdateBottomSpacer() {
 	var loadedEnd = (parseInt(caCardCache.offset, 10) || 0) + domEnd;
 	var remainingBelow = Math.max(0, data.totalApps - loadedEnd);
 	var bottomRows = Math.ceil(remainingBelow / perRow);
+	/* Nothing below the loaded window (scrolled to the very end): a 0px spacer
+	   reserves no scroll space, so drop the element entirely rather than leave a
+	   zero-height div whose sticky hint can still peek in at the bottom edge. */
+	if (bottomRows <= 0) {
+		$display.children(".ca_virtBottomSpacer").remove();
+		return;
+	}
 	var $spacer = caVirtBottomSpacer();
 	if (!$spacer.length) return;
 	/* Keep it last so appended/restored cards always sit above it. */
@@ -5745,12 +5752,14 @@ function caVirtUpdateTopSpacer() {
 	var $display = $("#templates_content .ca_templatesDisplay").first();
 	if (!$display.length) return;
 	if (typeof data === "undefined" || data.allLoaded) {
-		$display.children(".ca_virtTopSpacer").css("height", "0px");
+		/* No rows above the window: remove the element rather than leave a 0px div
+		   whose sticky hint could peek in at the top edge (mirrors the bottom). */
+		$display.children(".ca_virtTopSpacer").remove();
 		return;
 	}
 	var aboveCount = (parseInt(caCardCache.offset, 10) || 0) + (caCardCache.firstInDom || 0);
 	if (aboveCount <= 0) {
-		$display.children(".ca_virtTopSpacer").css("height", "0px");
+		$display.children(".ca_virtTopSpacer").remove();
 		return;
 	}
 	var $cards = $display.find(".ca_holder");
