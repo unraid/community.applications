@@ -3229,6 +3229,14 @@ function updateDisplay(content, append) {
 	   user parked at the top boundary sees them without having to nudge-scroll. */
 	if (append === "prepend" && typeof caVirtUpdate === "function") caVirtUpdate();
 	caEnsureScrollable();
+	/* A scrollbar jump requested while this fetch was in flight was coalesced to
+	   a flag rather than queued. Now that the render is done, re-evaluate once
+	   against the user's current scroll position (caReevaluateJump re-queues
+	   itself if caEnsureScrollable above kicked off another fetch). */
+	if (window.caJumpPending && typeof window.caReevaluateJump === "function") {
+		window.caJumpPending = false;
+		setTimeout(window.caReevaluateJump, 30);
+	}
 	caUpdateDisplayCount();
 	if (typeof caUpdateScrollControls === "function") caUpdateScrollControls();
 	enableSearch();
@@ -6152,7 +6160,13 @@ function caInitInfiniteScroll() {
 	   a page; the dragged scrollTop is restored so the freshly loaded page sits
 	   under the viewport. Apps grid only. */
 	var caJumpToPage = function(el) {
-		if (data.docker || data.loadingMore) return;
+		if (data.docker) return;
+		/* Coalesce instead of dropping: if a fetch is already in flight, just flag
+		   that a jump is wanted. updateDisplay re-runs caReevaluateJump once the
+		   fetch settles, which re-reads the LIVE scroll position - so a burst of
+		   gutter-clicks / drag events collapses to a single jump to wherever the
+		   user actually ended up, instead of racing several page-grabs. */
+		if (data.loadingMore) { window.caJumpPending = true; return; }
 		var total = parseInt(data.totalApps, 10) || 0;
 		if (total <= 0) return;
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
@@ -6198,6 +6212,15 @@ function caInitInfiniteScroll() {
 			   count gave us before getMaxPerPage was capped. */
 			caJumpFill(4);
 		});
+	};
+	/* Bridge so updateDisplay (top-level) can re-run a coalesced jump once its
+	   fetch settles. Re-reads the live scroll position; caJumpToPage's own gap
+	   check bails if the viewport already sits on loaded cards. Re-queues itself
+	   if another fetch is still running so it never fires mid-flight. */
+	window.caReevaluateJump = function() {
+		if (data.loadingMore) { window.caJumpPending = true; return; }
+		var el = $(".mainArea")[0];
+		if (el) caJumpToPage(el);
 	};
 	/* Debounced detector: returns true (and schedules a jump) when the viewport
 	   has landed more than ~2 screens from the nearest loaded card — i.e. a real
