@@ -5447,8 +5447,11 @@ function initDockerSearch() {
  * @param {number|string} pageNumber Hub search page index
  * @param {boolean} [append] Append cards vs replace
  */
-function dockerSearch(pageNumber, append) {
+function dockerSearch(pageNumber, append, landRow) {
 	var doAppend = !!append;
+	/* A random-access jump fetches a fresh page but must land on the dragged-to
+	   row, not scroll to the top (the page sits below its top spacer). */
+	var isJump = !doAppend && (typeof landRow === "number");
 	/* Per request token. The Apps button, caShowInApps and getContent all leave
 	   docker by clearing data.docker, so a slow Docker Hub response must not
 	   repaint over the app store view the user already moved to. The callback
@@ -5461,7 +5464,7 @@ function dockerSearch(pageNumber, append) {
 	   search and nothing appears to happen. */
 	if (doAppend) caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-	if (!doAppend) scrollToTop();
+	if (!doAppend && !isJump) scrollToTop();
 	$(".selectedMenu").removeClass("selectedMenu");
 	var filter = $('#searchBox').val();
 	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
@@ -5482,6 +5485,15 @@ function dockerSearch(pageNumber, append) {
 		caSyncHomeSearchSubtitle();
 		updateDisplay(result.display_data || result.display, doAppend);
 		caSyncSearchFilterCollapsed();
+		/* Jump landing: place the dragged-to row at the viewport top on the
+		   freshly rendered page (the page's cards sit below the top spacer). */
+		if (isJump) {
+			var m = $(".mainArea")[0];
+			var p2 = (typeof caVirtScrollRow === "function")
+				? caVirtScrollRow(m, $("#templates_content .ca_templatesDisplay").find(".ca_holder"), parseInt(data.totalApps, 10) || 0)
+				: null;
+			if (m && p2 && p2.rowHeight > 0) m.scrollTop = landRow * p2.rowHeight;
+		}
 		/* Free the inline-search concurrency gate so live typing in sticky
 		   docker mode flushes any keystrokes queued while this was in flight. */
 		if (typeof caInlineSearchOnComplete === "function") caInlineSearchOnComplete();
@@ -5948,7 +5960,13 @@ function caVirtResetToPageOne() {
 	caCardCache.cache = [];
 	data.loadingMore = false;
 	data._prevScrollTop = 0;
-	if (typeof changePage === "function") changePage(1);
+	/* Reload page 1 via the right pipeline for the current mode - Docker Hub
+	   search must NOT route through changePage (that fetches the app store). */
+	if (data.docker) {
+		dockerSearch(1, false);
+	} else if (typeof changePage === "function") {
+		changePage(1);
+	}
 }
 /**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
@@ -6248,7 +6266,6 @@ function caInitInfiniteScroll() {
 	   a page; the dragged scrollTop is restored so the freshly loaded page sits
 	   under the viewport. Apps grid only. */
 	var caJumpToPage = function(el) {
-		if (data.docker) return;
 		/* Defer (don't drop) while a fetch is in flight OR the user is still
 		   holding the scrollbar thumb: just flag that a jump is wanted. It re-runs
 		   from caReevaluateJump when the fetch settles AND from the mouseup
@@ -6274,6 +6291,15 @@ function caInitInfiniteScroll() {
 		   for the row the user is reading off it - no drift between the two. */
 		var pos = caVirtScrollRow(el, $cards, total);
 		if (!pos) return;
+		/* Docker Hub paginates at a fixed 25/page and is capped at 100 pages.
+		   Fetch the dragged-to page directly (and land by row) instead of the
+		   sequential count-up triggerNext would otherwise crawl through. */
+		if (data.docker) {
+			var dPage = Math.min(100, Math.max(1, Math.floor((pos.topRow * pos.perRow) / 25) + 1));
+			data.loadingMore = true;
+			dockerSearch(dPage, false, pos.topRow);
+			return;
+		}
 		var perPage = parseInt(data.maxPerPage, 10) || 12;
 		var targetRow = pos.topRow;
 		var targetPage = Math.floor((targetRow * pos.perRow) / perPage) + 1;
@@ -6324,7 +6350,7 @@ function caInitInfiniteScroll() {
 	   very top is left to caVirtUpdate's page-1 reset. */
 	var jumpTimer = null;
 	var maybeJump = function(el) {
-		if (data.docker || data.loadingMore) return false;
+		if (data.loadingMore) return false;
 		if (!(parseInt(data.totalApps, 10) > 0)) return false;
 		if (!$("#templates_content .ca_templatesDisplay").length) return false;
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");

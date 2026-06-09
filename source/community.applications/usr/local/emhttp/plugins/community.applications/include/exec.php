@@ -3400,7 +3400,9 @@ function caDockerHubUrlFromRepo(string $repo): string {
 function search_dockerhub() {
 
 	$filter     = getPost("filter","");
-	$pageNumber = getPost("page","1");
+	/* Docker Hub's search API only serves the first ~100 pages; clamp so a deep
+	   scrollbar jump never asks for a page that comes back empty/stuck. */
+	$pageNumber = min(100, max(1, (int)getPost("page","1")));
 	$rawFilter  = trim((string)$filter);   // for the "hide Similar when name == query" check
 
 	$filter = str_replace(" ","%20",$filter);

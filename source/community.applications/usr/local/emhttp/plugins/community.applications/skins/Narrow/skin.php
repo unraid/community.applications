@@ -1357,8 +1357,15 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 	   num_results (reliably present from Docker Hub's search response); fall back
 	   to num_pages*25 only for an older cache that predates num_results. The last
 	   page is then ceil(num_results / 25), which is what "move to end" jumps to. */
+	$pageSize = 25;
+	$maxPages = 100;
 	$numResults = (int)($searchData['num_results'] ?? 0);
-	if ($numResults <= 0) $numResults = (int)($numPages * 25);
+	if ($numResults <= 0) $numResults = (int)($numPages * $pageSize);
+	/* Docker Hub's search API only serves the first ~100 pages reliably; deeper
+	   pages come back empty or repeat, so cap the reported count at 100 pages.
+	   That stops the scrollbar reach (and infinite scroll) at page 100 instead of
+	   chasing pages that never resolve. */
+	$numResults = min($numResults, $maxPages * $pageSize);
 	$results = $searchData['results'] ?? [];
 	$templates = &$GLOBALS['templates'];
 	$GLOBALS['caSettings']['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
@@ -1382,6 +1389,7 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 			'cards' => array_values($cards),
 			'scripts' => $navScript,
 			'totalApps' => $numResults,
+			'maxPerPage' => $pageSize,
 			'pageNumber' => (int)$pageNumber,
 		];
 	}
