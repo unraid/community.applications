@@ -3091,24 +3091,14 @@ function caUpdateDisplayCount() {
 
 	var mainArea = $(".mainArea")[0];
 	var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
-	if (mainArea && $cards.length && typeof caVirtCardsPerRow === "function" && typeof caVirtRowHeight === "function") {
-		var perRow = caVirtCardsPerRow($cards);
-		var rowH = caVirtRowHeight($cards, perRow);
-		if (perRow > 0 && rowH > 0) {
-			/* Derive the visible range from the scrollbar fraction across the FULL
-			   height (spacers included), so the count is right whether the viewport
-			   is on loaded cards or being dragged over an empty spacer - it tracks
-			   the live position the thumb represents. This equals the old
-			   loaded-window math when the viewport sits on the cards, and unlike it
-			   does not clamp to the loaded edge while scrubbing through a spacer. */
-			var rowsVisible = Math.max(1, Math.ceil(mainArea.clientHeight / rowH));
-			var totalRows = Math.ceil(total / perRow);
-			var maxScroll = Math.max(1, mainArea.scrollHeight - mainArea.clientHeight);
-			var frac = Math.max(0, Math.min(1, mainArea.scrollTop / maxScroll));
-			var topRow = Math.round(frac * Math.max(0, totalRows - rowsVisible));
-			first = (topRow * perRow) + 1;
-			last  = (topRow + rowsVisible) * perRow;
-		}
+	/* Same row math as the random-access jump (caVirtScrollRow), so the "X - Y of
+	   Z" the user reads is exactly the position the jump will fetch and land on -
+	   correct whether the viewport is on loaded cards or being dragged over an
+	   empty spacer, with no clamp to the loaded edge while scrubbing. */
+	var posDC = (typeof caVirtScrollRow === "function") ? caVirtScrollRow(mainArea, $cards, total) : null;
+	if (posDC) {
+		first = (posDC.topRow * posDC.perRow) + 1;
+		last  = (posDC.topRow + posDC.rowsVisible) * posDC.perRow;
 	}
 	if (first > total) first = total;
 	if (last > total) last = total;
@@ -5825,6 +5815,39 @@ function caVirtRowHeight($cards, perRow) {
 	return $cards[perRow].offsetTop - $cards[0].offsetTop;
 }
 /**
+ * Single source of truth for "which global card row sits at the top of the
+ * viewport", derived from the scrollbar fraction across the FULL scroll height
+ * (spacers included). The display-count label AND the random-access jump both
+ * read this, so the position the user sees and the page that gets fetched can
+ * never disagree (a drift there lands you on blank cards). Also returns the
+ * measured per-row / row-height so callers can map the row back to a pixel
+ * scrollTop in the same layout. Null when the grid is not measurable.
+ *
+ * @param {HTMLElement} el Scroll container (.mainArea)
+ * @param {jQuery} $cards Rendered .ca_holder cards
+ * @param {number} total data.totalApps
+ * @returns {{perRow:number,rowHeight:number,rowsVisible:number,totalRows:number,topRow:number}|null}
+ */
+function caVirtScrollRow(el, $cards, total) {
+	if (!el || !$cards || !$cards.length) return null;
+	var perRow = caVirtCardsPerRow($cards);
+	if (perRow < 1) return null;
+	var rowHeight = caVirtRowHeight($cards, perRow);
+	if (rowHeight <= 0) {
+		var rc = $cards[0].getBoundingClientRect();
+		var rs = getComputedStyle($cards[0]);
+		rowHeight = rc.height + (parseFloat(rs.marginTop) || 0) + (parseFloat(rs.marginBottom) || 0);
+	}
+	if (rowHeight <= 0) return null;
+	var t = parseInt(total, 10) || 0;
+	var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowHeight));
+	var totalRows = Math.ceil(t / perRow);
+	var maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
+	var frac = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
+	var topRow = Math.round(frac * Math.max(0, totalRows - rowsVisible));
+	return { perRow: perRow, rowHeight: rowHeight, rowsVisible: rowsVisible, totalRows: totalRows, topRow: topRow };
+}
+/**
  * Bound the cached-but-evicted rows ABOVE the DOM window. Keeps roughly a few
  * pages so short scroll-ups still restore instantly from cache, then drops whole
  * pages off the front of caCardCache.cache and folds their count into `offset`.
@@ -6226,31 +6249,29 @@ function caInitInfiniteScroll() {
 		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + el.scrollTop;
 		var farGap = el.clientHeight * 2;
 		if ((firstY - (el.scrollTop + el.clientHeight)) <= farGap && (el.scrollTop - lastY) <= farGap) return;
-		var perRow = caVirtCardsPerRow($cards);
-		if (perRow < 1) return;
-		var rowHeight = caVirtRowHeight($cards, perRow);
-		if (rowHeight <= 0) {
-			var rc = $cards[0].getBoundingClientRect();
-			var rs = getComputedStyle($cards[0]);
-			rowHeight = rc.height + (parseFloat(rs.marginTop) || 0) + (parseFloat(rs.marginBottom) || 0);
-		}
-		if (rowHeight <= 0) return;
+		/* Same row math the display-count pill shows, so we fetch exactly the page
+		   for the row the user is reading off it - no drift between the two. */
+		var pos = caVirtScrollRow(el, $cards, total);
+		if (!pos) return;
 		var perPage = parseInt(data.maxPerPage, 10) || 12;
-		var maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
-		var f = Math.max(0, Math.min(1, el.scrollTop / maxScroll));
-		var totalRows = Math.ceil(total / perRow);
-		var rowsVisible = Math.max(1, Math.ceil(el.clientHeight / rowHeight));
-		var targetRow = Math.round(f * Math.max(0, totalRows - rowsVisible));
-		var targetPage = Math.floor((targetRow * perRow) / perPage) + 1;
-		var jumpScrollTop = el.scrollTop;
+		var targetRow = pos.topRow;
+		var targetPage = Math.floor((targetRow * pos.perRow) / perPage) + 1;
 		data.loadingMore = true;
 		var postFn = data.searchInProgress ? postNoSpin : post;
 		postFn({action:'display_content', pageNumber:targetPage, selected:data.selected, maxPerPage:perPage}, function(result) {
 			updateDisplay(result.display_data || result.display, false);
-			/* Same total scroll height (top spacer + page + bottom spacer), so the
-			   dragged position still lands on the freshly loaded page. */
+			/* Land by ROW in the freshly-rendered layout, not the pixel scrollTop
+			   captured before the fetch. The fetched page's cards start at the top
+			   spacer (offset rows) and contain targetRow, so scrolling to
+			   targetRow*rowHeight puts that row at the viewport top ON real cards -
+			   immune to any scroll-height drift between capture and render (the
+			   Safari blank-screen case). Falls back to the row index times the
+			   re-measured row height; if unmeasurable, leaves scroll as-is. */
 			var m = $(".mainArea")[0];
-			if (m) m.scrollTop = jumpScrollTop;
+			if (m) {
+				var pos2 = caVirtScrollRow(m, $("#templates_content .ca_templatesDisplay").find(".ca_holder"), parseInt(data.totalApps, 10) || 0);
+				if (pos2 && pos2.rowHeight > 0) m.scrollTop = targetRow * pos2.rowHeight;
+			}
 			/* A single capped page lands the viewport on a clipped final row (page
 			   size is not a multiple of cards-per-row) with nothing above/below.
 			   Pull a page or two around it so the landing has complete rows in both
