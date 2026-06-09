@@ -5943,6 +5943,11 @@ function caVirtUpdate() {
 	   jump to the top, otherwise the viewport strands in empty top-spacer. */
 	var hasRowsAbove = caCardCache.firstInDom > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
 	if (hasRowsAbove && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
+		/* Don't re-render while the user is dragging the scrollbar thumb - it
+		   would change the scroll height under their grip and snap the thumb.
+		   Defer to the mouseup handler, which fires caReevaluateJump (-> the same
+		   page-1 reset) against wherever they release. */
+		if (window.caScrollbarHeld) { window.caJumpPending = true; return; }
 		caVirtResetToPageOne();
 		return;
 	}
@@ -6097,6 +6102,25 @@ function caEnsureScrollable() {
    share the same pagination state. */
 function caInitInfiniteScroll() {
 	var virtScheduled = false;
+	/* True while a mouse button is held. A scroll event that fires while the
+	   button is down can only be a native-scrollbar thumb drag (the mouse can't
+	   scroll content), so while it is set we suppress every virtualization
+	   RE-RENDER (the jump fetch, the near-top reset, caVirtUpdate's big-jump
+	   reset). Re-rendering mid-drag changes the scroll height under the thumb and
+	   the browser snaps it to the bottom. Window-scoped so the top-level
+	   caVirtUpdate can see it. Eviction/restore still run (they keep total height
+	   constant); only the full re-renders defer, firing once on mouseup against
+	   wherever the user released. */
+	window.caScrollbarHeld = false;
+	$(document).on("mousedown.caJumpDrag", function(e) { if (!e || e.which === 1) window.caScrollbarHeld = true; });
+	$(document).on("mouseup.caJumpDrag", function() {
+		if (!window.caScrollbarHeld) return;
+		window.caScrollbarHeld = false;
+		if (window.caJumpPending && typeof window.caReevaluateJump === "function") {
+			window.caJumpPending = false;
+			setTimeout(window.caReevaluateJump, 30);
+		}
+	});
 	var triggerNext = function() {
 		if (data.loadingMore) return;
 		if (!data.nextpage || data.nextpage <= 0) return;
@@ -6161,12 +6185,14 @@ function caInitInfiniteScroll() {
 	   under the viewport. Apps grid only. */
 	var caJumpToPage = function(el) {
 		if (data.docker) return;
-		/* Coalesce instead of dropping: if a fetch is already in flight, just flag
-		   that a jump is wanted. updateDisplay re-runs caReevaluateJump once the
-		   fetch settles, which re-reads the LIVE scroll position - so a burst of
-		   gutter-clicks / drag events collapses to a single jump to wherever the
-		   user actually ended up, instead of racing several page-grabs. */
-		if (data.loadingMore) { window.caJumpPending = true; return; }
+		/* Defer (don't drop) while a fetch is in flight OR the user is still
+		   holding the scrollbar thumb: just flag that a jump is wanted. It re-runs
+		   from caReevaluateJump when the fetch settles AND from the mouseup
+		   handler when the drag ends, each re-reading the LIVE scroll position. So
+		   a burst of gutter-clicks / a held drag collapses to a single jump to
+		   wherever the user actually ended up - and crucially no full re-render
+		   fires mid-drag to yank the native thumb to the bottom. */
+		if (data.loadingMore || window.caScrollbarHeld) { window.caJumpPending = true; return; }
 		var total = parseInt(data.totalApps, 10) || 0;
 		if (total <= 0) return;
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
@@ -6213,14 +6239,22 @@ function caInitInfiniteScroll() {
 			caJumpFill(4);
 		});
 	};
-	/* Bridge so updateDisplay (top-level) can re-run a coalesced jump once its
-	   fetch settles. Re-reads the live scroll position; caJumpToPage's own gap
-	   check bails if the viewport already sits on loaded cards. Re-queues itself
-	   if another fetch is still running so it never fires mid-flight. */
+	/* Bridge so updateDisplay (top-level), the mouseup handler, and caVirtUpdate
+	   can run a deferred jump/reset once it is safe. Re-reads the LIVE scroll
+	   position: near the top with rows still above -> clean page-1 reset;
+	   otherwise -> caJumpToPage (whose own gap check bails if the viewport already
+	   sits on loaded cards). Re-queues itself while a fetch is running or the
+	   thumb is still held so it never re-renders mid-flight or mid-drag. */
 	window.caReevaluateJump = function() {
-		if (data.loadingMore) { window.caJumpPending = true; return; }
+		if (data.loadingMore || window.caScrollbarHeld) { window.caJumpPending = true; return; }
 		var el = $(".mainArea")[0];
-		if (el) caJumpToPage(el);
+		if (!el) return;
+		if (el.scrollTop < el.clientHeight) {
+			var hasAbove = (caCardCache.firstInDom || 0) > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
+			if (hasAbove) caVirtResetToPageOne();
+			return;
+		}
+		caJumpToPage(el);
 	};
 	/* Debounced detector: returns true (and schedules a jump) when the viewport
 	   has landed more than ~2 screens from the nearest loaded card — i.e. a real
@@ -6231,37 +6265,25 @@ function caInitInfiniteScroll() {
 		if (data.docker || data.loadingMore) return false;
 		if (!(parseInt(data.totalApps, 10) > 0)) return false;
 		if (!$("#templates_content .ca_templatesDisplay").length) return false;
-		if (el.scrollTop < el.clientHeight) {
-			/* Settled near the very top with rows still parked above the DOM window
-			   (thumb dragged to the top and released, or a slow scroll-up that
-			   never produced a big enough delta for caVirtUpdate's reset). Rebase
-			   to page 1 here so the user doesn't strand on blank top-spacer. The
-			   fire-time re-check keeps us from resetting if they scrolled away
-			   during the debounce. */
-			var hasAbove = (caCardCache.firstInDom || 0) > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
-			if (hasAbove && !data.loadingMore) {
-				if (jumpTimer) clearTimeout(jumpTimer);
-				jumpTimer = setTimeout(function() {
-					var mm = $(".mainArea")[0];
-					if (mm && mm.scrollTop < mm.clientHeight && !data.loadingMore) caVirtResetToPageOne();
-				}, 120);
-				return true;
-			}
-			return false;
-		}
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 		if (!$cards.length) return false;
 		var mainTop = el.getBoundingClientRect().top;
 		var firstY = $cards[0].getBoundingClientRect().top - mainTop + el.scrollTop;
 		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + el.scrollTop;
-		var viewTop = el.scrollTop;
-		var viewBot = el.scrollTop + el.clientHeight;
 		var farGap = el.clientHeight * 2;
-		var gapAbove = firstY - viewBot; // > 0 when viewport sits above the loaded cards
-		var gapBelow = viewTop - lastY;  // > 0 when viewport sits below the loaded cards
+		var gapAbove = firstY - (el.scrollTop + el.clientHeight); // > 0 when viewport sits above the loaded cards
+		var gapBelow = el.scrollTop - lastY;                      // > 0 when viewport sits below the loaded cards
 		if (gapAbove <= farGap && gapBelow <= farGap) return false;
+		/* Hand off to the deferred/gated path: caReevaluateJump waits out an
+		   in-flight fetch or a held thumb, then re-reads the live position and
+		   does a page-1 reset near the top or a page fetch elsewhere. */
+		window.caJumpPending = true;
 		if (jumpTimer) clearTimeout(jumpTimer);
-		jumpTimer = setTimeout(function() { caJumpToPage($(".mainArea")[0]); }, 120);
+		jumpTimer = setTimeout(function() {
+			if (!window.caJumpPending) return;
+			window.caJumpPending = false;
+			window.caReevaluateJump();
+		}, 120);
 		return true;
 	};
 
