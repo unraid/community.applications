@@ -40,13 +40,6 @@
    Sidebar-layout style overrides
    =========================================================================== */
 
-/* Multi-install bar pushes the bottom of `.ca_display_area` up to make
-   room for the action toolbar. Sidebar layout's bar is taller (button
-   row sits beneath the OS sidebar rail). */
-body.Theme--sidebar:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
-	bottom: 9rem;
-}
-
 /* Base stacking for the sidebar-layout menu. The modal-open states below are
    more specific and bump it to the scrim plane (999) when needed. */
 .Theme--sidebar #menu {
@@ -77,12 +70,6 @@ body.Theme--sidebar:has(.multi_installDiv:not(.ca_hide):not([style*="display: no
 /* ===========================================================================
    Nav-top-layout style overrides
    =========================================================================== */
-
-/* Multi-install bar bottom offset for nav-top — shorter toolbar than
-   sidebar layout. */
-body.Theme--nav-top:has(.multi_installDiv:not(.ca_hide):not([style*="display: none"])) .ca_display_area {
-	bottom: 6rem;
-}
 
 .Theme--nav-top .ca_display_area {
 	left: 0;

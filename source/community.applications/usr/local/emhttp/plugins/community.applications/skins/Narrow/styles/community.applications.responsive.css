@@ -400,12 +400,6 @@ body:has(.ca_useWholeDisplayWindow) {
 
 	/* `.Theme--sidebar .ca_display_area` top removed — shared calc in
 	   main CSS handles it. */
-	/* On mobile sidebar layouts the menu doesn't reserve a top bar, so the
-	   .ca_modal_overlay should fill the whole viewport — override the
-	   `top: 8rem` push-down applied at body.menuShowing in the desktop CSS. */
-	body.Theme--sidebar.menuShowing .ca_modal_overlay {
-		top: 0;
-	}
 	/* Pull the scrim in by the full mobile menu width so the menu itself
 	   isn't dimmed and stays clickable. Var matches .mobileMenu.menuShowing. */
 	body.menuShowing .ca_modal_overlay {
