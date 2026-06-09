@@ -2232,6 +2232,31 @@ function addMissingVars($o) {
  *
  * @return string|null  base64-encoded "user:password" or null.
  */
+/**
+ * Apply CA's proxy.cfg settings to a curl_setopt_array option bag, if
+ * the user has one configured. Mirrors what `download_url()` does — the
+ * three Docker Hub helpers below open their own cURL handles so they
+ * need the same proxy plumbing or they'd silently bypass it.
+ *
+ * Honors the `http_proxy` env var as an override (same precedence
+ * download_url uses): if env is set, the cfg file is ignored so
+ * shell-level routing wins.
+ *
+ * @param array<int,mixed> &$opts  curl option bag to augment in-place.
+ */
+function caApplyProxyCfg(array &$opts): void {
+	static $proxycfg = null;
+	if ($proxycfg === null) {
+		$proxycfg = ((!getenv("http_proxy")) && is_file("/boot/config/plugins/community.applications/proxy.cfg"))
+			? @parse_ini_file("/boot/config/plugins/community.applications/proxy.cfg")
+			: false;
+	}
+	if (!$proxycfg) return;
+	$opts[CURLOPT_PROXY]            = $proxycfg['proxy']           ?? '';
+	$opts[CURLOPT_PROXYPORT]        = intval($proxycfg['port']     ?? 0);
+	$opts[CURLOPT_HTTPPROXYTUNNEL]  = intval($proxycfg['tunnel']   ?? 0);
+}
+
 function caGetDockerHubAuthBlob(): ?string {
 	$configPath = '/root/.docker/config.json';
 	if (!is_file($configPath)) return null;
@@ -2277,13 +2302,15 @@ function caGetDockerHubToken(string $repo): ?string {
 	if ($authBlob !== null) {
 		$headers[] = 'Authorization: Basic '.$authBlob;
 	}
-	$ch = curl_init($url);
-	curl_setopt_array($ch, [
+	$opts = [
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_CONNECTTIMEOUT => 10,
 		CURLOPT_TIMEOUT        => 20,
 		CURLOPT_HTTPHEADER     => $headers,
-	]);
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
 	$body = curl_exec($ch);
 	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 	curl_close($ch);
@@ -2304,8 +2331,7 @@ function caGetDockerHubToken(string $repo): ?string {
  * @return array<string,mixed>|null  Decoded JSON body, or null on failure.
  */
 function caRegistryGet(string $url, string $token, array $accept): ?array {
-	$ch = curl_init($url);
-	curl_setopt_array($ch, [
+	$opts = [
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_HTTPHEADER     => [
@@ -2314,7 +2340,10 @@ function caRegistryGet(string $url, string $token, array $accept): ?array {
 		],
 		CURLOPT_CONNECTTIMEOUT => 10,
 		CURLOPT_TIMEOUT        => 30,
-	]);
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
 	$body = curl_exec($ch);
 	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 	curl_close($ch);
@@ -2389,7 +2418,12 @@ function caFetchDockerImageConfig(string $repo, string $tag = 'latest', string $
 	   For any other explicitly-requested tag, treat the failure as final
 	   — the caller asked for a specific version, don't substitute one. */
 	if (!is_array($manifest) && $tag === 'latest') {
-		$altTag = caGetMostRecentDockerHubTag($repo);
+		/* Pass `$arch` so the fallback walks Hub's tag list and stops on
+		   the first one that ships the requested architecture, instead
+		   of grabbing the globally-freshest tag (which can be a
+		   cross-arch / non-linux build and would fail arch validation
+		   after a wasted manifest + config blob round-trip). */
+		$altTag = caGetMostRecentDockerHubTag($repo, $arch);
 		if ($altTag !== null && $altTag !== $tag) {
 			$tag      = $altTag;
 			$manifest = caRegistryGet("https://registry-1.docker.io/v2/$repo/manifests/$tag", $token, $manifestAccept);
@@ -2453,24 +2487,40 @@ function caFetchDockerImageConfig(string $repo, string $tag = 'latest', string $
  * @param string $repo  e.g. "linuxserver/sonarr", "library/nginx"
  * @return string|null  Tag name (e.g. "v1.2.3"), or null on lookup failure.
  */
-function caGetMostRecentDockerHubTag(string $repo): ?string {
-	$url = "https://hub.docker.com/v2/repositories/$repo/tags/?page_size=10&ordering=last_updated";
-	$ch  = curl_init($url);
-	curl_setopt_array($ch, [
+function caGetMostRecentDockerHubTag(string $repo, string $arch = ''): ?string {
+	$url  = "https://hub.docker.com/v2/repositories/$repo/tags/?page_size=25&ordering=last_updated";
+	$opts = [
 		CURLOPT_RETURNTRANSFER => true,
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_CONNECTTIMEOUT => 10,
 		CURLOPT_TIMEOUT        => 20,
-	]);
+	];
+	caApplyProxyCfg($opts);
+	$ch = curl_init($url);
+	curl_setopt_array($ch, $opts);
 	$body = curl_exec($ch);
 	$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 	curl_close($ch);
 	if ($code !== 200 || !is_string($body) || $body === '') return null;
 	$json = json_decode($body, true);
 	if (!is_array($json) || empty($json['results']) || !is_array($json['results'])) return null;
+
 	foreach ($json['results'] as $entry) {
 		$name = (string)($entry['name'] ?? '');
-		if ($name !== '') return $name;
+		if ($name === '') continue;
+		/* Without an arch hint, the freshest tag wins (legacy behavior). */
+		if ($arch === '') return $name;
+		/* With an arch hint, walk the tag's per-image platform breakdown
+		   (Docker Hub's tag endpoint already carries this metadata) and
+		   keep walking the result list until we find a tag that ships
+		   the requested arch on linux. Stops us picking a cross-arch
+		   tag and then failing arch validation in caFetchDockerImageConfig
+		   after a wasted manifest+config fetch round-trip. */
+		$images = is_array($entry['images'] ?? null) ? $entry['images'] : [];
+		foreach ($images as $img) {
+			if ((string)($img['os'] ?? '') !== 'linux') continue;
+			if ((string)($img['architecture'] ?? '') === $arch) return $name;
+		}
 	}
 	return null;
 }

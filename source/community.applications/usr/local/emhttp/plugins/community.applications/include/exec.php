@@ -3488,11 +3488,20 @@ function search_dockerhub() {
 		$dockerResults[$i] = addMissingVars($o);
 		$i=++$i;
 	}
-	$dockerFile['num_pages'] = $num_pages;
-	$dockerFile['num_results'] = $num_results;
-	$dockerFile['page_number'] = $pageNumber;
-	$dockerFile['filter'] = $rawFilter;
-	$dockerFile['results'] = $dockerResults;
+	/* This handler now only ever fetches the top-100 first page (the
+	   docker-hub-search pagination redesign earlier in this PR), so the
+	   cached `num_pages` / `num_results` must reflect the page we actually
+	   shipped — not Docker Hub's full hit count, which would still let
+	   downstream paginators try to render pages we never fetched. Stash
+	   Hub's global totals under `upstream_*` for any UI that wants to
+	   surface "showing 100 of N matches" hints. */
+	$dockerFile['num_pages']           = 1;
+	$dockerFile['num_results']         = count($dockerResults);
+	$dockerFile['upstream_num_pages']  = $num_pages;
+	$dockerFile['upstream_num_results']= $num_results;
+	$dockerFile['page_number']         = $pageNumber;
+	$dockerFile['filter']              = $rawFilter;
+	$dockerFile['results']             = $dockerResults;
 
 	writeJsonFile(CA_PATHS['dockerSearchResults'],$dockerFile);
 	postReturn(['display_data'=>displaySearchResults($pageNumber, true)]);

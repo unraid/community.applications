@@ -1719,7 +1719,7 @@ function doSearch(button,newSearch) {
 		return;
 	}
 
-	data.docker = "";
+	caLeaveDockerMode();
 	data.section = "AppStore";
 
 	$('#searchBox').val(filter);
@@ -1848,16 +1848,27 @@ function changeSortOrder(button,buttonClass,previousApps) {
  * @param {string} newApp Spotlight / new-app hint passed to PHP
  * @param {string} startupDisplay Startup screen cookie / default view key
  */
+/**
+ * Drop sticky Docker Hub mode and re-enable paged virtualization. Used
+ * by every code path that transitions out of a Docker Hub session
+ * (`doSearch`, `caShowInApps`, `pins`, category clicks, etc.). Always
+ * resets BOTH `data.docker` and `data.allLoaded` together — leaving
+ * `allLoaded` set after exiting docker mode causes the paged App Store
+ * grid to keep virtualization off and grow the DOM unbounded as the
+ * user scrolls.
+ */
+function caLeaveDockerMode() {
+	data.docker = "";
+	data.allLoaded = false;
+}
+
 function getContent(init,category,description,newApp,startupDisplay) {
 	data.currentpage = 1;
 	/* Any app-content load (a category, Installed/Previous/Pinned, Home, etc.)
 	   leaves Docker Hub mode — the docker flow never routes through getContent
 	   (it uses dockerSearch directly), so this is always the right place to drop
-	   sticky docker when the user navigates the menu. Also clear the fully-loaded
-	   flag a Docker Hub search (or Previous/Installed) leaves set, so the paged
-	   app-store grid gets its virtualization back. */
-	data.docker = "";
-	data.allLoaded = false;
+	   sticky docker when the user navigates the menu. */
+	caLeaveDockerMode();
 	var initialize;
 	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
 	data.maxPerPage = getMaxPerPage();
@@ -2019,7 +2030,7 @@ function clearSearchBox() {
 	   Pinned / Action Centre / Favourite Repo. */
 	data.searchActive = false;
 	data.searchFlag = false;
-	data.docker = "";
+	caLeaveDockerMode();
 	/* Close the autocomplete suggestion strip as part of clearing the search.
 	   searchActive / searchFlag are already false and the inputs are blank by
 	   here, so the #caInlineSearchBox awesomplete-close re-open guard stays quiet
@@ -2273,7 +2284,7 @@ function OpenSidebarAndRefreshDisplay() {
 function previousApps(installed,dontClear=false,filter="") {
 	clearCategory();
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 
 	clearSearchBox();
 	$(".dockerSearch,.templateSearch").addClass("ca_hide");
@@ -2309,7 +2320,7 @@ function previousApps(installed,dontClear=false,filter="") {
 function actionCentre() {
 	clearCategory();
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 	clearSearchBox();
 	$(".dockerSearch,.templateSearch").addClass("ca_hide");
 	showSortIcons();
@@ -2531,7 +2542,7 @@ function appStore() {
 	initializeAppStore();
 	updateContent();
 	clearCategory();
-	data.docker = "";
+	caLeaveDockerMode();
 	/* Soft-reset back to home — drop focus into the desktop inline search
 	   so the user can immediately start typing. Bails on mobile / when a
 	   search is still showing. Wrap in a microtask so it lands after the
@@ -2625,7 +2636,7 @@ function pinnedApps() {
  */
 function pins() {
 	setPageOne();
-	data.docker = "";
+	caLeaveDockerMode();
 	clearSearchBox();
 	clearCategory();
 	showSortIcons();
@@ -3328,6 +3339,11 @@ function saveState() {
 		wasHome: isHome,
 		sidebarAppPath: data.sidebarapppath || "",
 		sidebarAppName: data.sidebarappname || "",
+		/* Persist Docker Hub mode so `restoreState` can pick the right
+		   top-bar chrome (Apps button + no sort icons vs DockerHub button
+		   + sort icons). Without this every restore reverts to Apps-mode
+		   chrome even when the user was mid-Docker-Hub-search. */
+		dockerMode: !!data.docker,
 	};
 	if (!isHome) {
 		state.filter        = $("#searchBox").val() || "";
@@ -3380,21 +3396,31 @@ function restoreState(s) {
 	   show `#sortIconArea` and toggle the `.dockerSearch` / `.templateSearch`
 	   buttons in their post-search callbacks, but on a fresh page-load
 	   restore the DOM defaults (sort row hidden, both toggle buttons
-	   carrying `ca_hide` from skin.html) are still in place. Mirror the
-	   live path here: sort row visible, "DockerHub" toggle exposed so
-	   the user can re-enter docker search, "Apps" toggle hidden because
-	   we always come back to Apps results. Repository-search filters and
-	   no-docker-installed setups suppress the docker toggle, same rules
-	   as the live search code below at L1683. */
-	showSortIcons();
-	if (data.searchActive
-	    && !dockerNotEnabled
-	    && (s.filter || "").indexOf(" Repository") < 1) {
-		$('.dockerSearch').removeClass("ca_hide");
-	} else {
+	   carrying `ca_hide` from skin.html) are still in place. Branch on
+	   the saved `dockerMode` flag so Docker Hub restores get Apps-toggle
+	   chrome and Apps restores get DockerHub-toggle chrome (mirror of
+	   the live search code below at L1683 for the Apps side, and of
+	   initDockerSearch / changeSortOrder's docker-mode chrome for the
+	   Docker side). */
+	if (s.dockerMode) {
+		/* Sticky-docker restore: signal subsequent doSearch calls to
+		   keep traffic on Docker Hub instead of dropping back to the
+		   app store. */
+		data.docker = "searching docker";
+		hideSortIcons();
 		$('.dockerSearch').addClass("ca_hide");
+		$('.templateSearch').removeClass("ca_hide");
+	} else {
+		showSortIcons();
+		if (data.searchActive
+		    && !dockerNotEnabled
+		    && (s.filter || "").indexOf(" Repository") < 1) {
+			$('.dockerSearch').removeClass("ca_hide");
+		} else {
+			$('.dockerSearch').addClass("ca_hide");
+		}
+		$('.templateSearch').addClass("ca_hide");
 	}
-	$('.templateSearch').addClass("ca_hide");
 
 	$(".categoryMenuName").html(s.categoryName || "");
 	restoreStateMenu = s.selectedMenu || "";
@@ -5388,7 +5414,7 @@ function caShowInApps(templateURL, name) {
 	   URL plus the templateURL. The actual lookup posts the raw TemplateURL. */
 	var boxTerm = name || templateURL;
 
-	data.docker = "";
+	caLeaveDockerMode();
 	data.section = "AppStore";
 	/* Seed the box and inline search state as a committed term so the search
 	   input, the Clear Search toggle and the clear or backspace flow all behave
@@ -5547,8 +5573,17 @@ function dockerConvert(repo, descB64) {
 	saveState();
 	post({ action: 'convert_docker', repo: repo, description: descB64 }, function(result) {
 		myCloseAlert();
-		templateURL = "/Apps/AddContainer?xmlTemplate=default:" + $.trim(result.xml);
-		openNewWindow(templateURL);
+		/* Gate the redirect on a usable response. Without this, a backend
+		   error (network blip on the Hub API path, malformed image config,
+		   etc.) would still navigate the user to
+		   `/Apps/AddContainer?xmlTemplate=default:undefined` and swallow
+		   the real failure reason. Surface an error banner instead. */
+		var xml = $.trim((result && result.xml) || "");
+		if (!xml) {
+			addBannerWarning(tr("Unable to convert this Docker image right now."), true, true);
+			return;
+		}
+		openNewWindow("/Apps/AddContainer?xmlTemplate=default:" + xml);
 	});
 }
 
