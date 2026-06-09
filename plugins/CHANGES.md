@@ -220,3 +220,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: Long card descriptions now clip cleanly with a trailing ellipsis instead of a fade-out that could land in the wrong spot
 - Fixed: Clicking "Favourite Repo" a second time no longer blanks the search box while the search is still active
 - Fixed: Actions that need a page reload (feed-update notice, the settings/repository change countdown, and fatal-error recovery) now do a full browser reload instead of a soft in-page refresh that could leave a stale view
+- Fixed: On the sidebar-style themes (gray / azure), selecting apps no longer lets the multi-install action bar cover the bottom of the list — the app area now lifts to make room for it
