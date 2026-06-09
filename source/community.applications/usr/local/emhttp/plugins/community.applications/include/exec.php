@@ -3400,9 +3400,11 @@ function caDockerHubUrlFromRepo(string $repo): string {
 function search_dockerhub() {
 
 	$filter     = getPost("filter","");
-	/* Docker Hub's search API only serves the first ~100 pages; clamp so a deep
-	   scrollbar jump never asks for a page that comes back empty/stuck. */
-	$pageNumber = min(100, max(1, (int)getPost("page","1")));
+	/* Docker Hub search returns a single page of the top 100 matches - no
+	   pagination. A vague query yields thousands of near-identical hits; trusting
+	   Docker Hub's ranking for the first 100 and nudging the user to refine beats
+	   endless scrolling. */
+	$pageNumber = 1;
 	$rawFilter  = trim((string)$filter);   // for the "hide Similar when name == query" check
 
 	$filter = str_replace(" ","%20",$filter);
@@ -3411,7 +3413,7 @@ function search_dockerhub() {
 	   and an honest total `count`, unlike the deprecated v1 endpoint which 500'd
 	   on deep pages. Browser User-Agent + 30s timeout — the API throttles bare
 	   (curl-default-UA) requests, and the timeout means a slow page fails clean. */
-	$pageSize = 25;
+	$pageSize = 100;
 	$jsonPage = download_url(
 		"https://hub.docker.com/v2/search/repositories/?query=$filter&page=$pageNumber&page_size=$pageSize",
 		"",

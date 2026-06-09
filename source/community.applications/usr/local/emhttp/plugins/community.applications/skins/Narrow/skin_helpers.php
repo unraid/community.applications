@@ -1144,7 +1144,9 @@ function caProcessLanguageTemplate(array $template, array $actionsContext): arra
  */
 function getPageNavigation($pageNumber,$totalApps,$dockerSearch,$displayCount = true) {
 	if ( $dockerSearch ) {
-		$GLOBALS['caSettings']['maxPerPage'] = 25;
+		/* Docker Hub search is a single page of the top 100 matches, so one page
+		   holds them all and there is no next page. */
+		$GLOBALS['caSettings']['maxPerPage'] = 100;
 	}
 
 	if ( $GLOBALS['caSettings']['maxPerPage'] < 0 ) {

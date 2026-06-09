@@ -1465,6 +1465,17 @@ body,
 		text-align: center;
 		opacity: 0.8;
 	}
+	/* Capped Docker Hub search note: full-row banner above the result cards when
+	   Docker Hub had more matches than the top 100 we show. */
+	.ca_dockerSearchNote {
+		flex-basis: 100%;
+		width: 100%;
+		font-size: 1.3rem;
+		padding: 0.6rem 1.5rem 1rem;
+		text-align: center;
+		font-style: italic;
+		opacity: 0.8;
+	}
 	.ca_searchLimitNote .caShowAllResults {
 		display: inline-block;
 		margin-top: 0.5rem;

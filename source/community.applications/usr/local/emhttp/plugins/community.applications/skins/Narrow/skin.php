@@ -1353,19 +1353,10 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 
 	$searchData = readJsonFile(CA_PATHS['dockerSearchResults']);
 	$numPages = $searchData['num_pages'] ?? 0;
-	/* Total result count drives the page count and the "of Z" indicator. Prefer
-	   num_results (reliably present from Docker Hub's search response); fall back
-	   to num_pages*25 only for an older cache that predates num_results. The last
-	   page is then ceil(num_results / 25), which is what "move to end" jumps to. */
-	$pageSize = 25;
-	$maxPages = 100;
-	$numResults = (int)($searchData['num_results'] ?? 0);
-	if ($numResults <= 0) $numResults = (int)($numPages * $pageSize);
-	/* Docker Hub's search API only serves the first ~100 pages reliably; deeper
-	   pages come back empty or repeat, so cap the reported count at 100 pages.
-	   That stops the scrollbar reach (and infinite scroll) at page 100 instead of
-	   chasing pages that never resolve. */
-	$numResults = min($numResults, $maxPages * $pageSize);
+	/* Docker Hub's real match count. Only used to decide whether to show the
+	   "refine your search" note - the grid itself shows just the top 100. */
+	$apiTotal = (int)($searchData['num_results'] ?? 0);
+	if ($apiTotal <= 0) $apiTotal = (int)($numPages * 25);
 	$results = $searchData['results'] ?? [];
 	$templates = &$GLOBALS['templates'];
 	$GLOBALS['caSettings']['NoInstalls'] = !is_file(CA_PATHS['warningAccepted']);
@@ -1379,23 +1370,31 @@ function displaySearchResults($pageNumber, $returnArray=false) {
 		$results
 	);
 
-	/* Page nav (and data.totalApps) derived from the real result count, so the
-	   last page = ceil(num_results / 25). */
-	$navScript = getPageNavigation($pageNumber, $numResults, true);
+	/* No pagination: totalApps is exactly what we render (<= 100), so the grid is
+	   fully loaded with no spacer / infinite scroll. The nav still runs to keep
+	   the "X of Z" indicator and clear-search state in sync. */
+	$displayedCount = count($cards);
+	$navScript = getPageNavigation($pageNumber, $displayedCount, true);
+
+	/* When Docker Hub had more matches than the 100 we show, tell the user to be
+	   more specific rather than implying there is more to scroll to. */
+	$header = ($apiTotal > $displayedCount)
+		? "<div class='ca_dockerSearchNote'>".sprintf(tr("Showing the top %s of %s Docker Hub matches. Refine your search to narrow them down."), number_format($displayedCount), number_format($apiTotal))."</div>"
+		: "";
 
 	if ($returnArray) {
 		return [
-			'header' => '',
+			'header' => $header,
 			'cards' => array_values($cards),
 			'scripts' => $navScript,
-			'totalApps' => $numResults,
-			'maxPerPage' => $pageSize,
+			'totalApps' => $displayedCount,
+			'maxPerPage' => 100,
 			'pageNumber' => (int)$pageNumber,
 		];
 	}
 
 	$cardsHtml = implode("", $cards);
-	return "<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
+	return $header."<div class='ca_templatesDisplay'>{$cardsHtml}</div>".$navScript;
 }
 
 /**

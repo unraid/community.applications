@@ -1853,8 +1853,11 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	/* Any app-content load (a category, Installed/Previous/Pinned, Home, etc.)
 	   leaves Docker Hub mode — the docker flow never routes through getContent
 	   (it uses dockerSearch directly), so this is always the right place to drop
-	   sticky docker when the user navigates the menu. */
+	   sticky docker when the user navigates the menu. Also clear the fully-loaded
+	   flag a Docker Hub search (or Previous/Installed) leaves set, so the paged
+	   app-store grid gets its virtualization back. */
 	data.docker = "";
+	data.allLoaded = false;
 	var initialize;
 	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
 	data.maxPerPage = getMaxPerPage();
@@ -5447,33 +5450,24 @@ function initDockerSearch() {
  * @param {number|string} pageNumber Hub search page index
  * @param {boolean} [append] Append cards vs replace
  */
-function dockerSearch(pageNumber, append, landRow) {
-	var doAppend = !!append;
-	/* A random-access jump fetches a fresh page but must land on the dragged-to
-	   row, not scroll to the top (the page sits below its top spacer). */
-	var isJump = !doAppend && (typeof landRow === "number");
-	/* Per request token. The Apps button, caShowInApps and getContent all leave
-	   docker by clearing data.docker, so a slow Docker Hub response must not
-	   repaint over the app store view the user already moved to. The callback
-	   bails if a newer docker search started or docker mode was left. */
+function dockerSearch() {
+	/* Docker Hub search loads ONE capped page - the server returns up to 100
+	   results (page 1) with no pagination. A vague query ("test") returns
+	   thousands of near-identical hits; showing the top 100 by Docker Hub's own
+	   ranking and nudging the user to a more specific term beats letting them
+	   scroll forever. We mark the result fully loaded, which disables infinite
+	   scroll, the spacers and the random-access jump for this view. */
 	var myDockerEpoch = (data.dockerSearchEpoch || 0) + 1;
 	data.dockerSearchEpoch = myDockerEpoch;
-	/* Only restore the committed term when paging/appending (infinite scroll).
-	   A fresh search (page 1) must use whatever is currently in the box — else
-	   typing a new term in sticky-docker mode gets reverted to the previous
-	   search and nothing appears to happen. */
-	if (doAppend) caRestoreCommittedSearchIfDrafted();
 	if (searchBoxAwesomplete) searchBoxAwesomplete.close();
-	if (!doAppend && !isJump) scrollToTop();
+	scrollToTop();
 	$(".selectedMenu").removeClass("selectedMenu");
 	var filter = $('#searchBox').val();
-	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
 	data.docker = "searching docker";
 	$(".dockerSearch").addClass("ca_hide");
 	hideMultiInstall();
 	$(".templateSearch").removeClass("ca_hide");
- // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
-	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {
+	post({action:'search_dockerhub',filter:filter,page:1},function(result) {
 		/* Stale response guard: a newer docker search ran, or the user left
 		   docker (Apps / Show in Apps / a category click cleared data.docker). */
 		if (myDockerEpoch !== data.dockerSearchEpoch || !data.docker) return;
@@ -5483,17 +5477,9 @@ function dockerSearch(pageNumber, append, landRow) {
 		data.committedSearchSubtitleFor = "";
 		data.committedSearchFilter = $.trim(String(filter || ""));
 		caSyncHomeSearchSubtitle();
-		updateDisplay(result.display_data || result.display, doAppend);
+		data.allLoaded = true;
+		updateDisplay(result.display_data || result.display, false);
 		caSyncSearchFilterCollapsed();
-		/* Jump landing: place the dragged-to row at the viewport top on the
-		   freshly rendered page (the page's cards sit below the top spacer). */
-		if (isJump) {
-			var m = $(".mainArea")[0];
-			var p2 = (typeof caVirtScrollRow === "function")
-				? caVirtScrollRow(m, $("#templates_content .ca_templatesDisplay").find(".ca_holder"), parseInt(data.totalApps, 10) || 0)
-				: null;
-			if (m && p2 && p2.rowHeight > 0) m.scrollTop = landRow * p2.rowHeight;
-		}
 		/* Free the inline-search concurrency gate so live typing in sticky
 		   docker mode flushes any keystrokes queued while this was in flight. */
 		if (typeof caInlineSearchOnComplete === "function") caInlineSearchOnComplete();
@@ -5960,13 +5946,7 @@ function caVirtResetToPageOne() {
 	caCardCache.cache = [];
 	data.loadingMore = false;
 	data._prevScrollTop = 0;
-	/* Reload page 1 via the right pipeline for the current mode - Docker Hub
-	   search must NOT route through changePage (that fetches the app store). */
-	if (data.docker) {
-		dockerSearch(1, false);
-	} else if (typeof changePage === "function") {
-		changePage(1);
-	}
+	if (typeof changePage === "function") changePage(1);
 }
 /**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
@@ -6266,6 +6246,7 @@ function caInitInfiniteScroll() {
 	   a page; the dragged scrollTop is restored so the freshly loaded page sits
 	   under the viewport. Apps grid only. */
 	var caJumpToPage = function(el) {
+		if (data.docker) return; // Docker Hub loads one capped page; no random-access jump
 		/* Defer (don't drop) while a fetch is in flight OR the user is still
 		   holding the scrollbar thumb: just flag that a jump is wanted. It re-runs
 		   from caReevaluateJump when the fetch settles AND from the mouseup
@@ -6291,15 +6272,6 @@ function caInitInfiniteScroll() {
 		   for the row the user is reading off it - no drift between the two. */
 		var pos = caVirtScrollRow(el, $cards, total);
 		if (!pos) return;
-		/* Docker Hub paginates at a fixed 25/page and is capped at 100 pages.
-		   Fetch the dragged-to page directly (and land by row) instead of the
-		   sequential count-up triggerNext would otherwise crawl through. */
-		if (data.docker) {
-			var dPage = Math.min(100, Math.max(1, Math.floor((pos.topRow * pos.perRow) / 25) + 1));
-			data.loadingMore = true;
-			dockerSearch(dPage, false, pos.topRow);
-			return;
-		}
 		var perPage = parseInt(data.maxPerPage, 10) || 12;
 		var targetRow = pos.topRow;
 		var targetPage = Math.floor((targetRow * pos.perRow) / perPage) + 1;
@@ -6350,7 +6322,7 @@ function caInitInfiniteScroll() {
 	   very top is left to caVirtUpdate's page-1 reset. */
 	var jumpTimer = null;
 	var maybeJump = function(el) {
-		if (data.loadingMore) return false;
+		if (data.docker || data.loadingMore) return false;
 		if (!(parseInt(data.totalApps, 10) > 0)) return false;
 		if (!$("#templates_content .ca_templatesDisplay").length) return false;
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
@@ -6423,16 +6395,10 @@ function caInitInfiniteScroll() {
 		if (total <= 0) return false;
 
 		if (data.docker) {
-			/* DockerHub API caps each search at 25 results/page — we can't
-			   ask for everything in one shot like the Apps grid path. Jump
-			   to the last page instead; updateDisplay's structured-replace
-			   path sets cardCacheOffset from the server's pageNumber so the
-			   "Displaying X - Y of Z" indicator stays correct, and the
-			   existing jump-to-top reset in caVirtUpdate handles scroll-up
-			   back to page 1 when the user wants it. */
-			var dockerPerPage = 25;
-			var dockerLastPage = Math.max(1, Math.ceil(total / dockerPerPage));
-			dockerSearch(dockerLastPage, false);
+			/* Docker Hub search is a single fully-loaded page now — every result
+			   is already in the DOM, so just scroll to the bottom (no fetch). */
+			$(s).stop(true, true);
+			s.scrollTop = s.scrollHeight;
 			return false;
 		}
 
