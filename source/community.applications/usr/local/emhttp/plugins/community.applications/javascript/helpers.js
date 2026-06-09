@@ -286,7 +286,7 @@ function installSort(a,b) {
  * Full page reload.
  */
 function reloadPage() {
-	location.reload();
+	window.location.reload();
 }
 
 /**
@@ -815,12 +815,7 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		}
 
 		var doHomeReload = function() {
-			var $homeBtn = $(".startupButton").first();
-			if ($homeBtn.length) {
-				$homeBtn.trigger("click");
-			} else {
-				window.location.reload();
-			}
+			window.location.reload();
 		};
 		/* User-driven reload instead of a timer: multiple tabs receiving the
 		   same "feed updated" signal would otherwise all reload simultaneously,
@@ -891,11 +886,7 @@ function caShowReloadNoticeBanner(beforeReload, delayMs) {
 	}, 1000);
 
 	var doReload = function() {
-		/* Prefer the Home button (re-runs the feed pipeline) over a raw reload,
-		   matching the previous restart behaviour. */
-		var $homeBtn = $(".startupButton").first();
-		if ($homeBtn.length) $homeBtn.trigger("click");
-		else window.location.reload();
+		window.location.reload();
 	};
 
 	setTimeout(function() {

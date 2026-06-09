@@ -113,6 +113,7 @@ $(function() {
 
 <!-- Status Bar.   This gets moved to the body -->
 <div class='ca_statusArea'>
+	<?if ($md5Error):?><span class='modifiedCode'>Modified Code</span><?endif;?>
 	<span class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span></span>
 	<span class='caStatusText'></span>
 </div>
@@ -224,15 +225,6 @@ $(function() {
 				<?if (caIsAdmin()):?>
 				<li class='categoryMenu caMenuItem caDuplicatesMenu onlyShowWithFeed nonDockerSearch' data-category='duplicates'><?tr("Duplicates");?></li>
 				<?endif;?>
-				<li><hr class='category_hr onlyShowWithFeed'/></li>
-				<?if ($md5Error):?>
-				<li><span class='modifiedCode'>Modified Code</span></li>
-				<br>
-				<?endif;?>
-				<li class='caMenuItem debugging noSelect'><?tr("Debugging");?></li>
-				<?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?>
-				<li class='caMenuDisabled noSelect'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</li>
-				<?endif;?>
 			</ul>
 		</div>
 	</div>
@@ -253,7 +245,8 @@ $(function() {
 		     (see body:has(#sidenavContent .credits) in the CSS). -->
 		<div class='caCreditsActions'>
 			<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
-			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Change Log");?></div>
+			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
+			<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span><?endif;?></div>
 			<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
 		</div>
 		<!-- Shown only while the settings panel is open AND Cancel is enabled
@@ -385,7 +378,8 @@ $(function() {
 			     classes, so only the visible set is ever clickable. -->
 			<div class='caCreditsActionsBody ca_center'>
 				<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
-				<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Change Log");?></div>
+				<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
+				<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span><?endif;?></div>
 				<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
 			</div>
 			<div class='ca_center ca_creditVersion'><?tr("VERSION");?> <?=htmlspecialchars((string)ca_plugin("version","/var/log/plugins/community.applications.plg"), ENT_QUOTES)?><?if ($md5Error):?> <span class='modifiedCode'>Modified Code</span><?endif;?></div>
@@ -680,44 +674,11 @@ $(function() {
 	</div>
 </div>
 
+<!-- Hidden sizing probe: caMeasureCardDims() falls back to this .ca_holder when
+     no real cards are on screen yet. The card box is sized purely by CSS, so an
+     empty holder is all that is needed. -->
 <div id='sampleApp' style='display:none;'>
-	<div class='ca_templatesDisplay' style='visibility:hidden;'>
-		<div>
-			<div class="installedCardBackground">
-				<div class="installedCardText ca_center">INSTALLED</div>
-			</div>
-			<div
-				class="ca_holder ca_appTemplate ca_appPopup "
-				data-apppath="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg"
-				data-appname="Community Applications"
-				data-repository="Official Unraid Plugin Repository"
-				data-pluginurl="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plg"
-			>
-				<div class="ca_bottomLine ca_bottomLineSpotLight">
-					<div class="caButton infoButton ca_appPopup">Details</div>
-					<span class="appPlugin" title="This application is a plugin"></span>
-					<span class="favCardBackground favCardBackgroundHide" data-repository="Official Unraid Plugin Repository"></span>
-					<span
-						class="pinnedCard"
-						title="This application is pinned for later viewing"
-						data-pindata="https://raw.githubusercontent.com/unraid/community.applications/master/plugins/community.applications.plgCommunity Applications"
-						style="display:none;"
-					></span>
-				</div>
-				<div class="ca_appPopup ca_backgroundClickable">
-					<div class="ca_iconArea">
-						<img class="ca_displayIcon " src="https://raw.githubusercontent.com/unraid/docker-templates/master/images/CA.png" alt="Application Icon">
-					</div>
-					<div class="ca_applicationName ellipsis">Community Applications          </div>
-					<div class="ca_author ellipsis">Andrew Zawadzki</div>
-					<div class="cardCategory">Tools</div>
-				</div>
-				<div class="cardDescription ca_backgroundClickable">
-					<div class="cardDesc">This is THE place to find add-on applications for your Unraid server. </div>
-				</div>
-			</div>
-		</div>
-	</div>
+	<div class="ca_holder ca_appTemplate ca_appPopup"></div>
 </div>
 <?
 ###############################################################################

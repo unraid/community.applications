@@ -1194,7 +1194,6 @@ function getPopupDescriptionSkin($appNumber) {
 		$templateIcon = startsWith($template['IconFA'],"icon-") ? "{$template['IconFA']} unraidIcon" : "fa fa-{$template['IconFA']}";
 		$template['display_icon'] = "<i class='$templateIcon popupIcon'></i>";
 	} else {
-		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? $template['Icon'];
 		/* Stricter than validURL: caIsPublicHttpUrl additionally rejects
 		   RFC1918 / link-local / CGNAT / IPv6 ULA / .local (mDNS) hosts. The
 		   icon URL is fetched automatically by the browser when the popup

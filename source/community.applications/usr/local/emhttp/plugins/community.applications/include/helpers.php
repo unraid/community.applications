@@ -95,14 +95,12 @@ function getFullGlobals() {
  */
 function getSettings() {
 
-	$dynamixSettings = parse_plugin_cfg("dynamix");
 	$unRaidSettings = parse_ini_file("/etc/unraid-version");
 
 	$GLOBALS['caSettings'] = parse_plugin_cfg("community.applications");
 	$GLOBALS['caSettings']['dockerSearch']  = "yes";
 	$GLOBALS['caSettings']['unRaidVersion'] = $unRaidSettings['version'];
 	$GLOBALS['caSettings']['favourite']     = isset($GLOBALS['caSettings']['favourite']) ? str_replace("*","'",$GLOBALS['caSettings']['favourite']) : "";
-	$GLOBALS['caSettings']['dynamixTheme']  = $dynamixSettings['theme'];
 
  // $GLOBALS['caSettings']['maxPerPage']    = (integer)$GLOBALS['caSettings']['maxPerPage'] ?: 12; // Handle possible corruption on file
 	//if ( $GLOBALS['caSettings']['maxPerPage'] < 6 ) $GLOBALS['caSettings']['maxPerPage'] = 12;

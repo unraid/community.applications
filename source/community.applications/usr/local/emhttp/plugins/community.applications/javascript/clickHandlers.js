@@ -621,7 +621,7 @@ function caInitializeClickHandlers() {
 	 * body-delegated, so the handlers also reach the Credits buttons after the
 	 * panel is cloned into the live sidebar.
 	 */
-	$("body").on("click keydown", ".caCreditsInfo, .caCreditsStatistics, .caCreditsChangeLog", function(e) {
+	$("body").on("click keydown", ".caCreditsInfo, .caCreditsStatistics, .caCreditsChangeLog, .caCreditsDebugging", function(e) {
 		if (e.type === "keydown" && e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
 		e.preventDefault();
 		e.stopPropagation();
@@ -630,6 +630,9 @@ function caInitializeClickHandlers() {
 		   (and outside-click returns there). showCredits clears it again. */
 		else if ($(this).hasClass("caCreditsStatistics")) { window.caSidebarBackTarget = "credits"; showStatistics(); }
 		else if ($(this).hasClass("caCreditsChangeLog")) { window.caSidebarBackTarget = "credits"; caChangeLog(); }
+		/* Logs button: build and download the debug zip. Stays on the Credits
+		   view, so no back target is set. */
+		else if ($(this).hasClass("caCreditsDebugging")) caDownloadDebugging();
 	});
 	/**
 	 * Category-menu click: clear the search box (when no in-progress search),
@@ -742,7 +745,7 @@ function caInitializeClickHandlers() {
 			case "installed_apps": data.previousAppsSection = ""; previousApps(true); break;
 			case "inst_docker": data.previousAppsSection = "docker"; previousApps(true, false, "docker"); break;
 			case "inst_plugins": data.previousAppsSection = "plugins"; previousApps(true, false, "plugins"); break;
-			case "previous_apps": data.previousAppsSection = ""; previousApps(false); break;
+			case "previous_apps": data.previousAppsSection = ""; previousApps(false, true); break;
 			case "prev_docker": data.previousAppsSection = "docker"; previousApps(false, true, "docker"); break;
 			case "prev_plugins": data.previousAppsSection = "plugins"; previousApps(false, true, "plugins"); break;
 			case "action_centre": data.previousAppsSection = ""; actionCentre(); break;
@@ -779,20 +782,6 @@ function caInitializeClickHandlers() {
 		caSyncHomeSearchSubtitle();
 		scrollToTop();
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
-	});
-	/**
-	 * "Debugging" menu click: build a timestamped filename, POST
-	 * `downloadDebugging`, and redirect the browser to the resulting zip URL.
-	 */
-	$("body").on("click", ".debugging", function() {
-		var tzoffset = (new Date()).getTimezoneOffset() * 60000;
-		var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
-		var filename = "CA-Logging-" + localISOTime.substr(0, 16).replace(/[-:]/g, "").replace("T", "-") + ".zip";
-		post({ action: "downloadDebugging", file: filename }, function(result) {
-			if (result && result.zip) {
-				location = result.zip;
-			}
-		});
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
 	/**
@@ -935,6 +924,48 @@ function caInitializeClickHandlers() {
 			var $wrap = $(".mfp-wrap");
 			if ($wrap.length) $wrap.focus();
 			else if (this.blur) this.blur();
+		}
+	});
+}
+
+/**
+ * Pop the bottom banner with a short message, then auto-hide it after 5s.
+ * Lightweight toast - no modal, no reload, no countdown. Saves and restores
+ * whatever the banner was showing so the page-geometry notice survives if it
+ * happened to be up, and re-arms the timer cleanly on repeat calls.
+ */
+function caShowTransientBanner(message) {
+	var $banner = $(".ca_bottomBanner");
+	var $msg = $banner.find(".ca_pageGeometryChange");
+	if ( ! $banner.length || ! $msg.length ) return;
+	if ( window.caTransientBannerTimer ) {
+		clearTimeout(window.caTransientBannerTimer);
+	} else {
+		window.caTransientBannerSaved = $msg.html();
+	}
+	$msg.text(message);
+	$banner.removeClass("ca_hide");
+	window.caTransientBannerTimer = setTimeout(function() {
+		$banner.addClass("ca_hide");
+		$msg.html(window.caTransientBannerSaved);
+		window.caTransientBannerTimer = null;
+	}, 5000);
+}
+
+/**
+ * Build a timestamped filename, POST downloadDebugging, and redirect the
+ * browser to the resulting zip URL. Wired to the Logs button on the Credits
+ * panel and to the Cmd/Ctrl+Shift+D shortcut. Pops a transient banner so the
+ * user gets feedback that the zip is being prepared.
+ */
+function caDownloadDebugging() {
+	caShowTransientBanner(tr("Debugging Logs Downloading"));
+	var tzoffset = (new Date()).getTimezoneOffset() * 60000;
+	var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0, -1);
+	var filename = "CA-Logging-" + localISOTime.substr(0, 16).replace(/[-:]/g, "").replace("T", "-") + ".zip";
+	post({ action: "downloadDebugging", file: filename }, function(result) {
+		if (result && result.zip) {
+			location = result.zip;
 		}
 	});
 }
@@ -1117,12 +1148,12 @@ function caInitializeEventHandlers() {
 		elSearch.addEventListener("keydown", caSearchModalAwesompleteGridKeydown, true);
 	}
 
-	/* Cmd/Ctrl+Shift+D triggers the Debugging menu item from anywhere on the page. */
+	/* Cmd/Ctrl+Shift+D downloads the debug logs from anywhere on the page. */
 	$(document).on("keydown", function(e) {
 		var key = e.key || "";
 		if ((e.metaKey || e.ctrlKey) && e.shiftKey && (key === "d" || key === "D")) {
 			e.preventDefault();
-			$(".debugging").first().trigger("click");
+			caDownloadDebugging();
 		}
 	});
 
@@ -1497,12 +1528,21 @@ function caInitializeEventHandlers() {
 			var $inline = $("#caInlineSearchBox");
 			if (!$inline.length) return;
 			var sb = $("#searchBox").val() || "";
-			if (sb === lastMirror) return;
-			lastMirror = sb;
-			/* Always re-sync lastCommitted so a Home click that clears
-			   #searchBox to "" doesn't leave the closure thinking the
-			   user is "still" on their previous search term. */
-			if (lastCommitted !== sb) lastCommitted = sb;
+			/* Bookkeeping is gated on a change since the last tick. Always re-sync
+			   lastCommitted so a Home click that clears #searchBox to "" doesn't
+			   leave the closure thinking the user is "still" on their previous
+			   search term. */
+			if (sb !== lastMirror) {
+				lastMirror = sb;
+				if (lastCommitted !== sb) lastCommitted = sb;
+			}
+			/* Reconcile the visible inline input every tick, NOT only when sb
+			   changed since last tick. A clearSearchBox()+doSearch() pair (e.g.
+			   re-clicking Favourite Repo) drives #searchBox value -> "" -> value
+			   within one synchronous turn, so the interval never observes the
+			   intermediate "". Gating the inline reconcile on sb !== lastMirror
+			   then skipped it, leaving the box blank while clearSearchBox had
+			   already emptied it. */
 			if ($inline.is(":focus")) return; // don't fight user typing
 			if (($inline.val() || "") !== sb) {
 				$inline.val(sb);

@@ -477,7 +477,6 @@ body,
 	display: block;
 	position: relative;
 	top: 0.5rem;
-	max-height: 6.5rem;
 	line-height: 1.5rem;
 
 	/* Interactive */
@@ -485,45 +484,18 @@ body,
 	overflow: hidden;
 }
 
+/* Clamp the blurb to a fixed number of lines and let the browser place a
+   native ellipsis at the real cut point. This replaces the old approach - an
+   absolutely positioned ::after "..." pinned to a guessed top/width plus a
+   horizontal gradient - which mis-aligned whenever the text did not match the
+   guess and showed a stray "..." even on short descriptions. line-clamp needs
+   the -webkit-box display switch; it is supported across all current browsers. */
 .cardDesc {
-	display: inline-block;
-	max-height: 7rem;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	line-clamp: 4;
 	overflow: hidden;
-	position: relative; /* Required for absolute positioning of ::after */
-}
-
-.cardDesc::after {
-	content: "...";
-
-	/* Positioning */
-	position: absolute;
-	right: 0;
-	top: 4.75rem;
-	height: 1.2rem;
-	width: 60ch;
-
-	/* Typography */
-	font-size: inherit;
-	line-height: inherit;
-	color: inherit;
-
-	/* Create fade effect using template background color */
-	background: linear-gradient(to right,
-	transparent 0%,
-	color-mix(in srgb, var(--mild-background-color) 10%, transparent) 30%,
-	color-mix(in srgb, var(--mild-background-color) 30%, transparent) 70%,
-	color-mix(in srgb, var(--mild-background-color) 80%, transparent) 100%);
-
-	/* Padding for spacing */
-	padding-left: 0.5rem;
-
-	/* Display properties */
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-
-	/* Ensure it's positioned correctly */
-	pointer-events: none;
 }
 
 	/* 2.4) Buttons & Forms
@@ -1705,6 +1677,23 @@ body,
 	.caCreditsActionsBody {
 		display: none;
 	}
+	/* Logs button keeps its label and the optional keyboard-shortcut hint on one
+	   line, the hint sitting just to the right of the label. */
+	.caCreditsDebugging {
+		display: inline-flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+	}
+	/* Dev-only shortcut reminder beside the Logs label - small and dimmed so it
+	   reads as fine print rather than a second label. nowrap keeps the keyboard
+	   icon, arrow, and D on one line next to the label instead of stacking. */
+	.caCreditsLogsHint {
+		font-size: 1rem;
+		opacity: 0.7;
+		margin-left: 0.5rem;
+		white-space: nowrap;
+	}
 	.ca_creditVersion {
 		margin-bottom: 0.75rem;
 		opacity: 0.85;
@@ -1771,9 +1760,17 @@ body,
 	}
 
 	/* 3.6) Icon glyph helpers and card icon assets */
+	/* Contrasting halo so an icon stays legible when its own colour is close to
+	   the card background - a near-white logo on the white theme, a near-black
+	   logo on the black theme. --text-color is dark on light themes and light on
+	   dark themes, so the outline always contrasts without us knowing the icon
+	   content. drop-shadow works on the alpha channel on the GPU, so it needs no
+	   canvas read and no CORS, and the browser keeps full control of caching.
+	   Icons that already contrast only pick up a faint 1px edge. */
 	img.ca_displayIcon {
 		height: 8rem;
 		width: 8rem;
+		filter: drop-shadow(0 0 1px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
 	}
 
 	.ca_display_area {
@@ -2282,11 +2279,6 @@ body,
 	}
 
 	/* 3.8) Misc application state / compatibility helpers */
-	li.debugging {
-		cursor: pointer;
-	}
-
-
 	i.displayIcon {
 		font-size: 5.5rem;
 		color: var(--ca-grey-color);
@@ -2874,6 +2866,9 @@ input[type="button"] {
 		height: 10rem;
 		padding: 0.3rem;
 		border-radius: 1rem 1rem 1rem 1rem;
+		/* Same contrasting halo as the card icons (see img.ca_displayIcon) so a
+		   near-white or near-black logo stays legible against the sidebar. */
+		filter: drop-shadow(0 0 1px var(--text-color)) drop-shadow(0 0 1px var(--text-color));
 	}
 
 	/* The icon img used to carry the .screenshot class (cursor:pointer
@@ -3974,7 +3969,7 @@ input[type="button"] {
 	}
 
 	.modifiedCode {
-		margin-bottom: 1rem;
+		margin-right: 1rem;
 		animation: cycleRed 1s infinite;
 	}
 

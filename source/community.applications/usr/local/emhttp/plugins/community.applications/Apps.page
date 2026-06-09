@@ -182,7 +182,7 @@ $htmlClasses = implode(" ",$classList);
    compare its default value against the current $GLOBALS['caSettings']
    entry; if the user has flipped it from the shipped default, emit a
    `ca_<key>` class. Keys not present in default.cfg are skipped (so
-   runtime-only keys like unRaidVersion / dynamixTheme / favourite don't
+   runtime-only keys like unRaidVersion / favourite don't
    leak in). Lets CSS / future JS branch on user-configured deviations
    without re-reading the cfg files. The list rides on a hidden div near
    the top of the page body — never displayed, queried via JS or scoped
@@ -1537,7 +1537,7 @@ function showSpecialCategory(button) {
 function showSpecials(button) {
 	showSortIcons();
 	$(".caMenuItem").removeClass("selectedMenu");
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	data.selected_category = "DOESNTMATTERWHATSHERE";
 	data.section = "AppStore";
 	changeCategory(button,false);
@@ -1555,7 +1555,7 @@ function changeCategory(button,subSwitch) {
 	var description = $(button).text();
 	var category = $(button).attr("data-category");
 
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	getContent(false,category,description,false);
 }
 
@@ -1716,7 +1716,7 @@ function doSearch(button,newSearch) {
 	data.section = "AppStore";
 
 	$('#searchBox').val(filter);
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 
 	scrollToTop();
 	if (filter) {
@@ -2333,7 +2333,7 @@ function getPrevApps(installed,filter,dontClear) {
 	data.maxPerPage = getMaxPerPage();
 	post({action:'previous_apps',installed:installed,filter:filter,maxPerPage:data.maxPerPage},function(result) {
 		if ( installed == true ) {
-			$(".multi_installDiv").hide();
+			hideMultiInstall();
 		} else {
 			$(".multi_installDiv").show();
 			if ( ! dontClear ) {
@@ -2535,7 +2535,7 @@ function appStore() {
 function initializeAppStore() {
 	data.section = "AppStore";
 	data.selected_category = "";
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 }
 
 /**
@@ -2620,7 +2620,8 @@ function pins() {
 	clearCategory();
 	showSortIcons();
 //  $(".category").html("<?tr("Pinned Apps");?>");
-	$(".dockerSearch,.templateSearch,.multi_installDiv").hide();
+	$(".dockerSearch,.templateSearch").hide();
+	hideMultiInstall();
 	post({action:'pinnedApps'},function(result) {
 		refreshDisplay();
 		myCloseAlert();
@@ -2828,6 +2829,20 @@ function clearMultiInstall() {
 	});
 	$(".multi_install,.multi_installClear").attr("disabled",true);
 	enableMultiInstall();
+}
+
+/**
+ * Hide the multi-install chrome and drop any remembered selection.
+ *
+ * The multi-install row is only ever shown for the Previous Apps subs and
+ * Action Centre, so hiding it means we are leaving that context. Selection
+ * is intentionally kept while moving between the Previous Apps All/Docker/
+ * Plugins subs (that path shows the row again without hiding it first), so
+ * clearing here only fires when the user navigates to any other view.
+ */
+function hideMultiInstall() {
+	$(".multi_installDiv").hide();
+	clearMultiInstall();
 }
 
 
@@ -5343,7 +5358,7 @@ function caShowInApps(templateURL, name) {
 	data.committedSearchSubtitleFor = boxTerm;
 	caSyncHomeSearchSubtitle(); // flip Home to Clear Search immediately
 
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	scrollToTop();
 	if (typeof caCloseSearchModal === "function") caCloseSearchModal();
 	caClearHomeSectionSubtitle();
@@ -5444,7 +5459,7 @@ function dockerSearch(pageNumber, append) {
 	var dockerURL = "https://registry.hub.docker.com/search?q=" + filter;
 	data.docker = "searching docker";
 	$(".dockerSearch").addClass("ca_hide");
-	$(".multi_installDiv").hide();
+	hideMultiInstall();
 	$(".templateSearch").removeClass("ca_hide");
  // $(".category").html(sprintf("<?tr("DockerHub Search for %s")?>",filter)+" <span id='pageNumber'></span>");
 	post({action:'search_dockerhub',filter:filter,page:pageNumber},function(result) {

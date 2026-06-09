@@ -2887,7 +2887,7 @@ function createXML() {
 		if ( $template['OriginalDescription'] ?? false )
 			$template['Description'] = $template['OriginalDescription'];
 
-		$template['Icon'] = $template["Icon-{$GLOBALS['caSettings']['dynamixTheme']}"] ?? ($template['Icon'] ?? "");
+		$template['Icon'] = $template['Icon'] ?? "";
 
 // switch from br0 to eth0 if necessary
 		if ( isset($template['Networking']['Mode']) || isset($template['Network']) ) {

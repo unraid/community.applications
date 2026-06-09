@@ -211,3 +211,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: On narrow screens, the Credits panel's Statistics, Change Log, and Help buttons now appear at the top of the Credits page, where there's no room for them beside the close button
 - Fixed: Corrected a spacing glitch in the pop-out search bar
 - Chore: Removed some dead, commented-out styling left behind by earlier search-bar work
+- Changed: The "Modified Code" warning (shown when CA's own files have been altered) now appears in the page footer instead of the left menu
+- Fixed: In Previous Apps, selected apps are now kept when switching between All / Docker / Plugins and cleared when you leave to any other section — previously "All" wrongly cleared the selection and other sections wrongly kept it
+- Changed: The "Debugging" menu item is now a "Logs" button on the Credits screen (with its keyboard shortcut shown beside it), and downloading logs pops a brief "Debugging Logs Downloading" notice
+- Changed: Renamed the Credits "Change Log" button to "Changes"
+- Changed: App and repository icons (on cards and in the sidebar) now get a subtle contrasting outline so a near-white icon stays visible on the white theme and a near-black icon on the black theme
+- Removed: Dropped support for per-theme alternate app icons (the unused `Icon-<theme>` template field)
+- Changed: Long card descriptions now clip cleanly with a trailing ellipsis instead of a fade-out that could land in the wrong spot
+- Fixed: Clicking "Favourite Repo" a second time no longer blanks the search box while the search is still active
+- Fixed: Actions that need a page reload (feed-update notice, the settings/repository change countdown, and fatal-error recovery) now do a full browser reload instead of a soft in-page refresh that could leave a stale view
