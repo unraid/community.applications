@@ -5832,6 +5832,41 @@ function caVirtTrimCacheAbove(perRow) {
 	caCardCache.lastInDom -= drop;
 }
 /**
+ * Mirror of {@link caVirtTrimCacheAbove} for the rows cached BELOW the DOM
+ * window (which accumulate when the user scrolls back up after paging deep).
+ * Keeps ~3 pages buffered for instant short scroll-downs, drops whole pages off
+ * the tail of caCardCache.cache, and re-points `data.nextpage` at the first
+ * dropped page so scrolling back down re-fetches it instead of finding a gap.
+ *
+ * The bottom spacer is sized from lastInDom (the DOM window), which this does
+ * NOT touch, so the spacer stays correct. Skipped while a fetch is in flight so
+ * we never fight the in-flight response's caRenderPageNavigation over
+ * data.nextpage.
+ *
+ * @param {number} perRow Cards per row (fallback page size when maxPerPage absent)
+ */
+function caVirtTrimCacheBelow(perRow) {
+	if (data.loadingMore) return;
+	var lastInDom = caCardCache.lastInDom;
+	if (typeof lastInDom !== "number" || lastInDom < 0) return;
+	var len = (caCardCache.cache && caCardCache.cache.length) || 0;
+	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || perRow || 1);
+	var keepBelow = perPage * 3; // ~3 pages buffered for smooth short scroll-downs
+	if ((len - 1 - lastInDom) <= keepBelow) return;
+	/* Keep up to a page boundary at least keepBelow rows past the DOM window. */
+	var keepEnd = Math.ceil((lastInDom + 1 + keepBelow) / perPage) * perPage;
+	if (keepEnd >= len) return; // under a page of excess; not worth a trim
+	caCardCache.cache.splice(keepEnd);
+	/* offset is page-aligned and keepEnd is a whole number of pages, so the first
+	   dropped row sits exactly on a page boundary - that page is what to re-fetch. */
+	var off = parseInt(caCardCache.offset, 10) || 0;
+	var firstDroppedGlobal = off + keepEnd;
+	var total = parseInt(data.totalApps, 10) || 0;
+	data.nextpage = (total > 0 && firstDroppedGlobal < total)
+		? (Math.floor(firstDroppedGlobal / perPage) + 1)
+		: 0;
+}
+/**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
  */
 function caVirtUpdate() {
@@ -5946,6 +5981,7 @@ function caVirtUpdate() {
 				lastEl.parentNode.removeChild(lastEl);
 			}
 			caCardCache.lastInDom -= removeBelow;
+			caVirtTrimCacheBelow(perRow);
 			caVirtUpdateBottomSpacer();
 			evicted = true;
 		}
