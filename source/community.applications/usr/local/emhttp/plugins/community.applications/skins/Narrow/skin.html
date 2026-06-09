@@ -246,7 +246,7 @@ $(function() {
 		<div class='caCreditsActions'>
 			<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
 			<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
-			<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span><?endif;?></div>
+			<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;Ctrl/Cmd&nbsp;+&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span></div>
 			<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
 		</div>
 		<!-- Shown only while the settings panel is open AND Cancel is enabled
@@ -379,7 +379,7 @@ $(function() {
 			<div class='caCreditsActionsBody ca_center'>
 				<div class='caButton caCreditsStatistics' role='button' tabindex='0'><?tr("Statistics");?></div>
 				<div class='caButton caCreditsChangeLog' role='button' tabindex='0'><?tr("Changes");?></div>
-				<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><?if (($GLOBALS['caSettings']['dev'] ?? "no") == "yes"):?><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span><?endif;?></div>
+				<div class='caButton caCreditsDebugging' role='button' tabindex='0'><span class='caCreditsLogsLabel'><?tr("Logs");?></span><span class='caCreditsLogsHint'><i class='fa fa-keyboard-o'></i>&nbsp;Ctrl/Cmd&nbsp;+&nbsp;<i class='fa fa-arrow-up'></i>&nbsp;D</span></div>
 				<a class='caButton caCreditsSupport' href='https://forums.unraid.net/topic/38582-plug-in-community-applications/' target='_blank' rel='noopener noreferrer'><?tr("Help");?></a>
 			</div>
 			<div class='ca_center ca_creditVersion'><?tr("VERSION");?> <?=htmlspecialchars((string)ca_plugin("version","/var/log/plugins/community.applications.plg"), ENT_QUOTES)?><?if ($md5Error):?> <span class='modifiedCode'>Modified Code</span><?endif;?></div>

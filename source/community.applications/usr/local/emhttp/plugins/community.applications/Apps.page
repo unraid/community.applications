@@ -319,7 +319,8 @@ var caCardCache = {
 	cache: [],       // current loaded slice of cards (HTML strings) — array, not necessarily aligned with global index
 	offset: 0,       // global index of caCardCache.cache[0] (non-zero after a jump-load like move-to-end)
 	firstInDom: 0,   // index within caCardCache.cache of the first card currently in the DOM
-	lastInDom: -1    // index within caCardCache.cache of the last card currently in the DOM (-1 when empty)
+	lastInDom: -1,   // index within caCardCache.cache of the last card currently in the DOM (-1 when empty)
+	generation: 0    // bumped whenever the cache is reset (caVirtResetToPageOne); pagination responses captured before a bump are stale and dropped
 };
 
 /* Per-tab id: sessionStorage is scoped per browser-tab and survives reloads of
@@ -1443,7 +1444,7 @@ function updateContent(button,skipAppfeed=true) {
 				doSearch(false,startupSearch);
 				populateAutoComplete();
 				startupSearch = "";
-				$(".dockerSearch,.templateSearch").hide();
+				$(".dockerSearch,.templateSearch").addClass("ca_hide");
 			} else {
 				getContent(true,'INITIALIZE',"","",startupScreen);
 			}
@@ -1582,7 +1583,13 @@ function changePage(pageNumber, append) {
 	   through to plain post() — that's the very interaction we want to
 	   trigger the collapse. */
 	var postFn = data.searchInProgress ? postNoSpin : post;
+	/* Snapshot the cache generation now; if a reset (caVirtResetToPageOne) bumps
+	   it while this request is in flight, the response is stale - applying its
+	   append/prepend would corrupt the freshly reset cache, so drop it. The reset
+	   already cleared data.loadingMore and issued its own page-1 fetch. */
+	var reqGen = caCardCache.generation || 0;
 	postFn({action:'display_content',pageNumber:pageNumber,selected:selected,maxPerPage:data.maxPerPage},function(result) {
+		if ((caCardCache.generation || 0) !== reqGen) return;
 		updateDisplay(result.display_data || result.display, mode);
 		if (mode === false) scrollToTop();
 	});
@@ -2620,7 +2627,7 @@ function pins() {
 	clearCategory();
 	showSortIcons();
 //  $(".category").html("<?tr("Pinned Apps");?>");
-	$(".dockerSearch,.templateSearch").hide();
+	$(".dockerSearch,.templateSearch").addClass("ca_hide");
 	hideMultiInstall();
 	post({action:'pinnedApps'},function(result) {
 		refreshDisplay();
@@ -5930,6 +5937,11 @@ function caVirtTrimCacheBelow(perRow) {
  * user strands on empty top-spacer with nothing rendered.
  */
 function caVirtResetToPageOne() {
+	/* Invalidate any page request already in flight: it was captured against the
+	   pre-reset cache, so its append/prepend would corrupt the page-1 cache we are
+	   about to load. changePage's callback drops responses whose generation no
+	   longer matches. */
+	caCardCache.generation = (caCardCache.generation || 0) + 1;
 	caCardCache.firstInDom = 0;
 	caCardCache.lastInDom = -1;
 	caCardCache.offset = 0;
