@@ -5800,6 +5800,38 @@ function caVirtRowHeight($cards, perRow) {
 	return $cards[perRow].offsetTop - $cards[0].offsetTop;
 }
 /**
+ * Bound the cached-but-evicted rows ABOVE the DOM window. Keeps roughly a few
+ * pages so short scroll-ups still restore instantly from cache, then drops whole
+ * pages off the front of caCardCache.cache and folds their count into `offset`.
+ * That converts "cached above" into "unfetched above" (offset > 0), so a longer
+ * scroll-up re-fetches page-by-page via triggerPrev instead of letting the cache
+ * grow without limit as the user pages deep into a large result set.
+ *
+ * Two invariants keep this safe on the fragile scroll path:
+ *   - offset + firstInDom (the rows-above total the top spacer is sized from) is
+ *     unchanged by the trim, so it is invisible to the spacer/scroll math.
+ *   - Trimming is page-aligned (offset stays a multiple of maxPerPage), so the
+ *     triggerPrev prepend lands exactly on the rows just above the cache with no
+ *     gap or overlap.
+ *
+ * @param {number} perRow Cards per row (fallback page size when maxPerPage absent)
+ */
+function caVirtTrimCacheAbove(perRow) {
+	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || perRow || 1);
+	var keepAbove = perPage * 3; // ~3 pages buffered for smooth short scroll-ups
+	var firstInDom = caCardCache.firstInDom || 0;
+	if (firstInDom <= keepAbove) return;
+	var off = parseInt(caCardCache.offset, 10) || 0;
+	var gStart = off + firstInDom;                              // global index of first DOM card
+	var keepFrom = Math.max(0, Math.floor((gStart - keepAbove) / perPage) * perPage);
+	var drop = keepFrom - off;                                  // page-aligned count to drop off the front
+	if (drop <= 0) return;
+	caCardCache.cache.splice(0, drop);
+	caCardCache.offset = keepFrom;
+	caCardCache.firstInDom -= drop;
+	caCardCache.lastInDom -= drop;
+}
+/**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
  */
 function caVirtUpdate() {
@@ -5886,6 +5918,7 @@ function caVirtUpdate() {
 			$cards[ka].parentNode.removeChild($cards[ka]);
 		}
 		caCardCache.firstInDom += na;
+		caVirtTrimCacheAbove(perRow);
 		caVirtUpdateTopSpacer();
 		$cards = refreshCards();
 		evicted = true;
