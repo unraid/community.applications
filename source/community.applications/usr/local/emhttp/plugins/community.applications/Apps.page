@@ -5867,6 +5867,21 @@ function caVirtTrimCacheBelow(perRow) {
 		: 0;
 }
 /**
+ * Clear the cache window and re-render page 1 at the top. Used when the viewport
+ * lands near the very top with rows still parked above the DOM window (a fast
+ * scroll-up jump, or a thumb dragged to the top and released) - otherwise the
+ * user strands on empty top-spacer with nothing rendered.
+ */
+function caVirtResetToPageOne() {
+	caCardCache.firstInDom = 0;
+	caCardCache.lastInDom = -1;
+	caCardCache.offset = 0;
+	caCardCache.cache = [];
+	data.loadingMore = false;
+	data._prevScrollTop = 0;
+	if (typeof changePage === "function") changePage(1);
+}
+/**
  * Evict off-screen card rows into a top spacer or restore from `caCardCache.cache` on upward scroll; may trigger `changePage(1)` on large jumps.
  */
 function caVirtUpdate() {
@@ -5920,13 +5935,7 @@ function caVirtUpdate() {
 	   jump to the top, otherwise the viewport strands in empty top-spacer. */
 	var hasRowsAbove = caCardCache.firstInDom > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
 	if (hasRowsAbove && scrollTop < buffer && (prevScrollTop - scrollTop) > clientHeight * 2) {
-		caCardCache.firstInDom = 0;
-		caCardCache.lastInDom = -1;
-		caCardCache.offset = 0;
-		caCardCache.cache = [];
-		data.loadingMore = false;
-		data._prevScrollTop = 0;
-		if (typeof changePage === "function") changePage(1);
+		caVirtResetToPageOne();
 		return;
 	}
 
@@ -6105,6 +6114,37 @@ function caInitInfiniteScroll() {
 		var prevPage = Math.floor((firstGlobal - 1) / perPage) + 1;
 		changePage(prevPage, "prepend");
 	};
+	/* After a random jump renders a single page, pull a page (or two) above and
+	   below it so the viewport has complete rows in both directions immediately,
+	   rather than a clipped final row / blank edge until the user nudges scroll.
+	   Fills below first (append renders straight into the DOM, fixing the clipped
+	   final row), then above. One screen of headroom each way; re-checks every
+	   pass and stops once covered or after `passes` fetches. Reuses the same
+	   triggerNext/triggerPrev the scroll handler uses, so cache + spacer math stay
+	   consistent. */
+	var caJumpFill = function(passes) {
+		if (passes <= 0) return;
+		var m = $(".mainArea")[0];
+		if (!m) return;
+		if (data.loadingMore) { setTimeout(function() { caJumpFill(passes); }, 60); return; }
+		if (!$("#templates_content .ca_templatesDisplay").length) return;
+		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
+		if (!$cards.length) return;
+		var mainTop = m.getBoundingClientRect().top;
+		var firstY = $cards[0].getBoundingClientRect().top - mainTop + m.scrollTop;
+		var lastY = $cards[$cards.length - 1].getBoundingClientRect().bottom - mainTop + m.scrollTop;
+		var pad = m.clientHeight; // aim for ~one screen of cards past each edge
+		if ((lastY - (m.scrollTop + m.clientHeight)) < pad && (data.nextpage > 0)) {
+			triggerNext();
+			setTimeout(function() { caJumpFill(passes - 1); }, 60);
+			return;
+		}
+		if ((m.scrollTop - firstY) < pad && (parseInt(caCardCache.offset, 10) || 0) > 0) {
+			triggerPrev();
+			setTimeout(function() { caJumpFill(passes - 1); }, 60);
+			return;
+		}
+	};
 	/* Random access: when the user clicks the scrollbar track or drags the thumb
 	   to a spot far from any loaded card, fetch the page for that position
 	   directly (a fresh render that re-bases the cache), instead of sequentially
@@ -6148,10 +6188,15 @@ function caInitInfiniteScroll() {
 		postFn({action:'display_content', pageNumber:targetPage, selected:data.selected, maxPerPage:perPage}, function(result) {
 			updateDisplay(result.display_data || result.display, false);
 			/* Same total scroll height (top spacer + page + bottom spacer), so the
-			   dragged position still lands on the freshly loaded page; edges fill
-			   via the normal triggerNext/triggerPrev on the next scroll events. */
+			   dragged position still lands on the freshly loaded page. */
 			var m = $(".mainArea")[0];
 			if (m) m.scrollTop = jumpScrollTop;
+			/* A single capped page lands the viewport on a clipped final row (page
+			   size is not a multiple of cards-per-row) with nothing above/below.
+			   Pull a page or two around it so the landing has complete rows in both
+			   directions right away, restoring the surround the old oversized page
+			   count gave us before getMaxPerPage was capped. */
+			caJumpFill(4);
 		});
 	};
 	/* Debounced detector: returns true (and schedules a jump) when the viewport
@@ -6163,7 +6208,24 @@ function caInitInfiniteScroll() {
 		if (data.docker || data.loadingMore) return false;
 		if (!(parseInt(data.totalApps, 10) > 0)) return false;
 		if (!$("#templates_content .ca_templatesDisplay").length) return false;
-		if (el.scrollTop < el.clientHeight) return false; // top jumps handled by the page-1 reset
+		if (el.scrollTop < el.clientHeight) {
+			/* Settled near the very top with rows still parked above the DOM window
+			   (thumb dragged to the top and released, or a slow scroll-up that
+			   never produced a big enough delta for caVirtUpdate's reset). Rebase
+			   to page 1 here so the user doesn't strand on blank top-spacer. The
+			   fire-time re-check keeps us from resetting if they scrolled away
+			   during the debounce. */
+			var hasAbove = (caCardCache.firstInDom || 0) > 0 || (parseInt(caCardCache.offset, 10) || 0) > 0;
+			if (hasAbove && !data.loadingMore) {
+				if (jumpTimer) clearTimeout(jumpTimer);
+				jumpTimer = setTimeout(function() {
+					var mm = $(".mainArea")[0];
+					if (mm && mm.scrollTop < mm.clientHeight && !data.loadingMore) caVirtResetToPageOne();
+				}, 120);
+				return true;
+			}
+			return false;
+		}
 		var $cards = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
 		if (!$cards.length) return false;
 		var mainTop = el.getBoundingClientRect().top;
