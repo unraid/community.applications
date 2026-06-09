@@ -3095,16 +3095,19 @@ function caUpdateDisplayCount() {
 		var perRow = caVirtCardsPerRow($cards);
 		var rowH = caVirtRowHeight($cards, perRow);
 		if (perRow > 0 && rowH > 0) {
-			var firstInDom = (typeof caCardCache.firstInDom === "number") ? caCardCache.firstInDom : 0;
-			/* The top spacer takes up scrollTop space equal to evicted rows; that
-			   eviction is already encoded in firstInDom, so subtract the spacer
-			   to avoid double-counting. */
-			var spacerH = (typeof caVirtSpacerHeight === "function") ? caVirtSpacerHeight() : 0;
-			var scrollAfterSpacer = Math.max(0, mainArea.scrollTop - spacerH);
-			var scrolledRows = Math.floor(scrollAfterSpacer / rowH);
+			/* Derive the visible range from the scrollbar fraction across the FULL
+			   height (spacers included), so the count is right whether the viewport
+			   is on loaded cards or being dragged over an empty spacer - it tracks
+			   the live position the thumb represents. This equals the old
+			   loaded-window math when the viewport sits on the cards, and unlike it
+			   does not clamp to the loaded edge while scrubbing through a spacer. */
 			var rowsVisible = Math.max(1, Math.ceil(mainArea.clientHeight / rowH));
-			first = offset + firstInDom + (scrolledRows * perRow) + 1;
-			last  = offset + firstInDom + ((scrolledRows + rowsVisible) * perRow);
+			var totalRows = Math.ceil(total / perRow);
+			var maxScroll = Math.max(1, mainArea.scrollHeight - mainArea.clientHeight);
+			var frac = Math.max(0, Math.min(1, mainArea.scrollTop / maxScroll));
+			var topRow = Math.round(frac * Math.max(0, totalRows - rowsVisible));
+			first = (topRow * perRow) + 1;
+			last  = (topRow + rowsVisible) * perRow;
 		}
 	}
 	if (first > total) first = total;
@@ -5624,8 +5627,12 @@ function postCheckForUpdates() {
    Sticky so it stays pinned near the viewport centre wherever they are in the
    (often very tall) spacer. */
 function caSpacerHintHtml() {
-	var msg = (typeof tr === "function") ? tr("Release to load this section") : "Release to load this section";
-	return "<div class='caSpacerHint' aria-hidden='true'><span class='caSpacerHintPill'>" + msg + "</span></div>";
+	/* The inner span reuses the .ca_displayCount class so caUpdateDisplayCount -
+	   which already targets that class and derives the range from scrollTop -
+	   keeps this label in sync with the toolbar "X - Y of Z" indicator as the
+	   user drags, showing where in the list they are scrubbing to. No extra wiring
+	   needed; the existing scroll-driven update populates it. */
+	return "<div class='caSpacerHint' aria-hidden='true'><span class='ca_displayCount'></span></div>";
 }
 /* Virtualization: evict cards far above the viewport into a top-spacer (so
    scroll height stays the same) and restore them from caCardCache.cache when the

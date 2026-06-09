@@ -2135,10 +2135,12 @@ body,
 		display: flex;
 		flex-wrap: wrap;
 	}
-	/* Drag-to-load nudge rendered inside the virtualization spacers (built in
-	   caSpacerHintHtml). Hidden until the user grabs the scrollbar thumb, then
-	   sticky so it tracks the viewport centre while they drag over the reserved-
-	   but-empty scroll space - telling them the section loads when they let go. */
+	/* Live position label rendered inside the virtualization spacers (built in
+	   caSpacerHintHtml). The inner .ca_displayCount span is fed by the same
+	   caUpdateDisplayCount the toolbar count uses, so it shows the "X - Y of Z"
+	   you are scrubbing toward. Hidden until the user grabs the scrollbar thumb,
+	   then sticky so it tracks the viewport centre while they drag over the
+	   reserved-but-empty scroll space. */
 	.caSpacerHint {
 		display: none;
 		position: sticky;
@@ -2150,11 +2152,14 @@ body,
 	body.caScrollGrabbing .caSpacerHint {
 		display: block;
 	}
-	.caSpacerHintPill {
+	/* Two-class selector outweighs the bare .ca_displayCount toolbar styling so
+	   the spacer copy renders as a centered pill instead of inline toolbar text. */
+	.caSpacerHint .ca_displayCount {
 		display: inline-block;
+		margin: 0;
 		padding: 0.8rem 1.8rem;
 		border-radius: 2rem;
-		font-size: 1.6rem;
+		font-size: 1.8rem;
 		font-weight: 600;
 		background-color: var(--text-color);
 		color: var(--background-color);
