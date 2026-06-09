@@ -221,3 +221,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: Clicking "Favourite Repo" a second time no longer blanks the search box while the search is still active
 - Fixed: Actions that need a page reload (feed-update notice, the settings/repository change countdown, and fatal-error recovery) now do a full browser reload instead of a soft in-page refresh that could leave a stale view
 - Fixed: On the legacy Unraid themes (sidebar gray / azure and nav-top black / white), selecting apps no longer lets the multi-install action bar cover the bottom of the list — the app area now lifts to make room for it
+- Fixed: Hardened the card-size measurement used for infinite scroll, so a first paint that measures before the layout settles can no longer fall back to a tiny page size and leave the scrollbar/virtualization behaving oddly
