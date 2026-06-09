@@ -2135,6 +2135,31 @@ body,
 		display: flex;
 		flex-wrap: wrap;
 	}
+	/* Drag-to-load nudge rendered inside the virtualization spacers (built in
+	   caSpacerHintHtml). Hidden until the user grabs the scrollbar thumb, then
+	   sticky so it tracks the viewport centre while they drag over the reserved-
+	   but-empty scroll space - telling them the section loads when they let go. */
+	.caSpacerHint {
+		display: none;
+		position: sticky;
+		top: 45vh;
+		z-index: 2;
+		text-align: center;
+		pointer-events: none;
+	}
+	body.caScrollGrabbing .caSpacerHint {
+		display: block;
+	}
+	.caSpacerHintPill {
+		display: inline-block;
+		padding: 0.8rem 1.8rem;
+		border-radius: 2rem;
+		font-size: 1.6rem;
+		font-weight: 600;
+		background-color: var(--text-color);
+		color: var(--background-color);
+		box-shadow: 0 2px 12px var(--ca-shadow-color);
+	}
 
 	.ca_twitter::before {
 		content: "\f099";

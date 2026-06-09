@@ -5617,6 +5617,16 @@ function postCheckForUpdates() {
 	$(".selectedMenu").click();
 }
 
+/* Sticky "let go of the scrollbar" nudge rendered inside an empty spacer. The
+   spacer reserves the scroll height for rows that are not fetched yet, so while
+   the user drags the thumb over it (body.caScrollGrabbing) it is the natural
+   place to tell them what they are scrubbing past will load when they release.
+   Sticky so it stays pinned near the viewport centre wherever they are in the
+   (often very tall) spacer. */
+function caSpacerHintHtml() {
+	var msg = (typeof tr === "function") ? tr("Release to load this section") : "Release to load this section";
+	return "<div class='caSpacerHint' aria-hidden='true'><span class='caSpacerHintPill'>" + msg + "</span></div>";
+}
 /* Virtualization: evict cards far above the viewport into a top-spacer (so
    scroll height stays the same) and restore them from caCardCache.cache when the
    user scrolls back up. Cards are kept in row-aligned chunks because the float
@@ -5630,7 +5640,7 @@ function caVirtSpacer() {
 		width: "100%",
 		height: "0px",
 		flexBasis: "100%"
-	});
+	}).html(caSpacerHintHtml());
 	$first.before($spacer);
 	return $spacer;
 }
@@ -5669,7 +5679,7 @@ function caVirtBottomSpacer() {
 			width: "100%",
 			height: "0px",
 			flexBasis: "100%"
-		});
+		}).html(caSpacerHintHtml());
 		$display.append($spacer);
 	}
 	return $spacer;
@@ -6112,8 +6122,11 @@ function caInitInfiniteScroll() {
 	   constant); only the full re-renders defer, firing once on mouseup against
 	   wherever the user released. */
 	window.caScrollbarHeld = false;
-	$(document).on("mousedown.caJumpDrag", function(e) { if (!e || e.which === 1) window.caScrollbarHeld = true; });
+	$(document).on("mousedown.caJumpDrag", function(e) {
+		if (!e || e.which === 1) { window.caScrollbarHeld = true; $("body").addClass("caScrollGrabbing"); }
+	});
 	$(document).on("mouseup.caJumpDrag", function() {
+		$("body").removeClass("caScrollGrabbing");
 		if (!window.caScrollbarHeld) return;
 		window.caScrollbarHeld = false;
 		if (window.caJumpPending && typeof window.caReevaluateJump === "function") {
