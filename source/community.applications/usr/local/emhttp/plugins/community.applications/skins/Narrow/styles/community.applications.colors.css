@@ -116,6 +116,18 @@
 	--ca-dark-purple-color: #854153;
 	--ca-teal-color: #1fa67a;
 
+	/* Installed-app corner badge background. Switches on the OS dark-mode flag
+	   that dynamix sets on <html> (`--theme-dark-mode`: 1 = dark, 0 = light):
+	   the calc drives the color-mix to 100% (cream #f1ede3) in dark mode and
+	   0% (dark #2b2a29) in light mode. Fallback 0 keeps the badge painted if
+	   the flag is ever absent. */
+	--ca-installed-badge-color: color-mix(in srgb, #f1ede3 calc(var(--theme-dark-mode, 0) * 100%), #2b2a29);
+
+	/* Installed badge text. Dark mode keeps the existing near-black (`--black`);
+	   light mode flips it to the cream so it stays legible on the dark badge.
+	   Driven by the same `--theme-dark-mode` flag as the background above. */
+	--ca-installed-badge-text-color: color-mix(in srgb, var(--black) calc(var(--theme-dark-mode, 0) * 100%), #f1ede3);
+
 	/* Orange-tinted card hover shadow. Derived from --brand-orange via
 	   color-mix so the shadow tint tracks whichever orange the active
 	   theme is using. Fully opaque (100% mix with transparent leaves the

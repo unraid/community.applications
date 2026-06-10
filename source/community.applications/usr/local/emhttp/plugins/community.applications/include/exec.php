@@ -1146,13 +1146,19 @@ function clearTempForReload() {
 function saveSettings() {
 	/* Complete factory reset (the Settings panel "Delete all setting files"
 	   toggle): drop the saved settings cfg plus the pinned apps, the accepted-
-	   warning marker, and the admin marker, and skip writing the toggles. The
-	   page reload that follows then comes up on stock defaults. */
+	   warning marker, the admin marker, and the ignored-repositories list, wipe
+	   the /tmp cache tree, and skip writing the toggles. The page reload that
+	   follows then comes up on stock defaults. */
 	if ( getPost("caFactoryReset", "") === "1" ) {
 		@unlink(CA_PATHS['pluginSettings']);
 		@unlink(CA_PATHS['pinnedV2']);
 		@unlink(CA_PATHS['warningAccepted']);
 		@unlink(CA_PATHS['caAdmin']);
+		@unlink(CA_PATHS['ignoredRepos']);
+		/* hideFromCA (from ignored repos) is baked into cached templates during
+		   feed processing, so clear the /tmp cache dir too, otherwise ignored
+		   repos stay hidden after the reset until the next feed refresh. */
+		exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
 		postReturn(["ok" => true]);
 		return;
 	}
