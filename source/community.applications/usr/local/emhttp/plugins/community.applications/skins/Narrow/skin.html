@@ -25,6 +25,13 @@ $(function() {
 	// ever sourced from anything beyond the static set in skin.php.
 	$("html").addClass(<?= json_encode($htmlClasses, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>);
 
+<?php if ( ! $responsiveOS ) { ?>
+	// Legacy OS does not set the dynamix --theme-dark-mode flag on html that
+	// 7.2 and newer provide, so set it from the active theme. Black and gray
+	// are dark (1), white and azure are light (0). CA colour vars switch on it.
+	$("html").css("--theme-dark-mode", "<?= ($ca_theme === "black" || $ca_theme === "gray") ? 1 : 0 ?>");
+<?php } ?>
+
 	// Status area moves into the page footer as the last child of .footer-left.
 	// Falls back to before the footer spacer, then body, if .footer-left is absent.
 	var $caFooterLeft = $(".footer-left");

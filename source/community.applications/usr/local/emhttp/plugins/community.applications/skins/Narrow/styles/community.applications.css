@@ -2481,9 +2481,11 @@ body,
 		margin: 0 auto;
 	}
 	.homespotlightIconArea .spotlightDate {
-		/* Centered under the icon within the fit-content width; drop the shared
-		   negative left margin from the old absolute-less layout. */
+		/* Left-aligned to the icon's left edge: the container is fit-content
+		   (icon width), so left-aligning the date lands it flush with the icon's
+		   left instead of centered beneath. Drop the shared negative left margin. */
 		margin-left: 0;
+		text-align: left;
 	}
 
 	.initDockerSearch {
@@ -2634,7 +2636,8 @@ input[type="button"] {
 		white-space: nowrap;
 	}
 	.installedCardBackground {
-		background-color: var(--blue-800);
+		background-color: var(--ca-installed-badge-color);
+		color: var(--ca-installed-badge-text-color);
 	}
 	.LTOfficialCardBackground {
 		/* Unraid brand gradient: Red #e22828 → Orange #f15a2c → Gold #ff8c2f */
@@ -3924,10 +3927,11 @@ input[type="button"] {
 	}
 
 	.spotlightDateSidebar {
-		/* Centered beneath the svg by the flex column; just neutralize the shared
-		   .spotlightDate negative left margin (this rule wins by source order). */
+		/* Left-aligned to the icon's left edge by the flex column (below); just
+		   neutralize the shared .spotlightDate negative left margin (this rule
+		   wins by source order). */
 		margin-left: 0;
-		text-align: center;
+		text-align: left;
 	}
 
 	.spotlightHeader {
@@ -3935,10 +3939,12 @@ input[type="button"] {
 	}
 
 	.spotlightIconArea {
-		/* Col 1 of the sidebar spotlight: svg on top, date centered beneath. */
+		/* Col 1 of the sidebar spotlight: svg on top, date left-aligned beneath.
+		   The grid track is sized to the icon, so flex-start lands the date flush
+		   with the icon's left edge (the icon fills the track, so it doesn't move). */
 		display: flex;
 		flex-direction: column;
-		align-items: center;
+		align-items: flex-start;
 	}
 
 	.spotlightIconArea .spotlightIcon {
