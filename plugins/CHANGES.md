@@ -233,3 +233,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: Docker Hub search now shows the top 100 matches in a single page with no paging. A vague query ("test") returns thousands of near-identical containers nobody scrolls through, so CA shows Docker Hub's best 100 results and, when there are more, prompts you to refine your search instead of scrolling endlessly
 - Changed: The Monthly Spotlight date now sits left-aligned under the spotlight icon (on app cards and in the app panel) instead of being centred beneath it
 - Changed: The "Installed" badge now adapts its colour to light and dark themes so it stays legible on both
+- Changed: A complete factory reset ("Delete all setting files") now also clears the list of ignored repositories
