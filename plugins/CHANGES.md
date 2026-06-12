@@ -23,6 +23,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Home page sections now show as many apps as fit across one row (at least 6) instead of a fixed six, adapting to your window width and zoom
+- Changed: When you change the sort order during a search, each relevance group in the results (exact matches, name matches, and so on) is now sorted on its own, so the most relevant apps stay grouped at the top instead of the whole list being re-sorted together
+- Fixed: Changing the sort order now returns you to the top of the results instead of leaving a blank gap until you scroll
+- Changed: "Show More" on the Most Popular Plugins home section now sorts by last month's installs, matching how that section is ranked, instead of by total downloads
+- Fixed: After installing a container from a Docker Hub search, returning to Apps now reliably shows the app store results (with the DockerHub button) instead of sometimes reopening the Docker Hub search results
+- Chore: The admin-only feed sync check now compares the feeds' content rather than their raw text, so a primary feed served minified and a backup served pretty-printed no longer show as a mismatch; a genuine mismatch now links both feeds for inspection
 - Changed: Installing a container from Docker Hub no longer asks "Determine configuration?" or test-installs a throwaway container — port / volume / env defaults are now pulled directly from the Docker Hub registry API and dropped straight into the Add Container dialog. The test-install path is gone
 - Changed: Docker Hub installs now resolve `:latest` to the most-recently-updated tag automatically when an image doesn't ship `:latest` (e.g. `immcantation/test`), and the resolved tag is written back into the template so the subsequent pull doesn't 404
 - Changed: Docker Hub installs skip auto-config (but still install) when the image isn't amd64 — i386-only / arm64-only / other-arch single-arch images don't get the wrong arch's defaults seeded into the dialog

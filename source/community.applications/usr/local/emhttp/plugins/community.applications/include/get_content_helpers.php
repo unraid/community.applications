@@ -112,7 +112,7 @@ class GetContentHelpers {
 		if (count($file) <= 200) {
 			return false;
 		}
-		$GLOBALS['caSettings']['maxPerPage'] = 10;
+		$GLOBALS['caSettings']['maxPerPage'] = max(10, self::normalizeMaxHomeApps($maxHomeApps));
 		$startupTypes = [
 			[
 				"type"=>"onlynew",
@@ -151,7 +151,7 @@ class GetContentHelpers {
 				"text1"=>tr("Most Popular Plugins"),
 				"text2"=>tr("The most popular plugins installed by other Unraid users last month"),
 				"cat"=>"plugins:",
-				"sortby"=>"downloads",
+				"sortby"=>"lastMonthDownloads",
 				"sortdir"=>"Down"
 			],
 			[
@@ -427,6 +427,88 @@ class GetContentHelpers {
 				usort($searchResults['nameHit'],"favouriteSort");
 			}
 		}
+	}
+
+	/* Relevance section order for merged search results. handleFilteredTemplate
+	   buckets every match by how strongly it matched (official, full name, name,
+	   and so on). The merged list always lays the buckets out in this order so
+	   the most relevant sections stay on top no matter which sort the user picks.
+	   Kept as one source of truth so the initial search merge and the later
+	   per-section re-sort (resortSearchSections) can never drift apart. */
+	const SEARCH_SECTION_ORDER = ['officialHit','fullNameHit','nameHit','favNameHit','anyHit','extraHit'];
+
+	/**
+	 * Merge the sorted relevance buckets into the flat community list plus a
+	 * parallel section index (name + size, in merge order).
+	 *
+	 * The section index is what lets changeSortOrder slice the flat list back
+	 * into its sections and re-sort each one independently, without having to
+	 * re-run the whole search. The community order is identical to the legacy
+	 * inline merge so every existing reader is unaffected.
+	 *
+	 * @param  array<string,array<int,array<string,mixed>>>  $searchResults
+	 * @return array{community:array<int,array<string,mixed>>,searchSections:array<int,array{name:string,size:int}>}
+	 */
+	public static function mergeSearchResults($searchResults) {
+
+		$community = [];
+		$sections  = [];
+		foreach (self::SEARCH_SECTION_ORDER as $name) {
+			$bucket = $searchResults[$name] ?? [];
+			$sections[] = ['name'=>$name, 'size'=>count($bucket)];
+			if ( $bucket ) {
+				$community = array_merge($community,$bucket);
+			}
+		}
+		return ['community'=>$community, 'searchSections'=>$sections];
+	}
+
+	/**
+	 * Re-sort a cached search result set one relevance section at a time.
+	 *
+	 * Slices the flat community list back into its buckets using the stored
+	 * section index, applies the current sort to each section on its own (so
+	 * favourites still float to the top of nameHit), then re-merges in the same
+	 * relevance order. The sections themselves never move; only the order within
+	 * each section changes. Falls back to a flat sort when the cache predates the
+	 * section index so a legacy cache still resorts sanely. mySort reads the
+	 * freshly written global sort; the stored filter drives the favouriteSort
+	 * decision exactly as the original search did.
+	 *
+	 * @param  array<string,mixed>  $cache  Search cache dict, mutated by reference.
+	 * @return void
+	 */
+	public static function resortSearchSections(&$cache) {
+
+		$community = $cache['community'] ?? [];
+		if ( ! is_array($community) || ! $community ) {
+			return;
+		}
+
+		$sections = $cache['searchSections'] ?? null;
+		if ( ! is_array($sections) || ! $sections ) {
+			usort($community,"mySort");
+			$cache['community'] = $community;
+			return;
+		}
+
+		$filter = $cache['filter'] ?? "";
+		$searchResults = [];
+		$offset = 0;
+		foreach ($sections as $section) {
+			$name = $section['name'] ?? null;
+			$size = (int)($section['size'] ?? 0);
+			if ( ! $name ) {
+				continue;
+			}
+			$searchResults[$name] = array_slice($community,$offset,$size);
+			$offset += $size;
+		}
+
+		self::sortSearchResultsBuckets($searchResults,$filter);
+		$merged = self::mergeSearchResults($searchResults);
+		$cache['community']      = $merged['community'];
+		$cache['searchSections'] = $merged['searchSections'];
 	}
 
 	/**

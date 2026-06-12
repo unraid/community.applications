@@ -1836,6 +1836,12 @@ function changeSortOrder(button,buttonClass,previousApps) {
 	var postFn = data.searchInProgress ? postNoSpin : post;
 	postFn(postOpts,function(result) {
 		updateDisplay(result.display_data || result.display);
+		/* A sort change refetches only page 1, so the user expects to land at
+		   the top. Without this, a deep-scrolled viewport stays put over the new
+		   page-1 cards and shows blank until the virtualizer repaints on the next
+		   scroll. Skip the Previous Apps caller, which bulk-loads every card and
+		   manages its own scroll. */
+		if ( ! previousApps ) scrollToTop();
 	});
 }
 
@@ -1870,7 +1876,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	   sticky docker when the user navigates the menu. */
 	caLeaveDockerMode();
 	var initialize;
-	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
+	var maxHomeApps = Math.max(6, caCardsPerRow()); // Fill each home row with as many apps as fit, never fewer than 6
 	data.maxPerPage = getMaxPerPage();
 
 	enableSearch();
@@ -1995,6 +2001,17 @@ function awesompleteSearch() {
  * @param {string} [target='_self'] `window.open` target name
  */
 function openNewWindow(newURL,target='_self') {
+	/* Installing a container opens the AddContainer page, which ends the Docker
+	   Hub search the user installed from. On the way back to Apps they want the
+	   template results, not the docker results. Clear docker mode before
+	   saveState so the saved snapshot records dockerMode false: restoreState
+	   then brings back the app store chrome (DockerHub button plus sort icons)
+	   instead of the docker chrome (Apps button). The matching server side
+	   unlink of dockerSearchActive in createXML and convert_docker stops the
+	   bootstrap from re-running the docker search on return. */
+	if ( typeof newURL === "string" && newURL.indexOf("/Apps/AddContainer") !== -1 ) {
+		caLeaveDockerMode();
+	}
 	saveState();
 	var popUp = window.open(newURL,target);
 	if ( !popUp || popUp.closed || typeof popUp == "undefined" ) {

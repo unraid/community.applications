@@ -1441,6 +1441,27 @@ function getMaxPerPage() {
 }
 
 /**
+ * Cards that fit across one row of the main grid at the current viewport / zoom.
+ * Same per-row math as getMaxPerPage(): grid inner width divided by one card's
+ * outer (margin-box) width. Used to size the home page sections so each shows a
+ * full row of apps rather than a fixed count. Returns 0 when geometry can't be
+ * measured yet (caller falls back to its minimum).
+ *
+ * @returns {number}
+ */
+function caCardsPerRow() {
+	var ma = $(".mainArea")[0];
+	if (!ma) return 0;
+	var $grid = $("#templates_content .ca_templatesDisplay").first();
+	if (!$grid.length) $grid = $("#templates_content").first();
+	var gridW = ($grid.length ? $grid[0].clientWidth : 0) || ma.clientWidth;
+	if (gridW <= 0) return 0;
+	var dims = caMeasureCardDims();
+	if (!dims || dims.w <= 0) return 0;
+	return Math.max(1, Math.floor(gridW / dims.w));
+}
+
+/**
  * Override Unraid GUI search hotkey (Cmd/Ctrl+K) while CA is present,
  * so it opens CA search modal instead of Dynamix GUI search.
  */
