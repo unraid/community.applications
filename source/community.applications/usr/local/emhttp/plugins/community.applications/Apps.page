@@ -3151,12 +3151,21 @@ function caUpdateAlphaActive(globalIndex) {
 		$(".caSpacerHintLetter").text("");
 		return;
 	}
-	var activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
+	var activeShown, exact;
+	var ma = $(".mainArea")[0];
+	var pin = data.alphaJump;
+	if (pin && ma && Math.abs((ma.scrollTop || 0) - pin.top) <= 2) {
+		activeShown = pin.letter;
+		exact = pin.letter;
+	} else {
+		if (pin) data.alphaJump = null;
+		activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
+		exact = caAlphaLetterFor(data.alphaAll, globalIndex);
+	}
 	$bar.find(".caAlphaLetter").removeClass("caAlphaActive");
 	if (activeShown !== null) {
 		$bar.find(".caAlphaLetter").filter(function() { return $(this).attr("data-letter") === activeShown; }).addClass("caAlphaActive");
 	}
-	var exact = caAlphaLetterFor(data.alphaAll, globalIndex);
 	$(".caSpacerHintLetter").text(exact === null ? "" : (exact === "#" ? "#" : exact.toUpperCase()));
 }
 
@@ -3181,6 +3190,8 @@ function caJumpToLetter(letter) {
 		} else {
 			scrollToTop();
 		}
+		data.alphaJump = { letter: letter, top: ma ? (ma.scrollTop || 0) : 0 };
+		caUpdateAlphaActive(G);
 	});
 }
 
@@ -3363,7 +3374,8 @@ function updateDisplay(content, append) {
 	}
 //	saveState();
 
-	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
+	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker && ! $("#templates_content .ca_templatesDisplay").length && ! $(".selectedMenu").length ) {
+		$(".startupButton").addClass("selectedMenu");
 	}
 	if ( $(".ca_multiselect").length ) {
 			$(".multi_installAll").attr("disabled",false);
