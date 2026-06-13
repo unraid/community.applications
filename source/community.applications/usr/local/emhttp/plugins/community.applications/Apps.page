@@ -98,12 +98,7 @@ $date = (date("n/d"));
    surrounding PHP block at a literal PHP short-close sequence even when
    that sequence appears inside a block comment. Same applies to the
    block-comment close sequence. Keep both out of comment text. */
-$ca_apps_referrer = (($_COOKIE['ca_apps_referrer'] ?? "false") === "true") ? "true" : "false";
 $startupDisplayed = caStartupDisplayed() ? "true" : "false";
-if ( $startupDisplayed == "true" && ($_COOKIE['ca_languageSwitch'] ?? false) )
-	$killCookie = "true";
-else
-	$killCookie = "false";
 
 $dockerSearchActive = is_file(CA_PATHS['dockerSearchActive']);
 
@@ -125,18 +120,6 @@ if ( ! is_link("/usr/local/emhttp/plugins/dynamix.plugin.manager/post-hooks/CA_p
 dropAttributeCache();
 // Drop the docker info cache
 @unlink(CA_PATHS['info']);
-
-// Check memory to see if CA's minimums are met (4G same as base OS) - Test is actually for 2.5G though
-
-$memRaw = trim(str_replace("MemTotal:","",exec("cat /proc/meminfo | grep MemTotal:")));
-$memoryInstalled = explode(" ",$memRaw);
-
-$RequirementsBanner = false;
-$CArequirementsNOTmet = $memoryInstalled[0] < 2500000;
-if ( $CArequirementsNOTmet && isset($_COOKIE['ca_memoryOverride']) && $_COOKIE['ca_memoryOverride']) {
-	$CArequirementsNOTmet = false;
-	$RequirementsBanner = "true";
-}
 
 $ServerDateCorrect = checkServerDate() ? "true": "false";
 
@@ -327,6 +310,23 @@ var caCardCache = {
    that same tab, which is exactly what we need so the server-side cache files
    (displayed.{id}.json, etc.) line up with this tab's view. */
 (function() {
+	/* Migration cleanup: this state moved from cookies to session/local storage
+	   in later CA versions. First carry the two persistent preferences over to
+	   localStorage so an upgrading user keeps their remembered startup screen,
+	   then expire every stale cookie copy. setcookie from the .page PHP runs
+	   after headers are sent, so this has to happen client side. */
+	["ca_startupButton","ca_selectedMenu"].forEach(function(c) {
+		try {
+			var m = document.cookie.match(new RegExp("(?:^|; )" + c + "=([^;]*)"));
+			if (m && !localStorage.getItem(c)) localStorage.setItem(c, decodeURIComponent(m[1]));
+		} catch (e) { /* no-op */ }
+	});
+	["ca_memoryOverride","ca_apps_referrer","ca_languageSwitch","ca_plugininstallpending","pluginVar","pluginCountVar","ca_categoryText","updateLanguage","sidebarAppPath","sidebarAppName","ca_startupButton","ca_selectedMenu"].forEach(function(c) {
+		try {
+			document.cookie = c + "=; Max-Age=0; path=/";
+			document.cookie = c + "=; Max-Age=0; path=/; SameSite=Lax";
+		} catch (e) { /* no-op */ }
+	});
 	/* When the page is reloading specifically to kick off a pending multi-plugin
 	   install (see updateContent → ca_openPlugin via the ca_plugininstallpending
 	   cookie), defer setting the swal `customClass` default. Unraid's openPlugin
@@ -334,9 +334,8 @@ var caCardCache = {
 	   stacking rules into that modal, leaving it parked behind the main display.
 	   We re-arm the default right after the openPlugin call so subsequent CA
 	   swals still pick it up. */
-	var caPendingPluginInstall = document.cookie.split("; ").some(function(c){
-		return c.indexOf("ca_plugininstallpending=") === 0;
-	});
+	var caPendingPluginInstall = false;
+	try { caPendingPluginInstall = !!sessionStorage.getItem("ca_plugininstallpending"); } catch (e) {}
 	if ( ! caPendingPluginInstall ) {
 		swal.setDefaults({ customClass: "ca_sweetalert_open" });
 	}
@@ -813,28 +812,6 @@ $(function(){
 	// always set unlimited width
 	$("html").addClass("Theme--width-unlimited").removeClass("Theme--width-boxed");
 
-	<? if ( $CArequirementsNOTmet ) :?>
-		$(".ca_templatesDisplay").hide();
-		swal({
-			title: "<?tr("Not Enough Memory");?>",
-			text: '<?tr('Community Applications (and Unraid OS) have a minimum required memory of 4G.  CA cannot run without those mimimums being met');?>',
-			html: true,
-			type: 'error',
-			showCancelButton: true,
-			showConfirmButton: true,
-			cancelButtonText: "<?tr('Run Anyways');?>",
-			confirmButtonText: "<?tr('I Understand');?>"
-		}, function (isConfirm) {
-			if ( isConfirm ) {
-				$.cookie("ca_memoryOverride","");
-				history.back();
-			} else {
-				$.cookie("ca_memoryOverride","override");
-				location.reload();
-			}
-		});
-		return;
-	<? endif;?>
 	<? if ( ! is_file(CA_PATHS['docker_cfg']) ):?>
 		// This file is guaranteed to exist on the boot device.  Even though 6.10Beta3+ includes similar code, keep this code because CA just can't function properly with the boot device offline / corrupted.
 		$(".mainArea,.menuItems").html("");
@@ -860,8 +837,8 @@ $(function(){
 		caDebug("Ports In Use:" + portsInUse);
 	});
 
-	if ( "<?=$killCookie?>" == "true" ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
-		$.cookie("ca_languageSwitch","",{path:"/;SameSite=Lax"});
+	if ( "<?=$startupDisplayed?>" == "true" && caSessGet("ca_languageSwitch") ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
+		caSessRemove("ca_languageSwitch");
 	}
 
 	caPluginUpdateCheck("community.applications.plg",{
@@ -1104,7 +1081,6 @@ $(function(){
 		setTimeout(function() { removeBannerWarning(ca_ignoredRepos); }, 5000);
 	<? endif; ?>
 	if ( "<?=$ServerDateCorrect?>" == "false" ) addBannerWarning("<?tr("Server Date and Time Incorrect.  Issues will result with Community Applications.  Fix this in Settings - Date And Time");?>",true,true);
-	if ( "<?=$RequirementsBanner?>" == "true" ) addBannerWarning("<?tr("Memory Requirements not met.  Problems may result");?>");
 	context.init({preventDoubleContext:false,left:true,above:'auto'});
 
 	var downloadProgress = new NchanSubscriber('/sub/ca_downloadProgress',{subscriber:'websocket'});
@@ -1223,7 +1199,7 @@ $(function(){
 		} catch (e) { /* no-op */ }
 		var caCameFromAppsChild = (
 			(document.referrer.indexOf("/Apps/") > 1)
-			|| <?=$ca_apps_referrer?>
+			|| (caSessGet("ca_apps_referrer") === "true")
 		);
 		var caCanRestore = (
 			/* An explicit templateURL deep link is a direct request for one
@@ -1335,9 +1311,9 @@ $(function(){
 		/* Submenu disable-state sync is chained inside getCategories() so it
 		   can't race with the wholesale caMenuEnabled reset there — both
 		   bootstrap branches above route through getCategories(). */
-		/* Consume the ca_apps_referrer cookie now that we've used it — fresh
+		/* Consume the ca_apps_referrer value now that we've used it — fresh
 		   visits to Apps (not from a child URL) shouldn't auto-restore state. */
-		$.removeCookie("ca_apps_referrer", { path: "/" });
+		caSessRemove("ca_apps_referrer");
 	}
 	<?endif;?>
 });
@@ -1407,7 +1383,7 @@ function updateContent(button,skipAppfeed=true) {
 	$(".caMenuItem").removeClass("selectedMenu");
 	$(".subCategory").hide();
 
-	startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
+	startupScreen = caLocalGet("ca_startupButton") ? caLocalGet("ca_startupButton") : "onlynew";
 	var $startupMatch = $(".caMenuItem[data-category='"+startupScreen+"']");
 	if ($startupMatch.filter(".caCategoryAll").length) {
 		$startupMatch = $startupMatch.filter(".caCategoryAll");
@@ -1417,8 +1393,8 @@ function updateContent(button,skipAppfeed=true) {
 	$startupMatch.addClass("selectedMenu");
 
 	startupScreen = button ? $(button).data("category") : startupScreen;
-	$.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
-	$.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
+	caLocalSet("ca_startupButton",startupScreen);
+	caLocalSet("ca_selectedMenu",startupScreen);
 	disableSearch();
 	var postAction = skipAppfeed ? "force_update_skip" : "force_update";
 	/* No feed update on this init? Wipe the docker info cache so a stale
@@ -1491,9 +1467,9 @@ function updateContent(button,skipAppfeed=true) {
 			});
 		});
 		getCategories(); /* now also re-applies count-based submenu gating */
-		if ( $.cookie("ca_plugininstallpending" || ! button ) ) {
-			var plugins = $.cookie("ca_plugininstallpending");
-			$.removeCookie("ca_plugininstallpending");
+		if ( caSessGet("ca_plugininstallpending") ) {
+			var plugins = caSessGet("ca_plugininstallpending");
+			caSessRemove("ca_plugininstallpending");
 			myCloseAlert();
 			post({action:'saveMultiPluginPending',plugin:plugins},function(data) {
 				ca_openPlugin('multiplugin install '+plugins,"<?tr('Install Plugin Applications');?>",'','refresh');
@@ -2091,8 +2067,8 @@ function closeSidebar(keepIdentity=false,visible=false) {
 	   poll once the new sidebar lands. */
 	if (typeof caStopLiveStats === "function") caStopLiveStats();
 	if ( ! keepIdentity ) {
-		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
-		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
+		caSessRemove("sidebarAppPath");
+		caSessRemove("sidebarAppName");
 		/* Clear the in-memory sidebar identity — without this, a later
 		   saveState() call in the same tab (e.g. another sidebar opening, or
 		   guiSearchOnUnload) would persist the dismissed app back into the
@@ -2273,8 +2249,8 @@ function OpenSidebarAndRefreshDisplay() {
 		if (result.status) {
 			window.location.reload();
 		} else {
-			var apppath = $.cookie("sidebarAppPath");
-			var appname = $.cookie("sidebarAppName");
+			var apppath = caSessGet("sidebarAppPath");
+			var appname = caSessGet("sidebarAppName");
 
 			appname = stripTags(appname);
 
@@ -2624,7 +2600,7 @@ function setPageOne() {
  */
 function clearCategory() {
  // $(".category").html("&nbsp;");
-	$.cookie("ca_categoryText","",{path:"/;SameSite=Lax"});
+	caSessRemove("ca_categoryText");
 }
 
 /**
@@ -2973,8 +2949,8 @@ function updateMulti() {
 				var postUpdateFunction = "actionCentre";
 				if ( plugin.length ) {
 					postUpdateFunction = "installMultiPluginUpdatesAfterDocker";
-					$.cookie("pluginVar",plugin,{path:"/;SameSite=Lax"});
-					$.cookie("pluginCountVar",pluginCount,{path:"/;SameSite=Lax"});
+					caSessSet("pluginVar",plugin);
+					caSessSet("pluginCountVar",pluginCount);
 					ca_done_override = true;
 				}
 
@@ -2996,10 +2972,10 @@ function updateMulti() {
  * Second phase of {@link updateMulti}: run queued `multiplugin update` after Docker finishes (reads `pluginVar` cookie).
  */
 function installMultiPluginUpdatesAfterDocker() {
-	var plugin = $.cookie("pluginVar");
-	var pluginCount = $.cookie("pluginCountVar");
-	$.cookie("pluginVar","",{path:"/;SameSite=Lax"});
-	$.cookie("pluginCountVar","",{path:"/;SameSite=Lax"});
+	var plugin = caSessGet("pluginVar");
+	var pluginCount = caSessGet("pluginCountVar");
+	caSessRemove("pluginVar");
+	caSessRemove("pluginCountVar");
 	setTimeout(function(){
 		ca_openPlugin('multiplugin update '+plugin,tr('Update '+makePlural("Application",pluginCount)),'','actionCentre');
 		enableSearch();
@@ -3064,7 +3040,7 @@ function installMulti() {
 		if ( isConfirm ) {
 			myCloseAlert();
 			if ( docker.length && plugin.length ) {
-				$.cookie("ca_plugininstallpending",plugin,{path:"/;SameSite=Lax"});
+				caSessSet("ca_plugininstallpending",plugin);
 			}
 			if ( docker.length ) {
 				ca_done_override = true;
@@ -3107,6 +3083,8 @@ function postMultiDockerInstall() {
    to the loaded range when the layout signals aren't measurable, and hides
    itself on the home page / empty result. */
 function caUpdateAlphaBar(entries) {
+	data.alphaJump = null;
+	data.alphaLastActive = null;
 	var $bar = $("#caAlphaBar");
 	if (!$bar.length) return;
 	if (!$.isArray(entries) || !entries.length) {
@@ -3175,13 +3153,37 @@ function caUpdateAlphaActive(globalIndex) {
 		$(".caSpacerHintLetter").text("");
 		return;
 	}
-	var activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
+	var activeShown, exact;
+	if (data.alphaJump) {
+		activeShown = data.alphaJump;
+		exact = data.alphaJump;
+	} else {
+		activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
+		exact = caAlphaLetterFor(data.alphaAll, globalIndex);
+	}
 	$bar.find(".caAlphaLetter").removeClass("caAlphaActive");
 	if (activeShown !== null) {
 		$bar.find(".caAlphaLetter").filter(function() { return $(this).attr("data-letter") === activeShown; }).addClass("caAlphaActive");
 	}
-	var exact = caAlphaLetterFor(data.alphaAll, globalIndex);
+	if (activeShown && data.alphaLastActive && activeShown !== data.alphaLastActive && data.alphaWheelActive) {
+		caFlashAlphaLetter(activeShown);
+	}
+	data.alphaLastActive = activeShown;
 	$(".caSpacerHintLetter").text(exact === null ? "" : (exact === "#" ? "#" : exact.toUpperCase()));
+}
+
+function caFlashAlphaLetter(letter) {
+	var $bar = $("#caAlphaBar");
+	if (!$bar.length || $bar.hasClass("ca_hide")) return;
+	var $f = $("#caAlphaFlash");
+	if (!$f.length) $f = $("<div id='caAlphaFlash' aria-hidden='true'></div>").appendTo("body");
+	var $active = $bar.find(".caAlphaActive").first();
+	var ref = ($active.length ? $active[0] : $bar[0]).getBoundingClientRect();
+	var bar = $bar[0].getBoundingClientRect();
+	$f.stop(true, true).text(letter === "#" ? "#" : letter.toUpperCase()).css({ display: "block", opacity: 1 });
+	$f.css({ top: (ref.top + ref.height / 2 - $f.outerHeight() / 2) + "px", right: (window.innerWidth - bar.left + 8) + "px", left: "auto" });
+	clearTimeout(data.alphaFlashTimer);
+	data.alphaFlashTimer = setTimeout(function() { $("#caAlphaFlash").fadeOut(250); }, 1500);
 }
 
 function caJumpToLetter(letter) {
@@ -3205,6 +3207,8 @@ function caJumpToLetter(letter) {
 		} else {
 			scrollToTop();
 		}
+		data.alphaJump = letter;
+		caUpdateAlphaActive(G);
 	});
 }
 
@@ -3387,7 +3391,8 @@ function updateDisplay(content, append) {
 	}
 //	saveState();
 
-	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker) {
+	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker && ! $("#templates_content .ca_templatesDisplay").length && ! $(".selectedMenu").length ) {
+		$(".startupButton").addClass("selectedMenu");
 	}
 	if ( $(".ca_multiselect").length ) {
 			$(".multi_installAll").attr("disabled",false);
@@ -3497,7 +3502,7 @@ function restoreState(s) {
 	/* Coming back to /Apps from anywhere — drop the docker info cache so
 	   the restore renders against fresh container state. */
 	if (typeof caDropInfoCache === "function") caDropInfoCache();
-	$.removeCookie("ca_languageSwitch", { path: "/" });
+	caSessRemove("ca_languageSwitch");
 
 	$(".multi_installDiv").toggle(!!s.installMulti);
 	caCardCache.cache = [];
@@ -3764,7 +3769,7 @@ function getCategories() {
 		});
 
 		if ( ! restoreStateMenu )
-			restoreStateMenu = $.cookie("ca_startupButton");
+			restoreStateMenu = caLocalGet("ca_startupButton");
 
 		caDebug(restoreStateMenu);
 		var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
@@ -3796,7 +3801,7 @@ function getCategories() {
 					$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
 					document.referrer = "/Apps";
 				});
-				var selectedMenu = $.cookie("ca_selectedMenu");
+				var selectedMenu = caLocalGet("ca_selectedMenu");
 				if ( selectedMenu ) {
 					var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
 					var $matched = $(menuItem);
@@ -3848,7 +3853,7 @@ function CAswitchLanguage(language) {
 	saveState();
 	$.cookie('locale',oldlanguage,{path:"/;SameSite=Lax"}); // save the previous locale
 	post({action:'switchLanguage',language:language},function(result) {
-		$.cookie("ca_languageSwitch","switched",{expires:365,path:"/;SameSite=Lax"});
+		caSessSet("ca_languageSwitch","switched");
 		myCloseSpinner();
 		window.location.reload();
 	});
@@ -3874,7 +3879,7 @@ function installLanguage(languageURL,language) {
 function updateLanguage(language) {
 	hideLanguagePending(language);
 	disableSearch();
-	$.cookie("updateLanguage",language,{SameSite:'Lax'});
+	caSessSet("updateLanguage",language);
 	ca_openPlugin('language update '+language,"<?tr('Update Language Pack');?>",'','postUpdateLanguage');
 }
 
@@ -3882,7 +3887,7 @@ function updateLanguage(language) {
  * After language update: full reload if the active UI locale changed, else refresh Action Centre or sidebar + grid.
  */
 function postUpdateLanguage() {
-	var languageUpdate = $.cookie("updateLanguage");
+	var languageUpdate = caSessGet("updateLanguage");
 	var currentLanguage = "<?=$_SESSION['locale']?>";
 
 	if (languageUpdate == currentLanguage)
@@ -3891,8 +3896,8 @@ function postUpdateLanguage() {
 		if ( $(".selectedMenu").data("category") == "action_centre" ) {
 			actionCentre();
 		} else {
-			var apppath = $.cookie("sidebarAppPath");
-			var appname = $.cookie("sidebarAppName");
+			var apppath = caSessGet("sidebarAppPath");
+			var appname = caSessGet("sidebarAppName");
 			showSidebarApp(apppath,appname);
 			refreshDisplay();
 		}
@@ -3913,8 +3918,8 @@ function removeLanguage(language) {
  * Reopen saved sidebar app (if any) and {@link refreshDisplay} after language install.
  */
 function postLanguageRefresh() {
-	var apppath = $.cookie("sidebarAppPath");
-	var appname = $.cookie("sidebarAppName");
+	var apppath = caSessGet("sidebarAppPath");
+	var appname = caSessGet("sidebarAppName");
 	if ( $.trim(apppath) ) {
 		showSidebarApp(apppath,appname);
 	}
@@ -4963,8 +4968,8 @@ function showSidebarApp(apppath,appname) {
 	window.caSidebarBackTarget = "";
 	mySpinner();
 	disableSearch();
-	$.cookie("sidebarAppPath",apppath,{path:"/;SameSite=Lax"});
-	$.cookie("sidebarAppName",appname,{path:"/;SameSite=Lax"});
+	caSessSet("sidebarAppPath",apppath);
+	caSessSet("sidebarAppName",appname);
 	data.sidebarapppath = apppath;
 	data.sidebarappname = appname;
 	/* Sidebar-open is the canonical save trigger. Every install / uninstall /
@@ -5399,12 +5404,12 @@ function showRepoPopup(repository) {
 	var fromCard = false;
 
 	if ( ! $(".sidenavShow").length ) {
-		$.cookie("sidebarAppName","",{path:"/;SameSite=Lax"});
-		$.cookie("sidebarAppPath","",{path:"/;SameSite=Lax"});
+		caSessRemove("sidebarAppName");
+		caSessRemove("sidebarAppPath");
 		var fromCard = true;
 	}
-	var sidebarAppName = $.cookie("sidebarAppName");
-	var sidebarAppPath = $.cookie("sidebarAppPath");
+	var sidebarAppName = caSessGet("sidebarAppName");
+	var sidebarAppPath = caSessGet("sidebarAppPath");
 
 	$("#sidenavContent").html($("#sidebarLoading").html());
 
@@ -5471,8 +5476,8 @@ function showRepoPopup(repository) {
 				afterClose: function() {
 					$('body').removeClass("mfp-zoom-out-cur");
 					$(".sidebar").show();
-					$.cookie("sidebarAppName",sidebarAppName,{path:"/;SameSite=Lax"});
-					$.cookie("sidebarAppPath",sidebarAppPath,{path:"/;SameSite=Lax"});
+					caSessSet("sidebarAppName",sidebarAppName);
+					caSessSet("sidebarAppPath",sidebarAppPath);
 					showRepoPopup(data.repository);
 				}
 			})
@@ -6741,6 +6746,15 @@ function caInitInfiniteScroll() {
 		var bottomGap = el.scrollHeight - caVirtBottomSpacerHeight() - el.clientHeight - el.scrollTop;
 		if (bottomGap > 600) return;
 		triggerNext();
+	});
+
+	$(".mainArea").on("wheel touchmove mousedown", function(e) {
+		if (data.alphaJump) data.alphaJump = null;
+		if (e.type !== "mousedown") {
+			data.alphaWheelActive = true;
+			clearTimeout(data.alphaWheelTimer);
+			data.alphaWheelTimer = setTimeout(function() { data.alphaWheelActive = false; }, 400);
+		}
 	});
 
 	/* When the user is parked at the exact scroll bottom, the browser stops

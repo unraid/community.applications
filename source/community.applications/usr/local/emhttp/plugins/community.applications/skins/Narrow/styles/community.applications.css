@@ -477,15 +477,40 @@ body,
 	cursor: pointer;
 	padding: 0 0.3rem;
 	border-radius: 0.2rem;
-	transition: transform 0.08s ease;
 }
 .caAlphaLetter:hover {
 	color: var(--brand-orange);
-	transform: scale(2.5);
 }
 .caAlphaActive {
 	color: var(--brand-orange);
 	font-weight: bold;
+	cursor: default;
+}
+#caAlphaHover {
+	position: fixed;
+	z-index: 6;
+	display: none;
+	font-size: 5rem;
+	line-height: 1;
+	font-weight: 700;
+	color: var(--brand-orange);
+	text-shadow: 0 2px 12px var(--ca-shadow-color);
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+#caAlphaFlash {
+	position: fixed;
+	z-index: 6;
+	display: none;
+	font-size: 10rem;
+	line-height: 1;
+	font-weight: 700;
+	color: var(--brand-orange);
+	text-shadow: 0 2px 12px var(--ca-shadow-color);
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
 }
 
 /* 2.3) Card Elements */

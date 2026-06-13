@@ -684,7 +684,7 @@ function caInitializeClickHandlers() {
 		/* Statistics / Change Log opened from Credits route back to Credits;
 		   every other sidebar's back arrow returns to the app popup. */
 		if (window.caSidebarBackTarget === "credits") { showCredits(); return; }
-		showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName"));
+		showSidebarApp(caSessGet("sidebarAppPath"), caSessGet("sidebarAppName"));
 	});
 	/**
 	 * Menu-selection state: highlight the clicked `.caMenuItem` as
@@ -798,7 +798,26 @@ function caInitializeClickHandlers() {
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
+		if ($(this).hasClass("caAlphaActive")) return;
 		caJumpToLetter($(this).attr("data-letter"));
+	});
+	$("body").on("mouseenter", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
+		if ($(this).hasClass("caAlphaActive")) { $("#caAlphaHover").css("display", "none"); return; }
+		var $h = $("#caAlphaHover");
+		if (!$h.length) $h = $("<div id='caAlphaHover' aria-hidden='true'></div>").appendTo("body");
+		var letter = $(this).attr("data-letter") || "";
+		var r = this.getBoundingClientRect();
+		var bar = document.getElementById("caAlphaBar");
+		var br = bar ? bar.getBoundingClientRect() : r;
+		$h.text(letter === "#" ? "#" : letter.toUpperCase()).css("display", "block");
+		$h.css({
+			top: (r.top + r.height / 2 - $h.outerHeight() / 2) + "px",
+			right: (window.innerWidth - br.left + 8) + "px",
+			left: "auto"
+		});
+	});
+	$("body").on("mouseleave", "#caAlphaBar", function() {
+		$("#caAlphaHover").css("display", "none");
 	});
 	/**
 	 * "Show All Results" affordance on the display-count line: widens the

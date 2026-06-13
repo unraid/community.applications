@@ -1059,16 +1059,37 @@ function post(options,callback) {
 }
 
 /**
- * Push status HTML into the updating-content swal when spinner visible.
+ * Per-tab session-storage helpers used in place of cookies for transient CA
+ * state (sidebar app, plugin-install round-trip, language update, etc.) so two
+ * CA tabs in the same browser can't overwrite each other's state. Wrapped in
+ * try/catch because sessionStorage access throws in some private-mode contexts.
  *
- * @param {string} message HTML/text
+ * @param {string} key
+ * @returns {?string}
  */
-function slowPost(message) {
-	$(".updateContent-swal").html(message);
-	// this isn't working quite right
-	if ( $(".spinner").is(":visible") ) {
-		$(".long-loading").html(message);
-	}
+function caSessGet(key) {
+	try { return sessionStorage.getItem(key); } catch (e) { return null; }
+}
+function caSessSet(key, value) {
+	try { sessionStorage.setItem(key, value); } catch (e) { /* no-op */ }
+}
+function caSessRemove(key) {
+	try { sessionStorage.removeItem(key); } catch (e) { /* no-op */ }
+}
+
+/**
+ * Persistent (cross-session, cross-tab) storage helpers, used in place of
+ * long-lived preference cookies (startup screen, selected menu) so they survive
+ * a browser restart and stay shared between tabs. Same try/catch guard.
+ *
+ * @param {string} key
+ * @returns {?string}
+ */
+function caLocalGet(key) {
+	try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function caLocalSet(key, value) {
+	try { localStorage.setItem(key, value); } catch (e) { /* no-op */ }
 }
 
 /**
