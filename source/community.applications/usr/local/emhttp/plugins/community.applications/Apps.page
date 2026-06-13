@@ -3083,6 +3083,8 @@ function postMultiDockerInstall() {
    to the loaded range when the layout signals aren't measurable, and hides
    itself on the home page / empty result. */
 function caUpdateAlphaBar(entries) {
+	data.alphaJump = null;
+	data.alphaLastActive = null;
 	var $bar = $("#caAlphaBar");
 	if (!$bar.length) return;
 	if (!$.isArray(entries) || !entries.length) {
@@ -3152,13 +3154,10 @@ function caUpdateAlphaActive(globalIndex) {
 		return;
 	}
 	var activeShown, exact;
-	var ma = $(".mainArea")[0];
-	var pin = data.alphaJump;
-	if (pin && ma && Math.abs((ma.scrollTop || 0) - pin.top) <= 2) {
-		activeShown = pin.letter;
-		exact = pin.letter;
+	if (data.alphaJump) {
+		activeShown = data.alphaJump;
+		exact = data.alphaJump;
 	} else {
-		if (pin) data.alphaJump = null;
 		activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
 		exact = caAlphaLetterFor(data.alphaAll, globalIndex);
 	}
@@ -3166,7 +3165,25 @@ function caUpdateAlphaActive(globalIndex) {
 	if (activeShown !== null) {
 		$bar.find(".caAlphaLetter").filter(function() { return $(this).attr("data-letter") === activeShown; }).addClass("caAlphaActive");
 	}
+	if (activeShown && data.alphaLastActive && activeShown !== data.alphaLastActive && data.alphaWheelActive) {
+		caFlashAlphaLetter(activeShown);
+	}
+	data.alphaLastActive = activeShown;
 	$(".caSpacerHintLetter").text(exact === null ? "" : (exact === "#" ? "#" : exact.toUpperCase()));
+}
+
+function caFlashAlphaLetter(letter) {
+	var $bar = $("#caAlphaBar");
+	if (!$bar.length || $bar.hasClass("ca_hide")) return;
+	var $f = $("#caAlphaFlash");
+	if (!$f.length) $f = $("<div id='caAlphaFlash' aria-hidden='true'></div>").appendTo("body");
+	var $active = $bar.find(".caAlphaActive").first();
+	var ref = ($active.length ? $active[0] : $bar[0]).getBoundingClientRect();
+	var bar = $bar[0].getBoundingClientRect();
+	$f.stop(true, true).text(letter === "#" ? "#" : letter.toUpperCase()).css({ display: "block", opacity: 1 });
+	$f.css({ top: (ref.top + ref.height / 2 - $f.outerHeight() / 2) + "px", right: (window.innerWidth - bar.left + 8) + "px", left: "auto" });
+	clearTimeout(data.alphaFlashTimer);
+	data.alphaFlashTimer = setTimeout(function() { $("#caAlphaFlash").fadeOut(250); }, 1500);
 }
 
 function caJumpToLetter(letter) {
@@ -3190,7 +3207,7 @@ function caJumpToLetter(letter) {
 		} else {
 			scrollToTop();
 		}
-		data.alphaJump = { letter: letter, top: ma ? (ma.scrollTop || 0) : 0 };
+		data.alphaJump = letter;
 		caUpdateAlphaActive(G);
 	});
 }
@@ -6729,6 +6746,15 @@ function caInitInfiniteScroll() {
 		var bottomGap = el.scrollHeight - caVirtBottomSpacerHeight() - el.clientHeight - el.scrollTop;
 		if (bottomGap > 600) return;
 		triggerNext();
+	});
+
+	$(".mainArea").on("wheel touchmove mousedown", function(e) {
+		if (data.alphaJump) data.alphaJump = null;
+		if (e.type !== "mousedown") {
+			data.alphaWheelActive = true;
+			clearTimeout(data.alphaWheelTimer);
+			data.alphaWheelTimer = setTimeout(function() { data.alphaWheelActive = false; }, 400);
+		}
 	});
 
 	/* When the user is parked at the exact scroll bottom, the browser stops

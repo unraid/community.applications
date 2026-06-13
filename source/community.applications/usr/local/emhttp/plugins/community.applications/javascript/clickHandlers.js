@@ -798,9 +798,11 @@ function caInitializeClickHandlers() {
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
+		if ($(this).hasClass("caAlphaActive")) return;
 		caJumpToLetter($(this).attr("data-letter"));
 	});
 	$("body").on("mouseenter", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
+		if ($(this).hasClass("caAlphaActive")) { $("#caAlphaHover").css("display", "none"); return; }
 		var $h = $("#caAlphaHover");
 		if (!$h.length) $h = $("<div id='caAlphaHover' aria-hidden='true'></div>").appendTo("body");
 		var letter = $(this).attr("data-letter") || "";

@@ -484,12 +484,26 @@ body,
 .caAlphaActive {
 	color: var(--brand-orange);
 	font-weight: bold;
+	cursor: default;
 }
 #caAlphaHover {
 	position: fixed;
 	z-index: 6;
 	display: none;
 	font-size: 5rem;
+	line-height: 1;
+	font-weight: 700;
+	color: var(--brand-orange);
+	text-shadow: 0 2px 12px var(--ca-shadow-color);
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+#caAlphaFlash {
+	position: fixed;
+	z-index: 6;
+	display: none;
+	font-size: 10rem;
 	line-height: 1;
 	font-weight: 700;
 	color: var(--brand-orange);
