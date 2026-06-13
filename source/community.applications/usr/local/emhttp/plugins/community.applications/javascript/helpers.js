@@ -1078,6 +1078,21 @@ function caSessRemove(key) {
 }
 
 /**
+ * Persistent (cross-session, cross-tab) storage helpers, used in place of
+ * long-lived preference cookies (startup screen, selected menu) so they survive
+ * a browser restart and stay shared between tabs. Same try/catch guard.
+ *
+ * @param {string} key
+ * @returns {?string}
+ */
+function caLocalGet(key) {
+	try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function caLocalSet(key, value) {
+	try { localStorage.setItem(key, value); } catch (e) { /* no-op */ }
+}
+
+/**
  * SweetAlert wrapper with search disabled for the duration; mirrors older CA alert API.
  *
  * @param {string} description Title

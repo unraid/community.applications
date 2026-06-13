@@ -310,6 +310,23 @@ var caCardCache = {
    that same tab, which is exactly what we need so the server-side cache files
    (displayed.{id}.json, etc.) line up with this tab's view. */
 (function() {
+	/* Migration cleanup: this state moved from cookies to session/local storage
+	   in later CA versions. First carry the two persistent preferences over to
+	   localStorage so an upgrading user keeps their remembered startup screen,
+	   then expire every stale cookie copy. setcookie from the .page PHP runs
+	   after headers are sent, so this has to happen client side. */
+	["ca_startupButton","ca_selectedMenu"].forEach(function(c) {
+		try {
+			var m = document.cookie.match(new RegExp("(?:^|; )" + c + "=([^;]*)"));
+			if (m && !localStorage.getItem(c)) localStorage.setItem(c, decodeURIComponent(m[1]));
+		} catch (e) { /* no-op */ }
+	});
+	["ca_memoryOverride","ca_apps_referrer","ca_languageSwitch","ca_plugininstallpending","pluginVar","pluginCountVar","ca_categoryText","updateLanguage","sidebarAppPath","sidebarAppName","ca_startupButton","ca_selectedMenu"].forEach(function(c) {
+		try {
+			document.cookie = c + "=; Max-Age=0; path=/";
+			document.cookie = c + "=; Max-Age=0; path=/; SameSite=Lax";
+		} catch (e) { /* no-op */ }
+	});
 	/* When the page is reloading specifically to kick off a pending multi-plugin
 	   install (see updateContent → ca_openPlugin via the ca_plugininstallpending
 	   cookie), defer setting the swal `customClass` default. Unraid's openPlugin
@@ -1366,7 +1383,7 @@ function updateContent(button,skipAppfeed=true) {
 	$(".caMenuItem").removeClass("selectedMenu");
 	$(".subCategory").hide();
 
-	startupScreen = $.cookie("ca_startupButton") ? $.cookie("ca_startupButton") : "onlynew";
+	startupScreen = caLocalGet("ca_startupButton") ? caLocalGet("ca_startupButton") : "onlynew";
 	var $startupMatch = $(".caMenuItem[data-category='"+startupScreen+"']");
 	if ($startupMatch.filter(".caCategoryAll").length) {
 		$startupMatch = $startupMatch.filter(".caCategoryAll");
@@ -1376,8 +1393,8 @@ function updateContent(button,skipAppfeed=true) {
 	$startupMatch.addClass("selectedMenu");
 
 	startupScreen = button ? $(button).data("category") : startupScreen;
-	$.cookie("ca_startupButton",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
-	$.cookie("ca_selectedMenu",startupScreen,{expires:365,path:"/;SameSite=Lax",secure:true});
+	caLocalSet("ca_startupButton",startupScreen);
+	caLocalSet("ca_selectedMenu",startupScreen);
 	disableSearch();
 	var postAction = skipAppfeed ? "force_update_skip" : "force_update";
 	/* No feed update on this init? Wipe the docker info cache so a stale
@@ -3723,7 +3740,7 @@ function getCategories() {
 		});
 
 		if ( ! restoreStateMenu )
-			restoreStateMenu = $.cookie("ca_startupButton");
+			restoreStateMenu = caLocalGet("ca_startupButton");
 
 		caDebug(restoreStateMenu);
 		var menuItem = $.find(".caMenuItem[data-category='"+restoreStateMenu+"']");
@@ -3755,7 +3772,7 @@ function getCategories() {
 					$(menuItem).removeClass("caMenuDisabled").addClass("caMenuEnabled");
 					document.referrer = "/Apps";
 				});
-				var selectedMenu = $.cookie("ca_selectedMenu");
+				var selectedMenu = caLocalGet("ca_selectedMenu");
 				if ( selectedMenu ) {
 					var menuItem = $.find(".caMenuItem[data-category='"+selectedMenu+"']");
 					var $matched = $(menuItem);
