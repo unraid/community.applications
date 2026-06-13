@@ -3146,9 +3146,13 @@ function caUpdateAlphaBar(entries) {
 	if (avail > 0 && letterH > 0) {
 		var maxFit = Math.floor(avail / letterH);
 		if (maxFit >= 1 && kept.length > maxFit) {
-			var stride = Math.ceil(kept.length / maxFit);
 			var thinned = [];
-			for (var k = 0; k < kept.length; k += stride) thinned.push(kept[k]);
+			for (var n = 0; n < maxFit; n++) {
+				var idx = Math.round((n * (kept.length - 1)) / Math.max(1, maxFit - 1));
+				if (!thinned.length || thinned[thinned.length - 1].i !== kept[idx].i) {
+					thinned.push(kept[idx]);
+				}
+			}
 			render(thinned);
 		}
 		$bar.css("gap", Math.max(0, (avail - 27 * letterH) / 26) + "px");
@@ -3182,7 +3186,11 @@ function caUpdateAlphaActive(globalIndex) {
 
 function caJumpToLetter(letter) {
 	if (!letter) return;
+	caCardCache.generation = (caCardCache.generation || 0) + 1;
+	data.loadingMore = false;
+	var jumpGen = caCardCache.generation;
 	post({ action: "jumpToLetter", letter: letter, maxPerPage: data.maxPerPage, selected: data.selected }, function(result) {
+		if ((caCardCache.generation || 0) !== jumpGen) return;
 		var dd = result.display_data || result.display;
 		var G = parseInt(result.index, 10);
 		if (!dd || isNaN(G) || G < 0) return;
