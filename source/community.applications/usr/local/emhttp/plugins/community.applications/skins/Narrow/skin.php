@@ -1497,12 +1497,28 @@ function displayCard($template) {
 	$cardFlag = caBuildCardFlag($template);
 
 	$cardEnd = "</div>";
+
+	/* Home page Show More: this card is the last visible one in a section that
+	   links to a full category. Lay a dimming scrim plus a SHOW MORE label over
+	   the card itself (.ca_holder is position:relative, so the overlay's inset:0
+	   covers it). The homeMore class drives the existing click handler; the
+	   scrim is a sibling of the label so dimming the card never dims the text. */
+	$homeMore = "";
+	if ( $template['homeShowMore'] ?? false ) {
+		$sm   = $template['homeShowMore'];
+		$des  = htmlspecialchars((string)($sm['des'] ?? ""), ENT_QUOTES);
+		$cat  = htmlspecialchars((string)($sm['cat'] ?? ""), ENT_QUOTES);
+		$sby  = htmlspecialchars((string)($sm['sortby'] ?? ""), ENT_QUOTES);
+		$sdir = htmlspecialchars((string)($sm['sortdir'] ?? ""), ENT_QUOTES);
+		$homeMore = "<div class='ca_homeMoreOverlay homeMore' data-des='{$des}' data-category='{$cat}' data-sortby='{$sby}' data-sortdir='{$sdir}'><div class='ca_homeMoreScrim'></div><div class='ca_homeMoreText'><div class='ca_homeMoreTitle'>".tr("Show More")."</div><div class='ca_homeMoreSection'>{$des}</div></div></div>";
+	}
+
 	/* The corner-badge stack is rendered inside .ca_holder so it can position
 	   absolutely against the card itself rather than relying on negative-margin
 	   sibling tricks against an outer wrapper. Stack renders all applicable
 	   badges, not just the highest-priority one — see caBuildCardFlag for the
 	   priority ordering and wrap behavior. */
-	$cardFinish = "{$cardStart}{$cardFlag}{$card}{$cardEnd}";
+	$cardFinish = "{$cardStart}{$cardFlag}{$card}{$homeMore}{$cardEnd}";
 
 	return str_replace(["\t", "\n"], "", $cardFinish);
 }

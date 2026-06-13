@@ -3,22 +3,22 @@ class GetContentHelpers {
 	/**
 	 * Clamp the home-screen "max apps" preference to the supported range.
 	 *
-	 * Returns 4 when the value is 0 (unset), 2 when the value is below 3
-	 * (the minimum useful row), otherwise the value unchanged.
+	 * Returns 4 when the value is missing / non-positive (old client or direct
+	 * call), otherwise the integer value unchanged.
 	 *
 	 * @param  int|string  $maxHomeApps
 	 * @return int
 	 */
 	public static function normalizeMaxHomeApps($maxHomeApps) {
-		if ($maxHomeApps == 0) {
+		/* maxHomeApps is the home row capacity sent by the client. A missing or
+		   non-positive value (old client / direct call) falls back to a sane
+		   default; anything 1 or higher is honoured as-is so a narrow row can
+		   legitimately show a single app. */
+		if ((int)$maxHomeApps < 1) {
 			return 4;
 		}
 
-		if ($maxHomeApps < 3) {
-			return 2;
-		}
-
-		return $maxHomeApps;
+		return (int)$maxHomeApps;
 	}
 
 	/**
@@ -112,7 +112,7 @@ class GetContentHelpers {
 		if (count($file) <= 200) {
 			return false;
 		}
-		$GLOBALS['caSettings']['maxPerPage'] = 10;
+		$GLOBALS['caSettings']['maxPerPage'] = max(10, self::normalizeMaxHomeApps($maxHomeApps));
 		$startupTypes = [
 			[
 				"type"=>"onlynew",
@@ -151,7 +151,7 @@ class GetContentHelpers {
 				"text1"=>tr("Most Popular Plugins"),
 				"text2"=>tr("The most popular plugins installed by other Unraid users last month"),
 				"cat"=>"plugins:",
-				"sortby"=>"downloads",
+				"sortby"=>"lastMonthDownloads",
 				"sortdir"=>"Down"
 			],
 			[
@@ -190,6 +190,13 @@ class GetContentHelpers {
 			if ( ! $appsOfDay || empty($appsOfDay) )
 				continue;
 
+			$hasMore = (bool)($type['cat'] ?? false);
+			/* Cat sections overlay SHOW MORE on their last card. Render at least
+			   two there (one real card plus the overlaid one) so a genuine app
+			   always shows even when only a single card fits the row - the Show
+			   More then lands on the 2nd card. Other sections just fill the row. */
+			$appsToShow = $hasMore ? max(2, $maxHomeApps) : $maxHomeApps;
+
 			for ($i=0;$i<$GLOBALS['caSettings']['maxPerPage'];$i++) {
 				if ( ! isset($appsOfDay[$i])) continue;
 				$file[$appsOfDay[$i]]['NewApp'] = ($GLOBALS['caSettings']['startup'] != "random");
@@ -198,14 +205,27 @@ class GetContentHelpers {
 				$displayApplications['community'][] = $spot;
 				$display[] = $spot;
 				$homeCount++;
-				if ( $homeCount >= $maxHomeApps ) break;
+				if ( $homeCount >= $appsToShow ) break;
 			}
 			if ( $displayApplications['community'] ) {
+				/* Sections that link to a full category turn their last visible
+				   card into the Show More affordance: the card still renders (just
+				   dimmed) with a SHOW MORE label overlaid on top. The flag rides on
+				   the template through to displayCard, which draws the overlay. Only
+				   do this when another real card sits beside it, so a section never
+				   shows nothing but a Show More. */
+				if ( $hasMore && count($display) >= 2 ) {
+					$lastIdx = count($display) - 1;
+					$display[$lastIdx]['homeShowMore'] = [
+						'cat'     => $type['cat'],
+						'sortby'  => $type['sortby'],
+						'sortdir' => $type['sortdir'],
+						'des'     => $type['text1'],
+					];
+				}
+
 				$o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
-				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']} ";
-				if ( $type['cat'] ?? false )
-					$o['display'] .= "<span class='homeMore' data-des='{$type['text1']}' data-category='{$type['cat']}' data-sortby='{$type['sortby']}' data-sortdir='{$type['sortdir']}'>".tr("SHOW MORE")."</span>";
-				$o['display'] .= "</div>";
+				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']}</div>";
 				$homeClass = "caHomeSpotlight";
 
 				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1",false,false,false,false)."</div>";
@@ -427,6 +447,88 @@ class GetContentHelpers {
 				usort($searchResults['nameHit'],"favouriteSort");
 			}
 		}
+	}
+
+	/* Relevance section order for merged search results. handleFilteredTemplate
+	   buckets every match by how strongly it matched (official, full name, name,
+	   and so on). The merged list always lays the buckets out in this order so
+	   the most relevant sections stay on top no matter which sort the user picks.
+	   Kept as one source of truth so the initial search merge and the later
+	   per-section re-sort (resortSearchSections) can never drift apart. */
+	const SEARCH_SECTION_ORDER = ['officialHit','fullNameHit','nameHit','favNameHit','anyHit','extraHit'];
+
+	/**
+	 * Merge the sorted relevance buckets into the flat community list plus a
+	 * parallel section index (name + size, in merge order).
+	 *
+	 * The section index is what lets changeSortOrder slice the flat list back
+	 * into its sections and re-sort each one independently, without having to
+	 * re-run the whole search. The community order is identical to the legacy
+	 * inline merge so every existing reader is unaffected.
+	 *
+	 * @param  array<string,array<int,array<string,mixed>>>  $searchResults
+	 * @return array{community:array<int,array<string,mixed>>,searchSections:array<int,array{name:string,size:int}>}
+	 */
+	public static function mergeSearchResults($searchResults) {
+
+		$community = [];
+		$sections  = [];
+		foreach (self::SEARCH_SECTION_ORDER as $name) {
+			$bucket = $searchResults[$name] ?? [];
+			$sections[] = ['name'=>$name, 'size'=>count($bucket)];
+			if ( $bucket ) {
+				$community = array_merge($community,$bucket);
+			}
+		}
+		return ['community'=>$community, 'searchSections'=>$sections];
+	}
+
+	/**
+	 * Re-sort a cached search result set one relevance section at a time.
+	 *
+	 * Slices the flat community list back into its buckets using the stored
+	 * section index, applies the current sort to each section on its own (so
+	 * favourites still float to the top of nameHit), then re-merges in the same
+	 * relevance order. The sections themselves never move; only the order within
+	 * each section changes. Falls back to a flat sort when the cache predates the
+	 * section index so a legacy cache still resorts sanely. mySort reads the
+	 * freshly written global sort; the stored filter drives the favouriteSort
+	 * decision exactly as the original search did.
+	 *
+	 * @param  array<string,mixed>  $cache  Search cache dict, mutated by reference.
+	 * @return void
+	 */
+	public static function resortSearchSections(&$cache) {
+
+		$community = $cache['community'] ?? [];
+		if ( ! is_array($community) || ! $community ) {
+			return;
+		}
+
+		$sections = $cache['searchSections'] ?? null;
+		if ( ! is_array($sections) || ! $sections ) {
+			usort($community,"mySort");
+			$cache['community'] = $community;
+			return;
+		}
+
+		$filter = $cache['filter'] ?? "";
+		$searchResults = [];
+		$offset = 0;
+		foreach ($sections as $section) {
+			$name = $section['name'] ?? null;
+			$size = (int)($section['size'] ?? 0);
+			if ( ! $name ) {
+				continue;
+			}
+			$searchResults[$name] = array_slice($community,$offset,$size);
+			$offset += $size;
+		}
+
+		self::sortSearchResultsBuckets($searchResults,$filter);
+		$merged = self::mergeSearchResults($searchResults);
+		$cache['community']      = $merged['community'];
+		$cache['searchSections'] = $merged['searchSections'];
 	}
 
 	/**

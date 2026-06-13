@@ -1306,7 +1306,9 @@ function downloadDebugging() {
 function appOfDay($file) {
 	global $sortOrder,$dynamixSettings;
 
-	$max = getPost("maxHomeApps",6);
+	/* At least 2 so a section with a Show More overlay can render one real card
+	   beside it even when only a single card fits the row. */
+	$max = max(2, (int)getPost("maxHomeApps",6));
 	$appOfDay = [];
 
 	switch ($GLOBALS['caSettings']['startup']) {
@@ -1326,6 +1328,20 @@ function appOfDay($file) {
 				}
 				if ( $flag )
 					$appOfDay = null;
+			}
+			if ( $appOfDay && count($appOfDay) < $max ) {
+				/* The viewport now fits more cards than today's cached set holds
+				   (eg. a wider window or more apps per row). Keep the apps already
+				   chosen for today and top up with additional random ones so the
+				   Random Apps row fills out instead of staying at the old count. */
+				$have = array_flip($appOfDay);
+				shuffle($file);
+				foreach ($file as $template) {
+					if ( isset($have[$template['ID']]) ) continue;
+					if ( ! checkRandomApp($template) ) continue;
+					$appOfDay[] = $template['ID'];
+					if ( count($appOfDay) == $max ) break;
+				}
 			}
 			if ( ! $appOfDay ) {
 				shuffle($file);
@@ -1721,14 +1737,10 @@ function get_content() {
 
 	if ( $filter ) {
 		GetContentHelpers::sortSearchResultsBuckets($searchResults, $filter);
-		$displayApplications['community'] = array_merge(
-			$searchResults['officialHit'],
-			$searchResults['fullNameHit'],
-			$searchResults['nameHit'],
-			$searchResults['favNameHit'],
-			$searchResults['anyHit'],
-			$searchResults['extraHit']
-		);
+		$merged = GetContentHelpers::mergeSearchResults($searchResults);
+		$displayApplications['community']      = $merged['community'];
+		$displayApplications['searchSections'] = $merged['searchSections'];
+		$displayApplications['filter']         = $filter;   // stored so a later sort change can re-sort each section faithfully
 	} else {
 		usort($display,"mySort");
 		$displayApplications['community'] = $display;
@@ -2238,9 +2250,52 @@ function statistics() {
 }
 
 /**
+ * Download one feed URL and return the SHA-256 of its canonical JSON.
+ *
+ * Decodes the body, re-encodes it, and hashes that string so two mirrors
+ * serving the same content in different formatting (minified vs pretty) hash
+ * equal. Each large blob is freed as soon as it is no longer needed (raw body
+ * before re-encoding, decoded structure before hashing) so peak memory stays
+ * at roughly one feed rather than two. Returns null when the fetch fails or the
+ * body is not valid JSON.
+ *
+ * @param  string  $url
+ * @return string|null
+ */
+function caCanonicalFeedSha($url) {
+	/* 60s timeout so a slow/stalled mirror can't tie up the request worker on
+	   this admin-only diagnostic; download_url returns false on timeout and the
+	   caller already treats that as a failed hash. */
+	$body = download_url($url, "", 60);
+	if ( ! is_string($body) || ! strlen($body) ) {
+		return null;
+	}
+
+	$decoded = json_decode($body, true);
+	unset($body);                       // free the raw body before re-encoding
+	if ( $decoded === null ) {
+		return null;                    // not valid JSON (or an empty/null body)
+	}
+
+	$canonical = json_encode($decoded);
+	unset($decoded);                    // free the decoded structure before hashing
+	if ( ! is_string($canonical) ) {
+		return null;                    // re-encode failed (eg. invalid UTF-8)
+	}
+
+	$sha = hash('sha256', $canonical);
+	unset($canonical);
+	return $sha;
+}
+
+/**
  * Dev/admin-only diagnostic: fetch the three feed files (small, full,
  * statistics) from both the primary CA server and the GitHub backup,
- * compute SHA-256 of each body, and return per-file match results.
+ * compute SHA-256 of each feed's canonical JSON (decoded then re-encoded),
+ * and return per-file match results. Hashing the canonical form rather than
+ * the raw bytes means the primary (minified) and backup (pretty-printed)
+ * mirrors compare equal when their content matches, so a mismatch flags a
+ * real content difference instead of a formatting difference.
  *
  * Used by the bottom of the statistics popup (replaces the old
  * Primary/Backup server links) so a maintainer can spot-check whether
@@ -2251,7 +2306,7 @@ function statistics() {
  * Returns:
  *   { enabled: bool,
  *     results: {
- *       small:      { primary: <sha|null>, backup: <sha|null>, match: bool },
+ *       small:      { primary: <sha|null>, backup: <sha|null>, match: bool, primaryUrl: <url>, backupUrl: <url> },
  *       full:       { ... },
  *       statistics: { ... }
  *     }
@@ -2274,14 +2329,20 @@ function caCompareFeedShas() {
 
 	$results = [];
 	foreach ($sources as $name => $urls) {
-		$primaryBody = download_url($urls['primary']);
-		$backupBody  = download_url($urls['backup']);
-		$primarySha  = (is_string($primaryBody) && strlen($primaryBody)) ? hash('sha256', $primaryBody) : null;
-		$backupSha   = (is_string($backupBody)  && strlen($backupBody))  ? hash('sha256', $backupBody)  : null;
+		/* Hash each mirror one at a time and free it before fetching the next.
+		   The full feed is ~15-20 MB raw and several times that once decoded, so
+		   holding both mirrors (and both decoded structures) at once would spike
+		   memory needlessly. caCanonicalFeedSha drops each blob as it goes. */
+		$primarySha = caCanonicalFeedSha($urls['primary']);
+		$backupSha  = caCanonicalFeedSha($urls['backup']);
 		$results[$name] = [
-			'primary' => $primarySha,
-			'backup'  => $backupSha,
-			'match'   => ($primarySha !== null && $backupSha !== null && $primarySha === $backupSha),
+			'primary'    => $primarySha,
+			'backup'     => $backupSha,
+			'match'      => ($primarySha !== null && $backupSha !== null && $primarySha === $backupSha),
+			/* Surfaced so the client can link both mirrors next to a mismatch,
+			   letting a maintainer open and eyeball each feed directly. */
+			'primaryUrl' => $urls['primary'],
+			'backupUrl'  => $urls['backup'],
 		];
 	}
 
@@ -3067,6 +3128,11 @@ function createXML() {
 		@mkdir(dirname($xmlFile),0777,true);
 		ca_file_put_contents($xmlFile,$xml);
 	}
+	/* Installing a container ends any Docker Hub search it was launched from.
+	   Clearing this per-tab flag makes the Apps page reload restore the template
+	   results instead of re-running the docker search (see the dockerSearchActive
+	   check in the Apps.page bootstrap). */
+	@unlink(CA_PATHS['dockerSearchActive']);
 	caDropInfoCache();
 	postReturn(["status"=>"ok","cache"=>$cacheVolume ?? ""]);
 }
@@ -3202,6 +3268,8 @@ function getFavourite() {
 function changeSortOrder() {
 	global $sortOrder;
 
+	require_once __DIR__ . '/get_content_helpers.php';
+
 	$sortOrder = getPostArray("sortOrder");
 	writeJsonFile(CA_PATHS['sortOrder'],$sortOrder);
 
@@ -3213,14 +3281,12 @@ function changeSortOrder() {
 	}
 	if ( is_file(CA_PATHS['community-templates-allSearchResults']) ) {
 		$allSearchResults = readJsonFile(CA_PATHS['community-templates-allSearchResults']);
-		if ( $allSearchResults['community'] )
-			usort($allSearchResults['community'],"mySort");
+		GetContentHelpers::resortSearchSections($allSearchResults);
 		writeJsonFile(CA_PATHS['community-templates-allSearchResults'],$allSearchResults);
 	}
 	if ( is_file(CA_PATHS['community-templates-catSearchResults']) ) {
 		$catSearchResults = readJsonFile(CA_PATHS['community-templates-catSearchResults']);
-		if ( $catSearchResults['community'] )
-			usort($catSearchResults['community'],"mySort");
+		GetContentHelpers::resortSearchSections($catSearchResults);
 		writeJsonFile(CA_PATHS['community-templates-catSearchResults'],$catSearchResults);
 	}
 	if ( is_file(CA_PATHS['repositoriesDisplayed']) ) {
@@ -3365,6 +3431,10 @@ function convert_docker() {
 	$convertToken = bin2hex(random_bytes(8));
 	$installXmlPath = CA_PATHS['tempFiles']."/dockerConvert_{$convertToken}.xml";
 	ca_file_put_contents($installXmlPath, $dockerXML);
+	/* Converting a Docker Hub image to a container ends the docker search it was
+	   launched from, so clear the per-tab flag. Without this the Apps page reload
+	   re-runs the docker search instead of showing the template results. */
+	@unlink(CA_PATHS['dockerSearchActive']);
 	caDropInfoCache();
 	postReturn(['xml' => $installXmlPath]);
 }

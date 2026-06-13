@@ -766,7 +766,11 @@ function caInitializeClickHandlers() {
 	 * section's category, set the home subtitle, clear search, scroll to top,
 	 * and POST the section's sort order before fetching its full content.
 	 */
-	$(".mainArea").on("click", ".homeMore", function() {
+	$(".mainArea").on("click", ".homeMore", function(e) {
+		/* The Show More overlay sits inside its (clickable) app card, so stop the
+		   click here before it bubbles to the .ca_holder handler and also opens
+		   that card's sidebar. mainArea is below body, so this fires first. */
+		e.stopPropagation();
 		var description = $(this).data("des");
 		var category = $(this).data("category");
 		/* Parent + auto "All" share data-category — prefer the All sub. Reveal

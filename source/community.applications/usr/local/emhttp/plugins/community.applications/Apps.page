@@ -1836,6 +1836,12 @@ function changeSortOrder(button,buttonClass,previousApps) {
 	var postFn = data.searchInProgress ? postNoSpin : post;
 	postFn(postOpts,function(result) {
 		updateDisplay(result.display_data || result.display);
+		/* A sort change refetches only page 1, so the user expects to land at
+		   the top. Without this, a deep-scrolled viewport stays put over the new
+		   page-1 cards and shows blank until the virtualizer repaints on the next
+		   scroll. Skip the Previous Apps caller, which bulk-loads every card and
+		   manages its own scroll. */
+		if ( ! previousApps ) scrollToTop();
 	});
 }
 
@@ -1870,7 +1876,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	   sticky docker when the user navigates the menu. */
 	caLeaveDockerMode();
 	var initialize;
-	var maxHomeApps = 6; // Maximum number of apps to display in each row on home page
+	var maxHomeApps = Math.max(1, caCardsPerRow()); // Row capacity; sections with a Show More tile render one fewer app to make room for it (server side), minimum 1
 	data.maxPerPage = getMaxPerPage();
 
 	enableSearch();
@@ -1995,6 +2001,17 @@ function awesompleteSearch() {
  * @param {string} [target='_self'] `window.open` target name
  */
 function openNewWindow(newURL,target='_self') {
+	/* Installing a container opens the AddContainer page, which ends the Docker
+	   Hub search the user installed from. On the way back to Apps they want the
+	   template results, not the docker results. Clear docker mode before
+	   saveState so the saved snapshot records dockerMode false: restoreState
+	   then brings back the app store chrome (DockerHub button plus sort icons)
+	   instead of the docker chrome (Apps button). The matching server side
+	   unlink of dockerSearchActive in createXML and convert_docker stops the
+	   bootstrap from re-running the docker search on return. */
+	if ( typeof newURL === "string" && newURL.indexOf("/Apps/AddContainer") !== -1 ) {
+		caLeaveDockerMode();
+	}
 	saveState();
 	var popUp = window.open(newURL,target);
 	if ( !popUp || popUp.closed || typeof popUp == "undefined" ) {
@@ -5624,9 +5641,50 @@ function caRefreshSortMenu() {
 	   Wrapped in .caBtnLabel so the @media (max-width: 767px) icon-only
 	   rule in community.applications.responsive.css can hide it on
 	   narrow viewports alongside the other top-bar buttons. */
-	$("#sortByButton").html("<span class='caBtnLabel'><?tr("Sort");?></span>");
+	/* Button content: the fa-sort glyph (CSS ::before), then the current-sort
+	   indicator icon, then the "Sort" label. caSortIndicatorClass() returns the
+	   glyph class for the active sort (or null on a home "Show More" view where
+	   every sort icon is startupMore and nothing is selected). The label gets
+	   caSortHasInd only when an indicator precedes it, so the 1rem gap before
+	   "Sort" appears solely in that case. */
+	var ind = caSortIndicatorClass();
+	var indHtml = ind ? "<span class='caSortIndIcon " + ind.cls + "'></span>" : "";
+	var labelClass = "caBtnLabel" + (ind ? " caSortHasInd" : "");
+	$("#sortByButton")
+		.html(indHtml + "<span class='" + labelClass + "'><?tr("Sort");?></span>")
+		.attr("title", ind ? ind.title : "");
 	context.destroy("#sortByButton");
 	context.attach("#sortByButton", getSortOpts());
+}
+
+/**
+ * Map the active sort to its indicator glyph class + label, for the icon shown
+ * inside the Sort button. Returns {cls, title} for name asc/desc, downloads, or
+ * date added; null when nothing concrete is selected (eg. a home "Show More"
+ * view tags every sort icon `startupMore`).
+ *
+ * @returns {{cls:string,title:string}|null}
+ */
+function caSortIndicatorClass() {
+	var $active = $(".sortIcons.enabledIcon").not(".startupMore").first();
+	if (!$active.length) return null;
+	return { cls: caSortGlyphClass($active.attr("data-sortBy"), $active.attr("data-sortDir")), title: $.trim($active.text()) };
+}
+
+/**
+ * Map a sortBy/sortDir pair to its indicator glyph class (shared by the Sort
+ * button indicator and the dropdown rows): name asc/desc, downloads, date.
+ *
+ * @param {string} by  data-sortBy (Name / downloads / FirstSeen)
+ * @param {string} dir data-sortDir (Up / Down)
+ * @returns {string}
+ */
+function caSortGlyphClass(by, dir) {
+	by  = (by  || "").toLowerCase();
+	dir = (dir || "").toLowerCase();
+	if (by === "downloads") return "ca_sortInd_downloads";
+	if (by === "firstseen") return "ca_sortInd_date";
+	return (dir === "down") ? "ca_sortInd_nameDesc" : "ca_sortInd_nameAsc";
 }
 
 /**
@@ -5641,9 +5699,13 @@ function getSortOpts() {
 		var $sortOption = $(sortOption);
 		var sortText = $.trim($sortOption.text());
 		var isSelected = $sortOption.hasClass("enabledIcon") && !$sortOption.hasClass("startupMore");
+		/* Lead each row with the same order glyph used on the Sort button, before
+		   the description, so the menu reads the icons and the labels together. */
+		var glyph = "<span class='caSortIndIcon caSortMenuIcon " + caSortGlyphClass($sortOption.attr("data-sortBy"), $sortOption.attr("data-sortDir")) + "'></span>";
+		var label = isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText;
 		sortOpts.push({
 			icon: isSelected ? "ca_fa-checkmark" : " ",
-			text: isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText,
+			text: glyph + label,
 			action: function() {
 				$(sortOption).trigger("click");
 			}

@@ -610,8 +610,26 @@ function caBuildFeedShaHtml(results) {
 			status = "<i class='fa fa-check' aria-hidden='true'></i> " + tr("in sync");
 		} else {
 			status = "<i class='fa fa-exclamation-triangle ca_serverWarning' aria-hidden='true'></i> " + tr("mismatch");
+			/* On a mismatch, link both mirrors so a maintainer can open and
+			   compare them directly. */
+			var links = [];
+			if (r.primaryUrl) links.push(caFeedShaLink(r.primaryUrl, tr("primary")));
+			if (r.backupUrl)  links.push(caFeedShaLink(r.backupUrl, tr("backup")));
+			if (links.length) status += " (" + links.join(", ") + ")";
 		}
 		return "<div>" + item.label + ": " + status + "</div>";
 	});
 	return "<div class='ca_bold'>" + tr("Primary vs backup feed check") + "</div>" + rows.join("");
+}
+
+/**
+ * Build a new-tab anchor to a feed mirror URL for the SHA mismatch diagnostic.
+ *
+ * @param {string} url
+ * @param {string} label
+ * @returns {string} HTML
+ */
+function caFeedShaLink(url, label) {
+	return "<a class='popUpLink' target='_blank' rel='noopener noreferrer' href='"
+		+ caEscapeHtml(url) + "'>" + caEscapeHtml(label) + "</a>";
 }

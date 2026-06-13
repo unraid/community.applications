@@ -841,7 +841,20 @@ function mySort($a, $b) {
 	$b['trendDelta'] = $b['trendDelta'] ?? null;
 	if ( $sortOrder['sortBy'] == "Name" )
 		$sortOrder['sortBy'] = "SortName";
-	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "lastMonthDownloads" && $sortOrder['sortBy'] != "trending") {
+
+	if ( $sortOrder['sortBy'] == "lastMonthDownloads" ) {
+		/* Most Popular Plugins ranks by the previous full calendar month's
+		   install count, read live from each template's pluginStats map (MM
+		   to monthly count) instead of a precomputed field. This lets the
+		   SHOW MORE category view sort identically to the home section without
+		   the field having to be baked onto every template first. The month is
+		   resolved once and reused across the comparator calls. */
+		static $prevMonth = null;
+		if ( $prevMonth === null )
+			$prevMonth = date("m", strtotime("first day of previous month"));
+		$c = (int)($a['pluginStats'][$prevMonth] ?? 0);
+		$d = (int)($b['pluginStats'][$prevMonth] ?? 0);
+	} else if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "trending") {
 		$c = strtolower($a[$sortOrder['sortBy']] ?? "");
 		$d = strtolower($b[$sortOrder['sortBy']] ?? "");
 	} else {
