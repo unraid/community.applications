@@ -3,8 +3,8 @@ class GetContentHelpers {
 	/**
 	 * Clamp the home-screen "max apps" preference to the supported range.
 	 *
-	 * Returns 4 when the value is 0 (unset), 2 when the value is below 3
-	 * (the minimum useful row), otherwise the value unchanged.
+	 * Returns 4 when the value is missing / non-positive (old client or direct
+	 * call), otherwise the integer value unchanged.
 	 *
 	 * @param  int|string  $maxHomeApps
 	 * @return int
