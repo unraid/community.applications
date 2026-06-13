@@ -1876,7 +1876,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	   sticky docker when the user navigates the menu. */
 	caLeaveDockerMode();
 	var initialize;
-	var maxHomeApps = Math.max(6, caCardsPerRow()); // Fill each home row with as many apps as fit, never fewer than 6
+	var maxHomeApps = Math.max(1, caCardsPerRow()); // Row capacity; sections with a Show More tile render one fewer app to make room for it (server side), minimum 1
 	data.maxPerPage = getMaxPerPage();
 
 	enableSearch();
@@ -5641,9 +5641,50 @@ function caRefreshSortMenu() {
 	   Wrapped in .caBtnLabel so the @media (max-width: 767px) icon-only
 	   rule in community.applications.responsive.css can hide it on
 	   narrow viewports alongside the other top-bar buttons. */
-	$("#sortByButton").html("<span class='caBtnLabel'><?tr("Sort");?></span>");
+	/* Button content: the fa-sort glyph (CSS ::before), then the current-sort
+	   indicator icon, then the "Sort" label. caSortIndicatorClass() returns the
+	   glyph class for the active sort (or null on a home "Show More" view where
+	   every sort icon is startupMore and nothing is selected). The label gets
+	   caSortHasInd only when an indicator precedes it, so the 1rem gap before
+	   "Sort" appears solely in that case. */
+	var ind = caSortIndicatorClass();
+	var indHtml = ind ? "<span class='caSortIndIcon " + ind.cls + "'></span>" : "";
+	var labelClass = "caBtnLabel" + (ind ? " caSortHasInd" : "");
+	$("#sortByButton")
+		.html(indHtml + "<span class='" + labelClass + "'><?tr("Sort");?></span>")
+		.attr("title", ind ? ind.title : "");
 	context.destroy("#sortByButton");
 	context.attach("#sortByButton", getSortOpts());
+}
+
+/**
+ * Map the active sort to its indicator glyph class + label, for the icon shown
+ * inside the Sort button. Returns {cls, title} for name asc/desc, downloads, or
+ * date added; null when nothing concrete is selected (eg. a home "Show More"
+ * view tags every sort icon `startupMore`).
+ *
+ * @returns {{cls:string,title:string}|null}
+ */
+function caSortIndicatorClass() {
+	var $active = $(".sortIcons.enabledIcon").not(".startupMore").first();
+	if (!$active.length) return null;
+	return { cls: caSortGlyphClass($active.attr("data-sortBy"), $active.attr("data-sortDir")), title: $.trim($active.text()) };
+}
+
+/**
+ * Map a sortBy/sortDir pair to its indicator glyph class (shared by the Sort
+ * button indicator and the dropdown rows): name asc/desc, downloads, date.
+ *
+ * @param {string} by  data-sortBy (Name / downloads / FirstSeen)
+ * @param {string} dir data-sortDir (Up / Down)
+ * @returns {string}
+ */
+function caSortGlyphClass(by, dir) {
+	by  = (by  || "").toLowerCase();
+	dir = (dir || "").toLowerCase();
+	if (by === "downloads") return "ca_sortInd_downloads";
+	if (by === "firstseen") return "ca_sortInd_date";
+	return (dir === "down") ? "ca_sortInd_nameDesc" : "ca_sortInd_nameAsc";
 }
 
 /**
@@ -5658,9 +5699,13 @@ function getSortOpts() {
 		var $sortOption = $(sortOption);
 		var sortText = $.trim($sortOption.text());
 		var isSelected = $sortOption.hasClass("enabledIcon") && !$sortOption.hasClass("startupMore");
+		/* Lead each row with the same order glyph used on the Sort button, before
+		   the description, so the menu reads the icons and the labels together. */
+		var glyph = "<span class='caSortIndIcon caSortMenuIcon " + caSortGlyphClass($sortOption.attr("data-sortBy"), $sortOption.attr("data-sortDir")) + "'></span>";
+		var label = isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText;
 		sortOpts.push({
 			icon: isSelected ? "ca_fa-checkmark" : " ",
-			text: isSelected ? "<span class='ca_green'>" + sortText + "</span>" : sortText,
+			text: glyph + label,
 			action: function() {
 				$(sortOption).trigger("click");
 			}

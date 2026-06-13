@@ -23,7 +23,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
-- Changed: Home page sections now show as many apps as fit across one row (at least 6) instead of a fixed six, adapting to your window width and zoom
+- Changed: Home page sections now fill a full row of apps (instead of a fixed six), adapting to your window width and zoom. The last card in each section that links to a wider category is dimmed with a "Show More" label overlaid on it, opening that full category
+- Added: The Sort button now shows an icon for the current order (name A-Z / Z-A, downloads, or date added), and each entry in the Sort dropdown is led by its matching icon
+- Fixed: The category menu now opens correctly on Safari and iOS (iPhone / iPad) - it was being clipped to nothing when tapping the menu button
+- Changed: Softened the scrollbar colour so it sits more quietly against the page
 - Changed: When you change the sort order during a search, each relevance group in the results (exact matches, name matches, and so on) is now sorted on its own, so the most relevant apps stay grouped at the top instead of the whole list being re-sorted together
 - Fixed: Changing the sort order now returns you to the top of the results instead of leaving a blank gap until you scroll
 - Changed: "Show More" on the Most Popular Plugins home section now sorts by last month's installs, matching how that section is ranked, instead of by total downloads

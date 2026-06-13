@@ -1306,7 +1306,9 @@ function downloadDebugging() {
 function appOfDay($file) {
 	global $sortOrder,$dynamixSettings;
 
-	$max = getPost("maxHomeApps",6);
+	/* At least 2 so a section with a Show More overlay can render one real card
+	   beside it even when only a single card fits the row. */
+	$max = max(2, (int)getPost("maxHomeApps",6));
 	$appOfDay = [];
 
 	switch ($GLOBALS['caSettings']['startup']) {
@@ -2261,7 +2263,10 @@ function statistics() {
  * @return string|null
  */
 function caCanonicalFeedSha($url) {
-	$body = download_url($url);
+	/* 60s timeout so a slow/stalled mirror can't tie up the request worker on
+	   this admin-only diagnostic; download_url returns false on timeout and the
+	   caller already treats that as a failed hash. */
+	$body = download_url($url, "", 60);
 	if ( ! is_string($body) || ! strlen($body) ) {
 		return null;
 	}

@@ -1417,22 +1417,33 @@ function caMeasureCardDims() {
  *
  * @returns {number}
  */
+/**
+ * Inner width of the card grid plus the main-area viewport height, or null when
+ * the main area isn't present yet. Shared by getMaxPerPage() and caCardsPerRow()
+ * so the grid-width lookup (with the home/templates fallbacks) lives in one place.
+ *
+ * @returns {{gridW:number,viewH:number}|null}
+ */
+function caMeasureGrid() {
+	var ma = $(".mainArea")[0];
+	if (!ma) return null;
+	var $grid = $("#templates_content .ca_templatesDisplay").first();
+	if (!$grid.length) $grid = $("#templates_content").first();
+	var gridW = ($grid.length ? $grid[0].clientWidth : 0) || ma.clientWidth;
+	return { gridW: gridW, viewH: ma.clientHeight };
+}
+
 function getMaxPerPage() {
 	var DEFAULT = 12;
 	/* Upper bound so 4K / ultrawide viewports don't request hundreds of cards in
 	   one fetch (server load + DOM bloat). ~6 viewports of a 12-card layout. */
 	var MAX_PER_PAGE = 150;
-	var ma = $(".mainArea")[0];
-	if (!ma) return DEFAULT;
-	var $grid = $("#templates_content .ca_templatesDisplay").first();
-	if (!$grid.length) $grid = $("#templates_content").first();
-	var gridW = ($grid.length ? $grid[0].clientWidth : 0) || ma.clientWidth;
-	var viewH = ma.clientHeight;
-	if (gridW <= 0 || viewH <= 0) return DEFAULT;
+	var grid = caMeasureGrid();
+	if (!grid || grid.gridW <= 0 || grid.viewH <= 0) return DEFAULT;
 	var dims = caMeasureCardDims();
 	if (!dims || dims.w <= 0 || dims.h <= 0) return DEFAULT;
-	var perRow = Math.max(1, Math.floor(gridW / dims.w));
-	var rows = Math.max(1, Math.ceil(viewH / dims.h));
+	var perRow = Math.max(1, Math.floor(grid.gridW / dims.w));
+	var rows = Math.max(1, Math.ceil(grid.viewH / dims.h));
 	/* ~2 viewports of cards per page (plus a row of overscan). A single fetch
 	   then covers a thumb-drag / track-click that lands mid-page without a blank
 	   gap, and gives forward/backward scroll extra runway before hitting a
@@ -1450,15 +1461,11 @@ function getMaxPerPage() {
  * @returns {number}
  */
 function caCardsPerRow() {
-	var ma = $(".mainArea")[0];
-	if (!ma) return 0;
-	var $grid = $("#templates_content .ca_templatesDisplay").first();
-	if (!$grid.length) $grid = $("#templates_content").first();
-	var gridW = ($grid.length ? $grid[0].clientWidth : 0) || ma.clientWidth;
-	if (gridW <= 0) return 0;
+	var grid = caMeasureGrid();
+	if (!grid || grid.gridW <= 0) return 0;
 	var dims = caMeasureCardDims();
 	if (!dims || dims.w <= 0) return 0;
-	return Math.max(1, Math.floor(gridW / dims.w));
+	return Math.max(1, Math.floor(grid.gridW / dims.w));
 }
 
 /**

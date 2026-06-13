@@ -352,7 +352,12 @@ body:has(.ca_useWholeDisplayWindow) {
 		position: absolute;
 	}
 	.mobileMenu {
-		position: absolute;
+		/* Fixed, not absolute: the menu it wraps (.menuItems) is position:fixed,
+		   and WebKit (Safari + every iOS browser) clips a fixed descendant to a
+		   positioned ancestor's overflow box. With the absolute wrapper the menu
+		   was clipped away on iOS/Safari (it rendered fine in desktop Chrome).
+		   A fixed wrapper anchored to the viewport no longer clips it. */
+		position: fixed;
 		display: none;
 		z-index: 5;
 		overflow: auto;
@@ -380,6 +385,11 @@ body:has(.ca_useWholeDisplayWindow) {
 	.mobileMenuButton {
 		display: inline-block;
 		z-index: 5;
+		/* Extra breathing room between the menu toggle and the search launcher.
+		   Only shows while the menu is collapsed - the search controls are
+		   hidden (.hideWithMenu) once the menu opens, so nothing sits to the
+		   right of this in the open state. */
+		margin-right: 2rem;
 	}
 	.menuItems {
 		padding-right: 2rem;

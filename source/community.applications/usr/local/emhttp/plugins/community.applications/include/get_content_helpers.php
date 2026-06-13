@@ -10,15 +10,15 @@ class GetContentHelpers {
 	 * @return int
 	 */
 	public static function normalizeMaxHomeApps($maxHomeApps) {
-		if ($maxHomeApps == 0) {
+		/* maxHomeApps is the home row capacity sent by the client. A missing or
+		   non-positive value (old client / direct call) falls back to a sane
+		   default; anything 1 or higher is honoured as-is so a narrow row can
+		   legitimately show a single app. */
+		if ((int)$maxHomeApps < 1) {
 			return 4;
 		}
 
-		if ($maxHomeApps < 3) {
-			return 2;
-		}
-
-		return $maxHomeApps;
+		return (int)$maxHomeApps;
 	}
 
 	/**
@@ -190,6 +190,13 @@ class GetContentHelpers {
 			if ( ! $appsOfDay || empty($appsOfDay) )
 				continue;
 
+			$hasMore = (bool)($type['cat'] ?? false);
+			/* Cat sections overlay SHOW MORE on their last card. Render at least
+			   two there (one real card plus the overlaid one) so a genuine app
+			   always shows even when only a single card fits the row - the Show
+			   More then lands on the 2nd card. Other sections just fill the row. */
+			$appsToShow = $hasMore ? max(2, $maxHomeApps) : $maxHomeApps;
+
 			for ($i=0;$i<$GLOBALS['caSettings']['maxPerPage'];$i++) {
 				if ( ! isset($appsOfDay[$i])) continue;
 				$file[$appsOfDay[$i]]['NewApp'] = ($GLOBALS['caSettings']['startup'] != "random");
@@ -198,14 +205,27 @@ class GetContentHelpers {
 				$displayApplications['community'][] = $spot;
 				$display[] = $spot;
 				$homeCount++;
-				if ( $homeCount >= $maxHomeApps ) break;
+				if ( $homeCount >= $appsToShow ) break;
 			}
 			if ( $displayApplications['community'] ) {
+				/* Sections that link to a full category turn their last visible
+				   card into the Show More affordance: the card still renders (just
+				   dimmed) with a SHOW MORE label overlaid on top. The flag rides on
+				   the template through to displayCard, which draws the overlay. Only
+				   do this when another real card sits beside it, so a section never
+				   shows nothing but a Show More. */
+				if ( $hasMore && count($display) >= 2 ) {
+					$lastIdx = count($display) - 1;
+					$display[$lastIdx]['homeShowMore'] = [
+						'cat'     => $type['cat'],
+						'sortby'  => $type['sortby'],
+						'sortdir' => $type['sortdir'],
+						'des'     => $type['text1'],
+					];
+				}
+
 				$o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
-				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']} ";
-				if ( $type['cat'] ?? false )
-					$o['display'] .= "<span class='homeMore' data-des='{$type['text1']}' data-category='{$type['cat']}' data-sortby='{$type['sortby']}' data-sortdir='{$type['sortdir']}'>".tr("SHOW MORE")."</span>";
-				$o['display'] .= "</div>";
+				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']}</div>";
 				$homeClass = "caHomeSpotlight";
 
 				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1",false,false,false,false)."</div>";

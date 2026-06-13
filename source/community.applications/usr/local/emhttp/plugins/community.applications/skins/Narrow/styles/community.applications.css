@@ -425,6 +425,39 @@ body,
 	margin-bottom: 1rem;
 }
 
+/* Home page SHOW MORE: the last visible card in a section is left in place but
+   dimmed, with a SHOW MORE label overlaid on it (it opens the full category).
+   The overlay fills the card (.ca_holder is position:relative). The scrim is a
+   separate layer so its opacity dims only the card, not the label on top. */
+.ca_homeMoreOverlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 2;
+}
+.ca_homeMoreScrim {
+	position: absolute;
+	inset: 0;
+	background-color: var(--mild-background-color);
+	opacity: 0.72;
+}
+.ca_homeMoreOverlay .ca_homeMoreText {
+	position: relative;
+	text-align: center;
+	color: var(--brand-orange);
+}
+.ca_homeMoreTitle {
+	font-size: 2rem;
+	font-weight: bold;
+}
+.ca_homeMoreSection {
+	font-size: 1.5rem;
+	margin-top: 0.25rem;
+}
+
 /* 2.3) Card Elements */
 .ca_applicationName {
 	/* Layout */
@@ -865,7 +898,7 @@ body,
 		.mainArea,
 		.ca_diffCol {
 			scrollbar-width: auto;
-			scrollbar-color: var(--brand-orange) transparent;
+			scrollbar-color: color-mix(in srgb, var(--brand-orange) 60%, transparent) transparent;
 		}
 	}
 	/* Channel reserves the normal (hover/scrolling) bar width; the thumb is inset
@@ -886,14 +919,14 @@ body,
 	.ca_diffCol::-webkit-scrollbar-track {
 		background: transparent;
 	}
-	/* Default ~2px rounded pill at half strength (calmer when idle): a transparent
+	/* Default ~2px rounded pill at a muted strength (calmer when idle): a transparent
 	   border + padding-box clip insets the visible thumb within the 10px channel. */
 	.menuItems::-webkit-scrollbar-thumb,
 	.sidenav::-webkit-scrollbar-thumb,
 	.ca_homeTemplates::-webkit-scrollbar-thumb,
 	.mainArea::-webkit-scrollbar-thumb,
 	.ca_diffCol::-webkit-scrollbar-thumb {
-		background-color: color-mix(in srgb, var(--brand-orange) 50%, transparent);
+		background-color: color-mix(in srgb, var(--brand-orange) 32%, transparent);
 		border-radius: 999px;
 		border: 4px solid transparent;
 		background-clip: padding-box;
@@ -915,7 +948,7 @@ body,
 	.mainArea::-webkit-scrollbar-thumb:hover,
 	.ca_diffCol::-webkit-scrollbar-thumb:hover {
 		border-width: 0;
-		background-color: var(--brand-orange);
+		background-color: color-mix(in srgb, var(--brand-orange) 65%, transparent);
 	}
 	.menuItems::-webkit-scrollbar-corner,
 	.sidenav::-webkit-scrollbar-corner,
@@ -3849,8 +3882,30 @@ input[type="button"] {
 	#sortByButton::before {
 		content: "\f0dc";              /* fa-sort */
 		font-family: fontAwesome;
-		margin-right: 0.5rem;
+		margin-right: 1rem;            /* 1rem gap to the current-sort indicator (or the label when there's no indicator) */
 	}
+	/* Active-sort indicator: a glyph inside the Sort button (after the fa-sort
+	   icon, before the label) reflecting the current order. caRefreshSortMenu()
+	   emits the span with the matching ca_sortInd_* class; the label only gets
+	   caSortHasInd (its 1rem lead gap) when an indicator precedes it. */
+	#sortByButton .caBtnLabel.caSortHasInd {
+		margin-left: 1rem;
+	}
+	.caSortIndIcon::before {
+		font-family: fontAwesome;
+	}
+	/* Same glyph leading each dropdown row, before the description. Fixed width
+	   so the labels line up regardless of glyph width. */
+	.caSortMenuIcon {
+		display: inline-block;
+		width: 1.6rem;
+		margin-right: 0.5rem;
+		text-align: center;
+	}
+	.caSortIndIcon.ca_sortInd_nameAsc::before  { content: "\f15d"; } /* fa-sort-alpha-asc  (A→Z) */
+	.caSortIndIcon.ca_sortInd_nameDesc::before { content: "\f15e"; } /* fa-sort-alpha-desc (Z→A) */
+	.caSortIndIcon.ca_sortInd_downloads::before{ content: "\f019"; } /* fa-download */
+	.caSortIndIcon.ca_sortInd_date::before     { content: "\f073"; } /* fa-calendar */
 	.dockerSearch::before {
 		content: "\e90b";              /* Unraid icon font — docker, same glyph .appDocker uses */
 		font-family: Unraid;
