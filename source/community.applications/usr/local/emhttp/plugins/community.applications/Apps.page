@@ -3106,6 +3106,100 @@ function postMultiDockerInstall() {
    caRenderPageNavigation script the server emits with each batch. Falls back
    to the loaded range when the layout signals aren't measurable, and hides
    itself on the home page / empty result. */
+function caUpdateAlphaBar(entries) {
+	var $bar = $("#caAlphaBar");
+	if (!$bar.length) return;
+	if (!$.isArray(entries) || !entries.length) {
+		$bar.addClass("ca_hide").empty();
+		return;
+	}
+	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
+	var perRow = (typeof caCardsPerRow === "function") ? Math.max(1, caCardsPerRow()) : 1;
+	var ordered = entries.slice().sort(function(a, b) {
+		return (parseInt(a && a.i, 10) || 0) - (parseInt(b && b.i, 10) || 0);
+	}).map(function(e) { return { l: e.l, i: parseInt(e.i, 10) || 0 }; });
+	data.alphaAll = ordered;
+	var kept = [];
+	var lastIdx = 0, lastPage = -1;
+	ordered.forEach(function(e) {
+		var i = parseInt(e && e.i, 10);
+		if (isNaN(i)) return;
+		var page = Math.floor(i / perPage);
+		if (kept.length && (page === lastPage || (i - lastIdx) < perRow)) return;
+		kept.push({ l: e.l, i: i });
+		lastIdx = i;
+		lastPage = page;
+	});
+	var render = function(list) {
+		var html = "";
+		list.forEach(function(e) {
+			var label = (e.l === "#") ? "#" : e.l.toUpperCase();
+			html += "<span class='caAlphaLetter' data-letter='" + e.l + "' data-index='" + e.i + "'>" + label + "</span>";
+		});
+		$bar.html(html).removeClass("ca_hide");
+		data.alphaShown = list;
+	};
+	render(kept);
+	var avail = $bar[0].clientHeight || 0;
+	var first = $bar.children().get(0);
+	var letterH = first ? first.offsetHeight : 0;
+	if (avail > 0 && letterH > 0) {
+		var maxFit = Math.floor(avail / letterH);
+		if (maxFit >= 1 && kept.length > maxFit) {
+			var stride = Math.ceil(kept.length / maxFit);
+			var thinned = [];
+			for (var k = 0; k < kept.length; k += stride) thinned.push(kept[k]);
+			render(thinned);
+		}
+		$bar.css("gap", Math.max(0, (avail - 27 * letterH) / 26) + "px");
+	}
+}
+
+function caAlphaLetterFor(list, globalIndex) {
+	if (!$.isArray(list) || !list.length) return null;
+	var active = list[0].l;
+	for (var k = 0; k < list.length; k++) {
+		if (list[k].i <= globalIndex) active = list[k].l;
+		else break;
+	}
+	return active;
+}
+
+function caUpdateAlphaActive(globalIndex) {
+	var $bar = $("#caAlphaBar");
+	if (!$bar.length || $bar.hasClass("ca_hide")) {
+		$(".caSpacerHintLetter").text("");
+		return;
+	}
+	var activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
+	$bar.find(".caAlphaLetter").removeClass("caAlphaActive");
+	if (activeShown !== null) {
+		$bar.find(".caAlphaLetter").filter(function() { return $(this).attr("data-letter") === activeShown; }).addClass("caAlphaActive");
+	}
+	var exact = caAlphaLetterFor(data.alphaAll, globalIndex);
+	$(".caSpacerHintLetter").text(exact === null ? "" : (exact === "#" ? "#" : exact.toUpperCase()));
+}
+
+function caJumpToLetter(letter) {
+	if (!letter) return;
+	post({ action: "jumpToLetter", letter: letter, maxPerPage: data.maxPerPage, selected: data.selected }, function(result) {
+		var dd = result.display_data || result.display;
+		var G = parseInt(result.index, 10);
+		if (!dd || isNaN(G) || G < 0) return;
+		if (dd.pageNumber) data.currentpage = parseInt(dd.pageNumber, 10) || 1;
+		updateDisplay(dd, false);
+		var ma = $(".mainArea")[0];
+		var $c = $("#templates_content .ca_templatesDisplay").find(".ca_holder");
+		var off = parseInt(caCardCache.offset, 10) || 0;
+		var idxInPage = G - off;
+		if (ma && $c.length && idxInPage >= 0 && idxInPage < $c.length) {
+			ma.scrollTop = $c[idxInPage].getBoundingClientRect().top - ma.getBoundingClientRect().top + ma.scrollTop;
+		} else {
+			scrollToTop();
+		}
+	});
+}
+
 function caUpdateDisplayCount() {
 	var $el = $(".ca_displayCount");
 	if (!$el.length) return;
@@ -3141,6 +3235,8 @@ function caUpdateDisplayCount() {
 	if (first > total) first = total;
 	if (last > total) last = total;
 	if (last < first) last = first;
+
+	if (typeof caUpdateAlphaActive === "function") caUpdateAlphaActive(first - 1);
 
 	var countText = first + " - " + last + " " + tr("of") + " " + total;
 	/* Append an "ALL RESULTS" affordance when the user has narrowed search
@@ -3186,6 +3282,8 @@ function caRenderStructuredFresh(content) {
  */
 function updateDisplay(content, append) {
 	var isStructured = content && typeof content === "object" && $.isArray(content.cards);
+
+	if (!append) caUpdateAlphaBar(isStructured ? content.alphaBar : null);
 
 	if (isStructured) {
 		if (append === "prepend") {
@@ -5751,7 +5849,7 @@ function caSpacerHintHtml() {
 	   keeps this label in sync with the toolbar "X - Y of Z" indicator as the
 	   user drags, showing where in the list they are scrubbing to. No extra wiring
 	   needed; the existing scroll-driven update populates it. */
-	return "<div class='caSpacerHint' aria-hidden='true'><span class='ca_displayCount'></span></div>";
+	return "<div class='caSpacerHint' aria-hidden='true'><span class='caSpacerHintLetter'></span><span class='ca_displayCount'></span></div>";
 }
 /* Virtualization: evict cards far above the viewport into a top-spacer (so
    scroll height stays the same) and restore them from caCardCache.cache when the
@@ -6732,6 +6830,7 @@ function caInitInfiniteScroll() {
 			   the bottom-padding variable so #sidenavContent never disappears
 			   behind a taller fixed bar after a resize. */
 			if (typeof caSyncSidenavBottomPadding === "function") caSyncSidenavBottomPadding();
+			if (typeof caRethinAlphaBar === "function") caRethinAlphaBar();
 		}, 150);
 		if (rebaseTimer) clearTimeout(rebaseTimer);
 		rebaseTimer = setTimeout(function() {
@@ -6742,6 +6841,28 @@ function caInitInfiniteScroll() {
 	$(window).on("resize", onResize);
 	if (window.visualViewport) {
 		$(window.visualViewport).on("resize", onResize);
+	}
+	// A resize or orientation change can alter the bar height without changing
+	// maxPerPage (which stays clamped at 12 or higher), so the viewport rebase
+	// skips. Re-thin the A-Z index for the new height when it is shown, debounced
+	// so resize and orientation triggers coalesce into one pass.
+	var alphaRethinTimer = null;
+	var caRethinAlphaBar = function() {
+		if (alphaRethinTimer) clearTimeout(alphaRethinTimer);
+		alphaRethinTimer = setTimeout(function() {
+			alphaRethinTimer = null;
+			var $bar = $("#caAlphaBar");
+			if ($bar.length && !$bar.hasClass("ca_hide") && $.isArray(data.alphaAll) && typeof caUpdateAlphaBar === "function") {
+				caUpdateAlphaBar(data.alphaAll);
+			}
+		}, 200);
+	};
+	if (window.matchMedia) {
+		var caOrientationMq = window.matchMedia("(orientation: portrait)");
+		if (caOrientationMq.addEventListener) caOrientationMq.addEventListener("change", caRethinAlphaBar);
+		else if (caOrientationMq.addListener) caOrientationMq.addListener(caRethinAlphaBar);
+	} else {
+		$(window).on("orientationchange", caRethinAlphaBar);
 	}
 }
 $(caInitInfiniteScroll);

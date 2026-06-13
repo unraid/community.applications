@@ -458,6 +458,36 @@ body,
 	margin-top: 0.25rem;
 }
 
+#caAlphaBar {
+	position: fixed;
+	right: 3rem;
+	top: calc(var(--ca-header-image-height) + var(--ca-menu-height) + var(--ca-theme-top-offset) + 1rem);
+	bottom: 6rem;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.6rem;
+	line-height: 1;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.caAlphaLetter {
+	cursor: pointer;
+	padding: 0 0.3rem;
+	border-radius: 0.2rem;
+	transition: transform 0.08s ease;
+}
+.caAlphaLetter:hover {
+	color: var(--brand-orange);
+	transform: scale(2.5);
+}
+.caAlphaActive {
+	color: var(--brand-orange);
+	font-weight: bold;
+}
+
 /* 2.3) Card Elements */
 .ca_applicationName {
 	/* Layout */
@@ -2208,6 +2238,18 @@ body,
 		background-color: var(--text-color);
 		color: var(--background-color);
 		box-shadow: 0 2px 12px var(--ca-shadow-color);
+	}
+	.caSpacerHint .caSpacerHintLetter {
+		display: block;
+		font-size: 10rem;
+		line-height: 1;
+		font-weight: 700;
+		color: var(--text-color);
+		text-shadow: 0 2px 12px var(--ca-shadow-color);
+		margin-bottom: 1rem;
+	}
+	.caSpacerHint .caSpacerHintLetter:empty {
+		display: none;
 	}
 
 	.ca_twitter::before {

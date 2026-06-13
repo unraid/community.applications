@@ -892,6 +892,51 @@ function displayPopup($template) {
  * @param bool $returnArray When true, return HTML string only (no echo path)
  * @return array|string|void
  */
+function caBuildAlphaBar($list) {
+	global $sortOrder;
+
+	// Apps A-Z index is 7.2+ only (relies on the responsive layout CSS vars).
+	if ( ! version_compare((string)($GLOBALS['caSettings']['unRaidVersion'] ?? "0"), "7.1.9999", ">") ) {
+		return null;
+	}
+	if ( ! in_array($sortOrder['sortBy'] ?? "", ["Name","SortName"], true) ) {
+		return null;
+	}
+	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
+	if ( $maxPerPage < 1 || ceil(count($list) / $maxPerPage) <= 5 ) {
+		return null;
+	}
+
+	$first = [];
+	foreach ($list as $i => $template) {
+		$c = strtolower(substr(trim($template['SortName'] ?? ""),0,1));
+		if ( $c >= "a" && $c <= "z" ) {
+			$key = $c;
+		} elseif ( $c >= "0" && $c <= "9" ) {
+			$key = "#";
+		} else {
+			continue;
+		}
+		if ( ! isset($first[$key]) ) {
+			$first[$key] = $i;
+		}
+	}
+	if ( ! $first ) {
+		return null;
+	}
+
+	$out = [];
+	if ( isset($first["#"]) ) {
+		$out[] = ['l'=>"#", 'i'=>$first["#"]];
+	}
+	foreach (range("a","z") as $l) {
+		if ( isset($first[$l]) ) {
+			$out[] = ['l'=>$l, 'i'=>$first[$l]];
+		}
+	}
+	return $out;
+}
+
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
 
 	$filesToCheck = [
@@ -901,9 +946,11 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
 	];
 
 	$file = [];
+	$usedPath = null;
 	foreach ($filesToCheck as $path) {
 		if ($path && is_file($path)) {
 			$file = readJsonFile($path);
+			$usedPath = $path;
 			break;
 		}
 	}
@@ -915,7 +962,14 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
 	$totalApplications = count($communityApplications);
 
 	if ($totalApplications) {
-		return my_display_apps($communityApplications,$pageNumber,$selectedApps,$startup,$returnArray);
+		$result = my_display_apps($communityApplications,$pageNumber,$selectedApps,$startup,$returnArray);
+		if ($returnArray && is_array($result) && $usedPath === (CA_PATHS['community-templates-displayed'] ?? null)) {
+			$alphaBar = caBuildAlphaBar($communityApplications);
+			if ($alphaBar) {
+				$result['alphaBar'] = $alphaBar;
+			}
+		}
+		return $result;
 	}
 
 	$emptyHtml = "<div class='ca_NoAppsFound'>".tr("No Matching Applications Found")."</div>".caBuildSearchLimitHintHtml()."<script>$('.multi_installDiv').hide();hideSortIcons();</script>";

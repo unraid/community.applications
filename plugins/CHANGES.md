@@ -23,6 +23,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Added: When browsing a category sorted by name that runs past five pages, an A-Z index strip appears down the right of the app list. Click a letter to jump straight to the apps starting with it; the current letter stays highlighted as you scroll, and grabbing the scrollbar shows a large letter for where you are. The strip thins itself to fit shorter windows and shows on Unraid 7.2 and newer (desktop only)
 - Changed: Home page sections now fill a full row of apps (instead of a fixed six), adapting to your window width and zoom. The last card in each section that links to a wider category is dimmed with a "Show More" label overlaid on it, opening that full category
 - Added: The Sort button now shows an icon for the current order (name A-Z / Z-A, downloads, or date added), and each entry in the Sort dropdown is led by its matching icon
 - Fixed: The category menu now opens correctly on Safari and iOS (iPhone / iPad) - it was being clipped to nothing when tapping the menu button

@@ -172,6 +172,10 @@ body:has(.ca_useWholeDisplayWindow) {
 	}
 }
 @media (max-width: 767px) {
+	/* A-Z jump bar is desktop-only. */
+	#caAlphaBar {
+		display: none !important;
+	}
 	/* At narrow viewports the nav-top toolbar wraps onto a second line,
 	   so the reserved menu height doubles from 4rem (one row) to 8rem
 	   (two rows). Sidebar layout doesn't have a top toolbar, so its

@@ -140,6 +140,10 @@ switch ($_POST['action']) {
 		caRequireSkin();
 		display_content();
 		break;
+	case 'jumpToLetter':
+		caRequireSkin();
+		jumpToLetter();
+		break;
 	case 'dismiss_warning':
 		dismiss_warning();
 		break;
@@ -1898,6 +1902,42 @@ function display_content() {
 
 	$o['display_data'] = display_apps($pageNumber,$selectedApps,$startup,true);
 
+	postReturn($o);
+}
+
+function jumpToLetter() {
+
+	$letter = strtolower(trim(getPost("letter","")));
+	changeMax(getPost("maxPerPage",$GLOBALS['caSettings']['maxPerPage']));
+	$startup = getPost("startup",false);
+	$selectedApps = json_decode(getPost("selected",false),true);
+
+	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
+	if ( $maxPerPage < 1 ) {
+		$maxPerPage = 1;
+	}
+
+	$displayed = readJsonFile(CA_PATHS['community-templates-displayed']);
+	$list = $displayed['community'] ?? [];
+
+	$page  = 1;
+	$index = -1;
+	foreach ($list as $i => $template) {
+		$c = strtolower(substr(trim($template['SortName'] ?? ""),0,1));
+		if ( $c === "" ) {
+			continue;
+		}
+		$isNum = ($c >= "0" && $c <= "9");
+		$match = ($letter === "#") ? $isNum : ($c === $letter);
+		if ( $match ) {
+			$index = $i;
+			$page  = intdiv($i,$maxPerPage) + 1;
+			break;
+		}
+	}
+
+	$o['display_data'] = display_apps($page,$selectedApps,$startup,true);
+	$o['index']        = $index;
 	postReturn($o);
 }
 
