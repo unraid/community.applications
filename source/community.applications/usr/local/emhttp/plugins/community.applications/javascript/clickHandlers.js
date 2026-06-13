@@ -797,6 +797,9 @@ function caInitializeClickHandlers() {
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
+	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
+		caJumpToLetter($(this).attr("data-letter"));
+	});
 	/**
 	 * "Show All Results" affordance on the display-count line: widens the
 	 * current search by setting the one-shot override flag and re-running
