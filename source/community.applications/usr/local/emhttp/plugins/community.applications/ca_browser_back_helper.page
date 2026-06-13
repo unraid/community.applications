@@ -28,7 +28,7 @@ $(function() {
 	var isAppsRoot  = (p === "/Apps" || p === "/Apps/");
 	var isAppsChild = (p.indexOf("/Apps/") === 0) && !isAppsRoot;
 	if (isAppsChild) {
-		$.cookie("ca_apps_referrer","true",{expires: 1,path:"/;SameSite=Lax"});
+		try { sessionStorage.setItem("ca_apps_referrer","true"); } catch (e) { /* no-op */ }
 		// User just arrived on a CA child page (Install / Edit / etc.) — drop
 		// the docker info cache so when they bounce back to /Apps the listing
 		// rebuilds from live state. Fire-and-forget; no UI on these pages.
@@ -37,10 +37,10 @@ $(function() {
 				{ action: "dropInfoCache", noSpinner: 1 });
 		} catch (e) { /* no-op */ }
 	} else if (p.indexOf("/Apps") !== 0) {
-		// Off CA entirely — reset. On the bare /Apps root, leave the cookie alone
+		// Off CA entirely — reset. On the bare /Apps root, leave the value alone
 		// so the restore branch in Apps.page can still see "true" from a prior
 		// child-page visit when the user lands back here.
-		$.cookie("ca_apps_referrer","false",{expires: 1,path:"/;SameSite=Lax"});
+		try { sessionStorage.setItem("ca_apps_referrer","false"); } catch (e) { /* no-op */ }
 	}
 });
 </script>

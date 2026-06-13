@@ -684,7 +684,7 @@ function caInitializeClickHandlers() {
 		/* Statistics / Change Log opened from Credits route back to Credits;
 		   every other sidebar's back arrow returns to the app popup. */
 		if (window.caSidebarBackTarget === "credits") { showCredits(); return; }
-		showSidebarApp($.cookie("sidebarAppPath"), $.cookie("sidebarAppName"));
+		showSidebarApp(caSessGet("sidebarAppPath"), caSessGet("sidebarAppName"));
 	});
 	/**
 	 * Menu-selection state: highlight the clicked `.caMenuItem` as
