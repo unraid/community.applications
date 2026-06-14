@@ -664,6 +664,13 @@ $(function() {
 
 					<div class='ca_settingCard'>
 						<div class='ca_settingHeader'>
+							<span><?tr("Adjust Ports");?></span>
+							<?=caSettingSwitchInputs('adjustPorts', $caDefaults)?>
+						</div>
+						<div class='ca_settingDescription'><?tr("Automatically adjust conflicting ports during installation.");?></div>
+					</div>
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
 							<span><?tr("Enable developer mode");?></span>
 							<?=caSettingSwitchInputs('dev', $caDefaults)?>
 						</div>

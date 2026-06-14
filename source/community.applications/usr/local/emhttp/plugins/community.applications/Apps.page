@@ -374,7 +374,6 @@ var postCount = 0;
 var cookieWarning = false;
 var restoreStateMenu = false;
 var resizeTimer;
-var portsInUse = [];
 var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var startupTemplateURL = <?= json_encode($startupTemplateURL, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var ca_done_override = false;
@@ -831,12 +830,6 @@ $(function(){
 		return;
 
 		<?else:?>
-	// don't run this through the wrapper so that if it hangs up it won't delay anything else
-	$.post(execURL,{action:'getPortsInUse'},function(ret) {
-		portsInUse = ret.portsInUse;
-		caDebug("Ports In Use:" + portsInUse);
-	});
-
 	if ( "<?=$startupDisplayed?>" == "true" && caSessGet("ca_languageSwitch") ) { // This is needed so that if language gets switched on the home page the home page gets regenerated correctly
 		caSessRemove("ca_languageSwitch");
 	}
@@ -2501,23 +2494,16 @@ function uninstallDocker(application,humanName) {
 		if ( isConfirm ) {
 			myAlert("",sprintf("<?tr("Uninstalling %s")?>",humanName));
 			post({action:'uninstall_docker',application:application,noSpinner:true},function(result) {
-				if ( $(".selectedMenu").length == 0 ) {
-					appStore();
-				} else {
-					myCloseAlert();
-				}
 				enableSearch();
 				caRefreshInstalledMenuStates();
-				if ( $(".selectedMenu").data("category") == "action_centre" ) {
-					post({action:'getPortsInUse'},function(data) {
-						portsInUse = data.portsInUse;
-						actionCentre();
-					});
+				if ( $(".selectedMenu").length == 0 ) {
+					appStore();
+				} else if ( $(".selectedMenu").data("category") == "action_centre" ) {
+					myCloseAlert();
+					actionCentre();
 				} else {
-					post({action:'getPortsInUse'},function(data) {
-						portsInUse = data.portsInUse;
-						$(".selectedMenu").trigger("click");
-					});
+					myCloseAlert();
+					refreshDisplay();
 				}
 			});
 		} else {
@@ -2643,94 +2629,30 @@ function pins() {
 }
 
 /**
- * Open branch/rename flows for a template: checks host port conflicts, optionally asks to auto-adjust, then `displayTags` in a SweetAlert chooser.
+ * Open the branch/rename chooser for a template in a SweetAlert.
  *
  * @param {string} leadTemplate Primary template identifier for `displayTags`
  * @param {boolean} [rename=false] Rename-vs-install mode for PHP
- * @param {string} [ports=''] JSON array of template ports (string) to cross-check against `portsInUse`
  */
-function displayTags(leadTemplate,rename=false,ports="") {
+function displayTags(leadTemplate,rename=false) {
 	event.stopPropagation();
-	/* Deliberately do NOT closeSidebar() here — the swal modal floats over the
-	   sidebar (same as popupInstallXML's port-conflict prompt), which both
-	   keeps the look-and-feel consistent and avoids the cancel/install reopen
-	   gymnastics of explicitly tearing it down and restoring identity. The
-	   install path (.xmlInstall → actuallyInstallPlugin) handles its own
-	   closeSidebar(true) when the user picks a branch. */
-	var conflictingPorts = [];
-
-	if ( ports ) {
-		try {
-			ports = JSON.parse(ports);
-		} catch(e) {
-			ports = [];
-		}
-		if ( ports ) {
-			ports.forEach(function(port){
-				portsInUse.forEach(function(used) {
-					if (port == used && conflictingPorts.indexOf(port) < 0)
-						conflictingPorts.push(port);
-				});
-			});
-		}
-	}
-
-	/* The .xmlInstall click handler reads window.caPendingAdjustPorts when the
-	   user picks a branch from the chooser swal below — that's how this Yes/No
-	   answer reaches the createXML POST. Reset to false on every entry so a
-	   stale "yes" from a prior template doesn't leak. */
-	window.caPendingAdjustPorts = false;
-
-	var openBranchChooser = function() {
-		post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
-			disableSearch();
-			swal({
-				title: "<?tr("Choose A Branch To Install");?>",
-				text: result.tags,
-				html: true,
-				type: "warning",
-				showCancelButton: true,
-				showConfirmButton: false,
-				cancelButtonText: "<?tr("Cancel");?>",
-				allowOutsideClick: true
-			}, function(isConfirm) {
-				if ( ! isConfirm ) {
-					enableSearch();
-				}
-			});
-		});
-	};
-
-	if (conflictingPorts.length) {
-		var portList = conflictingPorts.join(", ");
-		var portTemplate = (conflictingPorts.length === 1)
-			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
-			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
-		var msg = portTemplate.replace("%s", portList);
-		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
+	post({action:'displayTags',leadTemplate:leadTemplate,noSpinner:true,rename:rename},function(result) {
+		disableSearch();
 		swal({
-			title: "<?tr("Port Conflict");?>",
-			text: msg,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr("Yes, adjust automatically");?>",
-			cancelButtonText: "<?tr("No, install anyway");?>",
-			animation: false,
-			type: "warning",
+			title: "<?tr("Choose A Branch To Install");?>",
+			text: result.tags,
 			html: true,
-			/* Both kept open so the branch-chooser swal can replace this one
-			   cleanly — letting either close first eats the next swal in the
-			   transition. */
-			closeOnConfirm: false,
-			closeOnCancel: false
+			type: "warning",
+			showCancelButton: true,
+			showConfirmButton: false,
+			cancelButtonText: "<?tr("Cancel");?>",
+			allowOutsideClick: true
 		}, function(isConfirm) {
-			window.caPendingAdjustPorts = !!isConfirm;
-			openBranchChooser();
+			if ( ! isConfirm ) {
+				enableSearch();
+			}
 		});
-	} else {
-		openBranchChooser();
-	}
+	});
 }
 
 /**
@@ -3037,8 +2959,16 @@ function installMulti() {
 		allowOutsideClick: true,
 		html: true
 	}, function( isConfirm ) {
-		if ( isConfirm ) {
+		if ( ! isConfirm ) {
+			enableSearch();
+			return;
+		}
+		var proceed = function() {
 			myCloseAlert();
+			if ( ! docker.length && ! plugin.length ) {
+				enableSearch();
+				return;
+			}
 			if ( docker.length && plugin.length ) {
 				caSessSet("ca_plugininstallpending",plugin);
 			}
@@ -3058,9 +2988,36 @@ function installMulti() {
 
 				enableSearch();
 			}
-		} else {
-			enableSearch();
+		};
+		if ( ! docker.length ) {
+			proceed();
+			return;
 		}
+		post({action:'checkMultiPortConflicts',templates:JSON.stringify(docker),noSpinner:true},function(res) {
+			var conflicts = (res && res.conflicts) ? res.conflicts : [];
+			if ( ! conflicts.length ) {
+				proceed();
+				return;
+			}
+			var skip = {};
+			var msg = "<?tr("The following were skipped due to port conflicts. To install each, click Install on the application card and then Reinstall from the sidebar:");?>";
+			conflicts.forEach(function(c){
+				skip[c.name] = true;
+				msg += "<br><strong>"+c.name+"</strong>";
+			});
+			docker = docker.filter(function(name){ return ! skip[name]; });
+			dockerCount = docker.length;
+			swal({
+				title: "<?tr("Port Conflicts");?>",
+				text: msg,
+				type: "warning",
+				html: true,
+				showConfirmButton: true,
+				allowOutsideClick: true
+			}, function(){
+				proceed();
+			});
+		});
 	});
 }
 
@@ -4006,64 +3963,24 @@ function setFavourite(button) {
  * @param {string} type Template type slot (`default` / `second` / …)
  * @param {string} [ports=''] JSON list of ports (string) used for conflict detection
  */
-function popupInstallXML(xml,type,ports="") {
+function popupInstallXML(xml,type) {
 	event.stopPropagation();
 	saveState();
-	var conflictingPorts = [];
-	if ( ports ) {
-		try {
-			ports = JSON.parse(ports);
-		} catch(e) {
-			ports = [];
-		}
-		if ( ports ) {
-			ports.forEach(function(port){
-				portsInUse.forEach(function(used) {
-					if (port == used && conflictingPorts.indexOf(port) < 0)
-						conflictingPorts.push(port);
-				});
-			});
-		}
-	}
-
-	if (conflictingPorts.length) {
-		/* Ports collide with something already on the host. Offer to auto-adjust
-		   them — Yes adjusts the XML server-side before opening AddContainer,
-		   No leaves the template alone (user fixes manually in the docker UI). */
-		var portList = conflictingPorts.join(", ");
-		var portTemplate = (conflictingPorts.length === 1)
-			? "<?tr("Port %s used by this application is already in use by another service or app running on your server.");?>"
-			: "<?tr("Ports %s used by this application are already in use by another service or app running on your server.");?>";
-		var msg = portTemplate.replace("%s", portList);
-		msg += " <?tr("Would you like CA to automatically adjust the conflicting host ports?");?>";
-		swal({
-			title: "<?tr("Port Conflict");?>",
-			text: msg,
-			allowOutsideClick: true,
-			showConfirmButton: true,
-			showCancelButton: true,
-			confirmButtonText: "<?tr("Yes, adjust automatically");?>",
-			cancelButtonText: "<?tr("No, install anyway");?>",
-			animation: false,
-			type: "warning",
-			html: true
-		}, function (isConfirm) {
-			installXML(xml, type, isConfirm);
-		});
-	} else {
-		installXML(xml,type,false);
-	}
+	installXML(xml,type);
 }
 /**
  * Ask PHP to materialize a Docker XML template (`createXML`), then open `/Apps/AddContainer` with the returned template handle.
  *
  * @param {string} xml
  * @param {string} type
- * @param {boolean} adjustPorts When true, server should remap conflicting host ports
  */
-function installXML(xml,type,adjustPorts) {
-	post({action:'createXML',xml:xml,type:type,adjustPorts:!!adjustPorts},function(result){
+function installXML(xml,type) {
+	post({action:'createXML',xml:xml,type:type},function(result){
 		if ( result.status == "ok" ) {
+			// Server remapped conflicting host ports — stash the note so the
+			// AddContainer page can surface it once (ca_browser_back_helper.page).
+			if (result.portAdjustMessage)
+				caSessSet("ca_port_adjustments", result.portAdjustMessage);
 			if (type == "second") {
 				type = "default";
 			}

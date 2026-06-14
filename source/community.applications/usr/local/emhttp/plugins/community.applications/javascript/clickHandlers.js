@@ -519,21 +519,21 @@ function caInitializeClickHandlers() {
 	});
 	/**
 	 * Click an XML install button: POST `createXML` with the selected
-	 * template type and any pending port-adjust answer, then redirect to
-	 * the AddContainer page on success.
+	 * template type, then redirect to the AddContainer page on success.
 	 */
 	$("body").on("click", ".xmlInstall", function() {
+		swal.close();
+		mySpinner(0);
 		var type = $(this).data("type");
 		var xml = $(this).data("xml");
-		/* displayTags() (Apps.page) sets window.caPendingAdjustPorts based on
-		   the user's Yes/No answer to the port-conflict prompt. Forward that to
-		   createXML so the server can rewrite conflicting host ports. */
-		var adjustPorts = !!window.caPendingAdjustPorts;
-		window.caPendingAdjustPorts = false;
 		/* saveState() is intentionally not called here — by the time this click
 		   handler fires, showSidebarApp() has already taken the snapshot. */
-		post({ action: "createXML", xml: xml, type: type, adjustPorts: adjustPorts }, function(result) {
+		post({ action: "createXML", xml: xml, type: type }, function(result) {
 			if (result.status == "ok") {
+				// Server remapped conflicting host ports — stash the note so the
+				// AddContainer page can surface it once (ca_browser_back_helper.page).
+				if (result.portAdjustMessage)
+					caSessSet("ca_port_adjustments", result.portAdjustMessage);
 				if (type == "second") type = "default";
 				openNewWindow("/Apps/AddContainer?xmlTemplate=" + type + ":" + xml);
 			}

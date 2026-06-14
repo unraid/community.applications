@@ -20,7 +20,7 @@ Link='nav-user'
 // the "Done" button (in which case document.referrer comes back empty).
 //
 // Uses location.pathname rather than href.includes/endsWith so query-string
-// variants (/Apps?foo=bar) or fragments don't confuse the matcher — only
+// variants (/Apps?foo=bar) or fragments don't confuse the matcher - only
 // the actual path component decides whether we're on a CA child page, the
 // bare /Apps root, or somewhere else entirely.
 $(function() {
@@ -29,7 +29,7 @@ $(function() {
 	var isAppsChild = (p.indexOf("/Apps/") === 0) && !isAppsRoot;
 	if (isAppsChild) {
 		try { sessionStorage.setItem("ca_apps_referrer","true"); } catch (e) { /* no-op */ }
-		// User just arrived on a CA child page (Install / Edit / etc.) — drop
+		// User just arrived on a CA child page (Install / Edit / etc.) - drop
 		// the docker info cache so when they bounce back to /Apps the listing
 		// rebuilds from live state. Fire-and-forget; no UI on these pages.
 		try {
@@ -37,11 +37,50 @@ $(function() {
 				{ action: "dropInfoCache", noSpinner: 1 });
 		} catch (e) { /* no-op */ }
 	} else if (p.indexOf("/Apps") !== 0) {
-		// Off CA entirely — reset. On the bare /Apps root, leave the value alone
+		// Off CA entirely - reset. On the bare /Apps root, leave the value alone
 		// so the restore branch in Apps.page can still see "true" from a prior
 		// child-page visit when the user lands back here.
 		try { sessionStorage.setItem("ca_apps_referrer","false"); } catch (e) { /* no-op */ }
 	}
+
+	// Port-adjustment handoff: createXML stashed a note describing the host
+	// ports it remapped to dodge conflicts, right before navigating here. Show
+	// it once on AddContainer, then clear it. If we landed anywhere else the
+	// note is stale (navigation didn't go where we expected) so drop it without
+	// showing - better than having it pop up later on an unrelated page.
+	//
+	// The note is already fully translated by CA's createXML (this page runs on
+	// AddContainer, which has no access to CA's tr() tables) so we display it
+	// verbatim - no tr() here.
+	try {
+		var portNote = sessionStorage.getItem("ca_port_adjustments");
+		if (portNote) {
+			sessionStorage.removeItem("ca_port_adjustments");
+			if (p === "/Apps/AddContainer" && typeof swal === "function") {
+				// Already-translated {title,text} blob built by CA's createXML.
+				var note = JSON.parse(portNote);
+				var showPortSwal = function() {
+					swal({
+						title: note.title,
+						text: note.text,
+						type: "info",
+						html: true,
+						showConfirmButton: true,
+						confirmButtonText: "_(OK)_"
+					});
+				};
+				// Wait 1.5s, then hold off while the page spinner is up (re-check
+				// every 1s) so the notice doesn't land on top of a loading overlay.
+				setTimeout(function waitForSpinner() {
+					if ($(".spinner").is(":visible")) {
+						setTimeout(waitForSpinner, 1000);
+					} else {
+						showPortSwal();
+					}
+				}, 1500);
+			}
+		}
+	} catch (e) { /* no-op */ }
 });
 </script>
 
