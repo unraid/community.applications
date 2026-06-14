@@ -1998,16 +1998,49 @@ function debug($str) {
 }
 
 /**
- * Bump any host port in a bridge-network template that's already in use to the next free port.
+ * Normalize a port-config Mode (or a docker Ports Type) to a transport protocol.
+ *
+ * Returns "udp" only for an explicit udp, otherwise "tcp". Host-port conflicts
+ * are per protocol, so tcp/8080 and udp/8080 are distinct bindings.
+ *
+ * @param  mixed $mode
+ * @return string  "tcp" or "udp"
+ */
+function caPortProto($mode): string {
+	return strtolower(trim((string)$mode)) === "udp" ? "udp" : "tcp";
+}
+
+/**
+ * Build a lookup of taken host bindings keyed as "port/proto".
+ *
+ * Accepts a list whose entries are already "port/proto" (from getPortsInUse /
+ * getStoppedBridgePorts) or bare port numbers (defaulted to tcp).
+ *
+ * @param  array<int,int|string> $portsInUse
+ * @return array<string,bool>
+ */
+function caBuildTakenPorts(array $portsInUse): array {
+	$taken = [];
+	foreach ($portsInUse as $p) {
+		$p = (string)$p;
+		if ($p === "") continue;
+		if (strpos($p, "/") === false) $p = ((int)$p)."/tcp";
+		$taken[$p] = true;
+	}
+	return $taken;
+}
+
+/**
+ * Bump any host port in a bridge-network template that's already in use to a free port.
  *
  * Edits $template in place. Treats $portsInUse (and any port assigned earlier
- * within this same template) as "taken"; iterates upward until a free port is
- * found or the 16-bit range is exhausted. No-op for non-bridge networks since
- * host ports don't apply there.
+ * within this same template) as "taken", per protocol; searches for a free port
+ * (wrapping past 65535 to 1) or gives up after the full range. No-op for
+ * non-bridge networks since host ports don't apply there.
  *
  * @param  array<string,mixed>     $template     Modified by reference.
- * @param  array<int,int|string>   $portsInUse   Ports already bound on the host.
- * @return array<int,array{from:int,to:int}>  Each host port that was remapped, old -> new.
+ * @param  array<int,int|string>   $portsInUse   Bindings already taken ("port/proto" or bare port).
+ * @return array<int,array{from:int,to:int,label:string}>  Each host port that was remapped, old -> new.
  */
 function adjustTemplatePorts(array &$template, array $portsInUse): array {
 	$changes = [];
@@ -2019,26 +2052,27 @@ function adjustTemplatePorts(array &$template, array $portsInUse): array {
 	}
 	if (!is_array($template['Config'])) return $changes;
 
-	$taken = [];
-	foreach ($portsInUse as $p) {
-		$pi = (int)$p;
-		if ($pi > 0) $taken[$pi] = true;
-	}
+	$taken = caBuildTakenPorts($portsInUse);
 
 	foreach ($template['Config'] as &$config) {
 		if (!is_array($config) || ($config['@attributes']['Type'] ?? null) !== 'Port') continue;
 		$current = (int)($config['value'] ?: ($config['@attributes']['Default'] ?? 0));
 		if ($current <= 0 || $current > 65535) continue;
-		if (!isset($taken[$current])) {
-			$taken[$current] = true;
+		$proto = caPortProto($config['@attributes']['Mode'] ?? "");
+		if (!isset($taken[$current."/".$proto])) {
+			$taken[$current."/".$proto] = true;
 			continue;
 		}
-		$candidate = $current + 1;
-		while ($candidate < 65536 && isset($taken[$candidate])) {
-			$candidate++;
+		// Conflict for this protocol: find the next free host port, wrapping past
+		// 65535 back to 1 so a busy upper range still resolves before giving up.
+		$candidate = $current;
+		$found = false;
+		for ($i = 0; $i < 65535; $i++) {
+			$candidate = ($candidate % 65535) + 1;
+			if (!isset($taken[$candidate."/".$proto])) { $found = true; break; }
 		}
-		if ($candidate >= 65536) continue;
-		$taken[$candidate] = true;
+		if (!$found) continue;
+		$taken[$candidate."/".$proto] = true;
 		$config['value'] = (string)$candidate;
 		// Carry the port's human label so the notice can name what moved. Prefer
 		// the config Description, then its Name, then the container Target.
@@ -2072,17 +2106,14 @@ function findTemplatePortConflicts(array $template, array $portsInUse): array {
 	}
 	if (!is_array($template['Config'])) return $conflicts;
 
-	$taken = [];
-	foreach ($portsInUse as $p) {
-		$pi = (int)$p;
-		if ($pi > 0) $taken[$pi] = true;
-	}
+	$taken = caBuildTakenPorts($portsInUse);
 
 	foreach ($template['Config'] as $config) {
 		if (!is_array($config) || ($config['@attributes']['Type'] ?? null) !== 'Port') continue;
 		$current = (int)($config['value'] ?: ($config['@attributes']['Default'] ?? 0));
 		if ($current <= 0 || $current > 65535) continue;
-		if (!isset($taken[$current])) continue;
+		$proto = caPortProto($config['@attributes']['Mode'] ?? "");
+		if (!isset($taken[$current."/".$proto])) continue;
 		$label = $config['@attributes']['Description']
 			?: ($config['@attributes']['Name'] ?? "")
 			?: ($config['@attributes']['Target'] ?? "");
@@ -2092,13 +2123,13 @@ function findTemplatePortConflicts(array $template, array $portsInUse): array {
 }
 
 /**
- * Return all host ports a bridge template would publish (as ints).
+ * Return all host bindings a bridge template would publish, as "port/proto".
  *
  * Used by the multi-install batch check to reserve an accepted app's ports so
  * later apps in the same batch are tested against it. Empty for non-bridge.
  *
  * @param  array<string,mixed> $template
- * @return array<int,int>
+ * @return array<int,string>
  */
 function getTemplateBridgePorts(array $template): array {
 	$ports = [];
@@ -2113,7 +2144,7 @@ function getTemplateBridgePorts(array $template): array {
 	foreach ($template['Config'] as $config) {
 		if (!is_array($config) || ($config['@attributes']['Type'] ?? null) !== 'Port') continue;
 		$p = (int)($config['value'] ?: ($config['@attributes']['Default'] ?? 0));
-		if ($p > 0 && $p <= 65535) $ports[] = $p;
+		if ($p > 0 && $p <= 65535) $ports[] = $p."/".caPortProto($config['@attributes']['Mode'] ?? "");
 	}
 	return $ports;
 }
@@ -2140,7 +2171,7 @@ function getStoppedBridgePorts(array $allInfo): array {
 		foreach ($containerPorts as $portInfo) {
 			if (!is_array($portInfo)) continue;
 			$pub = $portInfo['PublicPort'] ?? null;
-			if ($pub !== null && $pub !== "") $ports[] = $pub;
+			if ($pub !== null && $pub !== "") $ports[] = ((int)$pub)."/".caPortProto($portInfo['Type'] ?? "");
 		}
 	}
 	return $ports;
@@ -2169,9 +2200,12 @@ function getPortsInUse() {
 
 	foreach ($output as $line) {
 		[$ip, $port] = ca_explode(':', $line);
-		if (!in_array($port,$portsInUse) && (!$bind || in_array(plain($ip),$list)))
-			if ( is_numeric($port) )
-				$portsInUse[] = $port;
+		if ( ! is_numeric($port) ) continue;
+		if ( $bind && ! in_array(plain($ip),$list) ) continue;
+		// lsof LISTEN sockets are TCP; tag the protocol so tcp/udp pairs on the
+		// same host port are treated as distinct bindings downstream.
+		$key = ((int)$port)."/tcp";
+		if ( ! in_array($key,$portsInUse) ) $portsInUse[] = $key;
 	}
 
 	return $portsInUse;

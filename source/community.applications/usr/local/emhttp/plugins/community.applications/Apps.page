@@ -2994,7 +2994,19 @@ function installMulti() {
 			return;
 		}
 		post({action:'checkMultiPortConflicts',templates:JSON.stringify(docker),noSpinner:true},function(res) {
-			var conflicts = (res && res.conflicts) ? res.conflicts : [];
+			if ( ! res || ! Array.isArray(res.conflicts) ) {
+				swal({
+					title: "<?tr("Unable to verify port conflicts");?>",
+					text: "<?tr("Please try again. The installation was not started.");?>",
+					type: "error",
+					showConfirmButton: true,
+					allowOutsideClick: true
+				}, function() {
+					enableSearch();
+				});
+				return;
+			}
+			var conflicts = res.conflicts;
 			if ( ! conflicts.length ) {
 				proceed();
 				return;
@@ -3002,8 +3014,9 @@ function installMulti() {
 			var skip = {};
 			var msg = "<?tr("The following were skipped due to port conflicts. To install each, click Install on the application card and then Reinstall from the sidebar:");?>";
 			conflicts.forEach(function(c){
+				var safeName = $("<div>").text(c.name || "").html();
 				skip[c.name] = true;
-				msg += "<br><strong>"+c.name+"</strong>";
+				msg += "<br><strong>"+safeName+"</strong>";
 			});
 			docker = docker.filter(function(name){ return ! skip[name]; });
 			dockerCount = docker.length;

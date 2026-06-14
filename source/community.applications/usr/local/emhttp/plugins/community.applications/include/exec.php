@@ -2964,11 +2964,7 @@ function checkMultiPortConflicts() {
 
 	$conflicting = [];
 	if ( ($GLOBALS['caSettings']['adjustPorts'] ?? "yes") === "yes" ) {
-		$taken = [];
-		foreach (array_merge(getPortsInUse(), getStoppedBridgePorts(getAllInfo())) as $p) {
-			$pi = (int)$p;
-			if ($pi > 0) $taken[$pi] = true;
-		}
+		$taken = caBuildTakenPorts(array_merge(getPortsInUse(), getStoppedBridgePorts(getAllInfo())));
 		foreach ($names as $name) {
 			// update_container resolves these names to my-NAME.xml in templates-user;
 			// match that, with a space->dash fallback for older saved filenames.

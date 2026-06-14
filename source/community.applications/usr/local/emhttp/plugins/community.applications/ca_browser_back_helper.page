@@ -70,9 +70,11 @@ $(function() {
 					});
 				};
 				// Wait 1.5s, then hold off while the page spinner is up (re-check
-				// every 1s) so the notice doesn't land on top of a loading overlay.
+				// every 1s, up to 10 tries) so the notice doesn't land on top of a
+				// loading overlay - but still show it if the spinner gets stuck.
+				var caPortSwalTries = 0;
 				setTimeout(function waitForSpinner() {
-					if ($(".spinner").is(":visible")) {
+					if (caPortSwalTries++ < 10 && $(".spinner").is(":visible")) {
 						setTimeout(waitForSpinner, 1000);
 					} else {
 						showPortSwal();
