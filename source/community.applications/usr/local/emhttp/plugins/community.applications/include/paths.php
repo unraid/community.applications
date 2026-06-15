@@ -68,7 +68,8 @@ define("CA_PATHS",[
 	'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
 	'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",
 	'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",
-	'community-templates-info'            => "$tempFiles/templates.json",
+	'community-templates-info'            => "$tempFiles/templates_new.json",                     /* json file containing all of the templates */
+	'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update support URLs on plugins.  Has to be in JSON format */
 	'community-templates-info-full'       => "$tempFiles/templates_full.json", /* json file containing all of the templates */
 	/* Global (NOT per-tab): the application feed and the lock that gates
 	   concurrent downloads are shared state — only one download should be in
@@ -145,6 +146,7 @@ define("CA_PATHS",[
 	'CA_languageBase'                     => "https://assets.ca.unraid.net/feed/languages/",
 	'CA_logs'                             => "/tmp/CA_logs",
 	'logging'                             => "/tmp/CA_logs/ca_log.txt",
+	'caInfo'                              => "/tmp/CA_logs/ca.txt",
 	'languageInstalled'                   => "/usr/local/emhttp/languages/",
 	'updateTime'                          => "/tmp/$CA/checkForUpdatesTime", # can't be in /tmp/community.applications/tempFiles because new feed downloads erases everything there
 	'updateRunning'                       => "/tmp/$CA/updateRunning",

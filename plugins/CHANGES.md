@@ -254,3 +254,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: When viewing an app you do not currently have installed but have installed before, the sidebar now offers a "Reinstall" button for your saved template alongside "Install Default"
 - Fixed: Uninstalling an app from the sidebar now immediately updates its card to show it is no longer installed, instead of leaving the old badges in place until the next refresh
 - Changed: Hovering the "Show More" card on the home page now highlights it the same way a normal app card highlights on hover
+- Fixed: The A-Z index strip down the right of a category now shows every letter that has apps (e.g. "R") instead of occasionally hiding one whose apps shared a page with the previous letter
+- Changed: "Show More" on the all-apps home sections (Recently Added, Top Trending, etc.) no longer locks the menu onto "All Apps" - you can change the sort or click All Apps again afterwards
+- Added: Hovering a screenshot now shows a fullscreen icon in the centre of the enlarged preview to hint that clicking opens it full size
+- Changed: Scrollbars in the app list and sidebar now follow your browser's normal behaviour (auto-hiding) instead of always being shown
+- Changed: Internal template caches are stored more compactly for noticeably faster page loads
