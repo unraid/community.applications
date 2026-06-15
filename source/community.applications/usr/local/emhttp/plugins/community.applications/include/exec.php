@@ -252,6 +252,9 @@ switch ($_POST['action']) {
 	case 'createXML':
 		createXML();
 		break;
+	case 'checkMultiPortConflicts':
+		checkMultiPortConflicts();
+		break;
 	case 'switchLanguage':
 		switchLanguage();
 		break;
@@ -295,9 +298,6 @@ switch ($_POST['action']) {
 	case 'showInApps':
 		caRequireSkin();
 		showInApps();
-		break;
-	case 'getPortsInUse':
-		postReturn(["portsInUse"=>getPortsInUse()]);
 		break;
 	case 'getLastUpdate':
 		postReturn(['lastUpdate'=>getLastUpdate(getPost("ID","Unknown"))]);
@@ -724,8 +724,6 @@ function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bo
 
 		$o = fixTemplates($o);
 		if ( ! $o ) continue;
-
-		$o['PortsUsed'] = portsUsed($o);
 
 		if ( is_array($o['trends']??null) && count($o['trends']) > 1 ) {
 			$o['trendDelta'] = round(end($o['trends']) - $o['trends'][0],4);
@@ -1175,7 +1173,7 @@ function saveSettings() {
 	$switches = [
 		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
 		"keepSearchInFocus", "displayUsageGraphs", "hideDeprecated", "hideIncompatible",
-		"featuredDisable", "dev", "autoplayVideos",
+		"featuredDisable", "adjustPorts", "dev", "autoplayVideos",
 	];
 	foreach ($switches as $key) {
 		$posted = getPost($key, null);
@@ -2942,6 +2940,56 @@ function caExtractXmlEntities(string $xml): array {
 }
 
 /**
+ * Check a batch of stored docker templates (Previous Apps multi-install) for
+ * host-port conflicts. The multi-install pushes templates straight to dockerMan
+ * with no per-app input, so any that collide must be installed individually via
+ * the sidebar instead. Returns the conflicting ones so the client can skip them.
+ *
+ * Conflicts are tested in list order against a running set of taken ports that
+ * starts with what is already in use (live plus stopped bridge containers) and
+ * grows as each non-conflicting app is accepted. So an app is flagged if it
+ * collides with the host OR with an earlier-accepted app in the same batch; the
+ * earlier app stays, the later one is dropped. The first app never self-conflicts.
+ *
+ * Reads POST templates (JSON array of app names, as sent by installMulti - the
+ * checkbox data-name). Each resolves to its saved dockerMan template
+ * (my-NAME.xml). No-op (empty list) when the "Adjust Ports" setting is off.
+ * Calls postReturn().
+ *
+ * @return void
+ */
+function checkMultiPortConflicts() {
+	$names = json_decode(getPost("templates", "[]"), true);
+	if ( ! is_array($names) ) $names = [];
+
+	$conflicting = [];
+	if ( ($GLOBALS['caSettings']['adjustPorts'] ?? "yes") === "yes" ) {
+		$taken = caBuildTakenPorts(array_merge(getPortsInUse(), getStoppedBridgePorts(getAllInfo())));
+		foreach ($names as $name) {
+			// update_container resolves these names to my-NAME.xml in templates-user;
+			// match that, with a space->dash fallback for older saved filenames.
+			$path = CA_PATHS['dockerManTemplates']."/my-".$name.".xml";
+			if ( ! is_file($path) )
+				$path = CA_PATHS['dockerManTemplates']."/my-".str_replace(" ","-",$name).".xml";
+			$template = readXmlFile($path, false, false);
+			if ( ! is_array($template) ) continue;
+			$ports = getTemplateBridgePorts($template);
+			$hasConflict = false;
+			foreach ($ports as $port) {
+				if ( isset($taken[$port]) ) { $hasConflict = true; break; }
+			}
+			if ( $hasConflict ) {
+				$conflicting[] = ["name"=>$name];
+			} else {
+				// Accepted - reserve its ports so later apps in the batch see them.
+				foreach ($ports as $port) $taken[$port] = true;
+			}
+		}
+	}
+	postReturn(["conflicts"=>$conflicting]);
+}
+
+/**
  * Build the dockerMan install XML for a container template and write it to disk.
  *
  * Reads POST xml (template path) and type ("second" for rename flow), looks
@@ -3158,15 +3206,63 @@ function createXML() {
 			}
 		}
 
-		// Auto-adjust conflicting host ports when the client opted in via the
-		// "Adjust automatically?" prompt during install.
-		if ( filter_var(getPost("adjustPorts", false), FILTER_VALIDATE_BOOLEAN) ) {
-			adjustTemplatePorts($template, getPortsInUse());
+		// Auto-adjust conflicting host ports here, server-side, against the freshly
+		// built template (full Config is available post-hydrate). Gated on the
+		// "Adjust Ports" setting (default yes); the AddContainer swal tells the user
+		// after the fact. Each remap becomes a translated line the client stashes in
+		// sessionStorage and shows once on AddContainer load (ca_browser_back_helper.page).
+		// Ports in use = live listeners (lsof) PLUS host ports claimed by installed-
+		// but-stopped bridge containers (which lsof can't see but would clash on start).
+		if ( ($GLOBALS['caSettings']['adjustPorts'] ?? "yes") === "yes" ) {
+			$portsInUse = array_merge(getPortsInUse(), getStoppedBridgePorts($alreadyInstalled));
+			$portChanges = adjustTemplatePorts($template, $portsInUse);
+			$lines = [];
+			foreach ($portChanges as $c) {
+				$label = $c['label'] ?? "";
+				if ( $label !== "" )
+					$lines[] = sprintf(tr('<strong>%1$s</strong> port <strong>%2$s</strong> to <strong>%3$s</strong>'), $label, $c['from'], $c['to']);
+				else
+					$lines[] = sprintf(tr('port <strong>%1$s</strong> to <strong>%2$s</strong>'), $c['from'], $c['to']);
+			}
+			// Translate everything here, where CA's language tables are loaded. The
+			// AddContainer page that ultimately shows this has no access to CA's tr()
+			// tables, so we hand it a ready-to-display {title,text} blob it renders
+			// verbatim.
+			if ( $lines )
+				$portAdjustMessage = json_encode([
+					"title" => tr("Conflicting ports adjusted"),
+					"text"  => implode("<br>", $lines),
+				]);
 		}
 
 		$xml = makeXML($template);
 		@mkdir(dirname($xmlFile),0777,true);
 		ca_file_put_contents($xmlFile,$xml);
+	} elseif ( $type === "user" ) {
+		// Reinstall: a previously-installed (now removed) template pushed straight
+		// back to dockerMan. The container no longer exists, so its own ports can't
+		// self-conflict. We must NOT rewrite the user's saved template, so we only
+		// CHECK it for host-port conflicts and warn via the AddContainer swal. Edit
+		// (type "edit") is for a still-installed container and is exempt. Gated on
+		// the same "Adjust Ports" setting.
+		if ( ($GLOBALS['caSettings']['adjustPorts'] ?? "yes") === "yes" ) {
+			$storedTemplate = readXmlFile($xmlFile, false, false);
+			if ( is_array($storedTemplate) ) {
+				$portsInUse = array_merge(getPortsInUse(), getStoppedBridgePorts(getAllInfo()));
+				$lines = [];
+				foreach ( findTemplatePortConflicts($storedTemplate, $portsInUse) as $c ) {
+					if ( $c['label'] !== "" )
+						$lines[] = sprintf(tr('<strong>%1$s</strong> port <strong>%2$s</strong>'), $c['label'], $c['port']);
+					else
+						$lines[] = sprintf(tr('port <strong>%1$s</strong>'), $c['port']);
+				}
+				if ( $lines )
+					$portAdjustMessage = json_encode([
+						"title" => tr("Port conflicts found"),
+						"text"  => implode("<br>", $lines)."<br><br>".tr("These ports were not automatically adjusted."),
+					]);
+			}
+		}
 	}
 	/* Installing a container ends any Docker Hub search it was launched from.
 	   Clearing this per-tab flag makes the Apps page reload restore the template
@@ -3174,7 +3270,7 @@ function createXML() {
 	   check in the Apps.page bootstrap). */
 	@unlink(CA_PATHS['dockerSearchActive']);
 	caDropInfoCache();
-	postReturn(["status"=>"ok","cache"=>$cacheVolume ?? ""]);
+	postReturn(["status"=>"ok","cache"=>$cacheVolume ?? "","portAdjustMessage"=>$portAdjustMessage ?? ""]);
 }
 
 /**

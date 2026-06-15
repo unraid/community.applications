@@ -247,3 +247,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: The Monthly Spotlight date now sits left-aligned under the spotlight icon (on app cards and in the app panel) instead of being centred beneath it
 - Changed: The "Installed" badge now adapts its colour to light and dark themes so it stays legible on both
 - Changed: A complete factory reset ("Delete all setting files") now also clears the list of ignored repositories
+- Added: Community Applications can now automatically adjust a container's host ports during installation when they clash with something already running on your server, or with a container that is installed but stopped. Anything it changed is listed for you on the Add Container page after install. This is on by default and can be turned off with the new "Adjust Ports" setting
+- Changed: Reinstalling a previously installed app from the sidebar now checks it for host port conflicts and warns you, leaving your saved template untouched rather than changing its ports
+- Changed: Installing several apps at once from Previous Apps now skips any whose host ports would clash (with your server or with another app being installed in the same batch) and tells you which to install one at a time, instead of installing them with conflicting ports
+- Added: The Previous Apps sidebar now offers "Install Default" (install the current template from the feed) alongside "Reinstall" (your previously saved template)
+- Added: When viewing an app you do not currently have installed but have installed before, the sidebar now offers a "Reinstall" button for your saved template alongside "Install Default"
+- Fixed: Uninstalling an app from the sidebar now immediately updates its card to show it is no longer installed, instead of leaving the old badges in place until the next refresh
+- Changed: Hovering the "Show More" card on the home page now highlights it the same way a normal app card highlights on hover

@@ -442,12 +442,21 @@ body,
 	position: absolute;
 	inset: 0;
 	background-color: var(--mild-background-color);
-	opacity: 0.72;
+	/* Dark mode (--theme-dark-mode 1) -> 0.8; light mode (0) -> 0.9.
+	   calc drops 0.1 off the 0.9 base only when the dark flag is set. */
+	opacity: calc(0.9 - var(--theme-dark-mode, 0) * 0.1);
+}
+/* On hover the card beneath gets --template-hover-background, but the scrim
+   covers it. Tint the scrim to the same hover colour so the underlying card
+   visibly changes colour like a normal card hover (the orange glow already
+   bleeds past the scrim from .ca_holder:hover). */
+.ca_holder:hover .ca_homeMoreScrim {
+	background-color: var(--template-hover-background);
 }
 .ca_homeMoreOverlay .ca_homeMoreText {
 	position: relative;
 	text-align: center;
-	color: var(--brand-orange);
+	color: var(--text-color);
 }
 .ca_homeMoreTitle {
 	font-size: 2rem;

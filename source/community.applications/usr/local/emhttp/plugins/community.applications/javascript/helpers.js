@@ -180,13 +180,17 @@ var caSpinnerTimer = null;
  * Show the global spinner after a 250ms delay (skipped if the operation
  * completes first).
  */
-function mySpinner() {
+function mySpinner(wait=250) {
 	if (caSpinnerTimer !== null) return;            // a show is already pending
-	if ($("div.spinner").is(":visible")) return;    // already showing
-	caSpinnerTimer = setTimeout(function() {
-		caSpinnerTimer = null;
+	if ($("div.spinner").is(":visible")) return;  
+	if ( wait===0) {	  // Skip the delay
 		$("div.spinner").show();
-	}, 250);
+	} else {
+		caSpinnerTimer = setTimeout(function() {
+			caSpinnerTimer = null;
+			mySpinner(0);
+		}, wait);	
+	}
 }
 
 /**
