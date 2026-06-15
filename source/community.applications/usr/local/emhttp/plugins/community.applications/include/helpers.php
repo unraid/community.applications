@@ -416,8 +416,12 @@ function readJsonFile($filename, $default = []) {
 	}
 
 	$contents = @file_get_contents($filename);
-	$json = @unserialize($contents);
-	if ( $json === false ) {
+	// allowed_classes => false: never instantiate objects from a cache file
+	// (guards against PHP object injection if a cache is tampered with); our
+	// caches are plain arrays. The b:0; check avoids treating a legitimately
+	// serialized false as a failure and falling through to json_decode.
+	$json = @unserialize($contents, ['allowed_classes' => false]);
+	if ( $json === false && trim((string)$contents) !== 'b:0;' ) {
 		debug("$caller - $filename is not serialized, falling back to json_decode");
 		$json = json_decode($contents, true);
 	}
