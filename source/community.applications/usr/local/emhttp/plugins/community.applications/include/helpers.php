@@ -307,6 +307,7 @@ function ca_plugin($method, $plugin_file = '',$dontCache = false) {
 			$dirty = false;
 			if ( is_file($plugin_file) ) {
 				if ( !isset($attributeCache[$plugin_file]) ) {
+					debug("ca_plugin: adding $plugin_file to the attribute cache");
 					$xml = @simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA);
 					if ( $xml ) {
 						$attributes = $xml->attributes();
@@ -391,22 +392,36 @@ function randomFile() {
 	return tempnam(CA_PATHS['tempFiles'],"CA-Temp-");
 }
 /**
- * Read a JSON file. Returns $default if the file is missing or not valid JSON.
+ * Read a CA data file. Returns $default if the file is missing or unreadable.
+ *
+ * Files are PHP-serialized (faster than JSON for these caches). Falls back to
+ * json_decode for legacy serialized-as-JSON caches and for genuinely-JSON files
+ * read through here (eg. docker's unraid-update-status.json); the fallback is
+ * logged so persistently-JSON callers are visible.
  *
  * @param string $filename
  * @param array $default
  * @return mixed
  */
 function readJsonFile($filename, $default = []) {
-	debug( ($GLOBALS['action']?? "Unknown") . " - Read JSON file $filename");
+	// AJAX requests carry the action name; other callers (CLI / cron scripts,
+	// plugin-install scripts, page renders) don't, so fall back to the running
+	// script's basename instead of "Unknown" to identify the calling process.
+	$caller = $GLOBALS['action'] ?? $_POST['action'] ?? (basename($_SERVER['SCRIPT_FILENAME'] ?? $_SERVER['SCRIPT_NAME'] ?? "") ?: "unknown");
+	debug( "$caller - Read JSON file $filename");
 
 	if ( ! is_file($filename) ) {
 		debug("$filename not found");
 		return $default;
 	}
 
-	$json = json_decode(@file_get_contents($filename), true);
-	if ( $json === null ) {
+	$contents = @file_get_contents($filename);
+	$json = @unserialize($contents);
+	if ( $json === false ) {
+		debug("$caller - $filename is not serialized, falling back to json_decode");
+		$json = json_decode($contents, true);
+	}
+	if ( $json === null || $json === false ) {
 		debug("JSON Read Error ($filename)");
 		return $default;
 	}
@@ -453,8 +468,20 @@ function caIsDockerRunning() {
  */
 function writeJsonFile($filename,$jsonArray) {
 	debug(($_POST['action']??'Unknown')." - Write JSON File $filename");
-	$result = ca_file_put_contents($filename,json_encode($jsonArray,JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+	$result = ca_file_put_contents($filename,serialize($jsonArray));
 	debug("Memory Usage:".round(memory_get_usage()/1048576,2)." MB");
+
+	// The plugin script needs a templates.json in JSON format to update support URLs on plugins
+	// If we're writing $templates, then save templates.json but filtered only for plugins to save space
+	if ( $filename == CA_PATHS['community-templates-info'] ) {
+		// array_values re-indexes to a flat JSON array - post_plugin_checks reads
+		// this with an index loop ($db[$i]), so the keys must be sequential.
+		ca_file_put_contents(CA_PATHS['community-templates-info-old'],json_encode(array_values(array_map(function($t) {
+			return ["PluginURL"=>$t['PluginURL']??null,"Support"=>$t['Support']??null];
+		},array_filter($jsonArray, function($t1) {
+			return $t1['Plugin']??false;
+		}))),JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+	}
 }
 
 /**
@@ -1963,9 +1990,9 @@ function getAllInfo($force=false) {
 /**
  * Append a timestamped debug line to the CA log file.
  *
- * On first invocation per process, primes the log with environment metadata
- * (CA version, Unraid version, ca.md5, locale, settings) and creates the log
- * directory.
+ * Just creates the log dir/file if missing and appends the line. The
+ * environment metadata header lives in its own file now (see caWriteDebugInfo),
+ * which the debugging zip bundles alongside the log.
  *
  * @param  string  $str
  * @return void
@@ -1973,28 +2000,40 @@ function getAllInfo($force=false) {
 function debug($str) {
 
 	if ( ! is_file(CA_PATHS['logging']) ) {
-		if ( ! isset($GLOBALS['caSettings']) )
-			getSettings();
-
 		@mkdir(CA_PATHS['CA_logs']);
 		touch(CA_PATHS['logging']);
-		$caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
-
-		debug("Community Applications Version: $caVersion");
-		debug("Unraid version: {$GLOBALS['caSettings']['unRaidVersion']}");
-		debug("MD5's: \n".shell_exec("cd /usr/local/emhttp/plugins/community.applications && md5sum -c ca.md5"));
-		$lingo = $_SESSION['locale'] ?? "en_US";
-		debug("Language: $lingo");
-		debug("Settings:\n".print_r($GLOBALS['caSettings'],true));
-
-		$phpErrors = @parse_ini_file(CA_PATHS['phpErrorSettings']);
-
-		if (boolval($phpErrors['display_errors']??false)) {
-			debug("PHP errors set to be displayed!");
-		}
-
 	}
 	@file_put_contents(CA_PATHS['logging'],date('Y-m-d H:i:s')."  $str\n",FILE_APPEND); //don't run through CA wrapper as this is non-critical
+}
+
+/**
+ * Write the CA environment snapshot (version, Unraid version, ca.md5 check,
+ * locale, settings, php-error flag) to its own file (CA_PATHS['caInfo']).
+ *
+ * Called when the debugging zip is built so the snapshot is always current and
+ * the running log stays clean of the boilerplate header.
+ *
+ * @return void
+ */
+function caWriteDebugInfo() {
+	if ( ! isset($GLOBALS['caSettings']) )
+		getSettings();
+
+	@mkdir(CA_PATHS['CA_logs']);
+
+	$caVersion = ca_plugin("version","/var/log/plugins/community.applications.plg");
+	$lingo     = $_SESSION['locale'] ?? "en_US";
+	$phpErrors = @parse_ini_file(CA_PATHS['phpErrorSettings']);
+
+	$info  = "Community Applications Version: $caVersion\n";
+	$info .= "Unraid version: {$GLOBALS['caSettings']['unRaidVersion']}\n";
+	$info .= "MD5's: \n".shell_exec("cd /usr/local/emhttp/plugins/community.applications && md5sum -c ca.md5")."\n";
+	$info .= "Language: $lingo\n";
+	$info .= "Settings:\n".print_r($GLOBALS['caSettings'],true)."\n";
+	if (boolval($phpErrors['display_errors']??false))
+		$info .= "PHP errors set to be displayed!\n";
+
+	ca_file_put_contents(CA_PATHS['caInfo'],$info);
 }
 
 /**

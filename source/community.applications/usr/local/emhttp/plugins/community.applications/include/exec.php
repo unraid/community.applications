@@ -1270,11 +1270,11 @@ function updatePluginSupport($templates) {
 // }
 
 /**
- * Build a debugging zip from CA logs and the PHP log, returning the served URL.
+ * Build a debugging zip from the CA env snapshot, CA log, and PHP log, returning the served URL.
  *
  * Reads POST['file'] for the zip filename (validated to match the CA-Logging-*.zip
- * pattern), shells out to `zip` with escaped paths, then returns the URL via
- * postReturn().
+ * pattern), writes a fresh env snapshot (caWriteDebugInfo -> ca.txt), shells out
+ * to `zip` with escaped paths, then returns the URL via postReturn().
  *
  * @return void
  */
@@ -1287,8 +1287,9 @@ function downloadDebugging() {
 		return;
 	}
 
+	caWriteDebugInfo();
 	@copy("/var/log/phplog", "/tmp/phplog.txt");
-	exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg(CA_PATHS['logging'])." /tmp/phplog.txt");
+	exec("zip -qlj ".escapeshellarg("$docroot/$file")." ".escapeshellarg(CA_PATHS['caInfo'])." ".escapeshellarg(CA_PATHS['logging'])." /tmp/phplog.txt");
 	@unlink("/tmp/phplog.txt");
 
 	postReturn(["zip" => "/$file"]);

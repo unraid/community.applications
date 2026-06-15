@@ -940,87 +940,7 @@ body,
 		z-index: 2;
 		background-color: var(--background-color);
 	}
-	/* ==========================================================================
-	   Native scrollbars for CA's scrollable panes.
-
-	   Always visible (not auto-hidden): a rounded brand-orange thumb that sits at
-	   ~2px normally and fills to ~5px on interaction. WebKit/Blink get the full
-	   treatment (px sizing, rounded thumb, hover grow); Firefox can only do a
-	   fixed thin bar with two colors and has no hover state, so it stays "thin"
-	   always — as close as Firefox allows.
-	   ========================================================================== */
-	/* Firefox only. It has no ::-webkit-scrollbar, so give it a normal-width bar
-	   with an orange thumb and a transparent track. Gated behind @supports so
-	   Chrome 121+ (which now also understands scrollbar-width) does NOT pick this
-	   up — if it did, Chrome would ignore the ::-webkit-scrollbar rules below and
-	   revert to its auto-hiding overlay bar. Firefox has no hover state, so it
-	   just stays at normal width. */
-	@supports not selector(::-webkit-scrollbar) {
-		.menuItems,
-		.sidenav,
-		.ca_homeTemplates,
-		.mainArea,
-		.ca_diffCol {
-			scrollbar-width: auto;
-			scrollbar-color: color-mix(in srgb, var(--brand-orange) 60%, transparent) transparent;
-		}
-	}
-	/* Channel reserves the normal (hover/scrolling) bar width; the thumb is inset
-	   to ~2px at rest and fills the full width on interaction. An explicit width
-	   also forces an always-visible bar (overrides the macOS overlay auto-hide). */
-	.menuItems::-webkit-scrollbar,
-	.sidenav::-webkit-scrollbar,
-	.ca_homeTemplates::-webkit-scrollbar,
-	.mainArea::-webkit-scrollbar,
-	.ca_diffCol::-webkit-scrollbar {
-		width: 10px;
-		height: 10px;
-	}
-	.menuItems::-webkit-scrollbar-track,
-	.sidenav::-webkit-scrollbar-track,
-	.ca_homeTemplates::-webkit-scrollbar-track,
-	.mainArea::-webkit-scrollbar-track,
-	.ca_diffCol::-webkit-scrollbar-track {
-		background: transparent;
-	}
-	/* Default ~2px rounded pill at a muted strength (calmer when idle): a transparent
-	   border + padding-box clip insets the visible thumb within the 10px channel. */
-	.menuItems::-webkit-scrollbar-thumb,
-	.sidenav::-webkit-scrollbar-thumb,
-	.ca_homeTemplates::-webkit-scrollbar-thumb,
-	.mainArea::-webkit-scrollbar-thumb,
-	.ca_diffCol::-webkit-scrollbar-thumb {
-		background-color: color-mix(in srgb, var(--brand-orange) 32%, transparent);
-		border-radius: 999px;
-		border: 4px solid transparent;
-		background-clip: padding-box;
-	}
-	/* Grow to the full (normal) channel width while the pane is hovered or scrolled. WebKit
-	   won't restyle a scrollbar from the container's :hover state alone (it only
-	   repaints when the bar itself redraws), so caInitScrollbarActivity toggles
-	   .ca_bar_active on the pane via JS; a class change invalidates style
-	   thoroughly enough to repaint the bar on both enter and leave. The direct
-	   thumb:hover is kept as a no-JS fallback for grabbing the bar. */
-	.menuItems.ca_bar_active::-webkit-scrollbar-thumb,
-	.sidenav.ca_bar_active::-webkit-scrollbar-thumb,
-	.ca_homeTemplates.ca_bar_active::-webkit-scrollbar-thumb,
-	.mainArea.ca_bar_active::-webkit-scrollbar-thumb,
-	.ca_diffCol.ca_bar_active::-webkit-scrollbar-thumb,
-	.menuItems::-webkit-scrollbar-thumb:hover,
-	.sidenav::-webkit-scrollbar-thumb:hover,
-	.ca_homeTemplates::-webkit-scrollbar-thumb:hover,
-	.mainArea::-webkit-scrollbar-thumb:hover,
-	.ca_diffCol::-webkit-scrollbar-thumb:hover {
-		border-width: 0;
-		background-color: color-mix(in srgb, var(--brand-orange) 65%, transparent);
-	}
-	.menuItems::-webkit-scrollbar-corner,
-	.sidenav::-webkit-scrollbar-corner,
-	.ca_homeTemplates::-webkit-scrollbar-corner,
-	.mainArea::-webkit-scrollbar-corner,
-	.ca_diffCol::-webkit-scrollbar-corner {
-		background: transparent;
-	}
+	/* Scrollbars use the browser defaults (no custom always-visible bar). */
 	.menuItems.menuHidden {
 		display: block;
 	}
@@ -3387,6 +3307,38 @@ input[type="button"] {
 
 	.screenshot {
 		cursor: pointer;
+		position: relative;
+		display: inline-block;
+	}
+
+	/* Click-for-fullscreen hint: an expand icon pinned to the bottom-right corner
+	   of the 2x hover enlargement. A center scale of 2 puts the enlarged corner at
+	   ~150% of the tile box; the same --caPlayDX/DY edge-clamp shift the play
+	   overlay uses carries it onto the shifted enlargement. ::before is used so it
+	   never collides with the video play overlay (::after). pointer-events:none so
+	   the click still falls through to the tile and opens the full-size popup. */
+	/* Click-for-fullscreen hint on image screenshots only (not video tiles, which
+	   show the play overlay). Centered on the enlargement like the play icon -
+	   screenshots aren't forced to a fixed aspect, so a corner anchor drifts;
+	   center stays close. Carried by the same --caPlayDX/DY edge-clamp shift. */
+	.caMediaGallery .screenshot.mfp-image::before {
+		content: "\f065";
+		font-family: fontAwesome;
+		font-weight: 900;
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(calc(-50% + var(--caPlayDX, 0px)), calc(-50% + var(--caPlayDY, 0px)));
+		z-index: 12;
+		font-size: 3rem;
+		color: var(--brand-orange);
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.2s ease;
+	}
+	.caMediaGallery .screenshot.mfp-image:hover::before {
+		opacity: 1;
 	}
 
 	#displayBox {

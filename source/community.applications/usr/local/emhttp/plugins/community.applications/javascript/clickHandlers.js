@@ -13,79 +13,14 @@ SPDX-License-Identifier: GPL-2.0-or-later
 */
 
 /**
- * @file Wires click handlers, scrollbars, and interactive UI behavior for Community Applications.
+ * @file Wires click handlers and interactive UI behavior for Community Applications.
  */
-
-/**
- * Grow the native scrollbar on a pane while it is hovered or scrolled.
- *
- * WebKit won't restyle a `::-webkit-scrollbar` from the container's `:hover`
- * state alone — it only repaints the bar when the bar itself redraws — so a
- * pure-CSS hover grow is unreliable on static panes. Toggling a class instead
- * invalidates style thoroughly enough that the bar repaints on both enter and
- * leave. The stylesheet grows the thumb for `.ca_bar_active`; this just manages
- * the class from hover + scroll, returning the bar to its slim state a short
- * time after interaction stops.
- */
-function caInitScrollbarActivity() {
-	var SELECTOR = ".menuItems, .sidenav, .ca_homeTemplates, .mainArea, .ca_diffCol";
-	var IDLE_MS = 700;
-	var idleTimers = new WeakMap();
-
-	var clearIdle = function(el) {
-		var t = idleTimers.get(el);
-		if (t) { clearTimeout(t); idleTimers.delete(el); }
-	};
-	var activate = function(el) {
-		if (!el || !el.classList) return;
-		clearIdle(el);
-		el.classList.add("ca_bar_active");
-	};
-	var deactivateSoon = function(el) {
-		if (!el || !el.classList) return;
-		clearIdle(el);
-		idleTimers.set(el, setTimeout(function() {
-			idleTimers.delete(el);
-			/* Stay grown while the pointer is still over the pane. */
-			if (!(el.matches && el.matches(":hover"))) el.classList.remove("ca_bar_active");
-		}, IDLE_MS));
-	};
-	var paneFrom = function(node) {
-		return (node && node.closest) ? node.closest(SELECTOR) : null;
-	};
-
-	/* Scroll doesn't bubble, so catch it in the capture phase. Covers wheel /
-	   trackpad gestures, which never trigger :hover. */
-	document.addEventListener("scroll", function(e) {
-		var el = e.target;
-		if (el && el.nodeType === 1 && el.matches && el.matches(SELECTOR)) {
-			activate(el);
-			deactivateSoon(el);
-		}
-	}, true);
-
-	/* mouseenter/leave don't bubble; mouseover/out do, so delegate with closest(). */
-	$(document)
-		.on("mouseover.caBarActivity", function(e) {
-			var el = paneFrom(e.target);
-			if (el) activate(el);
-		})
-		.on("mouseout.caBarActivity", function(e) {
-			var el = paneFrom(e.target);
-			if (el) deactivateSoon(el);
-		});
-}
 
 /**
  * Register delegated `body`/`document` handlers for CA (cards, plugins, moderation, sorting, etc.).
  * Call once after DOM ready.
  */
 function caInitializeClickHandlers() {
-	/* Scrollbars: native browser bars, styled in the stylesheet. The only JS is
-	   caInitScrollbarActivity (below), which toggles .ca_bar_active so the bar
-	   can grow while a pane is hovered or scrolled. */
-	caInitScrollbarActivity();
-
 	/* Action buttons (.caButton) carry the action's onclick on their inner
 	   <span>, but the wrapper holds the padding and the icon — so clicks on the
 	   orange padding or the icon miss the handler and only the text itself fires
@@ -781,7 +716,13 @@ function caInitializeClickHandlers() {
 			$menuItem.closest(".subCategory").show();
 		}
 		$(".caMenuItem").removeClass("selectedMenu");
-		$menuItem.addClass("selectedMenu");
+		/* Don't highlight the global "All Apps" item for All-category home sections
+		   (Recently Added, Trending, etc.). Leaving it unselected keeps it clickable
+		   as an escape and lets the sort be changed afterwards, matching how the
+		   category-specific Show More links (Spotlight, Plugins) behave. */
+		if (category !== "All") {
+			$menuItem.addClass("selectedMenu");
+		}
 		var sortOrder = {};
 		if ($(this).data("sortby")) {
 			sortOrder.sortBy = $(this).data("sortby");

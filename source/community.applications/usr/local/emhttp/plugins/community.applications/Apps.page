@@ -3061,23 +3061,12 @@ function caUpdateAlphaBar(entries) {
 		$bar.addClass("ca_hide").empty();
 		return;
 	}
-	var perPage = Math.max(1, parseInt(data.maxPerPage, 10) || 1);
-	var perRow = (typeof caCardsPerRow === "function") ? Math.max(1, caCardsPerRow()) : 1;
 	var ordered = entries.slice().sort(function(a, b) {
 		return (parseInt(a && a.i, 10) || 0) - (parseInt(b && b.i, 10) || 0);
 	}).map(function(e) { return { l: e.l, i: parseInt(e.i, 10) || 0 }; });
 	data.alphaAll = ordered;
-	var kept = [];
-	var lastIdx = 0, lastPage = -1;
-	ordered.forEach(function(e) {
-		var i = parseInt(e && e.i, 10);
-		if (isNaN(i)) return;
-		var page = Math.floor(i / perPage);
-		if (kept.length && (page === lastPage || (i - lastIdx) < perRow)) return;
-		kept.push({ l: e.l, i: i });
-		lastIdx = i;
-		lastPage = page;
-	});
+	// Keep every distinct letter; only the window-fit thinning below drops any.
+	var kept = ordered.slice();
 	var render = function(list) {
 		var html = "";
 		list.forEach(function(e) {
