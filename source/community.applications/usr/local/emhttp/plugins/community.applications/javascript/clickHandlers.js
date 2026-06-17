@@ -704,23 +704,17 @@ function caInitializeClickHandlers() {
 	 * submenu items so both behave identically.
 	 */
 	function caOpenHomeSection(description, category, sortby, sortdir) {
-		/* Match the real category menu item, NOT the Home-section submenu items
-		   (which share data-category) — prefer the auto "All" sub and reveal its
-		   (hidden by default) wrapper so the active selection is visible. */
-		var $menuItem = $(".caMenuItem[data-category='" + category + "']").not(".caHomeSectionItem");
-		if ($menuItem.filter(".caCategoryAll").length) {
-			$menuItem = $menuItem.filter(".caCategoryAll");
-			$menuItem.closest(".subCategory").show();
-		}
+		/* Select the matching Home submenu item itself, then treat the Home
+		   submenu exactly like any other subcategory: caHideUnselectedSubs keeps a
+		   .subCategory expanded while it holds the .selectedMenu item and collapses
+		   it only once a leaf elsewhere is picked — so the home sections persist
+		   like Installed/Previous do, instead of snapping shut. */
 		$(".caMenuItem").removeClass("selectedMenu");
-		/* Don't highlight the global "All Apps" item for All-category home sections
-		   (Recently Added, Trending, etc.). Leaving it unselected keeps it clickable
-		   as an escape and lets the sort be changed afterwards, matching how the
-		   category-specific Show More links (Spotlight, Plugins) behave. The Home
-		   submenu item itself is highlighted separately by caSetHomeSectionSubtitle. */
-		if (category !== "All") {
-			$menuItem.addClass("selectedMenu");
-		}
+		var $homeItem = $(".caHomeSectionItem").filter(function() {
+			return String($(this).data("des")) === description;
+		});
+		$homeItem.addClass("selectedMenu");
+		$homeItem.closest(".subCategory").show();
 		var sortOrder = {};
 		if (sortby) {
 			sortOrder.sortBy = sortby;

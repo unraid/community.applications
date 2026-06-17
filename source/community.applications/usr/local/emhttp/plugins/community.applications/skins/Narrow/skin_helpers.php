@@ -1806,11 +1806,12 @@ function caBuildBottomLineSection(
 			/* Hide the "Install" affordance only for Docker containers while the
 			   Docker daemon is stopped: a container can't be installed without it,
 			   so the card offers only Details (which still opens the sidebar).
-			   Plugins (PluginURL set) don't need Docker, so they always keep their
-			   Install/Manage button. "Manage" on already-installed apps is likewise
-			   unaffected, and container Install returns once Docker is running. */
-			$isPlugin = !empty($template['PluginURL']);
-			if ($isInstalled || $isPlugin || caIsDockerRunning()) {
+			   Non-Docker templates (plugins and language packs) don't need Docker,
+			   so they always keep their Install/Manage button. "Manage" on
+			   already-installed apps is likewise unaffected, and container Install
+			   returns once Docker is running. */
+			$isNonDockerTemplate = !empty($template['Plugin']) || !empty($template['Language']);
+			if ($isInstalled || $isNonDockerTemplate || caIsDockerRunning()) {
 				$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
 				$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
 				$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";

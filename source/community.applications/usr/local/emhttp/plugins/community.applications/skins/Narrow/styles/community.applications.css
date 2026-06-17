@@ -955,22 +955,11 @@ body,
 		font-weight: bold;
 	}
 
-	/* Home-sections submenu (revealed under Home after a Show More). Not a
-	   .subCategory (so getCategories()'s `$(".subCategory").hide()` can't fight
-	   the ca_hide toggle), so mirror that wrapper's indent/spacing here. */
-	.caHomeSectionsMenu {
-		margin-top: -0.5rem;
-	}
-	.caHomeSectionsMenu ul {
-		padding-left: 1.5rem;
-		list-style: none;
-	}
+	/* Home-sections submenu. It's a real .subCategory (governed by the standard
+	   caHideUnselectedSubs show/hide), so indent/spacing come from the shared
+	   .subCategory rules; the active item is highlighted via .selectedMenu. */
 	.caHomeSectionItem {
 		cursor: pointer;
-	}
-	.caHomeSectionItem.caHomeSectionActive {
-		color: var(--brand-orange);
-		font-weight: bold;
 	}
 
 	/* Subtitle under Home: which home "Show More" section is expanded */

@@ -661,10 +661,9 @@ function scrollToTop() {
  * Clear optional subtitle under the Home section header.
  */
 function caClearHomeSectionSubtitle() {
-	/* The Home-sections submenu tracks this subtitle 1:1 (both mean "viewing a
-	   Home section"), so collapse it and drop the active highlight here. */
-	$(".caHomeSectionsMenu").addClass("ca_hide");
-	$(".caHomeSectionItem").removeClass("caHomeSectionActive");
+	/* Only the subtitle text under Home. The Home-sections submenu's visibility
+	   and active highlight are handled by the standard subcategory machinery
+	   (caHideUnselectedSubs + .selectedMenu), exactly like every other submenu. */
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
 	$el.empty().addClass("ca_hide");
@@ -684,13 +683,6 @@ function caSetHomeSectionSubtitle(text) {
 		return;
 	}
 	$el.text(t).removeClass("ca_hide");
-	/* Reveal the Home-sections submenu and highlight the section whose label
-	   (data-des) matches this subtitle, so the active section is marked and the
-	   user can switch to any of the others. */
-	$(".caHomeSectionsMenu").removeClass("ca_hide");
-	$(".caHomeSectionItem").removeClass("caHomeSectionActive")
-		.filter(function() { return String($(this).data("des")) === t; })
-		.addClass("caHomeSectionActive");
 }
 
 /** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */
