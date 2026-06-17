@@ -226,7 +226,7 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 }
 
 .subCategory ul {
-	padding-left: 20px;
+	padding-left: 1.5rem;
 	list-style: none;
 }
 li.subCategory {
@@ -951,6 +951,24 @@ body,
 	}
 
 	.selectedMenu {
+		color: var(--brand-orange);
+		font-weight: bold;
+	}
+
+	/* Home-sections submenu (revealed under Home after a Show More). Not a
+	   .subCategory (so getCategories()'s `$(".subCategory").hide()` can't fight
+	   the ca_hide toggle), so mirror that wrapper's indent/spacing here. */
+	.caHomeSectionsMenu {
+		margin-top: -0.5rem;
+	}
+	.caHomeSectionsMenu ul {
+		padding-left: 1.5rem;
+		list-style: none;
+	}
+	.caHomeSectionItem {
+		cursor: pointer;
+	}
+	.caHomeSectionItem.caHomeSectionActive {
 		color: var(--brand-orange);
 		font-weight: bold;
 	}
@@ -2488,7 +2506,7 @@ body,
 		   so the date below centers under the icon. Tune top to sit beneath the
 		   badges once the icon width is settled. */
 		position: absolute;
-		top: 4.5rem;
+		top: 5.5rem;
 		right: 1.75rem;
 		width: fit-content;
 		text-align: center;

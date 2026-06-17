@@ -201,6 +201,25 @@ $(function() {
 					<div id='ca_homeSectionSubtitle' class='ca_homeSectionSubtitle ca_hide'></div>
 					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>
 				</li>
+				<!-- Home sections submenu: one item per non-Featured Home row, each
+				     carrying the same des/category/sort the Show More overlay uses.
+				     Hidden until a Show More reveals it (caSetHomeSectionSubtitle);
+				     the active section is highlighted. Lets you switch between Home
+				     sections without going back Home. Hard-coded (rather than looping
+				     caHomeSections) because tr() echoes during page render — keep these
+				     in sync with caHomeSections() in include/helpers.php. -->
+				<li class='caHomeSectionsMenu ca_hide onlyShowWithFeed'>
+					<ul>
+						<!-- Visible label is short; data-des keeps the full section title so it
+						     matches the Show More overlay / subtitle for active highlighting. -->
+						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Recently Added");?>' data-sortby='FirstSeen' data-sortdir='Down'><?tr("Recent");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='spotlight:' data-des='<?tr("Spotlight Apps");?>' data-sortby='RecommendedDate' data-sortdir='Down'><?tr("Spotlight");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Top Trending Apps");?>' data-sortby='topTrending' data-sortdir='Down'><?tr("Trending");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Top New Installs");?>' data-sortby='topPerforming' data-sortdir='Down'><?tr("Top Installs");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='plugins:' data-des='<?tr("Most Popular Plugins");?>' data-sortby='lastMonthDownloads' data-sortdir='Down'><?tr("Popular Plugins");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Random Apps");?>' data-sortby='random' data-sortdir='Down'><?tr("Random");?></li>
+					</ul>
+				</li>
 				<li><hr class='onlyShowWithFeed'/></li>
 				<li class='caMenuItem sectionMenu onlyShowWithFeed' data-category='installed_apps'><?tr("Installed Apps");?></li>
 				<li class='subCategory onlyShowWithFeed'>
@@ -606,13 +625,6 @@ $(function() {
 						<div class='ca_settingDescription'><?tr("Limits results to name, author, repository.");?></div>
 					</div>
 
-					<div class='ca_settingCard'>
-						<div class='ca_settingHeader'>
-							<span><?tr("Keep Search In Focus");?></span>
-							<?=caSettingSwitchInputs('keepSearchInFocus', $caDefaults)?>
-						</div>
-						<div class='ca_settingDescription'><?tr("Some mobile devices might require this to be disabled.");?></div>
-					</div>
 
 					<?php /* Same pattern as Use whole display window above —
 					         always rendered; caBindSettingsFormHandlers()

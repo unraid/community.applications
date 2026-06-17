@@ -1803,9 +1803,18 @@ function caBuildBottomLineSection(
 			   Installed made the badge say INSTALLED while the button said
 			   "Install". Keeping them on the same signal fixes that. */
 			$isInstalled = !empty($template['Installed']) || !empty($template['Uninstall']);
-			$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
-			$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
-			$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";
+			/* Hide the "Install" affordance only for Docker containers while the
+			   Docker daemon is stopped: a container can't be installed without it,
+			   so the card offers only Details (which still opens the sidebar).
+			   Plugins (PluginURL set) don't need Docker, so they always keep their
+			   Install/Manage button. "Manage" on already-installed apps is likewise
+			   unaffected, and container Install returns once Docker is running. */
+			$isPlugin = !empty($template['PluginURL']);
+			if ($isInstalled || $isPlugin || caIsDockerRunning()) {
+				$installManageLabel = $isInstalled ? tr("Manage") : tr("Install");
+				$installManageState = $isInstalled ? "isInstalled" : "notInstalled";
+				$installManageButton = "<div class='caButton infoButton infoButtonAction {$installManageState} {$cardClass}'>{$installManageLabel}</div>";
+			}
 		}
 		$cardStart = "
 			<div class='ca_holder {$class} {$popupType} {$holderClass}' data-apppath='".($template['Path'] ?? "")."' data-appname='{$name}' data-repository='".htmlentities($repoName, ENT_QUOTES)."' {$dataPluginURL}>";
@@ -2061,6 +2070,14 @@ function caCollectBadges(array $template): array {
 
 	if ((!empty($template['Installed']) || !empty($template['Uninstall'])) && empty($template['actionCentre'])) {
 		$badges[] = "<div class='installedCardBackground'><div class='installedCardText ca_center'>".tr("INSTALLED")."</div></div>";
+		/* "Stopped" badge alongside INSTALLED, with the SAME styling
+		   (installedCardBackground / installedCardText), only when an installed
+		   docker container isn't running. Running containers and plugins get no
+		   extra badge; languages add nothing. $template['Running'] is set in the
+		   card + sidebar render paths (false = installed but stopped). */
+		if (empty($template['Plugin']) && empty($template['Language']) && isset($template['Running']) && !$template['Running']) {
+			$badges[] = "<div class='installedCardBackground'><div class='installedCardText ca_center'>".tr("Stopped")."</div></div>";
+		}
 	}
 
 	/* Blacklist supersedes Deprecated — Blacklisted is the stronger
@@ -2115,6 +2132,29 @@ function caCollectBadges(array $template): array {
 	}
 
 	return $badges;
+}
+
+/**
+ * Runtime running-state for the Running/Stopped badge that rides alongside
+ * INSTALLED. Returns true (running) / false (installed but stopped) for the
+ * docker container a template resolves to, or null when the template isn't a
+ * matched container (plugin / language / no matching container) so the caller
+ * leaves $template['Running'] unset and caCollectBadges skips the badge.
+ *
+ * @param  array<string,mixed>             $template
+ * @param  array<int,array<string,mixed>>  $info     Docker container info.
+ * @return ?bool
+ */
+function caTemplateContainerRunning(array $template, array $info): ?bool {
+	if (!empty($template['Plugin']) || !empty($template['Language'])) {
+		return null;
+	}
+	$name = caDockerInstalledName($template, $info);
+	if ($name === "") {
+		return null;
+	}
+	$ind = searchArray($info, "Name", $name);
+	return ($ind !== false) ? !empty($info[$ind]['running']) : false;
 }
 
 /**

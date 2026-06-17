@@ -65,40 +65,6 @@ function caHasSetting(name) {
 }
 
 /**
- * Whether the "Keep Search In Focus" setting is on. default.cfg ships it
- * "no", so "on" == "differs from default" == caHasSetting("keepSearchInFocus").
- *
- * @returns {boolean}
- */
-function caShouldKeepSearchInFocus() {
-	return caHasSetting("keepSearchInFocus");
-}
-
-/**
- * Heuristic: is the primary input a touch screen (phone / tablet)? Used to skip
- * auto-refocusing the search input, which would pop the virtual keyboard on
- * every click. Treats an iPad-with-mouse as desktop.
- *
- * @returns {boolean}
- */
-function caIsLikelyTouchDevice() {
-	try {
-		/* (pointer:coarse) is the canonical "primary input is touch" signal;
-		   (hover:none) adds "no fine hover mechanism" so an iPad with a mouse
-		   plugged in (fine pointer AND hover) is treated as desktop. */
-		if (window.matchMedia &&
-		    window.matchMedia("(pointer: coarse)").matches &&
-		    window.matchMedia("(hover: none)").matches) return true;
-		/* Fallback for older Edge / iPadOS Safari where media-query reporting
-		   is unreliable: maxTouchPoints + a Mobile UA token. */
-		var ua = navigator.userAgent || "";
-		if ((navigator.maxTouchPoints || 0) > 1 &&
-		    /Mobi|Android|iPhone|iPad|iPod|Tablet|Touch/i.test(ua)) return true;
-	} catch (e) { /* no-op */ }
-	return false;
-}
-
-/**
  * Parse `url` with the URL API; returns a `URL` instance or `false` if invalid.
  *
  * @param {string} url
@@ -695,6 +661,10 @@ function scrollToTop() {
  * Clear optional subtitle under the Home section header.
  */
 function caClearHomeSectionSubtitle() {
+	/* The Home-sections submenu tracks this subtitle 1:1 (both mean "viewing a
+	   Home section"), so collapse it and drop the active highlight here. */
+	$(".caHomeSectionsMenu").addClass("ca_hide");
+	$(".caHomeSectionItem").removeClass("caHomeSectionActive");
 	var $el = $("#ca_homeSectionSubtitle");
 	if (!$el.length) return;
 	$el.empty().addClass("ca_hide");
@@ -714,6 +684,13 @@ function caSetHomeSectionSubtitle(text) {
 		return;
 	}
 	$el.text(t).removeClass("ca_hide");
+	/* Reveal the Home-sections submenu and highlight the section whose label
+	   (data-des) matches this subtitle, so the active section is marked and the
+	   user can switch to any of the others. */
+	$(".caHomeSectionsMenu").removeClass("ca_hide");
+	$(".caHomeSectionItem").removeClass("caHomeSectionActive")
+		.filter(function() { return String($(this).data("des")) === t; })
+		.addClass("caHomeSectionActive");
 }
 
 /** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */

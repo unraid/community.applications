@@ -971,40 +971,6 @@ $(function(){
 					updateCaretState();
 				});
 
-				/* Continuously snap focus back to the inline search input
-				   after any click on the page — UNLESS the sidebar is
-				   open, a sweetalert is up, the search modal is open
-				   (mobile), the modal scrim is visible, the user is
-				   actively typing in some other input, OR we're on a
-				   touch device (phone / tablet) where focusing an input
-				   would pop the virtual keyboard on every single click.
-				   Delayed one tick so any DOM state the click triggered
-				   (.sidenavShow getting added, etc.) is in place before
-				   we check. */
-				document.addEventListener("click", function() {
-					if (!caShouldKeepSearchInFocus()) return;
-					if (caIsLikelyTouchDevice()) return;
-					setTimeout(function() {
-						if ($(".sidenav").hasClass("sidenavShow")) return;
-						if (document.body.classList.contains("ca_sweetalert_open")) return;
-						if (document.body.classList.contains("ca_searchModalOpen")) return;
-						if ($(".sweet-alert.showSweetAlert").length) return;
-						/* MagnificPopup paints its own .mfp-bg scrim + .mfp-wrap
-						   container outside the .ca_modal_overlay flow. Skip
-						   the refocus when its wrap is mounted so clicks in
-						   the lightbox don't get yanked back to the search box. */
-						if ($(".mfp-wrap").length || $(".mfp-bg").length) return;
-						var $scrim = $(".ca_modal_overlay");
-						if ($scrim.length && $scrim.is(":visible") && parseFloat($scrim.css("opacity")) > 0.01) return;
-						var ae = document.activeElement;
-						if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName || "") && ae.id !== "caInlineSearchBox") return;
-						if (ae && ae.isContentEditable) return;
-						var $inline = $("#caInlineSearchBox");
-						if (!$inline.length || !$inline.is(":visible")) return;
-						$inline.trigger("focus");
-					}, 0);
-				});
-
 				/* Suggestions stay open for the duration of any active
 				   search — once the user typed something that landed a
 				   doSearch, the strip should stick around until they clear
@@ -2103,19 +2069,6 @@ function closeSidebar(keepIdentity=false,visible=false) {
 	$(".sidenav").removeClass("sidenavShow").addClass("sidenavHide").scrollTop(0);
 	$(".nav-user.show").show();
 	enableSearch();
-	/* Sidebar closed → refocus the inline search input so the user can
-	   keep typing without re-clicking the search box. Skipped when the
-	   "Keep Search In Focus" setting is off, on touch devices (would
-	   pop the virtual keyboard), or while a MagnificPopup is still open
-	   (closeSidebar is called from MFP's beforeOpen hook). */
-	if (!caShouldKeepSearchInFocus()) return;
-	if (caIsLikelyTouchDevice()) return;
-	setTimeout(function() {
-		if ($(".mfp-wrap").length || $(".mfp-bg").length) return;
-		var $inline = $("#caInlineSearchBox");
-		if (!$inline.length || !$inline.is(":visible")) return;
-		$inline.trigger("focus");
-	}, 0);
 }
 
 /**
@@ -2522,11 +2475,6 @@ function appStore() {
 	updateContent();
 	clearCategory();
 	caLeaveDockerMode();
-	/* Soft-reset back to home — drop focus into the desktop inline search
-	   so the user can immediately start typing. Bails on mobile / when a
-	   search is still showing. Wrap in a microtask so it lands after the
-	   updateContent post starts and any in-flight focus shuffles settle. */
-	setTimeout(caFocusInlineSearchIfHome, 0);
 }
 
 /**
@@ -3607,26 +3555,6 @@ function caHideUnselectedSubs($keepOpen) {
 /* Back-compat alias for older call sites. */
 function caCollapseUnselectedSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
 function caNormalizeSubs($keepOpen) { caHideUnselectedSubs($keepOpen); }
-
-/**
- * Focus the desktop inline search input. Called from paths that land the
- * user on the Home page (initial bootstrap, soft-reset via appStore,
- * "Clear Search" click, etc.) so they can immediately start typing. Bails
- * silently on mobile — the inline isn't visible there.
- */
-function caFocusInlineSearchIfHome() {
-	/* Skip the auto-focus when the user has explicitly disabled the
-	   "Keep Search In Focus" setting, OR when we detect a touch device
-	   (phones/tablets) where focusing an input would pop the virtual
-	   keyboard. The user can still tap the input themselves when they
-	   actually want the keyboard. */
-	if (!caShouldKeepSearchInFocus()) return;
-	if (caIsLikelyTouchDevice()) return;
-	var $inline = $("#caInlineSearchBox");
-	if (!$inline.length || !$inline.is(":visible")) return;
-	if (($("#searchBox").val() || "") !== "") return; // active search — don't steal focus
-	$inline.trigger("focus");
-}
 
 /**
  * Collapse mobile menu when the close control is in the expanded state.

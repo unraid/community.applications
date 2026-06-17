@@ -1092,6 +1092,9 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 			if (caDockerInstalledName($template, $dockerContext['info']) !== "") {
 				$template['Installed'] = true;
 			}
+			/* Running/Stopped badge state for the container (null when unmatched,
+			   so caCollectBadges shows nothing extra). */
+			$template['Running'] = caTemplateContainerRunning($template, $dockerContext['info']);
 		} else {
 			$pluginName = basename($template['PluginURL']);
 			$template['Installed'] = checkInstalledPlugin($template);
@@ -1222,9 +1225,10 @@ function getPopupDescriptionSkin($appNumber) {
 
 	/* Live CPU/memory chart is only meaningful for a docker container that's
 	   currently running — Plugin / Language / RepositoryTemplate rows have no
-	   container to attach to. caResolveSelectionState gives us both halves of
-	   that check: $selected===true and a non-empty $name only when the
-	   template matched a row in the live docker listing.
+	   container to attach to. caResolveSelectionState gives $selected===true and
+	   a non-empty $name when the template matched a docker row, but that listing
+	   includes STOPPED containers too, so we also require the info.json running
+	   flag ($info[$name]['running']) — gauges/graphs are useless when stopped.
 	   Additional gates:
 	     - User must have flipped on the Display usage graphs setting
 	       (default off; see default.cfg + skin.html settings panel).
@@ -1236,7 +1240,12 @@ function getPopupDescriptionSkin($appNumber) {
 	       in Settings but disabled by caBindSettingsFormHandlers. */
 	$usageGraphsEnabled = ($GLOBALS['caSettings']['displayUsageGraphs'] ?? "no") === "yes";
 	$liveStatsResponsive = version_compare($GLOBALS['caSettings']['unRaidVersion'] ?? "0", "7.1.9999", ">");
-	$template['liveStatsContainer'] = ($usageGraphsEnabled && $liveStatsResponsive && $selected === true && $name && empty($template['Plugin']) && empty($template['Language']) && empty($template['RepositoryTemplate'])) ? $name : "";
+	$template['liveStatsContainer'] = ($usageGraphsEnabled && $liveStatsResponsive && $selected === true && $name && !empty($info[$name]['running']) && empty($template['Plugin']) && empty($template['Language']) && empty($template['RepositoryTemplate'])) ? $name : "";
+
+	/* Running/Stopped badge state for the sidebar header (mirrors the card path
+	   in my_display_apps); null for plugins/languages/unmatched so caCollectBadges
+	   skips it. Plugins get their always-"Running" badge from the Plugin flag. */
+	$template['Running'] = caTemplateContainerRunning($template, $info);
 
 	$template['display_ovr'] = caFormatOverview($template);
 

@@ -113,56 +113,9 @@ class GetContentHelpers {
 			return false;
 		}
 		$GLOBALS['caSettings']['maxPerPage'] = max(10, self::normalizeMaxHomeApps($maxHomeApps));
-		$startupTypes = [
-			[
-				"type"=>"onlynew",
-				"text1"=>tr("Recently Added"),
-				"text2"=>tr("Check out these newly added applications from our awesome community"),
-				"cat"=>"All",
-				"sortby"=>"FirstSeen",
-				"sortdir"=>"Down"
-			],
-			[
-				"type"=>"spotlight",
-				"text1"=>tr("Spotlight Apps"),
-				"text2"=>tr("Each month we highlight some of the amazing work from our community"),
-				"cat"=>"spotlight:",
-				"sortby"=> "RecommendedDate",
-				"sortdir"=> "Down",
-			],
-			[
-				"type"=>"trending",
-				"text1"=>tr("Top Trending Apps"),
-				"text2"=>tr("Check out these up and coming apps"),
-				"cat"=>"All",
-				"sortby"=>"topTrending",
-				"sortdir"=>"Down"
-			],
-			[
-				"type"=>"topperforming",
-				"text1"=>tr("Top New Installs"),
-				"text2"=>tr("These apps have the highest percentage of new installs"),
-				"cat"=>"All",
-				"sortby"=>"topPerforming",
-				"sortdir"=>"Down"
-			],
-			[
-				"type"=>"topPlugins",
-				"text1"=>tr("Most Popular Plugins"),
-				"text2"=>tr("The most popular plugins installed by other Unraid users last month"),
-				"cat"=>"plugins:",
-				"sortby"=>"lastMonthDownloads",
-				"sortdir"=>"Down"
-			],
-			[
-				"type"=>"random",
-				"text1"=>tr("Random Apps"),
-				"text2"=>tr("An assortment of randomly chosen apps"),
-				"cat"=>"All",
-				"sortby"=>"random",
-				"sortdir"=>"Down"
-			]
-		];
+		/* The non-Featured Home rows live in caHomeSections() (include/helpers.php)
+		   so the left-menu Home submenu in skin.html renders from the same list. */
+		$startupTypes = caHomeSections();
 
 		if ($GLOBALS['caSettings']['featuredDisable'] !== "yes") {
 			array_unshift($startupTypes,

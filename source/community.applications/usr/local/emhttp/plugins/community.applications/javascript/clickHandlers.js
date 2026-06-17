@@ -697,20 +697,17 @@ function caInitializeClickHandlers() {
 		}
 	});
 	/**
-	 * "Show more" button on a Home section: change menu selection to the
-	 * section's category, set the home subtitle, clear search, scroll to top,
-	 * and POST the section's sort order before fetching its full content.
+	 * Open a Home "Show More" section: select the section's category, set the
+	 * home subtitle (which also reveals + highlights the Home submenu), clear
+	 * search, scroll to top, and POST the section's sort order before fetching
+	 * its full content. Shared by the Show More card overlays and the Home
+	 * submenu items so both behave identically.
 	 */
-	$(".mainArea").on("click", ".homeMore", function(e) {
-		/* The Show More overlay sits inside its (clickable) app card, so stop the
-		   click here before it bubbles to the .ca_holder handler and also opens
-		   that card's sidebar. mainArea is below body, so this fires first. */
-		e.stopPropagation();
-		var description = $(this).data("des");
-		var category = $(this).data("category");
-		/* Parent + auto "All" share data-category — prefer the All sub. Reveal
-		   its (hidden by default) wrapper so the active selection is visible. */
-		var $menuItem = $(".caMenuItem[data-category='" + category + "']");
+	function caOpenHomeSection(description, category, sortby, sortdir) {
+		/* Match the real category menu item, NOT the Home-section submenu items
+		   (which share data-category) — prefer the auto "All" sub and reveal its
+		   (hidden by default) wrapper so the active selection is visible. */
+		var $menuItem = $(".caMenuItem[data-category='" + category + "']").not(".caHomeSectionItem");
 		if ($menuItem.filter(".caCategoryAll").length) {
 			$menuItem = $menuItem.filter(".caCategoryAll");
 			$menuItem.closest(".subCategory").show();
@@ -719,14 +716,15 @@ function caInitializeClickHandlers() {
 		/* Don't highlight the global "All Apps" item for All-category home sections
 		   (Recently Added, Trending, etc.). Leaving it unselected keeps it clickable
 		   as an escape and lets the sort be changed afterwards, matching how the
-		   category-specific Show More links (Spotlight, Plugins) behave. */
+		   category-specific Show More links (Spotlight, Plugins) behave. The Home
+		   submenu item itself is highlighted separately by caSetHomeSectionSubtitle. */
 		if (category !== "All") {
 			$menuItem.addClass("selectedMenu");
 		}
 		var sortOrder = {};
-		if ($(this).data("sortby")) {
-			sortOrder.sortBy = $(this).data("sortby");
-			sortOrder.sortDir = $(this).data("sortdir");
+		if (sortby) {
+			sortOrder.sortBy = sortby;
+			sortOrder.sortDir = sortdir;
 			$(".sortIcons").removeClass("enabledIcon").addClass("startupMore");
 		}
 		caSetHomeSectionSubtitle(description);
@@ -736,6 +734,23 @@ function caInitializeClickHandlers() {
 		caSyncHomeSearchSubtitle();
 		scrollToTop();
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
+	}
+	/* "Show more" overlay on a Home section card. */
+	$(".mainArea").on("click", ".homeMore", function(e) {
+		/* The Show More overlay sits inside its (clickable) app card, so stop the
+		   click here before it bubbles to the .ca_holder handler and also opens
+		   that card's sidebar. mainArea is below body, so this fires first. */
+		e.stopPropagation();
+		caOpenHomeSection($(this).data("des"), $(this).data("category"), $(this).data("sortby"), $(this).data("sortdir"));
+	});
+	/* Home-section submenu item (revealed under Home once a Show More is used):
+	   opens that section exactly like its Show More overlay. Bound on .menuItems
+	   and stops propagation so the generic body ".caMenuItem" handler (which would
+	   just scroll/closeMenu) doesn't double-fire. */
+	$(".menuItems").on("click", ".caHomeSectionItem", function(e) {
+		e.stopPropagation();
+		caOpenHomeSection($(this).data("des"), $(this).data("cat"), $(this).data("sortby"), $(this).data("sortdir"));
+		closeMenu();
 	});
 	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
@@ -1322,7 +1337,25 @@ function caInitializeEventHandlers() {
 			inFlightVal = val;
 			pendingVal  = null;
 			$("#searchBox").val(val);
-			if (typeof doSearch === "function") doSearch(false, val);
+			if (typeof doSearch !== "function") return;
+			/* Home sections (Recent / Spotlight / Trending / ...) leave the sort
+			   icons in the startupMore state, which is not a real, search-meaningful
+			   order. Mirror the Enter / search-button behavior: when no real sort is
+			   active (no enabledIcon that isn't startupMore), fall back to the
+			   default order (Name ascending / AZ) before searching. */
+			var sortButton = false;
+			$(".sortIcons").each(function() {
+				if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true;
+			});
+			if (!sortButton) {
+				$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+				post({ action: "defaultSortOrder" }, function() {
+					$("#defaultSort").addClass("enabledIcon");
+					doSearch(false, val);
+				});
+			} else {
+				doSearch(false, val);
+			}
 		}
 
 		function inlineSoftClear() {
@@ -1483,15 +1516,6 @@ function caInitializeEventHandlers() {
 			inlineSoftClear();
 		});
 
-		/* Initial-load focus: when nothing in #searchBox and home is the
-		   landing view, drop focus into the inline so the user can start
-		   typing immediately. Delayed one tick so the bootstrap's existing
-		   focus shuffles (the modal init, etc.) don't fight us. */
-		setTimeout(function() {
-			if (typeof caFocusInlineSearchIfHome === "function") {
-				caFocusInlineSearchIfHome();
-			}
-		}, 0);
 
 		/* External writes (Home button soft-reset, restoreState filter
 		   restore, etc.) land in #searchBox. Mirror those back into the
