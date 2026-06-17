@@ -212,7 +212,7 @@ $(function() {
 <div class='mobileMenu' id='mobileMenu'>
 		<div class='menuItems menuAdjust'>
 			<ul class='caMenu '>
-				<li class='caMenuLogo ca_center<?if (caIsAdmin()):?> caMenuLogoReload<?endif;?>' aria-hidden="true"><div class='caLogoIcon'></div></li>
+				<li class='caMenuLogo ca_center<?if (caIsAdmin()):?> caMenuLogoReload<?endif;?>' <?if (caIsAdmin()):?>role='button' tabindex='0' aria-label="<?tr('Reload page');?>" title="<?tr('Reload page');?>"<?else:?>aria-hidden="true"<?endif;?>><div class='caLogoIcon' aria-hidden='true'></div></li>
 				<li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'>
 					<span class='caHomeMenuLabel' data-home-label="<?tr('Home');?>" data-clear-label="<?tr('Clear Search');?>"><?tr("Home");?></span>
 					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>

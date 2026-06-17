@@ -833,8 +833,18 @@ function caInitializeClickHandlers() {
 	});
 	/* Admin-only: the CA logo at the top of the menu reloads the page when
 	   clicked. The .caMenuLogoReload class is emitted by skin.html only when
-	   caIsAdmin(), so this handler is inert for non-admin users. */
-	$("body").on("click", ".caMenuLogoReload", function() { window.location.reload(); });
+	   caIsAdmin() (along with role=button / tabindex), so this handler is inert
+	   for non-admin users. Keydown mirrors the click for keyboard activation. */
+	$("body").on("click", ".caMenuLogoReload", function(e) {
+		e.preventDefault();
+		window.location.reload();
+	});
+	$("body").on("keydown", ".caMenuLogoReload", function(e) {
+		if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+			e.preventDefault();
+			window.location.reload();
+		}
+	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	/**
 	 * Sort-icon click: set the icon as active, reset paging/search state, and

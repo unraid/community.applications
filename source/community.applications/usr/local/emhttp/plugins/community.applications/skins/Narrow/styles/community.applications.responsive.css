@@ -221,7 +221,9 @@ body:has(.ca_useWholeDisplayWindow) {
 	   padding, brand-orange on hover instead of a hover fill. */
 	.dockerSearch,
 	.templateSearch,
-	#sortByButton {
+	#sortByButton,
+	.caCreditsInfo,
+	.caSettingsGear {
 		background: transparent;
 		border-radius: 0;
 		padding: 0.25rem 0.5rem;
@@ -229,7 +231,9 @@ body:has(.ca_useWholeDisplayWindow) {
 	}
 	.dockerSearch:hover,
 	.templateSearch:hover,
-	#sortByButton:hover {
+	#sortByButton:hover,
+	.caCreditsInfo:hover,
+	.caSettingsGear:hover {
 		background: transparent;
 		color: var(--brand-orange);
 	}
