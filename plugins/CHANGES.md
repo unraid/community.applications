@@ -23,6 +23,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: The Info and Settings controls in the top bar are now labelled buttons (icon plus text), collapsing to just the icon on narrow / mobile screens
+- Fixed: On mobile, clicking "Home" from the slide-out menu now closes the menu and its dimmed overlay instead of leaving them open
+- Added: For admins, clicking the Community Applications logo at the top of the menu reloads the page (with a hover highlight to show it's clickable)
+
 - Fixed: On older (pre-7.2) Unraid, the Settings panel no longer reloads Apps every time you close it when a greyed-out 7.2-only setting was left switched on - it now correctly detects that nothing actually changed
 
 - Fixed: A popup dialog could occasionally render blank or fail to appear because its fade animation left it stuck partway - it is now forced to display fully once shown

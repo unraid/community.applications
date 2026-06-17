@@ -129,8 +129,8 @@ $(function() {
 		     when results overflow, leftmost), the info button (opens Credits), and
 		     the settings gear live here, all in-flow. -->
 		<div class='caSearchRowEnd'>
-		<div class='caCreditsInfo hideWithMenu' role='button' tabindex='0' title="<?tr('Credits');?>" aria-label="<?tr('Credits');?>"><i class='fa fa-info-circle' aria-hidden='true'></i></div>
-		<div class='caSettingsGear hideWithMenu' role='button' tabindex='0' title="<?tr('Settings');?>" aria-label="<?tr('Settings');?>"><i class='fa fa-cog' aria-hidden='true'></i></div>
+		<div class='caCreditsInfo caButton hideWithMenu' role='button' tabindex='0' title="<?tr('Credits');?>" aria-label="<?tr('Credits');?>"><i class='fa fa-info-circle' aria-hidden='true'></i><span class='caBtnLabel'><?tr("Info");?></span></div>
+		<div class='caSettingsGear caButton hideWithMenu' role='button' tabindex='0' title="<?tr('Settings');?>" aria-label="<?tr('Settings');?>"><i class='fa fa-cog' aria-hidden='true'></i><span class='caBtnLabel'><?tr("Settings");?></span></div>
 		</div>
 	</div>
 </div>
@@ -212,7 +212,7 @@ $(function() {
 <div class='mobileMenu' id='mobileMenu'>
 		<div class='menuItems menuAdjust'>
 			<ul class='caMenu '>
-				<li class='caMenuLogo ca_center' aria-hidden="true"><div class='caLogoIcon'></div></li>
+				<li class='caMenuLogo ca_center<?if (caIsAdmin()):?> caMenuLogoReload<?endif;?>' aria-hidden="true"><div class='caLogoIcon'></div></li>
 				<li class='startupButton caMenuItem onlyShowWithFeed' data-category='new'>
 					<span class='caHomeMenuLabel' data-home-label="<?tr('Home');?>" data-clear-label="<?tr('Clear Search');?>"><?tr("Home");?></span>
 					<div id='ca_homeSearchSubtitle' class='ca_homeSearchSubtitle ca_hide'></div>

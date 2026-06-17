@@ -205,7 +205,9 @@ body:has(.ca_useWholeDisplayWindow) {
 	.searchButton .caBtnLabel,
 	.dockerSearch .caBtnLabel,
 	.templateSearch .caBtnLabel,
-	#sortByButton .caBtnLabel {
+	#sortByButton .caBtnLabel,
+	.caCreditsInfo .caBtnLabel,
+	.caSettingsGear .caBtnLabel {
 		display: none;
 	}
 	.searchButton::before,
