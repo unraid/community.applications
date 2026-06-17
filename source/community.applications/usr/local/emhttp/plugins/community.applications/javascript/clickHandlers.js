@@ -1655,10 +1655,9 @@ function caInitializeEventHandlers() {
 
 /**
  * Wire CA settings form in the sidebar: dirty detection, submit, and unsaved-warning on close.
- *
- * @param {string} initialFormState Serialized form state for dirty comparison
+ * Snapshots the initial (post-legacy-disable) form state itself for dirty comparison.
  */
-function caBindSettingsFormHandlers(initialFormState) {
+function caBindSettingsFormHandlers() {
 	var $sidenav = $("#sidenavContent");
 	var $form = $sidenav.find(".ca_settingsForm");
 	if (!$form.length) return;
@@ -1694,8 +1693,13 @@ function caBindSettingsFormHandlers(initialFormState) {
 	caApplyLegacyDisables();
 
 	/* Stash the initial serialized state on the form so closeSidebar() can
-	   detect dirty fields and auto-submit when the panel is dismissed. */
-	$form.data("caInitialState", initialFormState);
+	   detect dirty fields and auto-submit when the panel is dismissed. Snapshot
+	   AFTER caApplyLegacyDisables() above, not in the caller: a disabled checkbox
+	   is dropped from serialize(), so a baseline taken while it was still enabled
+	   (and checked, i.e. its value differs from the default) would never match the
+	   post-disable serialize() at close time — the form would look permanently
+	   dirty and auto-submit/reload on every close even though nothing changed. */
+	$form.data("caInitialState", $form.serialize());
 
 	/* Cancel / Default / factory-reset controls. Bound delegated on the
 	   persistent #sidenavContent (off/on so re-opening doesn't stack them).

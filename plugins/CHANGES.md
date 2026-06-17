@@ -23,6 +23,8 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: On older (pre-7.2) Unraid, the Settings panel no longer reloads Apps every time you close it when a greyed-out 7.2-only setting was left switched on - it now correctly detects that nothing actually changed
+
 - Fixed: A popup dialog could occasionally render blank or fail to appear because its fade animation left it stuck partway - it is now forced to display fully once shown
 - Fixed: Several display issues on older (pre-7.2) Unraid versions - search bar positioning, the status text in the page footer, stray accessibility text appearing next to the search box, and the mobile search popup being present where it is never used
 - Changed: When the browser can't reach the server (a network hiccup, or a stale security token after the server has been rebooted), Community Applications now shows a click-to-reload banner instead of a popup

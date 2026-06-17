@@ -3524,10 +3524,10 @@ function showCredits() {
 function showSettings() {
 	const $content = $(".settingsContainer");
 	$content.showAlternateView();
-	const $sidenav = $("#sidenavContent");
-	const $form = $sidenav.find(".ca_settingsForm");
-	const initialFormState = $form.serialize();
-	caBindSettingsFormHandlers(initialFormState);
+	/* caBindSettingsFormHandlers snapshots the initial form state itself, after
+	   it applies the legacy switch-disables — snapshotting here would be too
+	   early (see the comment there). */
+	caBindSettingsFormHandlers();
 }
 
 /**
