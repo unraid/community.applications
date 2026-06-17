@@ -43,6 +43,15 @@ body {
 .menuItems .caLogoIcon {
 	font-size: 2rem;
 }
+/* Admin-only: the menu logo reloads the page on click (see the click handler
+   in clickHandlers.js). The caMenuLogoReload class is only emitted by skin.html
+   when caIsAdmin(), so this hover affordance never shows for non-admins. */
+.caMenuLogoReload {
+	cursor: pointer;
+}
+.caMenuLogoReload:hover .caLogoIcon {
+	color: var(--brand-orange);
+}
 #maxHomeApps {
 	display: none;
 	z-index: 0;
@@ -3574,19 +3583,21 @@ input[type="button"] {
 	}
 	.caSettingsGear,
 	.caCreditsInfo {
-		/* Search-row icon buttons (info + settings gear). They live in
-		   .caSearchRowEnd (the right group), already pushed to the right edge, so
-		   no margin or self-alignment is needed here. */
+		/* Search-row buttons (Info + Settings). They live in .caSearchRowEnd (the
+		   right group), already pushed to the right edge. Rendered as labelled
+		   .caButton pills: icon, ~1rem gap, then the text label. */
 		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		gap: 1rem;
 		cursor: pointer;
-		padding: 0.25rem 0.5rem;
-		font-size: 1.7rem;
+		padding: 0.5rem 1rem;
+		font-size: 1.3rem;
 		line-height: 1;
-		color: inherit;
 	}
-	.caSettingsGear:hover,
-	.caCreditsInfo:hover {
-		color: var(--brand-orange);
+	.caSettingsGear .fa,
+	.caCreditsInfo .fa {
+		font-size: 1.7rem;
 	}
 	.Theme--width-boxed .searchAreaHolder {
 		max-width: 1920px;

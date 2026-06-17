@@ -792,6 +792,13 @@ function caInitializeClickHandlers() {
 	 * dropped — a true "Home" should land on the clean Apps URL.
 	 */
 	$("body").on("click", ".startupButton", function() {
+		/* Always dismiss the mobile menu + blurred scrim. The generic
+		   .caMenuItem handler skips closeMenu() for Home because Home is
+		   usually the selected item (re-click suppression) and it sits
+		   adjacent to the Home-sections .subCategory (treated as a sub-parent
+		   that keeps the menu open) — so without this, clicking Home on mobile
+		   leaves the menu and overlay up. No-op when the menu isn't showing. */
+		closeMenu();
 		/* Two modes (label-driven, see caSyncHomeMenuLabel):
 		   - "Clear Search"  -> a search / docker / category filter is active.
 		                        Just unwind that state in-page via appStore()
@@ -823,6 +830,20 @@ function caInitializeClickHandlers() {
 		/* "Home": return to the home view in-page via appStore() — the same
 		   soft-reset the search-clear uses — instead of a full page reload. */
 		if (typeof appStore === "function") appStore();
+	});
+	/* Admin-only: the CA logo at the top of the menu reloads the page when
+	   clicked. The .caMenuLogoReload class is emitted by skin.html only when
+	   caIsAdmin() (along with role=button / tabindex), so this handler is inert
+	   for non-admin users. Keydown mirrors the click for keyboard activation. */
+	$("body").on("click", ".caMenuLogoReload", function(e) {
+		e.preventDefault();
+		window.location.reload();
+	});
+	$("body").on("keydown", ".caMenuLogoReload", function(e) {
+		if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+			e.preventDefault();
+			window.location.reload();
+		}
 	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	/**
