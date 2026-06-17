@@ -223,6 +223,7 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
    state (covers both .ca_sweetalert_open instances and .nchan flavored swals). */
 .sweet-alert.showSweetAlert.visible {
 	opacity: revert !important;
+	display: block !important;
 }
 
 .subCategory ul {
