@@ -98,11 +98,21 @@
    2. Default positioning vars (nav-top values)
    =========================================================================== */
 .Theme--legacyOS {
-    --search-area-top: 4rem;
+    --search-area-top: 0rem;
     --search-area-left: 1rem;
     --search-area-mobile-left: initial;
     --search-area-mobile-top: 0px;
     --beta-popup-offset: 5rem;
+
+    /* Layout-positioning vars feeding the shared `.ca_display_area` /
+       `.menuItems` top calc in main CSS. responsive.css declares these on
+       :root for 7.2+; on legacy they only exist here. These are the nav-top
+       defaults (mirroring responsive's :root) and apply to all legacy
+       layouts; the sidebar block below overrides the subset that differs. */
+    --ca-header-image-height: 91px;
+    --ca-menu-height: 4rem;
+    --ca-theme-top-offset: 5rem;
+    --ca-menu-top-offset: 4rem;
 }
 
 /* ===========================================================================
@@ -110,8 +120,42 @@
    =========================================================================== */
 .Theme--legacyOS.Theme--sidebar {
     --search-area-top: 0px;
-    --search-area-left: 7rem;
+    --search-area-left: 17rem;
     --search-area-mobile-left: 7rem;
+
+    /* Sidebar layout has no top-bar — mirror responsive's `.Theme--sidebar`
+       overrides (menu height collapses to 0, tighter above-card chrome).
+       `--ca-header-image-height` is inherited from `.Theme--legacyOS` above,
+       same as responsive inherits it from :root. */
+    --ca-menu-height: 0px;
+    --ca-theme-top-offset: 3rem;
+    --ca-menu-top-offset: 4rem;
+}
+
+/* ===========================================================================
+   3a. Misc legacy layout overrides
+   =========================================================================== */
+
+/* Status area sits inline within the legacy footer (#statusraid) rather than
+   as its own block — see the placement JS in skin.html. */
+.Theme--legacyOS .ca_statusArea {
+    display: inline-block;
+}
+
+/* Polyfill the screen-reader-only class dynamix ships on 7.2+ but not on
+   legacy. Without it, Awesomplete's ARIA status span (libraries.js: "Type 2
+   or more characters for results." / "N results found") renders as visible
+   text next to the search box. */
+.Theme--legacyOS .visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ===========================================================================

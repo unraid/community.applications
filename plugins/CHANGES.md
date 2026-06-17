@@ -23,6 +23,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Fixed: Several display issues on older (pre-7.2) Unraid versions - search bar positioning, the status text in the page footer, stray accessibility text appearing next to the search box, and the mobile search popup being present where it is never used
 - Changed: When the browser can't reach the server (a network hiccup, or a stale security token after the server has been rebooted), Community Applications now shows a click-to-reload banner instead of a popup
 - Fixed: Running Community Applications in more than one browser tab no longer lets the tabs overwrite each other's transient state (the open sidebar app, an in-progress install, the language-update round-trip, etc.) - that state is now kept per tab instead of in shared cookies
 - Removed: The "Not Enough Memory" / "Memory Requirements not met" warning that appeared on systems under 2.5GB of RAM - no longer relevant

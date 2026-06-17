@@ -32,16 +32,27 @@ $(function() {
 	$("html").css("--theme-dark-mode", "<?= ($ca_theme === "black" || $ca_theme === "gray") ? 1 : 0 ?>");
 <?php } ?>
 
-	// Status area moves into the page footer as the last child of .footer-left.
-	// Falls back to before the footer spacer, then body, if .footer-left is absent.
-	var $caFooterLeft = $(".footer-left");
+	// Status area placement in the page footer.
+	var $caStatusArea = $(".ca_statusArea");
+<?php if ( ! $responsiveOS ) { ?>
+	// Legacy OS: drop it in as the last item within #statusraid. Falls back to
+	// body if that element is absent.
+	var $caStatusRaid = $("#statusraid");
+	if ($caStatusRaid.length) $caStatusArea.appendTo($caStatusRaid.first());
+	else $caStatusArea.appendTo("body");
+<?php } else { ?>
+	// Modern OS: place it right after the footer-left block (prefer the id, fall
+	// back to the class). Falls back to before the footer spacer, then body.
+	var $caFooterLeft = $("#footer-left");
+	if ( ! $caFooterLeft.length) $caFooterLeft = $(".footer-left");
 	if ($caFooterLeft.length) {
-		$(".ca_statusArea").appendTo($caFooterLeft.first());
+		$caStatusArea.insertAfter($caFooterLeft.first());
 	} else {
 		var $caFooterSpacer = $(".footer-spacer");
-		if ($caFooterSpacer.length) $(".ca_statusArea").insertBefore($caFooterSpacer.first());
-		else $(".ca_statusArea").appendTo("body");
+		if ($caFooterSpacer.length) $caStatusArea.insertBefore($caFooterSpacer.first());
+		else $caStatusArea.appendTo("body");
 	}
+<?php } ?>
 
 	$("body,.content").addClass("menuAdjust");
 
@@ -66,10 +77,14 @@ $(function() {
 			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
 			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
 		</div>
+<? if ($responsiveOS): /* mobile search popup chrome - not emitted on legacy */ ?>
 		<div class="caSearchModalToolbarSpacer" id="caSearchModalToolbarSpacer" aria-hidden="true"></div>
+<? endif; ?>
 		<div id='searchFilter' class='hideWithMenu ca_searchInputCollapsed'>
 			<div class='caSearchModalTopRow'>
+<? if ($responsiveOS): /* mobile modal launcher - not emitted on legacy */ ?>
 				<div class="searchButton caButton"><span class='caBtnLabel'><?tr('SEARCH');?></span></div>
+<? endif; ?>
 				<!-- Desktop-only inline search: replaces .searchButton above 767px.
 				     Always visible on desktop; auto-focused when the user lands
 				     on Home. Debounced live search; on mobile this element is
@@ -88,10 +103,12 @@ $(function() {
 						<i class="fa fa-times" aria-hidden="true"></i>
 					</span>
 				</div>
+<? if ($responsiveOS): /* mobile search popup icon controls - not emitted on legacy */ ?>
 				<div class="caSearchModalIconControls">
 					<span class="searchModalQueryBtn" title="<?tr('Search');?>"><i class="fa fa-question fa-lg" aria-hidden="true"></i></span>
 					<span class="searchModalClearBtn ca_hide" title="<?tr('Clear search');?>"><i class="fa fa-remove fa-lg" aria-hidden="true"></i></span>
 				</div>
+<? endif; ?>
 				<input type='text' id='searchBox' class='ca_searchBoxHidden' placeholder='<?tr('Search');?>' aria-label="<?tr('Search');?>">
 			</div>
 		</div>
