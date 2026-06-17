@@ -707,7 +707,7 @@ function caInitializeClickHandlers() {
 			return String($(this).data("des")) === description;
 		});
 		$homeItem.addClass("selectedMenu");
-		$homeItem.closest(".subCategory").show();
+		$homeItem.closest(".subCategory").show("fast");
 		var sortOrder = {};
 		if (sortby) {
 			sortOrder.sortBy = sortby;

@@ -3300,6 +3300,13 @@ function updateDisplay(content, append) {
 	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker && ! $("#templates_content .ca_templatesDisplay").length && ! $(".selectedMenu").length ) {
 		$(".startupButton").addClass("selectedMenu");
 	}
+	/* Home view: slide its sections submenu open the same way category subs do
+	   (.show("fast")), but only while it's collapsed so repeat renders
+	   (pagination, scroll-fetch) don't re-animate an already-open menu. */
+	if ( $(".startupButton").hasClass("selectedMenu") ) {
+		var $homeSubs = $(".caHomeSectionsMenu");
+		if ( $homeSubs.length && ! $homeSubs.is(":visible") ) $homeSubs.show("fast");
+	}
 	if ( $(".ca_multiselect").length ) {
 			$(".multi_installAll").attr("disabled",false);
 	} else {
@@ -3540,6 +3547,12 @@ function caHideUnselectedSubs($keepOpen) {
 		var $sub = $(this);
 		if ($keepOpen && $keepOpen.is && $keepOpen.is($sub)) return;
 		if ($sub.find(".selectedMenu").length) return;
+		/* The Home sections submenu sits adjacent to the Home button, so its
+		   active marker (.selectedMenu) lives on the preceding .startupButton,
+		   not inside the sub — the .find() test above misses it. Keep it open
+		   while Home is the active view; it collapses (with the same slide)
+		   only once Home loses .selectedMenu. */
+		if ($sub.hasClass("caHomeSectionsMenu") && $sub.prev(".startupButton").hasClass("selectedMenu")) return;
 		if ($sub.is(":visible")) $sub.hide("fast");
 	});
 }
