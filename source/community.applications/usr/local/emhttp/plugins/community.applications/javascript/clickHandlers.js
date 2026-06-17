@@ -830,7 +830,11 @@ function caInitializeClickHandlers() {
 	 * POST the new `changeSortOrder` before refetching via `changeSortOrder()`.
 	 */
 	$(".sortIcons").click(function() {
-		$(".sortIcons").removeClass("enabledIcon");
+		/* Clear startupMore too: opening a Home section flags every icon
+		   startupMore (a non-real, placeholder sort). A manual click is a real
+		   sort, so drop that flag or the AZ-fallback checks (enabledIcon &&
+		   !startupMore) would treat this pick as "no sort" and reset it. */
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
 		$(this).addClass("enabledIcon");
 		data.currentpage = 1;
 		data.searchActive = false;
