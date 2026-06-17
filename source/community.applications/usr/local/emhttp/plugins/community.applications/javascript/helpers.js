@@ -657,34 +657,6 @@ function scrollToTop() {
 	if (ma) ma.scrollTop = 0;
 }
 
-/**
- * Clear optional subtitle under the Home section header.
- */
-function caClearHomeSectionSubtitle() {
-	/* Only the subtitle text under Home. The Home-sections submenu's visibility
-	   and active highlight are handled by the standard subcategory machinery
-	   (caHideUnselectedSubs + .selectedMenu), exactly like every other submenu. */
-	var $el = $("#ca_homeSectionSubtitle");
-	if (!$el.length) return;
-	$el.empty().addClass("ca_hide");
-}
-
-/**
- * Set or clear `#ca_homeSectionSubtitle` (empty text hides).
- *
- * @param {string} text Plain text
- */
-function caSetHomeSectionSubtitle(text) {
-	var $el = $("#ca_homeSectionSubtitle");
-	if (!$el.length) return;
-	var t = $.trim(String(text || ""));
-	if (!t) {
-		caClearHomeSectionSubtitle();
-		return;
-	}
-	$el.text(t).removeClass("ca_hide");
-}
-
 /** Line under Home: last committed app search (after Enter/submit), not draft typing (non-clickable). */
 function caSyncHomeSearchSubtitle() {
 	var $el = $("#ca_homeSearchSubtitle");

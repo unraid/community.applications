@@ -144,7 +144,7 @@ function caInitializeClickHandlers() {
 		});
 	}
 
-	$("body").on("click mousedown", "#ca_homeSectionSubtitle, #ca_homeSearchSubtitle", function(e) {
+	$("body").on("click mousedown", "#ca_homeSearchSubtitle", function(e) {
 		e.stopPropagation();
 	});
 
@@ -392,7 +392,6 @@ function caInitializeClickHandlers() {
 	 * is enabled (defaulting if necessary), then run `doSearch(false, repo)`.
 	 */
 	$("body").on("click", ".ca_repoSearch,.ca_repoSearchPopUp", function() {
-		caClearHomeSectionSubtitle();
 		closeSidebar();
 		var repo = $(this).data("repository");
 		var sortButton = false;
@@ -420,7 +419,6 @@ function caInitializeClickHandlers() {
 		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 		}
-		caClearHomeSectionSubtitle();
 		var sortButton = false;
 		$(".sortIcons").each(function() { if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true; });
 		if (!sortButton) {
@@ -430,7 +428,6 @@ function caInitializeClickHandlers() {
 	});
 
 	$("body").on("click", ".templateSearch", function() {
-		caClearHomeSectionSubtitle();
 		/* The Apps button is the one thing that leaves Docker Hub mode. Clear
 		   data.docker first so the doSearch sticky docker intercept does not keep
 		   the search in docker, and it runs against the app store instead. Also
@@ -485,7 +482,6 @@ function caInitializeClickHandlers() {
 		e.stopPropagation();
 		var repository = $(this).data("repository");
 		if (!repository) return;
-		caClearHomeSectionSubtitle();
 		closeSidebar();
 		post({ action: "getRepoDuplicates", repository: repository }, function(result) {
 			if (result && result.display_data) {
@@ -592,7 +588,6 @@ function caInitializeClickHandlers() {
 		   but don't fetch anything. The auto-generated "All" sub is the
 		   one that fetches the parent's full result set. */
 		if ($(menu).next(".subCategory").length) return;
-		caClearHomeSectionSubtitle();
 		if (!data.searchFlag) {
 			$("#searchBox").val("");
 			data.committedSearchFilter = "";
@@ -629,7 +624,6 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".caMenuItem", function() {
 		if ($(this).hasClass("caMenuDisabled") || $(this).hasClass("noSelect") || $(this).attr("onclick")) return;
 		if (!$(this).hasClass("startupButton")) {
-			caClearHomeSectionSubtitle();
 		}
 		$(".caRepositoryMenu").addClass("caMenuEnabled").removeClass("caMenuDisabled");
 		var slideFlag = true;
@@ -682,7 +676,6 @@ function caInitializeClickHandlers() {
 		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 		}
-		caClearHomeSectionSubtitle();
 		var section = $(this).attr("data-category");
 		showSortIcons();
 		switch (section) {
@@ -745,7 +738,7 @@ function caInitializeClickHandlers() {
 		caOpenHomeSection($(this).data("des"), $(this).data("cat"), $(this).data("sortby"), $(this).data("sortdir"));
 		closeMenu();
 	});
-	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
+	$(".dockerSearch").click(function() { initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
 		if ($(this).hasClass("caAlphaActive")) return;
 		caJumpToLetter($(this).attr("data-letter"));

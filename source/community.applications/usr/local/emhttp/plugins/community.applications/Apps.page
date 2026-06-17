@@ -1663,7 +1663,6 @@ function doSearch(button,newSearch) {
 	scrollToTop();
 	if (filter) {
 		if (typeof caCloseSearchModal === "function") caCloseSearchModal();
-		caClearHomeSectionSubtitle();
 		$("#sortIconArea").show();
 	 // $(".category").html(sprintf("<?tr("Search for %s")?>",filter));
 		data.searchFlag = true;
@@ -3385,10 +3384,6 @@ function saveState() {
 		state.installMulti  = $(".multi_installDiv").is(":visible");
 		state.selectedMenu  = $(".selectedMenu").data("category") || "";
 		state.categoryName  = $(".categoryMenuName").html() || "";
-		/* The Home section subtitle (the Show More section description) is not a
-		   search, so state.filter does not capture it. Save its text so a
-		   return-from-install restores it too. */
-		state.homeSectionSubtitle = $("#ca_homeSectionSubtitle").text() || "";
 		state.currentpage   = parseInt(data.currentpage, 10) || 1;
 		var _ma = $(".mainArea")[0];
 		state.scrollY       = _ma ? (_ma.scrollTop || 0) : 0;
@@ -3463,9 +3458,6 @@ function restoreState(s) {
 	data.maxPerPage = getMaxPerPage();
 	caSyncSearchFilterCollapsed();
 	caSyncHomeSearchSubtitle();
-	/* Restore the Home section subtitle (e.g. from a Show More) — empty text
-	   just hides it. */
-	if (typeof caSetHomeSectionSubtitle === "function") caSetHomeSectionSubtitle(s.homeSectionSubtitle || "");
 
 	post({action:"getSortOrder"}, function(sortOrder) {
 		$(".sortIcons").removeClass("enabledIcon");
@@ -5411,7 +5403,6 @@ function caShowInApps(templateURL, name) {
 	hideMultiInstall();
 	scrollToTop();
 	if (typeof caCloseSearchModal === "function") caCloseSearchModal();
-	caClearHomeSectionSubtitle();
 	$("#sortIconArea").show();
 	/* Back to normal app store chrome. The Docker Hub button is available and
 	   the docker templateSearch toggle is hidden. */
@@ -5464,7 +5455,6 @@ function caShowInApps(templateURL, name) {
  * Enter Docker Hub search mode: disable non-docker categories, hide sort icons, clear section labels, {@link dockerSearch} page 1.
  */
 function initDockerSearch() {
-	caClearHomeSectionSubtitle();
 	data.docker = "searching docker";
 	data.section = "";
 	data.selected_category = "";

@@ -202,15 +202,17 @@ $(function() {
 				</li>
 				<!-- Home sections submenu: one item per non-Featured Home row, each
 				     carrying the same des/category/sort the Show More overlay uses.
-				     Hidden until a Show More reveals it (caSetHomeSectionSubtitle);
-				     the active section is highlighted. Lets you switch between Home
-				     sections without going back Home. Hard-coded (rather than looping
-				     caHomeSections) because tr() echoes during page render — keep these
-				     in sync with caHomeSections() in include/helpers.php. -->
+				     A real .subCategory of Home, so it auto-shows on the Home view
+				     (CSS, .startupButton.selectedMenu adjacency) and otherwise behaves
+				     like any submenu (caHideUnselectedSubs); the active section is the
+				     .selectedMenu item. Lets you switch between Home sections without
+				     going back Home. Hard-coded (rather than looping caHomeSections)
+				     because tr() echoes during page render — keep these in sync with
+				     caHomeSections() in include/helpers.php. -->
 				<li class='caHomeSectionsMenu subCategory onlyShowWithFeed'>
 					<ul>
 						<!-- Visible label is short; data-des keeps the full section title so it
-						     matches the Show More overlay / subtitle for active highlighting. -->
+						     matches the Show More overlay for active highlighting. -->
 						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Recently Added");?>' data-sortby='FirstSeen' data-sortdir='Down'><?tr("Recent");?></li>
 						<li class='caMenuItem caHomeSectionItem' data-cat='spotlight:' data-des='<?tr("Spotlight Apps");?>' data-sortby='RecommendedDate' data-sortdir='Down'><?tr("Spotlight");?></li>
 						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Top Trending Apps");?>' data-sortby='topTrending' data-sortdir='Down'><?tr("Trending");?></li>
