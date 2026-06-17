@@ -226,7 +226,7 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
 }
 
 .subCategory ul {
-	padding-left: 20px;
+	padding-left: 1.5rem;
 	list-style: none;
 }
 li.subCategory {
@@ -954,6 +954,18 @@ body,
 		color: var(--brand-orange);
 		font-weight: bold;
 	}
+
+	/* Home-sections submenu. It's a real .subCategory (governed by the standard
+	   caHideUnselectedSubs show/hide), so indent/spacing come from the shared
+	   .subCategory rules; the active item is highlighted via .selectedMenu. */
+	.caHomeSectionItem {
+		cursor: pointer;
+	}
+	/* On the Home view, Home itself is the selected menu item, so its sections
+	   submenu opens automatically. It's revealed by updateDisplay() with an
+	   animated .show("fast") and collapses via caHideUnselectedSubs's
+	   .hide("fast") — the same slide the category subs use — so there's no
+	   forced CSS display here (that would block the slide animation). */
 
 	/* Subtitle under Home: which home "Show More" section is expanded */
 	.ca_homeSectionSubtitle {
@@ -2488,7 +2500,7 @@ body,
 		   so the date below centers under the icon. Tune top to sit beneath the
 		   badges once the icon width is settled. */
 		position: absolute;
-		top: 4.5rem;
+		top: 5.5rem;
 		right: 1.75rem;
 		width: fit-content;
 		text-align: center;

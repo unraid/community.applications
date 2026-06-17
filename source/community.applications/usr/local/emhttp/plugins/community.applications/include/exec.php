@@ -1172,7 +1172,7 @@ function saveSettings() {
 	   non-UI settings (eg. `debugging`) that happen to be booleans. */
 	$switches = [
 		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
-		"keepSearchInFocus", "displayUsageGraphs", "hideDeprecated", "hideIncompatible",
+		"displayUsageGraphs", "hideDeprecated", "hideIncompatible",
 		"featuredDisable", "adjustPorts", "dev", "autoplayVideos",
 	];
 	foreach ($switches as $key) {

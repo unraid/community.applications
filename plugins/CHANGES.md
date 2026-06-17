@@ -259,3 +259,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: Hovering a screenshot now shows a fullscreen icon in the centre of the enlarged preview to hint that clicking opens it full size
 - Changed: Scrollbars in the app list and sidebar now follow your browser's normal behaviour (auto-hiding) instead of always being shown
 - Changed: Internal template caches are stored more compactly for noticeably faster page loads
+- Added: Once you open a home section's "Show More", a submenu appears under "Home" so you can jump straight between Recent, Spotlight, Trending, Top Installs, Popular Plugins, and Random without going back to Home
+- Added: Installed Docker containers that aren't running now show a "Stopped" badge on the card and in the app panel
+- Changed: App cards hide the Install button for Docker containers while the Docker service is stopped (plugins can still be installed, and Details is always available)
+- Changed: The live CPU / memory / network gauges and graphs in the app panel now only appear for containers that are actually running
+- Changed: Searching from within a home section now sorts the results A–Z by default
+- Removed: The "Keep Search In Focus" setting, along with the behaviour that kept snapping focus back onto the search box after clicks

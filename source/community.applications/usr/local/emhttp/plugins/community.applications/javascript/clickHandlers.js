@@ -144,7 +144,7 @@ function caInitializeClickHandlers() {
 		});
 	}
 
-	$("body").on("click mousedown", "#ca_homeSectionSubtitle, #ca_homeSearchSubtitle", function(e) {
+	$("body").on("click mousedown", "#ca_homeSearchSubtitle", function(e) {
 		e.stopPropagation();
 	});
 
@@ -392,7 +392,6 @@ function caInitializeClickHandlers() {
 	 * is enabled (defaulting if necessary), then run `doSearch(false, repo)`.
 	 */
 	$("body").on("click", ".ca_repoSearch,.ca_repoSearchPopUp", function() {
-		caClearHomeSectionSubtitle();
 		closeSidebar();
 		var repo = $(this).data("repository");
 		var sortButton = false;
@@ -420,7 +419,6 @@ function caInitializeClickHandlers() {
 		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 		}
-		caClearHomeSectionSubtitle();
 		var sortButton = false;
 		$(".sortIcons").each(function() { if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true; });
 		if (!sortButton) {
@@ -430,7 +428,6 @@ function caInitializeClickHandlers() {
 	});
 
 	$("body").on("click", ".templateSearch", function() {
-		caClearHomeSectionSubtitle();
 		/* The Apps button is the one thing that leaves Docker Hub mode. Clear
 		   data.docker first so the doSearch sticky docker intercept does not keep
 		   the search in docker, and it runs against the app store instead. Also
@@ -485,7 +482,6 @@ function caInitializeClickHandlers() {
 		e.stopPropagation();
 		var repository = $(this).data("repository");
 		if (!repository) return;
-		caClearHomeSectionSubtitle();
 		closeSidebar();
 		post({ action: "getRepoDuplicates", repository: repository }, function(result) {
 			if (result && result.display_data) {
@@ -592,7 +588,6 @@ function caInitializeClickHandlers() {
 		   but don't fetch anything. The auto-generated "All" sub is the
 		   one that fetches the parent's full result set. */
 		if ($(menu).next(".subCategory").length) return;
-		caClearHomeSectionSubtitle();
 		if (!data.searchFlag) {
 			$("#searchBox").val("");
 			data.committedSearchFilter = "";
@@ -629,7 +624,6 @@ function caInitializeClickHandlers() {
 	$("body").on("click", ".caMenuItem", function() {
 		if ($(this).hasClass("caMenuDisabled") || $(this).hasClass("noSelect") || $(this).attr("onclick")) return;
 		if (!$(this).hasClass("startupButton")) {
-			caClearHomeSectionSubtitle();
 		}
 		$(".caRepositoryMenu").addClass("caMenuEnabled").removeClass("caMenuDisabled");
 		var slideFlag = true;
@@ -682,7 +676,6 @@ function caInitializeClickHandlers() {
 		if (typeof searchBoxAwesomplete !== "undefined" && searchBoxAwesomplete) {
 			try { searchBoxAwesomplete.close(); } catch (e) { /* no-op */ }
 		}
-		caClearHomeSectionSubtitle();
 		var section = $(this).attr("data-category");
 		showSortIcons();
 		switch (section) {
@@ -697,47 +690,55 @@ function caInitializeClickHandlers() {
 		}
 	});
 	/**
-	 * "Show more" button on a Home section: change menu selection to the
-	 * section's category, set the home subtitle, clear search, scroll to top,
-	 * and POST the section's sort order before fetching its full content.
+	 * Open a Home "Show More" section: select the section's category, set the
+	 * home subtitle (which also reveals + highlights the Home submenu), clear
+	 * search, scroll to top, and POST the section's sort order before fetching
+	 * its full content. Shared by the Show More card overlays and the Home
+	 * submenu items so both behave identically.
 	 */
-	$(".mainArea").on("click", ".homeMore", function(e) {
-		/* The Show More overlay sits inside its (clickable) app card, so stop the
-		   click here before it bubbles to the .ca_holder handler and also opens
-		   that card's sidebar. mainArea is below body, so this fires first. */
-		e.stopPropagation();
-		var description = $(this).data("des");
-		var category = $(this).data("category");
-		/* Parent + auto "All" share data-category — prefer the All sub. Reveal
-		   its (hidden by default) wrapper so the active selection is visible. */
-		var $menuItem = $(".caMenuItem[data-category='" + category + "']");
-		if ($menuItem.filter(".caCategoryAll").length) {
-			$menuItem = $menuItem.filter(".caCategoryAll");
-			$menuItem.closest(".subCategory").show();
-		}
+	function caOpenHomeSection(description, category, sortby, sortdir) {
+		/* Select the matching Home submenu item itself, then treat the Home
+		   submenu exactly like any other subcategory: caHideUnselectedSubs keeps a
+		   .subCategory expanded while it holds the .selectedMenu item and collapses
+		   it only once a leaf elsewhere is picked — so the home sections persist
+		   like Installed/Previous do, instead of snapping shut. */
 		$(".caMenuItem").removeClass("selectedMenu");
-		/* Don't highlight the global "All Apps" item for All-category home sections
-		   (Recently Added, Trending, etc.). Leaving it unselected keeps it clickable
-		   as an escape and lets the sort be changed afterwards, matching how the
-		   category-specific Show More links (Spotlight, Plugins) behave. */
-		if (category !== "All") {
-			$menuItem.addClass("selectedMenu");
-		}
+		var $homeItem = $(".caHomeSectionItem").filter(function() {
+			return String($(this).data("des")) === description;
+		});
+		$homeItem.addClass("selectedMenu");
+		$homeItem.closest(".subCategory").show("fast");
 		var sortOrder = {};
-		if ($(this).data("sortby")) {
-			sortOrder.sortBy = $(this).data("sortby");
-			sortOrder.sortDir = $(this).data("sortdir");
+		if (sortby) {
+			sortOrder.sortBy = sortby;
+			sortOrder.sortDir = sortdir;
 			$(".sortIcons").removeClass("enabledIcon").addClass("startupMore");
 		}
-		caSetHomeSectionSubtitle(description);
 		$("#searchBox").val("");
 		data.committedSearchFilter = "";
 		caSyncSearchFilterCollapsed();
 		caSyncHomeSearchSubtitle();
 		scrollToTop();
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
+	}
+	/* "Show more" overlay on a Home section card. */
+	$(".mainArea").on("click", ".homeMore", function(e) {
+		/* The Show More overlay sits inside its (clickable) app card, so stop the
+		   click here before it bubbles to the .ca_holder handler and also opens
+		   that card's sidebar. mainArea is below body, so this fires first. */
+		e.stopPropagation();
+		caOpenHomeSection($(this).data("des"), $(this).data("category"), $(this).data("sortby"), $(this).data("sortdir"));
 	});
-	$(".dockerSearch").click(function() { caClearHomeSectionSubtitle(); initDockerSearch(); });
+	/* Home-section submenu item (revealed under Home once a Show More is used):
+	   opens that section exactly like its Show More overlay. Bound on .menuItems
+	   and stops propagation so the generic body ".caMenuItem" handler (which would
+	   just scroll/closeMenu) doesn't double-fire. */
+	$(".menuItems").on("click", ".caHomeSectionItem", function(e) {
+		e.stopPropagation();
+		caOpenHomeSection($(this).data("des"), $(this).data("cat"), $(this).data("sortby"), $(this).data("sortdir"));
+		closeMenu();
+	});
+	$(".dockerSearch").click(function() { initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
 		if ($(this).hasClass("caAlphaActive")) return;
 		caJumpToLetter($(this).attr("data-letter"));
@@ -797,9 +798,8 @@ function caInitializeClickHandlers() {
 		                        so the home sections come back without a full
 		                        page reload. Same path the search-box clear
 		                        uses when there's no .startupButton.
-		   - "Home"          -> nothing's active. Fall through to the original
-		                        full-navigate behaviour so query-string / state
-		                        debris is wiped cleanly. */
+		   - "Home"          -> nothing's active. Soft-reset back to the home view
+		                        in-page via appStore() (no full page reload). */
 		var d = (typeof data !== "undefined" && data) ? data : null;
 		var committed = d ? $.trim(String(d.committedSearchFilter || "")) : "";
 		var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
@@ -820,28 +820,9 @@ function caInitializeClickHandlers() {
 				return;
 			}
 		}
-		/* Home should start fresh — block saveState from re-writing on the way
-		   out via showSidebarApp() or guiSearchOnUnload(). */
-		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
-		try { sessionStorage.removeItem("ca_state"); } catch (e) { /* no-op */ }
-		/* Pre-refactor cookie names — kept in the wipe list one release so any
-		   user upgrading from the cookie model gets their stale entries
-		   evicted. Drop in a future cleanup once the snapshot has fully moved
-		   to sessionStorage. */
-		[
-			"ca_data",
-			"ca_searchActive",
-			"ca_installMulti",
-			"ca_selectedMenu",
-			"ca_filter",
-			"ca_categoryName",
-			"ca_categoryText"
-		].forEach(function(name) {
-			try { $.removeCookie(name, { path: "/" }); } catch (e1) { /* no-op */ }
-			/* Some legacy calls used a non-standard cookie options string; clear that too just in case. */
-			try { $.removeCookie(name, { path: "/;SameSite=Lax" }); } catch (e2) { /* no-op */ }
-		});
-		window.location.assign("/Apps");
+		/* "Home": return to the home view in-page via appStore() — the same
+		   soft-reset the search-clear uses — instead of a full page reload. */
+		if (typeof appStore === "function") appStore();
 	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	/**
@@ -849,7 +830,11 @@ function caInitializeClickHandlers() {
 	 * POST the new `changeSortOrder` before refetching via `changeSortOrder()`.
 	 */
 	$(".sortIcons").click(function() {
-		$(".sortIcons").removeClass("enabledIcon");
+		/* Clear startupMore too: opening a Home section flags every icon
+		   startupMore (a non-real, placeholder sort). A manual click is a real
+		   sort, so drop that flag or the AZ-fallback checks (enabledIcon &&
+		   !startupMore) would treat this pick as "no sort" and reset it. */
+		$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
 		$(this).addClass("enabledIcon");
 		data.currentpage = 1;
 		data.searchActive = false;
@@ -1322,7 +1307,25 @@ function caInitializeEventHandlers() {
 			inFlightVal = val;
 			pendingVal  = null;
 			$("#searchBox").val(val);
-			if (typeof doSearch === "function") doSearch(false, val);
+			if (typeof doSearch !== "function") return;
+			/* Home sections (Recent / Spotlight / Trending / ...) leave the sort
+			   icons in the startupMore state, which is not a real, search-meaningful
+			   order. Mirror the Enter / search-button behavior: when no real sort is
+			   active (no enabledIcon that isn't startupMore), fall back to the
+			   default order (Name ascending / AZ) before searching. */
+			var sortButton = false;
+			$(".sortIcons").each(function() {
+				if ($(this).hasClass("enabledIcon") && (!$(this).hasClass("startupMore"))) sortButton = true;
+			});
+			if (!sortButton) {
+				$(".sortIcons").removeClass("enabledIcon").removeClass("startupMore");
+				post({ action: "defaultSortOrder" }, function() {
+					$("#defaultSort").addClass("enabledIcon");
+					doSearch(false, val);
+				});
+			} else {
+				doSearch(false, val);
+			}
 		}
 
 		function inlineSoftClear() {
@@ -1483,15 +1486,6 @@ function caInitializeEventHandlers() {
 			inlineSoftClear();
 		});
 
-		/* Initial-load focus: when nothing in #searchBox and home is the
-		   landing view, drop focus into the inline so the user can start
-		   typing immediately. Delayed one tick so the bootstrap's existing
-		   focus shuffles (the modal init, etc.) don't fight us. */
-		setTimeout(function() {
-			if (typeof caFocusInlineSearchIfHome === "function") {
-				caFocusInlineSearchIfHome();
-			}
-		}, 0);
 
 		/* External writes (Home button soft-reset, restoreState filter
 		   restore, etc.) land in #searchBox. Mirror those back into the
