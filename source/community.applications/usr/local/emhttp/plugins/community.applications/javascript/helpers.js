@@ -980,26 +980,17 @@ function post(options,callback) {
 				myCloseSpinner();
 			}
 		}
-		/* Suppress the "browser failed to communicate" swal when the user clicked
+		/* Suppress the failed-communication banner when the user clicked
 		   EXIT on the updating-applications popup — the failure is just the
 		   in-flight POST being aborted by the impending history.back() nav. */
 		if (data.quittingUpdate) return;
-		swal({
-			title: tr("Browser failed to communicate with Unraid Server"),
-			text: tr('For unknown reasons, your browser was unable to communicate with Community Applications running on your server.')+"<br><br>"+tr("Additional information may be within Tools, PHPSettings - View Log"),
-			html: true,
-			type: 'error',
-			showCancelButton: true,
-			showConfirmButton: true,
-			cancelButtonText: tr("Cancel"),
-			confirmButtonText: tr('Attempt to Fix Via Reload Page')
-		}, function (isConfirm) {
-			if ( isConfirm ) {
-				window.location.reload();
-			} else {
-				history.back();
-			}
-		});
+		/* Reuse the cross-tab feed-update reload banner instead of a swal: a
+		   failed POST (network glitch, or a stale csrf_token after the server
+		   was reset) leaves this tab unable to talk to the server, and the only
+		   fix is a reload to pick up a fresh page (and csrf_token). The banner
+		   blocks the stale viewport and reloads on the next click/keypress. */
+		caBlockViewportForReload();
+		caShowFatalReloadBanner(tr("Unfortunately something went wrong - click anywhere to reload the page."));
 	});
 }
 
