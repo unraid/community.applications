@@ -798,9 +798,8 @@ function caInitializeClickHandlers() {
 		                        so the home sections come back without a full
 		                        page reload. Same path the search-box clear
 		                        uses when there's no .startupButton.
-		   - "Home"          -> nothing's active. Fall through to the original
-		                        full-navigate behaviour so query-string / state
-		                        debris is wiped cleanly. */
+		   - "Home"          -> nothing's active. Soft-reset back to the home view
+		                        in-page via appStore() (no full page reload). */
 		var d = (typeof data !== "undefined" && data) ? data : null;
 		var committed = d ? $.trim(String(d.committedSearchFilter || "")) : "";
 		var hasActive = d && !!(d.searchActive || d.searchFlag || d.docker);
@@ -821,28 +820,9 @@ function caInitializeClickHandlers() {
 				return;
 			}
 		}
-		/* Home should start fresh — block saveState from re-writing on the way
-		   out via showSidebarApp() or guiSearchOnUnload(). */
-		try { data.ignoreUnload = true; } catch (e) { /* no-op */ }
-		try { sessionStorage.removeItem("ca_state"); } catch (e) { /* no-op */ }
-		/* Pre-refactor cookie names — kept in the wipe list one release so any
-		   user upgrading from the cookie model gets their stale entries
-		   evicted. Drop in a future cleanup once the snapshot has fully moved
-		   to sessionStorage. */
-		[
-			"ca_data",
-			"ca_searchActive",
-			"ca_installMulti",
-			"ca_selectedMenu",
-			"ca_filter",
-			"ca_categoryName",
-			"ca_categoryText"
-		].forEach(function(name) {
-			try { $.removeCookie(name, { path: "/" }); } catch (e1) { /* no-op */ }
-			/* Some legacy calls used a non-standard cookie options string; clear that too just in case. */
-			try { $.removeCookie(name, { path: "/;SameSite=Lax" }); } catch (e2) { /* no-op */ }
-		});
-		window.location.assign("/Apps");
+		/* "Home": return to the home view in-page via appStore() — the same
+		   soft-reset the search-clear uses — instead of a full page reload. */
+		if (typeof appStore === "function") appStore();
 	});
 	$(".multi_installButton").click(function() { if ($(".multi_installButton").hasClass("actionCenter")) updateMulti(); else installMulti(); });
 	/**
