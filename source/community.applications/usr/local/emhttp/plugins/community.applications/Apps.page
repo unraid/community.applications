@@ -373,6 +373,7 @@ window.caFeedMtime = <?= $_caFeedTs ?>;
 var postCount = 0;
 var cookieWarning = false;
 var restoreStateMenu = false;
+var restoreStateHomeSection = false;
 var resizeTimer;
 var startupSearch = <?= json_encode($startupSearch, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 var startupTemplateURL = <?= json_encode($startupTemplateURL, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
@@ -3390,6 +3391,12 @@ function saveState() {
 		state.filter        = $("#searchBox").val() || "";
 		state.installMulti  = $(".multi_installDiv").is(":visible");
 		state.selectedMenu  = $(".selectedMenu").data("category") || "";
+		/* Home "Show More" sections are .caHomeSectionItem rows keyed by
+		   data-des (they carry no data-category), so the line above saves an
+		   empty selectedMenu for them. Persist the section's data-des
+		   separately so the restore can re-highlight the item and reopen the
+		   Home submenu instead of leaving it collapsed. */
+		state.homeSection   = $(".caHomeSectionItem.selectedMenu").data("des") || "";
 		state.categoryName  = $(".categoryMenuName").html() || "";
 		state.currentpage   = parseInt(data.currentpage, 10) || 1;
 		var _ma = $(".mainArea")[0];
@@ -3461,6 +3468,7 @@ function restoreState(s) {
 
 	$(".categoryMenuName").html(s.categoryName || "");
 	restoreStateMenu = s.selectedMenu || "";
+	restoreStateHomeSection = s.homeSection || "";
 	data.currentpage = parseInt(s.currentpage, 10) || 1;
 	data.maxPerPage = getMaxPerPage();
 	caSyncSearchFilterCollapsed();
@@ -3684,6 +3692,22 @@ function getCategories() {
 		   belongs to opens up. */
 		$(menuItem).closest(".subCategory").show();
 		restoreStateMenu = false;
+
+		/* Restoring a Home "Show More" section: its selection lives on a
+		   .caHomeSectionItem (data-des keyed), which the data-category match
+		   above can't find. Re-highlight that item and open the Home submenu
+		   so a return-from-install lands on the section, not a collapsed Home. */
+		if ( restoreStateHomeSection ) {
+			var $homeItem = $(".caHomeSectionItem").filter(function() {
+				return String($(this).data("des")) === restoreStateHomeSection;
+			});
+			if ( $homeItem.length ) {
+				$(".caMenuItem").removeClass("selectedMenu");
+				$homeItem.addClass("selectedMenu");
+				$homeItem.closest(".subCategory").show();
+			}
+			restoreStateHomeSection = false;
+		}
 
 		if ( $("#searchBox").val() ) {
 			post({action:'getCategoriesPresent'},function(result) {
