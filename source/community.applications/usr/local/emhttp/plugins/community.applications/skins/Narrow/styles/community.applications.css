@@ -961,6 +961,13 @@ body,
 	.caHomeSectionItem {
 		cursor: pointer;
 	}
+	/* On the Home view, Home itself is the selected menu item, so force its
+	   sections submenu (the adjacent sibling) open — the sections show without
+	   needing a Show More. On any other view Home loses .selectedMenu and the
+	   submenu collapses through the normal caHideUnselectedSubs path. */
+	.startupButton.selectedMenu + .caHomeSectionsMenu {
+		display: block !important;
+	}
 
 	/* Subtitle under Home: which home "Show More" section is expanded */
 	.ca_homeSectionSubtitle {

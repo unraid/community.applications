@@ -721,7 +721,6 @@ function caInitializeClickHandlers() {
 			sortOrder.sortDir = sortdir;
 			$(".sortIcons").removeClass("enabledIcon").addClass("startupMore");
 		}
-		caSetHomeSectionSubtitle(description);
 		$("#searchBox").val("");
 		data.committedSearchFilter = "";
 		caSyncSearchFilterCollapsed();
