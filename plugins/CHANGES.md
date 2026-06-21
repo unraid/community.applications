@@ -274,3 +274,6 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: The live CPU / memory / network gauges and graphs in the app panel now only appear for containers that are actually running
 - Changed: Searching from within a home section now sorts the results A–Z by default
 - Removed: The "Keep Search In Focus" setting, along with the behaviour that kept snapping focus back onto the search box after clicks
+- Added: Two new ways to sort the app list, "Downloads Total" and "Downloads Last Month" (replacing the single "Downloads" option), each with its own icon in the Sort menu
+- Changed: 7.2+: The right-side index strip now also appears when sorting by downloads or by date added, not just by name. For downloads it marks rounded levels sized to the current results (for example 1B, 500M and so on, down to a "less than 1M" catch-all), plus a "?" group at the end for apps that have no download figures. For date added it marks each year (shown larger) with its months listed beneath
+- Added: 7.2+: While scrolling or dragging the scrollbar on a downloads or date sort, the large readout beside the index strip now shows where you actually are - the real download count for that point (for example 13.1B or 916.1K), or the month and year for date sorting (for example Jun 2026); apps with no download data read "unknown"

@@ -117,7 +117,8 @@ $(function() {
 			<div id='sortIconOptions' class='ca_hide'>
 				<button type='button' id="defaultSort" class='sortIcons enabledIcon' data-sortBy='Name' data-sortDir='Up'><?tr("Name Ascending");?></button>
 				<button type='button' class='sortIcons' data-sortBy='Name' data-sortDir='Down'><?tr("Name Descending");?></button>
-				<button type='button' class='sortIcons' data-sortBy='downloads' data-sortDir='Down'><?tr("Downloads");?></button>
+				<button type='button' class='sortIcons' data-sortBy='previousMonthDownloads' data-sortDir='Down'><?tr("Downloads Last Month");?></button>
+				<button type='button' class='sortIcons' data-sortBy='totalDownloads' data-sortDir='Down'><?tr("Downloads Total");?></button>
 				<button type='button' class='sortIcons' data-sortBy='FirstSeen' data-sortDir='Down'><?tr("Date Added");?></button>
 			</div>
 		</div>
@@ -234,7 +235,7 @@ $(function() {
 						<li class='caMenuItem caHomeSectionItem' data-cat='spotlight:' data-des='<?tr("Spotlight Apps");?>' data-sortby='RecommendedDate' data-sortdir='Down'><?tr("Spotlight");?></li>
 						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Top Trending Apps");?>' data-sortby='topTrending' data-sortdir='Down'><?tr("Trending");?></li>
 						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Top New Installs");?>' data-sortby='topPerforming' data-sortdir='Down'><?tr("Top Installs");?></li>
-						<li class='caMenuItem caHomeSectionItem' data-cat='plugins:' data-des='<?tr("Most Popular Plugins");?>' data-sortby='lastMonthDownloads' data-sortdir='Down'><?tr("Popular Plugins");?></li>
+						<li class='caMenuItem caHomeSectionItem' data-cat='plugins:' data-des='<?tr("Most Popular Plugins");?>' data-sortby='previousMonthDownloads' data-sortdir='Down'><?tr("Popular Plugins");?></li>
 						<li class='caMenuItem caHomeSectionItem' data-cat='All' data-des='<?tr("Random Apps");?>' data-sortby='random' data-sortdir='Down'><?tr("Random");?></li>
 					</ul>
 				</li>

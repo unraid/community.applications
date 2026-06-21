@@ -899,14 +899,26 @@ function caBuildAlphaBar($list) {
 	if ( ! version_compare((string)($GLOBALS['caSettings']['unRaidVersion'] ?? "0"), "7.1.9999", ">") ) {
 		return null;
 	}
-	if ( ! in_array($sortOrder['sortBy'] ?? "", ["Name","SortName"], true) ) {
-		return null;
-	}
 	$maxPerPage = (int)($GLOBALS['caSettings']['maxPerPage'] ?? 0);
 	if ( $maxPerPage < 1 || ceil(count($list) / $maxPerPage) <= 5 ) {
 		return null;
 	}
 
+	switch ( $sortOrder['sortBy'] ?? "" ) {
+		case "Name":
+		case "SortName":
+			return caBuildAlphaBarAlpha($list);
+		case "totalDownloads":
+		case "previousMonthDownloads":
+			return caBuildAlphaBarNumeric($list, $sortOrder['sortBy']);
+		case "FirstSeen":
+			return caBuildAlphaBarDate($list);
+		default:
+			return null;
+	}
+}
+
+function caBuildAlphaBarAlpha($list) {
 	$first = [];
 	foreach ($list as $i => $template) {
 		$c = strtolower(substr(trim($template['SortName'] ?? ""),0,1));
@@ -935,6 +947,138 @@ function caBuildAlphaBar($list) {
 		}
 	}
 	return $out;
+}
+
+function caBuildAlphaBarNumeric($list, $field) {
+	$n = count($list);
+	if ( $n === 0 ) {
+		return null;
+	}
+	$max = (int)($list[0][$field] ?? 0);
+	if ( $max <= 0 ) {
+		return null;
+	}
+	$min = $max;
+	foreach ($list as $template) {
+		$v = (int)($template[$field] ?? 0);
+		if ( $v < $min ) $min = $v;
+	}
+	$minPos = max(1, $min);
+
+	$ticks    = [];
+	$floorVal = 0;
+	if ( $max / $minPos >= 100 ) {
+		$topExp = (int)floor(log10($max));
+		$botExp = (int)floor(log10($minPos));
+		$botExp = max($botExp, $topExp - 4, 3);
+		$floorVal = (int)pow(10, $botExp);
+		for ( $exp = $topExp; $exp >= $botExp && $exp >= 0; $exp-- ) {
+			$base = pow(10, $exp);
+			foreach ([5, 2, 1] as $m) {
+				$t = (int)($m * $base);
+				if ( $t < $max && $t > $floorVal && $t >= $minPos ) {
+					$ticks[] = $t;
+				}
+			}
+			if ( count($ticks) > 40 ) break;
+		}
+	} else {
+		$step = (int)caNiceNum(($max - $minPos) / 12, true);
+		if ( $step < 1 ) $step = 1;
+		for ( $t = (int)(floor($max / $step) * $step); $t >= $minPos; $t -= $step ) {
+			if ( $t < $max ) {
+				$ticks[] = $t;
+			}
+			if ( count($ticks) > 40 ) break;
+		}
+	}
+
+	$out    = [['l'=>caHumanizeCount($max), 'i'=>0]];
+	$seenIx = [0 => true];
+	$cursor = 0;
+	foreach ($ticks as $t) {
+		while ( $cursor < $n && (int)($list[$cursor][$field] ?? 0) > $t ) {
+			$cursor++;
+		}
+		if ( $cursor >= $n ) break;
+		if ( isset($seenIx[$cursor]) ) continue;
+		$label = caHumanizeCount($t);
+		if ( $label === $out[count($out)-1]['l'] ) continue;
+		$seenIx[$cursor] = true;
+		$out[] = ['l'=>$label, 'i'=>$cursor];
+	}
+
+	if ( $floorVal > 0 ) {
+		while ( $cursor < $n && (int)($list[$cursor][$field] ?? 0) >= $floorVal ) {
+			$cursor++;
+		}
+		if ( $cursor < $n && (int)($list[$cursor][$field] ?? 0) >= 0 && ! isset($seenIx[$cursor]) ) {
+			$out[] = ['l'=>"< ".caHumanizeCount($floorVal), 'i'=>$cursor];
+		}
+	}
+	while ( $cursor < $n && (int)($list[$cursor][$field] ?? 0) >= 0 ) {
+		$cursor++;
+	}
+	if ( $cursor < $n && ! isset($seenIx[$cursor]) ) {
+		$out[] = ['l'=>"?", 'i'=>$cursor];
+	}
+	return count($out) >= 2 ? $out : null;
+}
+
+function caBuildAlphaBarDate($list) {
+	$out      = [];
+	$prevYear = null;
+	$prevMon  = null;
+	foreach ($list as $i => $template) {
+		$ts = (int)($template['FirstSeen'] ?? 0);
+		if ( $ts <= 0 ) {
+			continue;
+		}
+		$year = (int)date("Y", $ts);
+		if ( $year < 2015 ) {
+			continue;
+		}
+		$mon  = (int)date("n", $ts);
+		$full = tr(date("M", $ts))." ".$year;
+		if ( $year !== $prevYear ) {
+			$out[]    = ['l'=>(string)$year, 'i'=>$i, 'p'=>'y', 'fl'=>$full];
+			$prevYear = $year;
+			$prevMon  = $mon;
+		} elseif ( $mon !== $prevMon ) {
+			$out[]   = ['l'=>tr(date("M", $ts)), 'i'=>$i, 'p'=>'m', 'fl'=>$full];
+			$prevMon = $mon;
+		}
+	}
+	return count($out) >= 2 ? $out : null;
+}
+
+function caNiceNum($x, $round) {
+	if ( $x <= 0 ) {
+		return 1;
+	}
+	$exp = floor(log10($x));
+	$f   = $x / pow(10, $exp);
+	if ( $round ) {
+		$nf = ($f < 1.5) ? 1 : (($f < 3) ? 2 : (($f < 7) ? 5 : 10));
+	} else {
+		$nf = ($f <= 1) ? 1 : (($f <= 2) ? 2 : (($f <= 5) ? 5 : 10));
+	}
+	return $nf * pow(10, $exp);
+}
+
+function caHumanizeCount($v) {
+	$v = (float)$v;
+	if ( $v >= 1e9 ) {
+		$u = "B"; $v /= 1e9;
+	} elseif ( $v >= 1e6 ) {
+		$u = "M"; $v /= 1e6;
+	} elseif ( $v >= 1e3 ) {
+		$u = "K"; $v /= 1e3;
+	} else {
+		return (string)(int)round($v);
+	}
+	$s = rtrim(rtrim(sprintf("%.1f", $v), "0"), ".");
+	return $s.$u;
 }
 
 function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
@@ -967,6 +1111,18 @@ function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnAr
 			$alphaBar = caBuildAlphaBar($communityApplications);
 			if ($alphaBar) {
 				$result['alphaBar'] = $alphaBar;
+				$by = $GLOBALS['sortOrder']['sortBy'] ?? "";
+				if ($by === "totalDownloads" || $by === "previousMonthDownloads") {
+					$cnt  = count($communityApplications);
+					$step = max(1, (int)ceil($cnt / 500));
+					$vals = [];
+					for ($vi = 0; $vi < $cnt; $vi += $step) {
+						$dv = (int)($communityApplications[$vi][$by] ?? 0);
+						$vals[] = ($dv < 0) ? "unknown" : caHumanizeCount($dv);
+					}
+					$result['alphaVals']    = $vals;
+					$result['alphaValStep'] = $step;
+				}
 			}
 		}
 		return $result;

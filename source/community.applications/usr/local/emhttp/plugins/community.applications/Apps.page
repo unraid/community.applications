@@ -1828,14 +1828,17 @@ function getContent(init,category,description,newApp,startupDisplay) {
 		if ( (category == "New") || (category == "All") ) {
 			category = "";
 		}
-		var el_dl = $.find(".sortIcons[data-sortby='downloads']");
+		var el_dl_last = $.find(".sortIcons[data-sortby='previousMonthDownloads']");
+		var el_dl_total = $.find(".sortIcons[data-sortby='totalDownloads']");
 		var el_tr = $.find(".sortIcons[data-sortby='trending']");
 
 		if ( category == "repos" ) {
-			$(el_dl).html("<?=tr("Number Of Apps");?>");
+			$(el_dl_last).html("<?=tr("Number Of Apps");?>");
+			$(el_dl_total).html("<?=tr("Number Of Apps");?>");
 			$(el_tr).html("<?=tr("Average Trend");?>");
 		} else {
-			$(el_dl).html("<?=tr("Downloads");?>");
+			$(el_dl_last).html("<?=tr("Downloads Last Month");?>");
+			$(el_dl_total).html("<?=tr("Downloads Total");?>");
 			$(el_tr).html("<?=tr("Trend");?>");
 		}
 		caRefreshSortMenu();
@@ -3003,23 +3006,50 @@ function postMultiDockerInstall() {
 function caUpdateAlphaBar(entries) {
 	data.alphaJump = null;
 	data.alphaLastActive = null;
+	data.alphaLastPage = null;
 	var $bar = $("#caAlphaBar");
 	if (!$bar.length) return;
 	if (!$.isArray(entries) || !entries.length) {
-		$bar.addClass("ca_hide").empty();
+		data.alphaWide = false;
+		$bar.removeClass("caAlphaWide").addClass("ca_hide").empty();
 		return;
 	}
 	var ordered = entries.slice().sort(function(a, b) {
 		return (parseInt(a && a.i, 10) || 0) - (parseInt(b && b.i, 10) || 0);
-	}).map(function(e) { return { l: e.l, i: parseInt(e.i, 10) || 0 }; });
+	}).map(function(e) { return { l: e.l, i: parseInt(e.i, 10) || 0, p: e.p, fl: e.fl }; });
 	data.alphaAll = ordered;
-	// Keep every distinct letter; only the window-fit thinning below drops any.
-	var kept = ordered.slice();
+	data.alphaWide = ordered.some(function(e) { return String(e.l).length > 1; });
+	$bar.toggleClass("caAlphaWide", !!data.alphaWide);
+	var thinEven = function(list, max) {
+		if (max < 1 || list.length <= max) return list;
+		var out = [];
+		for (var n = 0; n < max; n++) {
+			var idx = Math.round((n * (list.length - 1)) / Math.max(1, max - 1));
+			if (!out.length || out[out.length - 1].i !== list[idx].i) {
+				out.push(list[idx]);
+			}
+		}
+		return out;
+	};
+	var thinTo = function(list, max) {
+		if (max < 1 || list.length <= max) return list;
+		var hi = [], lo = [];
+		for (var k = 0; k < list.length; k++) {
+			(list[k].p === "y" ? hi : lo).push(list[k]);
+		}
+		if (!hi.length) return thinEven(list, max);
+		if (hi.length >= max) return thinEven(hi, max);
+		var merged = hi.concat(thinEven(lo, max - hi.length));
+		merged.sort(function(a, b) { return a.i - b.i; });
+		return merged;
+	};
+	var kept = thinTo(ordered.slice(), 27);
 	var render = function(list) {
 		var html = "";
 		list.forEach(function(e) {
-			var label = (e.l === "#") ? "#" : e.l.toUpperCase();
-			html += "<span class='caAlphaLetter' data-letter='" + e.l + "' data-index='" + e.i + "'>" + label + "</span>";
+			var label = (String(e.l).length === 1) ? String(e.l).toUpperCase() : e.l;
+			var cls = (e.p === "y") ? "caAlphaLetter caAlphaYear" : "caAlphaLetter";
+			html += "<span class='" + cls + "' data-letter='" + e.l + "' data-index='" + e.i + "'>" + label + "</span>";
 		});
 		$bar.html(html).removeClass("ca_hide");
 		data.alphaShown = list;
@@ -3031,24 +3061,18 @@ function caUpdateAlphaBar(entries) {
 	if (avail > 0 && letterH > 0) {
 		var maxFit = Math.floor(avail / letterH);
 		if (maxFit >= 1 && kept.length > maxFit) {
-			var thinned = [];
-			for (var n = 0; n < maxFit; n++) {
-				var idx = Math.round((n * (kept.length - 1)) / Math.max(1, maxFit - 1));
-				if (!thinned.length || thinned[thinned.length - 1].i !== kept[idx].i) {
-					thinned.push(kept[idx]);
-				}
-			}
-			render(thinned);
+			render(thinTo(kept, maxFit));
 		}
-		$bar.css("gap", Math.max(0, (avail - 27 * letterH) / 26) + "px");
+		var shownN = ($.isArray(data.alphaShown) ? data.alphaShown.length : 0) || 1;
+		$bar.css("gap", Math.max(0, (avail - shownN * letterH) / Math.max(1, shownN - 1)) + "px");
 	}
 }
 
-function caAlphaLetterFor(list, globalIndex) {
+function caAlphaEntryFor(list, globalIndex) {
 	if (!$.isArray(list) || !list.length) return null;
-	var active = list[0].l;
+	var active = list[0];
 	for (var k = 0; k < list.length; k++) {
-		if (list[k].i <= globalIndex) active = list[k].l;
+		if (list[k].i <= globalIndex) active = list[k];
 		else break;
 	}
 	return active;
@@ -3060,23 +3084,29 @@ function caUpdateAlphaActive(globalIndex) {
 		$(".caSpacerHintLetter").text("");
 		return;
 	}
-	var activeShown, exact;
-	if (data.alphaJump) {
-		activeShown = data.alphaJump;
-		exact = data.alphaJump;
-	} else {
-		activeShown = caAlphaLetterFor(data.alphaShown, globalIndex);
-		exact = caAlphaLetterFor(data.alphaAll, globalIndex);
-	}
+	var idx = (data.alphaJump != null) ? data.alphaJump : globalIndex;
+	var activeEntry = caAlphaEntryFor(data.alphaShown, idx);
+	var exactEntry = caAlphaEntryFor(data.alphaAll, idx);
 	$bar.find(".caAlphaLetter").removeClass("caAlphaActive");
-	if (activeShown !== null) {
-		$bar.find(".caAlphaLetter").filter(function() { return $(this).attr("data-letter") === activeShown; }).addClass("caAlphaActive");
+	if (activeEntry) {
+		$bar.find(".caAlphaLetter").filter(function() { return (parseInt($(this).attr("data-index"), 10) || 0) === activeEntry.i; }).addClass("caAlphaActive");
 	}
-	if (activeShown && data.alphaLastActive && activeShown !== data.alphaLastActive && data.alphaWheelActive) {
-		caFlashAlphaLetter(activeShown);
+	var exactKey = exactEntry ? exactEntry.i : null;
+	var flashLabel = exactEntry ? (exactEntry.fl || exactEntry.l) : null;
+	if ($.isArray(data.alphaVals) && data.alphaVals.length) {
+		var step = parseInt(data.alphaValStep, 10) || 1;
+		var vi = Math.floor((idx > 0 ? idx : 0) / step);
+		if (vi >= data.alphaVals.length) vi = data.alphaVals.length - 1;
+		flashLabel = data.alphaVals[vi];
 	}
-	data.alphaLastActive = activeShown;
-	$(".caSpacerHintLetter").text(exact === null ? "" : (exact === "#" ? "#" : exact.toUpperCase()));
+	var perPage = parseInt(data.maxPerPage, 10) || 0;
+	var page = perPage > 0 ? Math.floor(globalIndex / perPage) : exactKey;
+	if (flashLabel !== null && data.alphaWheelActive && (exactKey !== data.alphaLastActive || page !== data.alphaLastPage)) {
+		caFlashAlphaLetter(flashLabel);
+	}
+	data.alphaLastActive = exactKey;
+	data.alphaLastPage = page;
+	$(".caSpacerHintLetter").text(flashLabel === null ? "" : ((String(flashLabel).length === 1) ? String(flashLabel).toUpperCase() : flashLabel));
 }
 
 function caFlashAlphaLetter(letter) {
@@ -3084,21 +3114,25 @@ function caFlashAlphaLetter(letter) {
 	if (!$bar.length || $bar.hasClass("ca_hide")) return;
 	var $f = $("#caAlphaFlash");
 	if (!$f.length) $f = $("<div id='caAlphaFlash' aria-hidden='true'></div>").appendTo("body");
+	$f.toggleClass("caAlphaWide", !!data.alphaWide);
 	var $active = $bar.find(".caAlphaActive").first();
 	var ref = ($active.length ? $active[0] : $bar[0]).getBoundingClientRect();
 	var bar = $bar[0].getBoundingClientRect();
-	$f.stop(true, true).text(letter === "#" ? "#" : letter.toUpperCase()).css({ display: "block", opacity: 1 });
+	$f.stop(true, true).text((String(letter).length === 1) ? String(letter).toUpperCase() : letter).css({ display: "block", opacity: 1 });
 	$f.css({ top: (ref.top + ref.height / 2 - $f.outerHeight() / 2) + "px", right: (window.innerWidth - bar.left + 8) + "px", left: "auto" });
 	clearTimeout(data.alphaFlashTimer);
 	data.alphaFlashTimer = setTimeout(function() { $("#caAlphaFlash").fadeOut(250); }, 1500);
 }
 
-function caJumpToLetter(letter) {
+function caJumpToLetter(letter, index) {
 	if (!letter) return;
 	caCardCache.generation = (caCardCache.generation || 0) + 1;
 	data.loadingMore = false;
 	var jumpGen = caCardCache.generation;
-	post({ action: "jumpToLetter", letter: letter, maxPerPage: data.maxPerPage, selected: data.selected }, function(result) {
+	var req = { action: "jumpToLetter", letter: letter, maxPerPage: data.maxPerPage, selected: data.selected };
+	var gi = parseInt(index, 10);
+	if (!isNaN(gi) && gi >= 0) req.index = gi;
+	post(req, function(result) {
 		if ((caCardCache.generation || 0) !== jumpGen) return;
 		var dd = result.display_data || result.display;
 		var G = parseInt(result.index, 10);
@@ -3114,7 +3148,7 @@ function caJumpToLetter(letter) {
 		} else {
 			scrollToTop();
 		}
-		data.alphaJump = letter;
+		data.alphaJump = G;
 		caUpdateAlphaActive(G);
 	});
 }
@@ -3202,7 +3236,11 @@ function caRenderStructuredFresh(content) {
 function updateDisplay(content, append) {
 	var isStructured = content && typeof content === "object" && $.isArray(content.cards);
 
-	if (!append) caUpdateAlphaBar(isStructured ? content.alphaBar : null);
+	if (!append) {
+		data.alphaVals = (isStructured && $.isArray(content.alphaVals)) ? content.alphaVals : null;
+		data.alphaValStep = (isStructured && content.alphaValStep) ? (parseInt(content.alphaValStep, 10) || 1) : 1;
+		caUpdateAlphaBar(isStructured ? content.alphaBar : null);
+	}
 
 	if (isStructured) {
 		if (append === "prepend") {
@@ -5668,6 +5706,8 @@ function caSortGlyphClass(by, dir) {
 	by  = (by  || "").toLowerCase();
 	dir = (dir || "").toLowerCase();
 	if (by === "downloads") return "ca_sortInd_downloads";
+	if (by === "previousmonthdownloads" || by === "totaldownloads")
+		return (dir === "down") ? "ca_sortInd_numDesc" : "ca_sortInd_numAsc";
 	if (by === "firstseen") return "ca_sortInd_date";
 	return (dir === "down") ? "ca_sortInd_nameDesc" : "ca_sortInd_nameAsc";
 }
@@ -6594,6 +6634,9 @@ function caInitInfiniteScroll() {
 	})();
 
 	$(".mainArea").on("scroll", function() {
+		data.alphaWheelActive = true;
+		clearTimeout(data.alphaWheelTimer);
+		data.alphaWheelTimer = setTimeout(function() { data.alphaWheelActive = false; }, 400);
 		if (!virtScheduled) {
 			virtScheduled = true;
 			requestAnimationFrame(function() {
@@ -6623,7 +6666,7 @@ function caInitInfiniteScroll() {
 	});
 
 	$(".mainArea").on("wheel touchmove mousedown", function(e) {
-		if (data.alphaJump) data.alphaJump = null;
+		if (data.alphaJump != null) data.alphaJump = null;
 		if (e.type !== "mousedown") {
 			data.alphaWheelActive = true;
 			clearTimeout(data.alphaWheelTimer);

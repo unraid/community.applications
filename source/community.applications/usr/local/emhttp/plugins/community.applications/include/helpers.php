@@ -454,7 +454,7 @@ function caHomeSections() {
 		["type"=>"spotlight",     "text1"=>tr("Spotlight Apps"),      "text2"=>tr("Each month we highlight some of the amazing work from our community"),  "cat"=>"spotlight:", "sortby"=>"RecommendedDate",    "sortdir"=>"Down"],
 		["type"=>"trending",      "text1"=>tr("Top Trending Apps"),   "text2"=>tr("Check out these up and coming apps"),                                  "cat"=>"All",        "sortby"=>"topTrending",        "sortdir"=>"Down"],
 		["type"=>"topperforming", "text1"=>tr("Top New Installs"),    "text2"=>tr("These apps have the highest percentage of new installs"),               "cat"=>"All",        "sortby"=>"topPerforming",      "sortdir"=>"Down"],
-		["type"=>"topPlugins",    "text1"=>tr("Most Popular Plugins"),"text2"=>tr("The most popular plugins installed by other Unraid users last month"), "cat"=>"plugins:",   "sortby"=>"lastMonthDownloads", "sortdir"=>"Down"],
+		["type"=>"topPlugins",    "text1"=>tr("Most Popular Plugins"),"text2"=>tr("The most popular plugins installed by other Unraid users last month"), "cat"=>"plugins:",   "sortby"=>"previousMonthDownloads", "sortdir"=>"Down"],
 		["type"=>"random",        "text1"=>tr("Random Apps"),         "text2"=>tr("An assortment of randomly chosen apps"),                                "cat"=>"All",        "sortby"=>"random",             "sortdir"=>"Down"],
 	];
 }
@@ -893,19 +893,7 @@ function mySort($a, $b) {
 	if ( $sortOrder['sortBy'] == "Name" )
 		$sortOrder['sortBy'] = "SortName";
 
-	if ( $sortOrder['sortBy'] == "lastMonthDownloads" ) {
-		/* Most Popular Plugins ranks by the previous full calendar month's
-		   install count, read live from each template's pluginStats map (MM
-		   to monthly count) instead of a precomputed field. This lets the
-		   SHOW MORE category view sort identically to the home section without
-		   the field having to be baked onto every template first. The month is
-		   resolved once and reused across the comparator calls. */
-		static $prevMonth = null;
-		if ( $prevMonth === null )
-			$prevMonth = date("m", strtotime("first day of previous month"));
-		$c = (int)($a['pluginStats'][$prevMonth] ?? 0);
-		$d = (int)($b['pluginStats'][$prevMonth] ?? 0);
-	} else if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "trending") {
+	if ( $sortOrder['sortBy'] != "downloads" && $sortOrder['sortBy'] != "trendDelta" && $sortOrder['sortBy'] != "trending" && $sortOrder['sortBy'] != "previousMonthDownloads" && $sortOrder['sortBy'] != "totalDownloads") {
 		$c = strtolower($a[$sortOrder['sortBy']] ?? "");
 		$d = strtolower($b[$sortOrder['sortBy']] ?? "");
 	} else {
@@ -1084,6 +1072,29 @@ function computePluginTrendsFromStats(&$template) {
  */
 function fixTemplates($template) {
 	computePluginTrendsFromStats($template);
+
+	$previousMonth = date("m", strtotime("first day of previous month"));
+	if ( $template['PluginURL'] ?? false ) {
+		$template['previousMonthDownloads'] = is_array($template['pluginStats'] ?? null)
+			? (int)($template['pluginStats'][$previousMonth] ?? 0)
+			: -1;
+	} else if ( is_array($template['downloadtrend'] ?? null) && count($template['downloadtrend']) >= 2 ) {
+		$trend = array_values($template['downloadtrend']);
+		$n     = count($trend);
+		$template['previousMonthDownloads'] = (int)$trend[$n - 1] - (int)$trend[$n - 2];
+	} else {
+		$template['previousMonthDownloads'] = -1;
+	}
+
+	if ( $template['PluginURL'] ?? false ) {
+		$template['totalDownloads'] = is_array($template['pluginStats'] ?? null)
+			? (int)($template['pluginStats']['T'] ?? 0)
+			: -1;
+	} else if ( isset($template['downloads']) && is_numeric($template['downloads']) ) {
+		$template['totalDownloads'] = (int)$template['downloads'];
+	} else {
+		$template['totalDownloads'] = -1;
+	}
 
 	if ( ! $template['MinVer'] ) $template['MinVer'] = ($template['Plugin']??false) ? "6.1" : "6.0";
 	if ( ! ($template['Date']??null) ) $template['Date'] = (is_numeric($template['DateInstalled']??null)) ? $template['DateInstalled'] : 0;
