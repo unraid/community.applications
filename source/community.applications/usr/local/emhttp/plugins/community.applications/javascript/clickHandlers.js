@@ -741,17 +741,18 @@ function caInitializeClickHandlers() {
 	$(".dockerSearch").click(function() { initDockerSearch(); });
 	$("body").on("click", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
 		if ($(this).hasClass("caAlphaActive")) return;
-		caJumpToLetter($(this).attr("data-letter"));
+		caJumpToLetter($(this).attr("data-letter"), $(this).attr("data-index"));
 	});
 	$("body").on("mouseenter", "#caAlphaBar .caAlphaLetter:not(.caAlphaOff)", function() {
 		if ($(this).hasClass("caAlphaActive")) { $("#caAlphaHover").css("display", "none"); return; }
 		var $h = $("#caAlphaHover");
 		if (!$h.length) $h = $("<div id='caAlphaHover' aria-hidden='true'></div>").appendTo("body");
+		$h.toggleClass("caAlphaWide", !!data.alphaWide);
 		var letter = $(this).attr("data-letter") || "";
 		var r = this.getBoundingClientRect();
 		var bar = document.getElementById("caAlphaBar");
 		var br = bar ? bar.getBoundingClientRect() : r;
-		$h.text(letter === "#" ? "#" : letter.toUpperCase()).css("display", "block");
+		$h.text((String(letter).length === 1) ? String(letter).toUpperCase() : letter).css("display", "block");
 		$h.css({
 			top: (r.top + r.height / 2 - $h.outerHeight() / 2) + "px",
 			right: (window.innerWidth - br.left + 8) + "px",

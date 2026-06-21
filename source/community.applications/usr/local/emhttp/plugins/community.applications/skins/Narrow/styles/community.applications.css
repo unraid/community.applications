@@ -492,6 +492,23 @@ body,
 	user-select: none;
 	-webkit-user-select: none;
 }
+#caAlphaBar.caAlphaWide {
+	font-size: 1.1rem;
+	align-items: flex-end;
+}
+#caAlphaBar.caAlphaWide .caAlphaLetter {
+	white-space: nowrap;
+}
+.caAlphaYear {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+#caAlphaHover.caAlphaWide {
+	font-size: 2.8rem;
+}
+#caAlphaFlash.caAlphaWide {
+	font-size: 3.6rem;
+}
 .caAlphaLetter {
 	cursor: pointer;
 	padding: 0 0.3rem;
@@ -3956,6 +3973,8 @@ input[type="button"] {
 	}
 	.caSortIndIcon.ca_sortInd_nameAsc::before  { content: "\f15d"; } /* fa-sort-alpha-asc  (A→Z) */
 	.caSortIndIcon.ca_sortInd_nameDesc::before { content: "\f15e"; } /* fa-sort-alpha-desc (Z→A) */
+	.caSortIndIcon.ca_sortInd_numAsc::before   { content: "\f162"; }
+	.caSortIndIcon.ca_sortInd_numDesc::before  { content: "\f163"; }
 	.caSortIndIcon.ca_sortInd_downloads::before{ content: "\f019"; } /* fa-download */
 	.caSortIndIcon.ca_sortInd_date::before     { content: "\f073"; } /* fa-calendar */
 	.dockerSearch::before {

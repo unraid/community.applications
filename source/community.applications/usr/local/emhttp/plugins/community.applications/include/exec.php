@@ -1392,19 +1392,13 @@ function appOfDay($file) {
 			}
 			break;
 		case "topPlugins":
-			$previousMonth = date("m", strtotime("first day of previous month"));
-			foreach ($file as &$tplRef) {
-				if ( ! isset($tplRef['PluginURL']) ) continue;
-				$tplRef['lastMonthDownloads'] = (int)($tplRef['pluginStats'][$previousMonth] ?? 0);
-			}
-			unset($tplRef);
-			$sortOrder['sortBy'] = "lastMonthDownloads";
+			$sortOrder['sortBy'] = "previousMonthDownloads";
 			$sortOrder['sortDir'] = "Down";
 			usort($file,"mySort");
 			$repos = [];
 			foreach ($file as $template) {
 				if ( !isset($template['PluginURL']) ) continue;
-				if ( ! ($template['lastMonthDownloads'] ?? 0) ) continue;
+				if ( ($template['previousMonthDownloads'] ?? 0) <= 0 ) continue;
 
 				// don't show patch within top installs on home page if it's already installed and featured is displayed
 
@@ -1921,17 +1915,25 @@ function jumpToLetter() {
 
 	$page  = 1;
 	$index = -1;
-	foreach ($list as $i => $template) {
-		$c = strtolower(substr(trim($template['SortName'] ?? ""),0,1));
-		if ( $c === "" ) {
-			continue;
-		}
-		$isNum = ($c >= "0" && $c <= "9");
-		$match = ($letter === "#") ? $isNum : ($c === $letter);
-		if ( $match ) {
-			$index = $i;
-			$page  = intdiv($i,$maxPerPage) + 1;
-			break;
+
+	$postedIndex = getPost("index", null);
+	if ( $postedIndex !== null && $postedIndex !== "" && is_numeric($postedIndex)
+		&& (int)$postedIndex >= 0 && (int)$postedIndex < count($list) ) {
+		$index = (int)$postedIndex;
+		$page  = intdiv($index, $maxPerPage) + 1;
+	} else {
+		foreach ($list as $i => $template) {
+			$c = strtolower(substr(trim($template['SortName'] ?? ""),0,1));
+			if ( $c === "" ) {
+				continue;
+			}
+			$isNum = ($c >= "0" && $c <= "9");
+			$match = ($letter === "#") ? $isNum : ($c === $letter);
+			if ( $match ) {
+				$index = $i;
+				$page  = intdiv($i,$maxPerPage) + 1;
+				break;
+			}
 		}
 	}
 
