@@ -1828,14 +1828,17 @@ function getContent(init,category,description,newApp,startupDisplay) {
 		if ( (category == "New") || (category == "All") ) {
 			category = "";
 		}
-		var el_dl = $.find(".sortIcons[data-sortby='downloads']");
+		var el_dl_last = $.find(".sortIcons[data-sortby='previousMonthDownloads']");
+		var el_dl_total = $.find(".sortIcons[data-sortby='totalDownloads']");
 		var el_tr = $.find(".sortIcons[data-sortby='trending']");
 
 		if ( category == "repos" ) {
-			$(el_dl).html("<?=tr("Number Of Apps");?>");
+			$(el_dl_last).html("<?=tr("Number Of Apps");?>");
+			$(el_dl_total).html("<?=tr("Number Of Apps");?>");
 			$(el_tr).html("<?=tr("Average Trend");?>");
 		} else {
-			$(el_dl).html("<?=tr("Downloads");?>");
+			$(el_dl_last).html("<?=tr("Downloads Last Month");?>");
+			$(el_dl_total).html("<?=tr("Downloads Total");?>");
 			$(el_tr).html("<?=tr("Trend");?>");
 		}
 		caRefreshSortMenu();

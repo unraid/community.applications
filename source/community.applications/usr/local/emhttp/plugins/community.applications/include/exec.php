@@ -1544,6 +1544,7 @@ function displayRepositories() {
 		$repository['RepositoryTemplate'] = true;
 		$repository['RepoName'] = $repoName;
 		$repository['SortName'] = $repoName;
+		$repository['totalDownloads'] = $repository['previousMonthDownloads'] = (int)($repository['downloads'] ?? 0);
 
 		return addMissingVars($repository);
 	};

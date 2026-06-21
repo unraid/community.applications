@@ -747,7 +747,7 @@ function caInitializeClickHandlers() {
 		if ($(this).hasClass("caAlphaActive")) { $("#caAlphaHover").css("display", "none"); return; }
 		var $h = $("#caAlphaHover");
 		if (!$h.length) $h = $("<div id='caAlphaHover' aria-hidden='true'></div>").appendTo("body");
-		$h.toggleClass("caAlphaWide", !!data.alphaWide);
+		$h.toggleClass("caAlphaWide", !!(typeof data !== "undefined" && data && data.alphaWide));
 		var letter = $(this).attr("data-letter") || "";
 		var r = this.getBoundingClientRect();
 		var bar = document.getElementById("caAlphaBar");
