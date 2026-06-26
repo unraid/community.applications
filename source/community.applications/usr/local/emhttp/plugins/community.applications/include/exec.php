@@ -45,6 +45,22 @@ require_once "$docroot/plugins/community.applications/include/helpers.php";
    the parse cost on every POST. */
 require_once "$docroot/plugins/dynamix.plugin.manager/include/PluginHelpers.php";
 
+/* Safety net for the feed-update lock (CA_PATHS['gettingTemplates']).
+   force_update() touch()es it while downloading and unlinks it when done, but a
+   fatal (TypeError, OOM, parse error, ...) mid-run skips that cleanup and leaves
+   an orphaned marker — which wedges every later force_update on its wait loop.
+   This shutdown hook releases the marker when THIS request was holding it
+   (force_update sets caOwnsTemplateLock right after the touch) AND the request
+   ended on a fatal. The stale-marker guard in force_update is the backstop if
+   this ever misses (e.g. an OOM kill that skips shutdown handlers entirely). */
+register_shutdown_function(function () {
+	if ( empty($GLOBALS['caOwnsTemplateLock']) ) return;
+	$err = error_get_last();
+	if ( $err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true) ) {
+		@unlink(CA_PATHS['gettingTemplates']);
+	}
+});
+
 /**
  * Lazy-load the Narrow skin (skin.php + skin_helpers.php). Safe to call from
  * any case branch — PHP's require_once dedupes by absolute path. Used by the
@@ -66,6 +82,8 @@ function caRequireSkin(): void {
 ################################################################################
 
 getGlobals();
+
+// Feed URL selection is resolved at read-time via caFeedPath().
 
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
@@ -176,9 +194,6 @@ switch ($_POST['action']) {
 		break;
 	case 'statistics':
 		statistics();
-		break;
-	case 'caCompareFeedShas':
-		caCompareFeedShas();
 		break;
 	case 'showModeration':
 		showModeration();
@@ -335,10 +350,10 @@ switch ($_POST['action']) {
 /**
  * Download and merge the application feed into local template caches.
  *
- * Initial-load is slim only — tries `applicationFeed-small.json` on the
- * primary server, then on the GitHub backup. If both fail the user sees
- * the standard download-failed response; we never fall back to the full
- * `applicationFeed.json` here. The full feed is fetched asynchronously by
+ * Initial-load is slim only — downloads `applicationFeed-small.json` from
+ * the CA server. If it fails the user sees the standard download-failed
+ * response; we never fall back to the full `applicationFeed.json` here.
+ * The full feed is fetched asynchronously by
  * the `hydrateFullFeed` action (triggered from JS post-`force_update`),
  * which fills in the on-disk full cache so install-time port-conflict
  * detection and createXML have Config available.
@@ -361,17 +376,10 @@ function DownloadApplicationFeed() {
 	   small cache lands. The background full-feed hydrate writes only the
 	   full cache and stays silent so it doesn't double-fire. */
 
-	/* Primary slim. 10-minute cURL timeout / shared=false: per-request
+	/* Slim feed. 10-minute cURL timeout / shared=false: per-request
 	   tempfile, so we don't want download_url to serialize unrelated calls. */
-	$smallFeed = download_json(CA_PATHS['application-feed-small'], $downloadURL, 600, false);
+	$smallFeed = download_json(caFeedPath('application-feed-small'), $downloadURL, 600, false);
 	$currentFeed = "Primary Server (slim)";
-	if ( ! is_array($smallFeed['applist'] ?? null) || empty($smallFeed['applist']) ) {
-		/* Primary slim unavailable — try the GitHub backup of the slim feed.
-		   No fallback to the full feed beyond this; if both slim tiers fail
-		   the user gets the standard download-failed response and retries. */
-		$smallFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feed-smallBackup'], $downloadURL, 600, false);
-		$currentFeed = "Backup Server (slim)";
-	}
 	if ( ! is_array($smallFeed['applist'] ?? null) || empty($smallFeed['applist']) ) {
 		/* Don't unlink $downloadURL on failure — leave the raw bytes
 		   (preserved by download_json under $shared=false) on disk so
@@ -397,9 +405,7 @@ function DownloadApplicationFeed() {
  * Build the inline SVG symbol sprite for the monthly-spotlight wordmark.
  *
  * Downloads CA_PATHS['spotlightSvgSource'] server-side (the asset host sets no
- * CORS headers, so the browser cannot fetch the text directly), falling back to
- * CA_PATHS['spotlightSvgSource-backup'] (the GitHub mirror) if the primary fails
- * to download or returns something that is not well-formed SVG. Rewrites the
+ * CORS headers, so the browser cannot fetch the text directly). Rewrites the
  * root svg element into a symbol wrapped in a hidden sprite svg, and caches the
  * result at CA_PATHS['spotlightSprite']. skin.html readfile()s that cache on
  * render, and the getSpotlightSprite action serves it to JS after a live feed
@@ -419,23 +425,15 @@ function DownloadApplicationFeed() {
  * @return void
  */
 function caBuildSpotlightSprite() {
-	/* Try the primary asset host, then the GitHub mirror. A source counts as
-	   usable only once it both downloads AND survives caSanitizeSpotlightSvg,
-	   so a primary that returns an error page or truncated body falls through
-	   to the backup rather than producing a broken sprite. Sanitize here, in
-	   the DOM, because the script / handler removal it does is the part regex
-	   stripping gets fooled on. */
+	/* The source counts as usable only once it both downloads AND survives
+	   caSanitizeSpotlightSvg, so a host that returns an error page or truncated
+	   body yields no sprite rather than a broken one. Sanitize here, in the DOM,
+	   because the script / handler removal it does is the part regex stripping
+	   gets fooled on. */
 	$svg = "";
-	foreach ([CA_PATHS['spotlightSvgSource'], CA_PATHS['spotlightSvgSource-backup']] as $url) {
-		$raw = download_url($url, "", 30);
-		if ( ! is_string($raw) || trim($raw) === "" ) {
-			continue;
-		}
-		$clean = caSanitizeSpotlightSvg($raw);
-		if ( $clean !== "" ) {
-			$svg = $clean;
-			break;
-		}
+	$raw = download_url(CA_PATHS['spotlightSvgSource'], "", 30);
+	if ( is_string($raw) && trim($raw) !== "" ) {
+		$svg = caSanitizeSpotlightSvg($raw);
 	}
 	/* Both tiers failed (download error or unparseable on each). Leave any
 	   existing cache untouched and bail; the skin just renders no symbol. */
@@ -614,7 +612,7 @@ function getSpotlightSprite() {
  * `hydrateFullFeedWork()` (background full-feed pull after a slim-feed success).
  *
  * @param array $ApplicationFeed Decoded JSON: applist, categories, repositories, blacklisted, deprecated, last_updated_timestamp
- * @param string $currentFeed Label written to currentServer (Primary / Backup / Local / slim)
+ * @param string $currentFeed Label written to currentServer (Primary / Local / slim)
  * @return bool
  */
 function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bool {
@@ -836,7 +834,7 @@ function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bo
 
 /**
  * Inner worker for the background hydrate. Pulls the full `applicationFeed.json`
- * (primary then GitHub backup), runs the same per-template pipeline
+ * from the CA server, runs the same per-template pipeline
  * `DownloadApplicationFeed()` runs, applies moderation, and writes both
  * templates caches so install-time port-conflict detection and createXML
  * have Config available.
@@ -860,12 +858,8 @@ function hydrateFullFeedWork(): string {
 	}
 
 	$downloadURL = randomFile();
-	$ApplicationFeed = download_json(CA_PATHS['application-feed'], $downloadURL, 600, false);
+	$ApplicationFeed = download_json(caFeedPath('application-feed'), $downloadURL, 600, false);
 	$label = "Primary Server (full)";
-	if ( (! is_array($ApplicationFeed['applist'] ?? null)) || empty($ApplicationFeed['applist']) ) {
-		$ApplicationFeed = download_json(CA_PATHS['pluginProxy'].CA_PATHS['application-feedBackup'], $downloadURL, 600, false);
-		$label = "Backup Server (full)";
-	}
 	/* Dev mode: stash the raw applicationFeed.json snapshot before
 	   deleting the per-request tempfile so the Diff/Plugin/Template
 	   modals don't have to re-download it. The slim-feed download in
@@ -1166,6 +1160,12 @@ function saveSettings() {
 	}
 	$cfg     = @parse_ini_file(CA_PATHS['pluginSettings']) ?: [];
 	$allowed = ["yes", "no", "true", "false"];
+	/* Snapshot the value the user currently sees for any toggle whose change
+	   must invalidate the cached feed. useCloudflareCDN selects which application
+	   feed CA downloads, so flipping it has to wipe the /tmp cache tree and force
+	   a fresh download on the reload that follows. caSettings is the merged
+	   default.cfg + saved cfg, so it reflects what the rendered switch was set to. */
+	$oldCloudflareCDN = (string)($GLOBALS['caSettings']['useCloudflareCDN'] ?? "no");
 	/* Explicit allowlist of the switches in the Settings panel
 	   (caSettingSwitchInputs in skin.html) — keep in sync with that form. Using
 	   this instead of every default.cfg key stops a crafted POST from flipping
@@ -1174,6 +1174,7 @@ function saveSettings() {
 		"defaultReinstall", "updateCheck", "useWholeDisplayWindow", "searchLimitToName",
 		"displayUsageGraphs", "hideDeprecated", "hideIncompatible",
 		"featuredDisable", "adjustPorts", "dev", "autoplayVideos",
+		"useCloudflareCDN",
 	];
 	foreach ($switches as $key) {
 		$posted = getPost($key, null);
@@ -1184,6 +1185,15 @@ function saveSettings() {
 		}
 	}
 	write_ini_file(CA_PATHS['pluginSettings'], $cfg);
+
+	/* Feed-source toggle changed -> drop the cached feed tree
+	   (/tmp/community.applications) so the post-save page reload re-downloads
+	   from the newly-selected feed instead of serving the stale cache. Same
+	   cache wipe the factory reset above performs. */
+	if ( (string)($cfg['useCloudflareCDN'] ?? "no") !== $oldCloudflareCDN ) {
+		exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
+	}
+
 	postReturn(["ok" => true]);
 }
 
@@ -1785,22 +1795,44 @@ function force_update_skip() {
 function force_update() {
 
 	require_once __DIR__ . '/force_update_helpers.php';
-	// If another update is already running, don't fetch metadata; just wait for it to finish.
-	if (is_file(CA_PATHS['gettingTemplates'])) {
+	/* If another update is already running, don't fetch metadata; just wait for
+	   it to finish. Guard against an ORPHANED marker: force_update touch()es
+	   gettingTemplates below and unlinks it when done, but if the owning process
+	   dies mid-run (fatal/kill/OOM) the marker is never cleared and this wait
+	   would hang forever — taking every later force_update down with it. A live
+	   updater always clears the marker within its own download timeouts, so a
+	   marker older than $staleAfter is stale: ignore it and take over instead. */
+	$staleAfter = 660; // combined feed timeouts: slim download (600s) + last-updated probe (60s)
+	clearstatcache();
+	if ( is_file(CA_PATHS['gettingTemplates']) && (time() - (@filemtime(CA_PATHS['gettingTemplates']) ?: 0)) < $staleAfter ) {
 		while ( is_file(CA_PATHS['gettingTemplates']) ) {
 			sleep(1);
 			clearstatcache();
+			/* Owner died mid-wait? Stop once the marker ages past the cutoff. */
+			if ( (time() - (@filemtime(CA_PATHS['gettingTemplates']) ?: 0)) >= $staleAfter ) {
+				break;
+			}
 		}
-		/* The other tab's DownloadApplicationFeed wiped tempFiles
-		   (including this tab's marker) during the wait. The wait-
-		   then-ok path is now in sync with that fresh feed, so
-		   re-register here — otherwise a subsequent caFeedCheck on
-		   this tab would falsely surface the stale-feed banner. */
-		ensureTabRegistered();
-		postReturn(['status' => "ok"]);
-		return;
+		if ( ! is_file(CA_PATHS['gettingTemplates']) ) {
+			/* Marker cleared normally: the other updater finished, wiped
+			   tempFiles (including this tab's marker), and the feed is now
+			   fresh. Re-register here and report ok without downloading again —
+			   otherwise a subsequent caFeedCheck on this tab would falsely
+			   surface the stale-feed banner. */
+			ensureTabRegistered();
+			postReturn(['status' => "ok"]);
+			return;
+		}
+		/* Else we broke out on a stale marker — fall through and take over. */
 	}
+
+	/* Become the updater. Clear any orphaned/stale marker first so the touch
+	   always stamps a fresh mtime for this run. caOwnsTemplateLock arms the
+	   fatal-error shutdown hook (top of this file) to release the marker if this
+	   request dies before reaching the normal unlinks below. */
+	@unlink(CA_PATHS['gettingTemplates']);
 	touch(CA_PATHS['gettingTemplates']);
+	$GLOBALS['caOwnsTemplateLock'] = true;
 
 	/* Load the slim cache, not the full one — moderateTemplates and
 	   buildUpdateScript only touch fields present in the slim copy, and
@@ -1824,6 +1856,7 @@ function force_update() {
 	if (!ForceUpdateHelpers::templatesAvailable()) {
 		if (!DownloadApplicationFeed()) {
 			@unlink(CA_PATHS['gettingTemplates']);
+			$GLOBALS['caOwnsTemplateLock'] = false;
 			@unlink(CA_PATHS['haveTemplates']);
 			postReturn(ForceUpdateHelpers::buildDownloadFailureResponse());
 			return;
@@ -1832,6 +1865,7 @@ function force_update() {
 	}
 
 	@unlink(CA_PATHS['gettingTemplates']);
+	$GLOBALS['caOwnsTemplateLock'] = false;
 	$script = ForceUpdateHelpers::buildUpdateScript();
 
 	/* Only moderate + write back when we actually downloaded a fresh feed.
@@ -2289,106 +2323,6 @@ function statistics() {
 	}
 
 	postReturn(['statistics'=>$statistics]);
-}
-
-/**
- * Download one feed URL and return the SHA-256 of its canonical JSON.
- *
- * Decodes the body, re-encodes it, and hashes that string so two mirrors
- * serving the same content in different formatting (minified vs pretty) hash
- * equal. Each large blob is freed as soon as it is no longer needed (raw body
- * before re-encoding, decoded structure before hashing) so peak memory stays
- * at roughly one feed rather than two. Returns null when the fetch fails or the
- * body is not valid JSON.
- *
- * @param  string  $url
- * @return string|null
- */
-function caCanonicalFeedSha($url) {
-	/* 60s timeout so a slow/stalled mirror can't tie up the request worker on
-	   this admin-only diagnostic; download_url returns false on timeout and the
-	   caller already treats that as a failed hash. */
-	$body = download_url($url, "", 60);
-	if ( ! is_string($body) || ! strlen($body) ) {
-		return null;
-	}
-
-	$decoded = json_decode($body, true);
-	unset($body);                       // free the raw body before re-encoding
-	if ( $decoded === null ) {
-		return null;                    // not valid JSON (or an empty/null body)
-	}
-
-	$canonical = json_encode($decoded);
-	unset($decoded);                    // free the decoded structure before hashing
-	if ( ! is_string($canonical) ) {
-		return null;                    // re-encode failed (eg. invalid UTF-8)
-	}
-
-	$sha = hash('sha256', $canonical);
-	unset($canonical);
-	return $sha;
-}
-
-/**
- * Dev/admin-only diagnostic: fetch the three feed files (small, full,
- * statistics) from both the primary CA server and the GitHub backup,
- * compute SHA-256 of each feed's canonical JSON (decoded then re-encoded),
- * and return per-file match results. Hashing the canonical form rather than
- * the raw bytes means the primary (minified) and backup (pretty-printed)
- * mirrors compare equal when their content matches, so a mismatch flags a
- * real content difference instead of a formatting difference.
- *
- * Used by the bottom of the statistics popup (replaces the old
- * Primary/Backup server links) so a maintainer can spot-check whether
- * the two mirrors are in sync without leaving the GUI. Gated server-side
- * on `caSettings['dev']` and the on-disk `caAdmin` marker so the action
- * is a no-op for normal users.
- *
- * Returns:
- *   { enabled: bool,
- *     results: {
- *       small:      { primary: <sha|null>, backup: <sha|null>, match: bool, primaryUrl: <url>, backupUrl: <url> },
- *       full:       { ... },
- *       statistics: { ... }
- *     }
- *   }
- * `null` sha values indicate the fetch failed for that URL.
- *
- * @return void
- */
-function caCompareFeedShas() {
-	if (!caIsAdmin()) {
-		postReturn(['enabled' => false]);
-		return;
-	}
-
-	$sources = [
-		'small'      => ['primary' => CA_PATHS['application-feed-small'], 'backup' => CA_PATHS['application-feed-smallBackup']],
-		'full'       => ['primary' => CA_PATHS['application-feed'],       'backup' => CA_PATHS['application-feedBackup']],
-		'statistics' => ['primary' => CA_PATHS['statisticsURL'],          'backup' => CA_PATHS['statisticsURLBackup']],
-	];
-
-	$results = [];
-	foreach ($sources as $name => $urls) {
-		/* Hash each mirror one at a time and free it before fetching the next.
-		   The full feed is ~15-20 MB raw and several times that once decoded, so
-		   holding both mirrors (and both decoded structures) at once would spike
-		   memory needlessly. caCanonicalFeedSha drops each blob as it goes. */
-		$primarySha = caCanonicalFeedSha($urls['primary']);
-		$backupSha  = caCanonicalFeedSha($urls['backup']);
-		$results[$name] = [
-			'primary'    => $primarySha,
-			'backup'     => $backupSha,
-			'match'      => ($primarySha !== null && $backupSha !== null && $primarySha === $backupSha),
-			/* Surfaced so the client can link both mirrors next to a mismatch,
-			   letting a maintainer open and eyeball each feed directly. */
-			'primaryUrl' => $urls['primary'],
-			'backupUrl'  => $urls['backup'],
-		];
-	}
-
-	postReturn(['enabled' => true, 'results' => $results]);
 }
 
 /**

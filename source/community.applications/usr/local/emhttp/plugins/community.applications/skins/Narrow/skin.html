@@ -68,11 +68,13 @@ $(function() {
 
 <!-- Search Area - This gets moved to body on responsive and black and white themes on legacy OS -->
 <div class="searchAreaHolder menuAdjust">
-	<div class='searchArea onlyShowWithFeed'>
+	<div class='searchArea'>
 		<!-- Left group: search controls plus the JS-appended results strip (left
 		     caret + the scrolling ul). flex:1 and min-width:0 so the ul scrolls
-		     inside this group instead of pushing the right group off. -->
-		<div class='caSearchRowMain'>
+		     inside this group instead of pushing the right group off. onlyShowWithFeed
+		     lives here (not on .searchArea) so a failed feed download hides the search
+		     controls while leaving the right group's Info + Settings buttons reachable. -->
+		<div class='caSearchRowMain onlyShowWithFeed'>
 		<div class='mobileMenuButton'>
 			<div class='showMenuButton caButton menuAdjust menuHidden' title="<?tr("Show Menu");?>"></div>
 			<div class='closeMenuButton caButton menuAdjust menuHidden' title="<?tr("Close Menu");?>"></div>
@@ -138,7 +140,6 @@ $(function() {
 
 <!-- Status Bar.   This gets moved to the body -->
 <div class='ca_statusArea'>
-	<?if ($md5Error):?><span class='modifiedCode'>Modified Code</span><?endif;?>
 	<span class='caDownloadProgress ca_hide'><span class='caDownloadProgressText'></span></span>
 	<span class='caStatusText'></span>
 </div>
@@ -569,20 +570,15 @@ $(function() {
 							<span data-stat-text='totalDeprecated'></span>
 						</td>
 					</tr>
-					<!-- Dev/admin-only diagnostic rows. Both are populated +
-					     unhidden by statistics.js when the caCompareFeedShas
-					     action confirms dev+admin gating is satisfied. -->
+					<!-- Dev/admin-only diagnostic row, populated + unhidden by
+					     statistics.js when the statistics action confirms
+					     dev+admin gating is satisfied. -->
 					<tr id='caTabIdRow' class='ca_hide'>
 						<td class='ca_table'>
 							<?tr("Session (tab) ID");?>
 						</td>
 						<td class='ca_stat'>
 							<span data-stat-text='tabId'></span>
-						</td>
-					</tr>
-					<tr id='caFeedShaCheckRow' class='ca_hide'>
-						<td class='ca_table'>
-							<span data-stat-html='feedShaCheck'></span>
 						</td>
 					</tr>
 					</tbody>
@@ -667,6 +663,14 @@ $(function() {
 							<?=caSettingSwitchInputs('autoplayVideos', $caDefaults)?>
 						</div>
 						<div class='ca_settingDescription'><?tr("Autoplay videos in sidebar (muted).");?></div>
+					</div>
+
+					<div class='ca_settingCard'>
+						<div class='ca_settingHeader'>
+							<span><?tr("Use Cloudflare CDN");?></span>
+							<?=caSettingSwitchInputs('useCloudflareCDN', $caDefaults)?>
+						</div>
+						<div class='ca_settingDescription'><?tr("Use an alternative application feed.");?></div>
 					</div>
 
 					<div class='ca_settingCard'>

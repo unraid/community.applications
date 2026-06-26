@@ -74,6 +74,7 @@ define("CA_PATHS",[
 	/* Global (NOT per-tab): the application feed and the lock that gates
 	   concurrent downloads are shared state — only one download should be in
 	   flight across all tabs, and "feed is ready" is a server-wide fact. */
+  
 	'haveTemplates'                       => "/tmp/ca_haveTemplates",
 	'gettingTemplates'                    => "/tmp/ca_gettingTemplates", /* flag to indicate that the templates are being downloaded */
 	'community-templates-displayed'       => "$tempFiles/displayed{$caTabSuffix}.json",        /* json file containing all of the templates currently displayed (per-tab) */
@@ -93,19 +94,15 @@ define("CA_PATHS",[
 	   successful `registerTab` action so the guard isn't checked before
 	   the marker exists. */
 	'registeredTabs'                      => "$tempFiles/registeredID",
-	'application-feed'                    => "https://ca.unraid.net/assets/feed/applicationFeed.json",
+	'application-feed-unraidnet'          => "https://ca.unraid.net/assets/feed/applicationFeed.json",
+  'application-feed-cdn'                => "https://ca.unraid.net/cdn/feed/applicationFeed.json",
 	/* Slimmed-down feed: same shape as the full feed, just with each template's
-	   Config entries stripped out. Primary-only — GitHub backup serves only the
-	   full feed. CA tries this first for a faster initial render and then
-	   background-hydrates the full feed afterwards. */
-	'application-feed-small'              => "https://ca.unraid.net/assets/feed/applicationFeed-small.json",
-	'application-feed-last-updated'       => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
-	'application-feedBackup'              => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed.json",
-	/* GitHub backup of the slim feed. Both initial-load tiers download
-	   applicationFeed-small.json; if both fail we error out rather than
-	   pulling the full feed as a third try. */
-	'application-feed-smallBackup'        => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-small.json",
-	'application-feed-last-updatedBackup' => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/applicationFeed-lastUpdated.json",
+	   Config entries stripped out. CA tries this first for a faster initial
+	   render and then background-hydrates the full feed afterwards. */
+	'application-feed-small-unraidnet'    => "https://ca.unraid.net/assets/feed/applicationFeed-small.json",
+  'application-feed-small-cdn'          => "https://ca.unraid.net/cdn/feed/applicationFeed-small.json",
+  'application-feed-last-updated-unraidnet' => "https://ca.unraid.net/assets/feed/applicationFeed-lastUpdated.json",
+  'application-feed-last-updated-cdn'   => "https://ca.unraid.net/cdn/feed/applicationFeed-lastUpdated.json",
 	'appFeedDownloadError'                => "$tempFiles/downloaderror.txt",
 	'rawAppFeed'                          => "$tempFiles/applicationFeed-raw.json", /* raw applicationFeed.json snapshot — populated by hydrateFullFeedWork() ONLY when dev mode is enabled, consumed by the dev-mode Diff button (caGetCachedApplicationFeed) */
 	'caAdmin'                             => "/boot/config/plugins/community.applications/admin", /* marker file: when present alongside dev mode, exposes the Internal diff button */
@@ -128,7 +125,6 @@ define("CA_PATHS",[
 	'appOfTheDay'                         => "$tempFiles/appOfTheDay.json",
 	'statistics'                          => "$tempFiles/statistics.json",
 	'statisticsURL'                       => "https://ca.unraid.net/assets/feed/statistics.json",
-	'statisticsURLBackup'                 => "https://raw.githubusercontent.com/Squidly271/AppFeed/master/statistics.json",
 	'pluginSettings'                      => "$flashDrive/community.applications.cfg",
 	'fixedTemplates_txt'                  => "$tempFiles/caFixed.txt",
 	'invalidXML_txt'                      => "$tempFiles/invalidxml.txt",
@@ -169,7 +165,6 @@ define("CA_PATHS",[
 	// spotlightSprite, which lives under tempFiles so it is wiped and rebuilt
 	// on every feed refresh.
 	'spotlightSvgSource'                  => "https://assets.ca.unraid.net/feed/webImages/monthly_spotlight.svg",
-	'spotlightSprite'                     => "$tempFiles/monthly_spotlight_sprite.svg",
-	'spotlightSvgSource-backup'           => "https://github.com/unraid/community.applications/raw/master/webImages/monthly_spotlight.svg"
+	'spotlightSprite'                     => "$tempFiles/monthly_spotlight_sprite.svg"
 ]);
 ?>

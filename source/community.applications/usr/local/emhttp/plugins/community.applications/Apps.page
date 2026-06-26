@@ -3772,26 +3772,6 @@ function getCategories() {
 	});
 }
 
-// Function should no longer be required
-function feedWarning(currentServer) {
-	if ( currentServer != "Primary Server" ) {
-		if ( currentServer == "" ) {
-			addBannerWarning("<?tr("Unknown error happened.  Please post a screenshot in the support thread of the Statistics screen");?>");
-		} else {
-				if ( !backupServerWarning ) {
-				backupServerWarning = addBannerWarning("<?tr("Backup Server Active.  Some icons may not appear, and plugin installations may be affected");?>",true,true);
-			} else {
-				removeBannerWarning(backupServerWarning);
-				backupServerWarning = false;
-			}
-		}
-	} else if ( backupServerWarning ) {
-		removeBannerWarning(backupServerWarning);
-		backupServerWarning = false;
-	}
-}
-
-
 /**
  * Switch UI language: stash prior locale in cookie, POST `switchLanguage`, set `ca_languageSwitch`, reload.
  *
