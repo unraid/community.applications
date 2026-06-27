@@ -22,12 +22,12 @@ class ForceUpdateHelpers {
 	}
 
 	/**
-	 * Download the application-feed last-updated JSON (with backup-server fallback).
+	 * Download the application-feed last-updated JSON.
 	 *
 	 * Side effects: deletes/writes CA_PATHS['lastUpdated'] on disk, emits debug
-	 * output, and reaches over the network with a 60s timeout. When neither
-	 * primary nor backup returns a valid timestamp, falls back to INF so the
-	 * caller treats the local cache as stale.
+	 * output, and reaches over the network with a 60s timeout. When the primary
+	 * does not return a valid timestamp, falls back to INF so the caller treats
+	 * the local cache as stale.
 	 *
 	 * @return array<string,mixed> Decoded metadata; always contains last_updated_timestamp.
 	 */
@@ -36,12 +36,8 @@ class ForceUpdateHelpers {
 
 		/* 60-second cap — this is the tiny last-updated probe (a few hundred
 		   bytes); we don't want it pinning a force_update for longer than
-		   that before failing over to the backup endpoint. */
-		$latestUpdate = download_json(CA_PATHS['application-feed-last-updated'], CA_PATHS['lastUpdated'], 60);
-
-		if (!self::isValidUpdateMetadata($latestUpdate)) {
-			$latestUpdate = download_json(CA_PATHS['pluginProxy'] . CA_PATHS['application-feed-last-updatedBackup'], CA_PATHS['lastUpdated'], 60);
-		}
+		   that. */
+		$latestUpdate = download_json(caFeedPath('application-feed-last-updated'), CA_PATHS['lastUpdated'], 60);
 
 		if (!self::isValidUpdateMetadata($latestUpdate)) {
 			$latestUpdate = [];

@@ -114,6 +114,24 @@ function getSettings() {
 }
 
 /**
+ * Resolve the active app-feed URL path key, honoring the useCloudflareCDN setting.
+ *
+ * @param  string $key Base CA_PATHS key (application-feed* family).
+ * @return string
+ */
+function caFeedPath(string $key): string {
+	/* Each logical feed key resolves to one of two concrete CA_PATHS entries:
+	   the unraid.net mirror (<key>-unraidnet, the default) or the Cloudflare CDN
+	   mirror (<key>-cdn) when the useCloudflareCDN setting is on. Fall back to the
+	   unraid.net mirror if the CDN variant is missing so a stray key/setting can
+	   never return null (the declared string return type would otherwise fatal). */
+	$useCdn  = (($GLOBALS['caSettings']['useCloudflareCDN'] ?? "no") === "yes");
+	$variant = $useCdn ? "{$key}-cdn" : "{$key}-unraidnet";
+
+	return CA_PATHS[$variant] ?? CA_PATHS["{$key}-unraidnet"] ?? "";
+}
+
+/**
  * Admin mode = dev mode on AND the on-disk admin marker present
  * (/boot/config/plugins/community.applications/admin). Single source of truth
  * for the gate on moderator-only affordances (internal "CA" diff, the per-repo

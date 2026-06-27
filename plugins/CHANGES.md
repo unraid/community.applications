@@ -23,6 +23,12 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Added: New "Use Cloudflare CDN" setting to load the application feed from an alternative source; changing it refreshes the feed automatically
+- Removed: Automatic fallback to the GitHub-hosted backup application feed
+- Changed: The Info and Settings buttons now stay available when the application feed fails to download, so you can adjust settings and retry without reloading
+- Removed: The "Modified Code" label in the page footer
+- Fixed: The Apps page could stop loading and stay stuck after a feed refresh was interrupted
+
 - Changed: The Info and Settings controls in the top bar are now labelled buttons (icon plus text), collapsing to just the icon on narrow / mobile screens
 - Fixed: On mobile, clicking "Home" from the slide-out menu now closes the menu and its dimmed overlay instead of leaving them open
 - Added: For admins, clicking the Community Applications logo at the top of the menu reloads the page (with a hover highlight to show it's clickable)

@@ -3574,7 +3574,12 @@ input[type="button"] {
 		background-color: revert;
 		display: flex;
 		flex-direction: row;
-		justify-content: flex-start;
+		/* flex-end so that when the feed fails and the left group (.caSearchRowMain,
+		   which carries onlyShowWithFeed) is hidden, the remaining right group
+		   (.caSearchRowEnd: Info + Settings) stays pinned to the right edge. In the
+		   normal state .caSearchRowMain's flex:1 fills the row, leaving no free space,
+		   so justify-content has no visible effect. */
+		justify-content: flex-end;
 		align-items: baseline;
 		gap: 0.5rem;
 	}

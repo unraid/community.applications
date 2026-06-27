@@ -515,7 +515,6 @@ function showStatistics() {
 			if (value === undefined || value === null || value === "") return fallback;
 			return value;
 		};
-		const safeUrl = (url) => (typeof url === "string" && url.length) ? url : "#";
 		const $content = $("#caStatisticsTemplate");
 		const setText = (key, value, fallback = "0") => {
 			const $el = $content.find("[data-stat-text='" + key + "']");
@@ -548,8 +547,6 @@ function showStatistics() {
 		setText("blacklist", stats.blacklist);
 		setText("totalIncompatible", stats.totalIncompatible);
 		setText("totalDeprecated", stats.totalDeprecated);
-		$content.find("[data-stat-href='primaryServerUrl']").attr("href", safeUrl(stats.primaryServerUrl));
-		$content.find("[data-stat-href='backupServerUrl']").attr("href", safeUrl(stats.backupServerUrl));
 
 		/* Dev/admin-only diagnostics. The server includes stats.tabId only when
 		   dev+admin (caIsAdmin) is satisfied, so its presence is the admin
@@ -566,70 +563,5 @@ function showStatistics() {
 		   bring it back so there's a top-left arrow to Credits (the handler in
 		   clickHandlers.js routes it there when caSidebarBackTarget is credits). */
 		if (window.caSidebarBackTarget === "credits") $(".popUpBack").removeClass("ca_hide");
-
-		/* Feed SHA comparison is a separate, slower call (downloads both mirrors
-		   server-side), so fetch it after the view is up and patch the LIVE
-		   #sidenavContent clone — modifying the template now would be ignored. */
-		if (isAdminDiag) {
-			postNoSpin({ action: "caCompareFeedShas" }, function(shaResult) {
-				if (!shaResult || !shaResult.enabled || !shaResult.results) return;
-				const $cell = $("#sidenavContent [data-stat-html='feedShaCheck']");
-				if (!$cell.length) return; // user navigated away before it returned
-				$cell.html(caBuildFeedShaHtml(shaResult.results));
-				$("#sidenavContent #caFeedShaCheckRow").removeClass("ca_hide");
-			});
-		}
 	});
-}
-
-/**
- * Build the primary-vs-GitHub-backup feed SHA comparison markup for the
- * statistics popup (dev/admin diagnostic). `results` is keyed small/full/
- * statistics, each { primary, backup, match } with null shas on fetch failure.
- *
- * @param {object} results
- * @returns {string} HTML
- */
-function caBuildFeedShaHtml(results) {
-	const order = [
-		{ key: "small",      label: tr("Application feed (small)") },
-		{ key: "full",       label: tr("Application feed (full)") },
-		{ key: "statistics", label: tr("Statistics feed") }
-	];
-	const rows = order.map(function(item) {
-		const r = results[item.key];
-		if (!r) return "";
-		let status;
-		if (r.primary === null || r.backup === null) {
-			let which;
-			if (r.primary === null && r.backup === null) which = tr("both fetches failed");
-			else if (r.primary === null)                 which = tr("primary fetch failed");
-			else                                         which = tr("backup fetch failed");
-			status = "<i class='fa fa-question-circle ca_serverWarning' aria-hidden='true'></i> " + which;
-		} else if (r.match) {
-			status = "<i class='fa fa-check' aria-hidden='true'></i> " + tr("in sync");
-		} else {
-			status = "<i class='fa fa-exclamation-triangle ca_serverWarning' aria-hidden='true'></i> " + tr("mismatch");
-			/* On a mismatch, link both mirrors so a maintainer can open and
-			   compare them directly. */
-			var links = [];
-			if (r.primaryUrl) links.push(caFeedShaLink(r.primaryUrl, tr("primary")));
-			if (r.backupUrl)  links.push(caFeedShaLink(r.backupUrl, tr("backup")));
-			if (links.length) status += " (" + links.join(", ") + ")";
-		}
-		return "<div>" + item.label + ": " + status + "</div>";
-	});
-	return "<div class='ca_bold'>" + tr("Primary vs backup feed check") + "</div>" + rows.join("");
-}
-
-/**
- * Build a new-tab anchor to a feed mirror URL for the SHA mismatch diagnostic.
- *
- * @param {string} url
- * @param {string} label
- * @returns {string} HTML
- */
-function caFeedShaLink(url, label) {
-	return "<a class='popUpLink' target='_blank' rel='noopener noreferrer' href='"
-		+ caEscapeHtml(url) + "'>" + caEscapeHtml(label) + "</a>";
 }
