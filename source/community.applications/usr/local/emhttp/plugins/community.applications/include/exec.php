@@ -1829,10 +1829,23 @@ function force_update() {
 			}
 		}
 		if ( ! is_file(CA_PATHS['gettingTemplates']) ) {
-			/* Marker cleared normally: the other updater finished, wiped
-			   tempFiles (including this tab's marker), and the feed is now
-			   fresh. Re-register here and report ok without downloading again —
-			   otherwise a subsequent caFeedCheck on this tab would falsely
+			/* Marker cleared — but the owner removes it on BOTH success and
+			   failure (on failure it also wipes tempFiles + haveTemplates), so a
+			   missing marker doesn't imply a fresh feed. Discriminate on the
+			   templates cache itself: present => the owner succeeded; absent =>
+			   the download failed and dropped the cache, so surface the same
+			   failure response instead of a false "ok" with no feed. Check the
+			   file directly, not templatesAvailable()/$GLOBALS['templates'] —
+			   the latter was loaded at request start (before the owner finished)
+			   and getGlobals() won't reload an already-set global. */
+			clearstatcache();
+			if ( ! file_exists(CA_PATHS['community-templates-info']) ) {
+				@unlink(CA_PATHS['haveTemplates']);
+				postReturn(ForceUpdateHelpers::buildDownloadFailureResponse());
+				return;
+			}
+			/* Feed is fresh: re-register and report ok without downloading again
+			   — otherwise a subsequent caFeedCheck on this tab would falsely
 			   surface the stale-feed banner. */
 			ensureTabRegistered();
 			postReturn(['status' => "ok"]);
