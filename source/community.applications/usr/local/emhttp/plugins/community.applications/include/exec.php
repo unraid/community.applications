@@ -379,7 +379,9 @@ function DownloadApplicationFeed() {
 	/* Slim feed. 10-minute cURL timeout / shared=false: per-request
 	   tempfile, so we don't want download_url to serialize unrelated calls. */
 	$smallFeed = download_json(caFeedPath('application-feed-small'), $downloadURL, 600, false);
-	$currentFeed = "Primary Server (slim)";
+	$currentFeed = (($GLOBALS['caSettings']['useCloudflareCDN'] ?? "no") === "yes")
+		? "Cloudflare CDN (slim)"
+		: "Primary Server (slim)";
 	if ( ! is_array($smallFeed['applist'] ?? null) || empty($smallFeed['applist']) ) {
 		/* Don't unlink $downloadURL on failure — leave the raw bytes
 		   (preserved by download_json under $shared=false) on disk so
@@ -859,7 +861,9 @@ function hydrateFullFeedWork(): string {
 
 	$downloadURL = randomFile();
 	$ApplicationFeed = download_json(caFeedPath('application-feed'), $downloadURL, 600, false);
-	$label = "Primary Server (full)";
+	$label = (($GLOBALS['caSettings']['useCloudflareCDN'] ?? "no") === "yes")
+		? "Cloudflare CDN (full)"
+		: "Primary Server (full)";
 	/* Dev mode: stash the raw applicationFeed.json snapshot before
 	   deleting the per-request tempfile so the Diff/Plugin/Template
 	   modals don't have to re-download it. The slim-feed download in
@@ -1189,9 +1193,13 @@ function saveSettings() {
 	/* Feed-source toggle changed -> drop the cached feed tree
 	   (/tmp/community.applications) so the post-save page reload re-downloads
 	   from the newly-selected feed instead of serving the stale cache. Same
-	   cache wipe the factory reset above performs. */
+	   cache wipe the factory reset above performs. Also clear the haveTemplates
+	   ready-sentinel — it lives at /tmp/ca_haveTemplates (outside the wiped
+	   tree), so without this the Action Centre and other tabs would still see
+	   the feed as ready after the cache underneath it was just dropped. */
 	if ( (string)($cfg['useCloudflareCDN'] ?? "no") !== $oldCloudflareCDN ) {
 		exec("rm -rf ".escapeshellarg(dirname(CA_PATHS['tempFiles'])));
+		@unlink(CA_PATHS['haveTemplates']);
 	}
 
 	postReturn(["ok" => true]);
@@ -1800,9 +1808,16 @@ function force_update() {
 	   gettingTemplates below and unlinks it when done, but if the owning process
 	   dies mid-run (fatal/kill/OOM) the marker is never cleared and this wait
 	   would hang forever — taking every later force_update down with it. A live
-	   updater always clears the marker within its own download timeouts, so a
-	   marker older than $staleAfter is stale: ignore it and take over instead. */
-	$staleAfter = 660; // combined feed timeouts: slim download (600s) + last-updated probe (60s)
+	   updater always clears the marker within one full critical section, so a
+	   marker older than $staleAfter is stale: ignore it and take over instead.
+	   The budget must exceed the WHOLE held section, not just the downloads:
+	   last-updated probe (60s) + slim download (600s) + spotlight SVG fetch
+	   (30s) + moderation/writeback (CPU, unbounded but seconds on real feeds).
+	   1800s leaves generous headroom so a healthy-but-slow run is never falsely
+	   stolen; the fatal shutdown hook (top of file) is the fast path for the
+	   common crash, leaving this purely a SIGKILL/OOM backstop where a slower
+	   recovery is fine. */
+	$staleAfter = 1800;
 	clearstatcache();
 	if ( is_file(CA_PATHS['gettingTemplates']) && (time() - (@filemtime(CA_PATHS['gettingTemplates']) ?: 0)) < $staleAfter ) {
 		while ( is_file(CA_PATHS['gettingTemplates']) ) {
