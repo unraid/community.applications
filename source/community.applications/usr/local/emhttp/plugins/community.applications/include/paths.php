@@ -159,12 +159,10 @@ define("CA_PATHS",[
 	'pluginAttributesCache'               => "$tempFiles/pluginAttributesCache",
 	'downloadLocks'                       => "/tmp/ca_downloadLocks.json",
 	'downloadLocksDir'                    => "$tempFiles/locks",
-	// Wide monthly-spotlight wordmark. Downloaded and converted to an inline
-	// SVG symbol sprite server-side during the feed download (see
-	// caBuildSpotlightSprite in exec.php); the processed sprite is cached at
-	// spotlightSprite, which lives under tempFiles so it is wiped and rebuilt
-	// on every feed refresh.
-	'spotlightSvgSource'                  => "https://assets.ca.unraid.net/feed/webImages/monthly_spotlight.svg",
-	'spotlightSprite'                     => "$tempFiles/monthly_spotlight_sprite.svg"
+	// Wide monthly-spotlight wordmark, shipped pre-built as an inline SVG symbol
+	// sprite in the plugin package under webImages/. skin.html readfile()s it
+	// directly into a holder div; the page references the art via
+	// use href=#ca-monthly-spotlight. Static asset, no download or rebuild.
+	'spotlightSprite'                     => "$docroot/plugins/$CA/webImages/monthly_spotlight_sprite.svg"
 ]);
 ?>
