@@ -735,21 +735,18 @@ $(function() {
 ###############################################################################
 # Monthly-spotlight symbol sprite holder.                                     #
 #                                                                             #
-# Single stable home for the inline SVG symbol sprite so it is always in the   #
-# same spot in the DOM (rather than bouncing between an inline copy and a JS-  #
-# prepended one). The sprite is built server-side during the feed download    #
-# (caBuildSpotlightSprite in exec.php) and cached under tempFiles.            #
+# Emits the inline SVG symbol sprite that the skin's use href=              #
+# #ca-monthly-spotlight references. The sprite is a static asset shipped in    #
+# the package (webImages/monthly_spotlight_sprite.svg); it is readfile()d      #
+# straight in here, so it is present at first paint with no download, rebuild  #
+# or JS injection.                                                            #
 #                                                                             #
-# On a warm load the cache exists and is emitted here. On a cold tempFiles it  #
-# is empty, and caInjectSpotlightSprite in Apps.page fills this holder via     #
-# innerHTML once the bootstrap download lands.                                #
-#                                                                             #
-# readfile, not include: the cache holds downloaded SVG markup and must never  #
-# be run as PHP. No ca_hide here on purpose - ca_hide is display none, which   #
-# can stop use references from resolving the gradient inside the sprite in     #
-# some browsers. The emitted sprite svg hides itself off screen instead        #
-# (position absolute, zero size, overflow hidden), so the holder collapses to  #
-# nothing without display none.                                               #
+# readfile, not include: the file holds SVG markup and must never be run as    #
+# PHP. No ca_hide here on purpose - ca_hide is display none, which can stop    #
+# use references from resolving the gradient inside the sprite in some         #
+# browsers. The emitted sprite svg hides itself off screen instead (position   #
+# absolute, zero size, overflow hidden), so the holder collapses to nothing    #
+# without display none.                                                       #
 ###############################################################################
 ?>
 <div class='spotlight_svg_holder'><? if ( is_file(CA_PATHS['spotlightSprite']) ) readfile(CA_PATHS['spotlightSprite']); ?></div>

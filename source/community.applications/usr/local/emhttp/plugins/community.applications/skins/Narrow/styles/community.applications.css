@@ -2537,11 +2537,9 @@ body,
 		/* Size knob for the home card icon. Scoped here so it overrides the
 		   shared .spotlightIcon sizing / negative-margin hacks (still used by the
 		   sidebar img) without touching them. Set height; width follows from the
-		   art aspect ratio. The ratio is not known here (the viewBox lives in the
-		   fetched svg), so the sprite cache ships a :root style setting
-		   --ca-spotlight-w / --ca-spotlight-h from that viewBox (see
-		   caBuildSpotlightSprite). The fallbacks cover the cold-load window
-		   before the sprite is injected. */
+		   art aspect ratio. The bundled sprite ships a :root style setting
+		   --ca-spotlight-w / --ca-spotlight-h from its viewBox; the fallbacks
+		   here cover the case where that style has not applied yet. */
 		display: block;
 		height: 4rem;
 		width: auto;
@@ -4080,9 +4078,9 @@ input[type="button"] {
 
 	.spotlightIconArea .spotlightIcon {
 		/* Sidebar icon: set height, width follows the symbol aspect via the
-		   --ca-spotlight-* vars shipped in the sprite cache (see
-		   caBuildSpotlightSprite). Scoped to .spotlightIconArea so it overrides
-		   the shared .spotlightIcon base without touching the home card. */
+		   --ca-spotlight-* vars shipped in the bundled sprite. Scoped to
+		   .spotlightIconArea so it overrides the shared .spotlightIcon base
+		   without touching the home card. */
 		display: block;
 		height: 7rem;
 		width: auto;
