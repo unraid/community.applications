@@ -603,14 +603,20 @@ function caInitializeClickHandlers() {
 			post({ action: "defaultSortOrder" }, function() { $("#defaultSort").addClass("enabledIcon"); changeCategory(menu, false); });
 		} else changeCategory(menu, false);
 	});
-	$(".sidebar").on("click", ".chartMenu", function() {
+	/* Exclude .caLiveStatsTab: those tabs also carry .chartMenu but belong to the
+	   live-stats block and have their own handler (popupLiveStatsBlock). Without
+	   the filter this handler would clear their chartTabActive when a graph tab is
+	   clicked. Scope removeClass/hide to the clicked tab's own .popupChartBlock so
+	   the two chart strips never fight over each other's active tab. */
+	$(".sidebar").on("click", ".chartMenu:not(.caLiveStatsTab)", function() {
 		/* chartTabActive (not the nav's selectedMenu) marks the active chart tab
 		   so a bare $(".selectedMenu") never mistakes a sidebar chart tab for the
 		   selected left-nav menu item. */
 		if ($(this).hasClass("chartTabActive")) return;
-		$(".chartMenu").removeClass("chartTabActive");
+		var $chartBlock = $(this).closest(".popupChartBlock");
+		$chartBlock.find(".chartMenu").removeClass("chartTabActive");
 		$(this).addClass("chartTabActive");
-		$(".caChart").hide();
+		$chartBlock.find(".caChart").hide();
 		$("#" + $(this).data("chart")).show();
 	});
 	$(".sidebar").on("click", ".popUpBack", function() {
