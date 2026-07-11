@@ -2328,7 +2328,7 @@ body,
 		border: none !important;
 	}
 
-	.chartMenu.selectedMenu {
+	.chartMenu.chartTabActive {
 		color: var(--brand-orange);
 		font-weight: bold;
 	}

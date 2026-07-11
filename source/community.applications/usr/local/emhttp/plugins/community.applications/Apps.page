@@ -3316,7 +3316,10 @@ function updateDisplay(content, append) {
 	}
 //	saveState();
 
-	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker && ! $("#templates_content .ca_templatesDisplay").length && ! $(".selectedMenu").length ) {
+	/* Scope the "nothing is selected" guard to the nav menu (.caMenu) — the only
+	   place .selectedMenu marks the active menu item. Keeps this robust against
+	   any future sidebar markup that might reuse the class outside the nav. */
+	if ( ! $(".startupButton").hasClass("selectedMenu") && ! data.docker && ! $("#templates_content .ca_templatesDisplay").length && ! $(".caMenu .selectedMenu").length ) {
 		$(".startupButton").addClass("selectedMenu");
 	}
 	/* Home view: slide its sections submenu open the same way category subs do
@@ -4061,6 +4064,10 @@ function popUpChart(descData) {
 							callback: function(label,index,labels) {
 								return label.toLocaleString();
 							},
+							/* Download counts are whole numbers; without this a
+							   max of 1 makes Chart.js emit 0.2/0.4/... decimal
+							   ticks. Mirrors the trend chart's y-axis. */
+							precision: 0,
 							fontColor: cssVar("--tooltipster-content")
 						}
 					}],
@@ -4115,6 +4122,9 @@ function popUpChart(descData) {
 							callback: function(label,index,labels) {
 								return label.toLocaleString();
 							},
+								/* Whole download counts only — no decimal ticks
+								   when the max is small. */
+								precision: 0,
 								fontColor: cssVar("--tooltipster-content")
 						}
 					}],
@@ -4568,12 +4578,12 @@ function caStartLiveStats(containerName) {
 	   DOM when closeSidebar() wipes #sidenavContent. */
 	$(".popupLiveStatsBlock").on("click", ".caLiveStatsTab", function() {
 		var $tab = $(this);
-		if ($tab.hasClass("selectedMenu")) return;
+		if ($tab.hasClass("chartTabActive")) return;
 		var view = $tab.data("view");
 		$(".popupLiveStatsBlock .caLiveStatsTab")
-			.removeClass("selectedMenu")
+			.removeClass("chartTabActive")
 			.attr("aria-pressed", "false");
-		$tab.addClass("selectedMenu").attr("aria-pressed", "true");
+		$tab.addClass("chartTabActive").attr("aria-pressed", "true");
 		$(".popupLiveStatsBlock .caLiveStatsView").removeClass("caLiveStatsActive");
 		$(".popupLiveStatsBlock .caLiveStatsView[data-view='" + view + "']").addClass("caLiveStatsActive");
 	});

@@ -604,9 +604,12 @@ function caInitializeClickHandlers() {
 		} else changeCategory(menu, false);
 	});
 	$(".sidebar").on("click", ".chartMenu", function() {
-		if ($(this).hasClass("selectedMenu")) return;
-		$(".chartMenu").removeClass("selectedMenu");
-		$(this).addClass("selectedMenu");
+		/* chartTabActive (not the nav's selectedMenu) marks the active chart tab
+		   so a bare $(".selectedMenu") never mistakes a sidebar chart tab for the
+		   selected left-nav menu item. */
+		if ($(this).hasClass("chartTabActive")) return;
+		$(".chartMenu").removeClass("chartTabActive");
+		$(this).addClass("chartTabActive");
 		$(".caChart").hide();
 		$("#" + $(this).data("chart")).show();
 	});
