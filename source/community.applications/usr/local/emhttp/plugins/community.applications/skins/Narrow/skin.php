@@ -457,10 +457,10 @@ function displayPopup($template) {
 	if (count($trends) > 1 && $downloadtrend) {
 		$chartBlock = "
 			<div class='popupChartBlock'>
-				<div><span class='charts'><span class='chartMenu selectedMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
+				<div><span class='charts'><span class='chartMenu chartTabActive' data-chart='downloadChart'>".tr("Downloads Per Month")."</span><span class='chartMenu' data-chart='trendChart'>".tr("Trend Per Month")."</span><span class='chartMenu' data-chart='totalDownloadChart'>".tr("Total Downloads")."</span></div>
 				<div>
-					<div><canvas id='trendChart' class='caChart' height=1 width=3></canvas></div>
-					<div><canvas id='downloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
+					<div><canvas id='downloadChart' class='caChart' height=1 width=3></canvas></div>
+					<div><canvas id='trendChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
 					<div><canvas id='totalDownloadChart' class='caChart' style='display:none;' height=1 width=3></canvas></div>
 				</div>
 			</div>
@@ -520,7 +520,7 @@ function displayPopup($template) {
 			<div class='popupChartBlock popupLiveStatsBlock' data-container='{$encodedContainer}'>
 				<div>
 					<span class='charts'>
-						<button type='button' role='tab' aria-pressed='true' class='chartMenu caLiveStatsTab selectedMenu' data-view='summary'>{$tabSummary}</button>
+						<button type='button' role='tab' aria-pressed='true' class='chartMenu caLiveStatsTab chartTabActive' data-view='summary'>{$tabSummary}</button>
 						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='cpu'>{$tabCpu}</button>
 						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='memory'>{$tabMem}</button>
 						<button type='button' role='tab' aria-pressed='false' class='chartMenu caLiveStatsTab' data-view='net'>{$tabNet}</button>

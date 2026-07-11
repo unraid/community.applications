@@ -288,3 +288,10 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: In the app panel, the Update button now sits on the left alongside WebUI / Read Me First / Edit, with Uninstall staying pinned to the right (and wrapping cleanly to a second row on narrow windows)
 - Changed: The "download of appfeed failed" message now suggests enabling (or disabling) the Cloudflare CDN feed in Settings, and no longer shows the raw technical error text or the outdated "the server may be down" note
 - Chore: Removed some unused internal feed / URL path definitions
+
+- Fixed: The "Home" menu sections (Recent, Spotlight, Trending, and so on) no longer disappear after you open an app's panel and then click Home
+- Fixed: The Downloads Per Month and Total Downloads graphs no longer show fractional values on the vertical axis when download counts are small
+- Changed: The app panel now opens on the Downloads Per Month graph by default, and it is listed first among the graph tabs
+- Fixed: On Spotlight app cards, a long application name no longer runs underneath the "Monthly Spotlight" badge
+- Changed: Long application names on app cards now wrap to a second line instead of being cut off with an ellipsis
+- Removed: The category line on app cards (the category is still shown in the app panel)
