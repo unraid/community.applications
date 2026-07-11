@@ -52,11 +52,13 @@ find "$LOCAL_DST" -name "._*"       -delete
 rm -rf "$LOCAL_DST/.claude"
 
 # Regenerate ca.md5 in Linux md5sum format (`<hash>  <relative path>`,
-# two-space separator) so `md5sum -c` works on the Unraid side.
+# two-space separator) so `md5sum -c` works on the Unraid side. ca.md5 excludes
+# itself: its own hash can't exist until it's written, and writing the hash then
+# changes the file, so a self-entry always fails `md5sum -c` at runtime.
 echo "==> Regenerating ca.md5"
 cd "$LOCAL_DST"
 rm -f ca.md5
-find . -type f -exec md5 -r {} + | awk '{h=$1; $1=""; sub(/^ /, ""); print h"  "$0}' > ca.md5
+find . -type f ! -name ca.md5 -exec md5 -r {} + | awk '{h=$1; $1=""; sub(/^ /, ""); print h"  "$0}' > ca.md5
 
 # Force every file + directory to 0755 — done AFTER the ca.md5 regen so the
 # new ca.md5 itself is included (otherwise the redirect-created file inherits
