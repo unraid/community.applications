@@ -1997,10 +1997,12 @@ function caBuildApplicationHeader(array $template, string $name, string $author,
 		$authorDisplay = $author;
 	}
 
+	/* Category intentionally not rendered on cards (kept in the sidebar). Dropping
+	   it frees a line in the fixed title band so long names can wrap to two lines
+	   at full size. $category is still accepted for signature stability. */
 	$header .= "
 				</div>
 				<div class='ca_author ellipsis'>{$authorDisplay}</div>
-				<div class='cardCategory'>{$category}</div>
 	";
 
 	return $header;

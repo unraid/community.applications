@@ -292,3 +292,6 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: The "Home" menu sections (Recent, Spotlight, Trending, and so on) no longer disappear after you open an app's panel and then click Home
 - Fixed: The Downloads Per Month and Total Downloads graphs no longer show fractional values on the vertical axis when download counts are small
 - Changed: The app panel now opens on the Downloads Per Month graph by default, and it is listed first among the graph tabs
+- Fixed: On Spotlight app cards, a long application name no longer runs underneath the "Monthly Spotlight" badge
+- Changed: Long application names on app cards now wrap to a second line instead of being cut off with an ellipsis
+- Removed: The category line on app cards (the category is still shown in the app panel)

@@ -563,7 +563,7 @@ body,
 /* 2.3) Card Elements */
 .ca_applicationName {
 	/* Layout */
-	width: 25rem;
+	width: 34rem;
 	max-height: 3rem;
 	margin-left: 0.75rem;
 	padding-top: 1.5rem;
@@ -571,6 +571,35 @@ body,
 	/* Typography */
 	font-size: 2rem;
 	font-weight: bold;
+}
+
+/* Spotlight cards carry the absolutely-positioned "Monthly Spotlight" badge
+   (.homespotlightIconArea) in the top-right corner. Narrow the title so its
+   ellipsis truncates before running under the (transparent) badge art instead
+   of the two overlapping. Only spotlight cards match the :has(). */
+.ca_holder:has(.homespotlightIconArea) .ca_applicationName {
+	width: 22rem;
+}
+
+/* Let long card titles wrap to a second line (at the same size) instead of
+   truncating on line one — the header has vertical slack before the
+   description, and the width cap keeps both lines clear of the badge. Short
+   names still render as a single line, unchanged. Overrides the single-line
+   .ellipsis rule; -webkit-line-clamp still appends an ellipsis past line two. */
+.ca_holder .ca_applicationName {
+	/* Long names wrap to a second line (at the full title size) instead of
+	   truncating on line one. With the category line gone the title band has room
+	   for two lines; short names still render as one. -webkit-line-clamp appends
+	   an ellipsis only if a name overruns two lines. Overrides the single-line
+	   .ellipsis rule and the base max-height that would clip line two. */
+	white-space: normal;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	max-height: none;
+	padding-top: 1.25rem;
+	line-height: 1.1;
 }
 
 .ca_backgroundClickable {
@@ -600,11 +629,6 @@ body,
 
 .ca_bottomLineSpotLight {
 	top: 15rem !important;
-}
-
-.cardCategory {
-	font-size: 1rem;
-	margin-left: 0.75rem;
 }
 
 .cardDescription {
