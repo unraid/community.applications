@@ -89,10 +89,15 @@ class ForceUpdateHelpers {
 	public static function buildDownloadFailureResponse(): array {
 		$response = ['script' => "$('.onlyShowWithFeed').hide();"];
 
+		$cdnHint = (($GLOBALS['caSettings']['useCloudflareCDN'] ?? "no") === "yes")
+			? tr("Alternatively you may need to disable the Cloudflare CDN feed in Settings.")
+			: tr("Alternatively you may need to enable the Cloudflare CDN feed in Settings.");
+
 		if (checkServerDate()) {
 			$response['data'] = "<div class='ca_center'><font size='4'><span class='ca_bold'>"
 				. tr("Download of appfeed failed.")
-				. "</span></font><font size='3'><br><br>Community Applications requires your server to have internet access.  The most common cause of this failure is a failure to resolve DNS addresses.  You can try and reset your modem and router to fix this issue, or set static DNS addresses (Settings - Network Settings) of 208.67.222.222 and 208.67.220.220 and try again.<br><br>Alternatively, there is also a chance that the server handling the application feed is temporarily down.  See also <a href='https://forums.unraid.net/topic/120220-fix-common-problems-more-information/page/2/?tab=comments#comment-1101084' target='_blank'>this post</a> for more information";
+				. "</span></font><font size='3'><br><br>Community Applications requires your server to have internet access.  The most common cause of this failure is a failure to resolve DNS addresses.  You can try and reset your modem and router to fix this issue, or set static DNS addresses (Settings - Network Settings) of 208.67.222.222 and 208.67.220.220 and try again.<br><br>"
+				. $cdnHint;
 		} else {
 			$response['data'] = "<div class='ca_center'><font size='4'><span class='ca_bold'>"
 				. tr("Download of appfeed failed.")
@@ -107,11 +112,6 @@ class ForceUpdateHelpers {
 		if (strlen($downloaded) > 100) {
 			$response['data'] .= "<font size='2' color='red'><br><br>It *appears* that a partial download of the application feed happened (or is malformed), therefore it is probable that the application feed is temporarily down.  Please try again later)</font>";
 		}
-
-		$response['data'] .= "<div class='ca_center'>Last JSON error Recorded: ";
-		json_decode($downloaded, true);
-		$response['data'] .= json_last_error_msg();
-		$response['data'] .= "</div>";
 
 		@unlink(CA_PATHS['appFeedDownloadError']);
 		@unlink(CA_PATHS['community-templates-info']);

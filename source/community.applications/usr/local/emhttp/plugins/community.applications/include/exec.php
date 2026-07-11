@@ -1663,7 +1663,15 @@ function force_update() {
 
 	$latestUpdate = ForceUpdateHelpers::fetchLatestUpdateMetadata();
 
-	if (ForceUpdateHelpers::shouldRefreshTemplates($latestUpdate, $lastUpdatedOld)) {
+	/* A failed last-updated probe (temporary internet blip, or a 404) comes
+	   back as INF. That must NOT wipe an existing, good /tmp feed cache — a
+	   momentary probe failure is not evidence the feed changed. Only reset
+	   when the probe returned a real timestamp that differs from the cached
+	   one. When there is no cache, templatesAvailable() below is false and we
+	   download regardless, so a failed probe still recovers from a cold start. */
+	$probeSucceeded = is_finite((float)($latestUpdate['last_updated_timestamp'] ?? INF));
+
+	if ($probeSucceeded && ForceUpdateHelpers::shouldRefreshTemplates($latestUpdate, $lastUpdatedOld)) {
 		ForceUpdateHelpers::resetTemplatesCache();
 	}
 
