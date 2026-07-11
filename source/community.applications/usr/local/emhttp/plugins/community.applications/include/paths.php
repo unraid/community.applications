@@ -66,8 +66,6 @@ define("CA_PATHS",[
 	   processed template so the rest of the pipeline drops them. */
 	'ignoredRepos'                        => "/boot/config/plugins/$CA/ignoredRepos.json",
 	'templates-community'                 => "$tempFiles/templates-community-apps",           /* templates and temporary files stored here.  Deleted every update of applications */
-	'community-templates-url'             => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/Repositories.json",
-	'PublicServiceAnnouncement'           => "https://raw.githubusercontent.com/Squidly271/Community-Applications-Moderators/master/PublicServiceAnnouncement.txt",
 	'community-templates-info'            => "$tempFiles/templates_new.json",                     /* json file containing all of the templates */
 	'community-templates-info-old'        => "$tempFiles/templates.json",  /* this file is for plugin script to update support URLs on plugins.  Has to be in JSON format */
 	'community-templates-info-full'       => "$tempFiles/templates_full.json", /* json file containing all of the templates */
@@ -138,7 +136,6 @@ define("CA_PATHS",[
 	'defaultAppdataPath'                  => "/mnt/user/appdata/",
 	'installedLanguages'                  => "/boot/config/plugins",
 	'dynamixUpdates'                      => "/tmp/plugins",
-	'LanguageErrors'                      => "https://squidly271.github.io/languageErrors.html",
 	'CA_languageBase'                     => "https://assets.ca.unraid.net/feed/languages/",
 	'CA_logs'                             => "/tmp/CA_logs",
 	'logging'                             => "/tmp/CA_logs/ca_log.txt",
@@ -150,7 +147,6 @@ define("CA_PATHS",[
 	'dockerSearchResults'                 => "$tempFiles/dockerSearch{$caTabSuffix}.json",  /* per-tab */
 	'dockerSearchInstall'                 => "$tempFiles/dockerConvert.xml",
 	'dockerSearchActive'                  => "$tempFiles/dockerSearchActive{$caTabSuffix}", /* per-tab */
-	'dockerConvertFlash'                  => $dockerManPaths['templates-user']."/my-CA_TEST_CONTAINER_DOCKERHUB.xml",
 	'pluginPending'                       => "/tmp/plugins/pluginPending/",
 	'phpErrorSettings'                    => "/etc/php.d/errors-php.ini",
 	'pluginProxy'                         => "https://ca.unraid.net/dl/",

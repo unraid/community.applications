@@ -636,14 +636,14 @@ function displayPopup($template) {
 	];
 	$leftActionItems = [];
 	$rightInstallActionItems = [];
-	$rightUpdateActionItems = [];
+	$updateActionItems = [];
 	$rightUninstallActionItems = [];
 	foreach ($actionsButtonItems as $actionItem) {
 		$itemText = trim(strip_tags((string)($actionItem['text'] ?? "")));
 		if (in_array($itemText, $installFamilyTexts, true)) {
 			$rightInstallActionItems[] = $actionItem;
 		} elseif (in_array($itemText, $updateFamilyTexts, true)) {
-			$rightUpdateActionItems[] = $actionItem;
+			$updateActionItems[] = $actionItem;
 		} elseif (in_array($itemText, $uninstallFamilyTexts, true)) {
 			$rightUninstallActionItems[] = $actionItem;
 		} else {
@@ -658,7 +658,7 @@ function displayPopup($template) {
 	   both nudges the user toward the wrong action. Updating first is
 	   the right path; Install second can come back the next time the
 	   sidebar opens (no update pending). */
-	if (!empty($rightUpdateActionItems)) {
+	if (!empty($updateActionItems)) {
 		$rightInstallActionItems = array_values(array_filter(
 			$rightInstallActionItems,
 			static function ($item) {
@@ -753,13 +753,14 @@ function displayPopup($template) {
 			         by Apps.page's caRelocatePopupActions() at popup-load time.
 
 			         Emission order matters: LEFT items first (WebUI shortcut,
-			         Read Me First, other secondary actions, Pin), then RIGHT
+			         Read Me First, other secondary actions, Update), then RIGHT
 			         BLUE (install-family — Install / Reinstall / Install
-			         second instance), then RIGHT GREEN (Update), then RIGHT
-			         RED (Uninstall / Remove). The CSS's `margin-left:auto`
-			         push on .actionsInstall / .actionsUpdate / .actionsUninstall
-			         (community.applications.css) relies on this DOM order to
-			         right-align the right group as one contiguous block. */ ?>
+			         second instance), then RIGHT RED (Uninstall / Remove).
+			         Update floats LEFT with the secondary actions — only the
+			         install-family and Uninstall get the CSS `margin-left:auto`
+			         push on .actionsInstall / .actionsUninstall
+			         (community.applications.css), which relies on this DOM order
+			         to right-align that group as one contiguous block. */ ?>
 			<div class='popupStickyActions'>
 				<?php /* While the full-feed hydrate is still in flight (background fetch
 				         kicked off after the slim-feed bootstrap finishes), the action
@@ -814,6 +815,19 @@ function displayPopup($template) {
 					<?php endif; ?>
 				<?php endforeach; ?>
 
+				<?php /* Update lives with the LEFT group so it floats left with
+				         WebUI / Read Me First / Edit. It keeps .actionsUpdate for
+				         its cloud icon but is deliberately excluded from the
+				         margin-left:auto right-group push in
+				         community.applications.css. */ ?>
+				<?php foreach ($updateActionItems as $actionItem): ?>
+					<?php if (!empty($actionItem['action'])): ?>
+						<div class='caButton actionsPopup actionsUpdate'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php else: ?>
+						<div class='caButton actionsPopup actionsUpdate'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
+					<?php endif; ?>
+				<?php endforeach; ?>
+
 				<?php /* Pin button moved to .popupSupportRow above — see the
 				         insertion block in the support section. */ ?>
 
@@ -827,15 +841,6 @@ function displayPopup($template) {
 						<div class='caButton actionsPopup actionsInstall'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php else: ?>
 						<div class='caButton actionsPopup actionsInstall'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
-					<?php endif; ?>
-				<?php endforeach; ?>
-
-				<?php /* === RIGHT GREEN GROUP — Update ============================ */ ?>
-				<?php foreach ($rightUpdateActionItems as $actionItem): ?>
-					<?php if (!empty($actionItem['action'])): ?>
-						<div class='caButton actionsPopup actionsUpdate'><span onclick="<?= htmlspecialchars($actionItem['action'], ENT_QUOTES) ?>"><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
-					<?php else: ?>
-						<div class='caButton actionsPopup actionsUpdate'><span><?= htmlspecialchars(trim(strip_tags((string)($actionItem['text'] ?? ""))), ENT_QUOTES) ?></span></div>
 					<?php endif; ?>
 				<?php endforeach; ?>
 

@@ -232,6 +232,17 @@ body:has(.ca_sweetalert_open) :is(#header, #menu, .upgrade_notice, #footer) {
    state (covers both .ca_sweetalert_open instances and .nchan flavored swals). */
 .sweet-alert.showSweetAlert.visible {
 	opacity: revert !important;
+}
+/* The display:block restore is scoped with :not(.nchan). The streaming
+   log popup relies on stock jquery.sweetalert.css's
+   `.sweet-alert.nchan { display: flex !important }` (a flex column whose
+   inner `p`/`pre` gets flex:1 + min-height:0 to become the scroll region).
+   This selector's specificity (0,4,0) outranks that stock rule (0,2,0), so
+   forcing display:block here collapses the flex layout and the log stops
+   scrolling as new text streams in. Stock already guarantees the nchan
+   popup is visible via its own display:flex !important, so it never needs
+   the block restore — exclude it. */
+.sweet-alert.showSweetAlert.visible:not(.nchan) {
 	display: block !important;
 }
 
@@ -835,24 +846,22 @@ body,
 	   Requires the PHP markup to emit LEFT items first, then RIGHT items
 	   — see skin.php's .popupStickyActions block.
 
+	   .actionsUpdate is deliberately NOT in this group: Update floats LEFT
+	   with the secondary actions (WebUI / Read Me First / Edit), so only the
+	   install-family and Uninstall get pushed right. Don't re-add it here.
+
 	   Selector includes `.caButton` (0,3,0) to outrank the existing
 	   `.popupStickyActions > .caButton { margin: 0 }` margin-reset further
 	   down in this file (0,2,0, same specificity but later in source order)
 	   — without the extra class the reset zeroes out our auto-margin and
 	   the right group ends up packed immediately after the left group. */
 	.popupStickyActions > .actionsInstall.caButton,
-	.popupStickyActions > .actionsUpdate.caButton,
 	.popupStickyActions > .actionsUninstall.caButton {
 		margin-left: auto;
 	}
 	.popupStickyActions > .actionsInstall.caButton ~ .actionsInstall.caButton,
-	.popupStickyActions > .actionsInstall.caButton ~ .actionsUpdate.caButton,
 	.popupStickyActions > .actionsInstall.caButton ~ .actionsUninstall.caButton,
-	.popupStickyActions > .actionsUpdate.caButton ~ .actionsInstall.caButton,
-	.popupStickyActions > .actionsUpdate.caButton ~ .actionsUpdate.caButton,
-	.popupStickyActions > .actionsUpdate.caButton ~ .actionsUninstall.caButton,
 	.popupStickyActions > .actionsUninstall.caButton ~ .actionsInstall.caButton,
-	.popupStickyActions > .actionsUninstall.caButton ~ .actionsUpdate.caButton,
 	.popupStickyActions > .actionsUninstall.caButton ~ .actionsUninstall.caButton {
 		margin-left: 0;
 	}

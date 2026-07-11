@@ -79,7 +79,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Changed: Links inside an app's README in the sidebar now match the rest of the sidebar's link styling
 - Fixed: Dev-mode "Diff" and "CA" buttons now appear in app sidebars when developer mode is turned on after the app feed has already loaded (the feed snapshot they need wasn't being created in that case)
 - Fixed: The Statistics page now shows the session (tab) ID and a primary-vs-backup feed sync check when admin mode is enabled (the backup statistics feed location was also missing)
-- Added: Alexa Sterling added to the Credits
+- Added: Mira added to the Credits
 - Chore: Removed some unused internal actions and consolidated the developer/admin-mode checks
 - Added: Videos in an app's sidebar now autoplay a muted, looping preview right in the thumbnail. Clicking still opens the full-size player (which stays paused until you press play). The separate "Autoplay videos" setting has been removed — sidebar previews are always on now
 - Fixed: Dev-mode "Diff" button now works for plugins — it was comparing against the plugin's install file instead of its template, so it never found a match
@@ -284,3 +284,7 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Added: Two new ways to sort the app list, "Downloads Total" and "Downloads Last Month" (replacing the single "Downloads" option), each with its own icon in the Sort menu
 - Changed: 7.2+: The right-side index strip now also appears when sorting by downloads or by date added, not just by name. For downloads it marks rounded levels sized to the current results (for example 1B, 500M and so on, down to a "less than 1M" catch-all), plus a "?" group at the end for apps that have no download figures. For date added it marks each year (shown larger) with its months listed beneath
 - Added: 7.2+: While scrolling or dragging the scrollbar on a downloads or date sort, the large readout beside the index strip now shows where you actually are - the real download count for that point (for example 13.1B or 916.1K), or the month and year for date sorting (for example Jun 2026); apps with no download data read "unknown"
+- Fixed: The application install / update log window now scrolls again as new output streams in, instead of getting stuck once the text fills the window
+- Changed: In the app panel, the Update button now sits on the left alongside WebUI / Read Me First / Edit, with Uninstall staying pinned to the right (and wrapping cleanly to a second row on narrow windows)
+- Changed: The "download of appfeed failed" message now suggests enabling (or disabling) the Cloudflare CDN feed in Settings, and no longer shows the raw technical error text or the outdated "the server may be down" note
+- Chore: Removed some unused internal feed / URL path definitions
