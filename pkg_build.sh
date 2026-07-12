@@ -58,7 +58,13 @@ echo "==> Building $output"
 # calls (and `tar -p` xattr preservation) from leaking AppleDouble entries.
 # installpkg on Unraid sees a vanilla `tar xJf` archive — same shape the
 # Slackware makepkg produced.
-COPYFILE_DISABLE=1 tar -C "$staging" -cJf "$output" .
+#
+# Force root:root ownership in the archive. macOS builds the staging dir as the
+# invoking user (e.g. uid 501/staff); without this override those ids get baked
+# into the tar and upgradepkg would chown the installed plugin files to that
+# non-root owner on the server. The legacy makepkg got root:root for free by
+# running as root on Unraid — we reproduce that here.
+COPYFILE_DISABLE=1 tar -C "$staging" --uid 0 --gid 0 --uname root --gname root -cJf "$output" .
 
 echo "==> Wrote $(du -h "$output" | awk '{print $1}')"
 echo "MD5: $(md5 -q "$output")"
