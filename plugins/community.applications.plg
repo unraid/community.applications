@@ -2,17 +2,65 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2026.05.15gh">
-<!ENTITY md5       "9cb53f0f77e43e7a0d6b6109efc552b1">
+<!ENTITY version   "2026.07.11">
+<!ENTITY md5       "f22d67bf0b46304069ad4e1c275fbea6">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/master/plugins/&name;.plg">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2026.07.11
+- Changed: All management of applications (installs etc) via the side bar
+- Added: Embedded videos for an application optionally autoplay on sidebar
+- Added: Better support for video/screen carousels
+- Changed: All setting changes now handled within Apps instead of a separate section in settings
+- Added: Support for an alternative application feed mirror
+- Added: Optional display of usage graphs on installed containers
+- Added: Ability to limit search results
+- Added: More options for developer mode on template sidebars
+- Added: Graphs for plugins downloads, trend etc
+- Changed: Full support for multiple instances without affecting other instances
+- Changed: Feed download much smaller - Initial download just for what CA requires to operate.   Full feed downloaded in the background that allows installations
+- Added: Inline displaying of ReadMe First files attached to a template - Subject to certain security limitations
+- Added: Abiltity to switch between Recently Added, top trending, spotlight apps without having to go back home first
+- Added: Installing any container will automatically adjust the ports used if a conflict is detected (can be disabled in settings)
+- Added: When installing multiple containers via previous apps, if a conflicting port is detected, the conflicting app will be skipped over.
+- Added: Port conflicts now test against all installed containers - not just what's currently running
+- Added: Search results now live - Results appear as you type
+- Changed: DockerHub installations now automatically build the template for ports, paths, variables defined in the dockerfile without asking for confirmation
+- Changed: Home page sections no longer are set to 6 apps per section - Automatically adjust to fit screen width
+- Changed: Menu is scrollable separately from the main area.
+- Changed: DockerHub search results now limited to the first 25 results only - technical limitation imposed by new paging system
+- Added: Virtual paging. Concept of changing pages for more results is removed - just keep scrolling down
+- Added: Index of results along right side to easily jump to apps starting with "N" or added at such and such date etc.
+- Added: Setting to automatically hide the Unraid banner for more display area
+- Changed: Much better mobile support
+- Changed: Statistics, Credits relocated from menu to an "Info Button"
+- Changed: Spotlight graphics, badges instead of flags for Installed, beta etc.
+- Changed: Complete 100% Unraid theme compliant - Any custom themes for 7.2+ that simply change the dynamix colours will flow through to CA without extra specific style sheets.
+- Fixed: If a slow download was happening for the application feed, reloading the page to attempt to fix would result in two concurrent downloads of the feed taking place.
+- Fixed: Better consistency when returning to CA after installing a container and being at the same place as you left
+- Changed: Top plugins on home page is now top plugins installed from previous 30 days instead of lifetime
+- Removed: Fall back to GitHub application feed (should no longer be necessary)
+- Added: Ability to completely remove a maintainer's repository from search results.
+- Added: Further hardening of security.
+- Changed: Minor styling improvements
+- Changed: Any "forced reflow" browser warnings should be eliminated
+- Changed: Use session storage instead of cookies.
+- Removed: Automatically opening up the sidebar if only a single app was present on a search
+- Changed: Categories with submenus (Installed / Previous Apps, Media Applications etc) now have an "ALL" submenu.
+- Fixed: Cancelling a search will return to the previously displayed category / menu item
+- Added: CTRL Shift D / CMD Shift D to download diagnostics.
+- Changed: Internal memory usage ~75% less
+- Changed: App icons which would be invisible on certain themes (eg: a black icon transparent image on the black theme) now always visible on any theme
+- Added: If the appfeed download is extremely slow, a download progress window will appear
+- Changed: Better recovery and handling.
+- Added/Changed/Fixed: Much more that slips my mind at the moment ;)
+
 ###2026.05.15
 - Fixed: Performance issues if feed downgrades to backup server
 
