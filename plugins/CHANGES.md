@@ -23,7 +23,6 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
-- Added: Pull requests now produce installable preview plugins at a stable per-PR URL for testing
 - Changed: Home sections now keep app cards at a fixed width, fill every available card slot, and use a narrow trailing Show More card
 - Changed: App status badges now distinguish pending updates, Unraid-official apps, and upstream-official Docker images without relying on color
 - Fixed: Dark app status badges now use readable high-contrast text, and stopped containers use a distinct warning state
