@@ -1,16 +1,17 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
+<!ENTITY displayName "Community Applications (PR #127 PREVIEW)">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2026.07.14-pr127-40cdc1f">
-<!ENTITY md5       "b4f100c01c8173551b6aaf131abc7db7">
+<!ENTITY version   "2026.07.14-pr127-682bf02">
+<!ENTITY md5       "d5db6e7bf32906868343a46bfa96cbc0">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications.plg">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
+<PLUGIN name="&displayName;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
 ###2026.07.14
@@ -2485,7 +2486,7 @@ if [[ -e /tmp/community.applications/tempFiles/templates.json ]]; then rm /tmp/c
 The 'source' file.
 -->
 <FILE Name="/boot/config/plugins/&name;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
-<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications-2026.07.14-pr127-40cdc1f-x86_64-1.txz</URL>
+<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications-2026.07.14-pr127-682bf02-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
