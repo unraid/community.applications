@@ -730,11 +730,8 @@ function caInitializeClickHandlers() {
 		scrollToTop();
 		post({ action: "changeSortOrder", sortOrder: sortOrder }, function() { getContent(false, category, description, false); });
 	}
-	/* "Show more" overlay on a Home section card. */
+	/* Partial "Show more" card at the end of a Home section. */
 	$(".mainArea").on("click", ".homeMore", function(e) {
-		/* The Show More overlay sits inside its (clickable) app card, so stop the
-		   click here before it bubbles to the .ca_holder handler and also opens
-		   that card's sidebar. mainArea is below body, so this fires first. */
 		e.stopPropagation();
 		caOpenHomeSection($(this).data("des"), $(this).data("category"), $(this).data("sortby"), $(this).data("sortdir"));
 	});

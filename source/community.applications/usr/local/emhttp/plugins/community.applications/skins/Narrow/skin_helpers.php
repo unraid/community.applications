@@ -2068,7 +2068,7 @@ function caCollectBadges(array $template): array {
 	$badges = [];
 
 	if (!empty($template['UpdateAvailable'])) {
-		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center'>".tr("UPDATED")."</div></div>";
+		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center' title='".tr("An update is available for this application")."'>".tr("UPDATE AVAILABLE")."</div></div>";
 	}
 
 	if ((!empty($template['Installed']) || !empty($template['Uninstall'])) && empty($template['actionCentre'])) {
@@ -2079,7 +2079,7 @@ function caCollectBadges(array $template): array {
 		   extra badge; languages add nothing. $template['Running'] is set in the
 		   card + sidebar render paths (false = installed but stopped). */
 		if (empty($template['Plugin']) && empty($template['Language']) && isset($template['Running']) && !$template['Running']) {
-			$badges[] = "<div class='installedCardBackground'><div class='installedCardText ca_center'>".tr("Stopped")."</div></div>";
+			$badges[] = "<div class='stoppedCardBackground'><div class='installedCardText ca_center' title='".tr("This installed container is stopped")."'>".tr("STOPPED")."</div></div>";
 		}
 	}
 
@@ -2116,18 +2116,18 @@ function caCollectBadges(array $template): array {
 		$badges[] = "<div class='warningCardBackground'><div class='installedCardText ca_center' title='{$verMsg}'>".tr("Incompatible")."</div></div>";
 	}
 
-	/* LTOfficial supersedes Official — the LT (Lime Technology) variant
-	   carries the brand gradient and is a stronger claim than the plain
-	   "Official" purple chip. Showing both would just be redundant
-	   "OFFICIAL OFFICIAL" with no useful distinction. */
+	/* LTOfficial supersedes Official. Keep the two trust claims explicit in
+	   visible text: the old shared "OFFICIAL" label forced users to infer from
+	   colour whether Lime Technology or the upstream Docker publisher was the
+	   authority. */
 	if (!empty($template['LTOfficial'])) {
-		$badges[] = "<div class='LTOfficialCardBackground'><div class='installedCardText ca_center' title='".tr("This is an official plugin")."'>".tr("OFFICIAL")."</div></div>";
+		$badges[] = "<div class='LTOfficialCardBackground'><div class='installedCardText ca_center' title='".tr("This application is officially maintained by Lime Technology")."'>".tr("UNRAID OFFICIAL")."</div></div>";
 	} elseif (!empty($template['Official'])) {
-		$badges[] = "<div class='officialCardBackground'><div class='installedCardText ca_center' title='".tr("This is an official container")."'>".tr("OFFICIAL")."</div></div>";
+		$badges[] = "<div class='officialCardBackground'><div class='installedCardText ca_center' title='".tr("This is an official image from the upstream Docker publisher")."'>".tr("DOCKER OFFICIAL")."</div></div>";
 	}
 
 	if (!empty($template['Beta'])) {
-		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center'>".tr("BETA")."</div></div>";
+		$badges[] = "<div class='betaCardBackground'><div class='installedCardText ca_center' title='".tr("This application is a beta release")."'>".tr("BETA")."</div></div>";
 	}
 
 	if (!empty($template['Trusted'])) {
