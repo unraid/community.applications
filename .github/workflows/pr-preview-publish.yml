@@ -1,0 +1,106 @@
+name: Publish CA PR preview
+
+on:
+  workflow_run:
+    workflows: [Build CA PR preview]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: ca-pr-preview-publish
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: pr-previews
+      - uses: actions/download-artifact@v8
+        with:
+          name: ca-pr-preview
+          path: artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish stable PR installer URL
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          PR_NUMBER="$(jq -r '.pr' artifact/preview.json)"
+          ARTIFACT_SHA="$(jq -r '.sha' artifact/preview.json)"
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          test "$ARTIFACT_SHA" = "$HEAD_SHA"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+          PR_STATE="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state --jq .state)"
+          if [[ "$PR_STATE" != "OPEN" ]]; then
+            echo "PR #$PR_NUMBER is $PR_STATE; skipping preview publication."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "published=true" >> "$GITHUB_OUTPUT"
+          rm -rf "pr/$PR_NUMBER"
+          mkdir -p "pr/$PR_NUMBER"
+          cp -a artifact/. "pr/$PR_NUMBER/"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "pr/$PR_NUMBER"
+          git diff --cached --quiet && exit 0
+          git commit -m "preview: publish PR #$PR_NUMBER at ${HEAD_SHA:0:7}"
+          git push origin pr-previews
+      - name: Add installer link to pull request
+        if: steps.publish.outputs.published == 'true'
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.publish.outputs.pr_number }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.PR_NUMBER)
+            if (!Number.isInteger(issueNumber) || issueNumber < 1) {
+              throw new Error(`Invalid pull request number: ${process.env.PR_NUMBER}`)
+            }
+
+            const marker = '<!-- ca-pr-preview -->'
+            const installerUrl = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/pr-previews/pr/${issueNumber}/community.applications.plg`
+            const body = `${marker}
+            ### Community Applications preview
+
+            Install this PR build on a test server:
+
+            \`${installerUrl}\`
+
+            This is an unreleased test build. The same URL updates when new commits are pushed to this pull request.`
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo,
+              issue_number: issueNumber,
+              per_page: 100
+            })
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            )
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body
+              })
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issueNumber,
+                body
+              })
+            }

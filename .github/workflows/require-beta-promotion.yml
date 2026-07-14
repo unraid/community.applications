@@ -1,0 +1,23 @@
+name: Require beta promotion
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  promote-from-beta:
+    name: promote-from-beta
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify promotion source
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" != "beta" ]]; then
+            echo "::error::Changes to master must be promoted from the beta branch."
+            exit 1
+          fi
+          echo "Verified beta -> master promotion."
