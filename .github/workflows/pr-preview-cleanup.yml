@@ -1,0 +1,31 @@
+name: Remove CA PR preview
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ca-pr-preview-publish
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: pr-previews
+      - name: Remove closed PR artifacts
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          test -d "pr/$PR_NUMBER" || exit 0
+          rm -rf "pr/$PR_NUMBER"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A "pr/$PR_NUMBER"
+          git diff --cached --quiet && exit 0
+          git commit -m "preview: remove closed PR #$PR_NUMBER"
+          git push origin pr-previews
