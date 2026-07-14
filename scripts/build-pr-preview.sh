@@ -10,6 +10,7 @@ SOURCE_DIR="$ROOT/source/community.applications"
 PLUGIN_TEMPLATE="$ROOT/plugins/community.applications.plg"
 SHORT_SHA="${GIT_SHA:0:7}"
 VERSION="$(date -u +%Y.%m.%d)-pr${PR_NUMBER}-${SHORT_SHA}"
+DISPLAY_NAME="Community Applications (PR #${PR_NUMBER} PREVIEW)"
 PACKAGE="community.applications-${VERSION}-x86_64-1.txz"
 BASE_URL="https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/${PR_NUMBER}"
 
@@ -44,13 +45,27 @@ else
 	MD5="$(md5 -q "$OUTPUT_DIR/$PACKAGE")"
 fi
 
-python3 - "$PLUGIN_TEMPLATE" "$OUTPUT_DIR/community.applications.plg" "$VERSION" "$MD5" "$BASE_URL/$PACKAGE" "$BASE_URL/community.applications.plg" <<'PY'
+python3 - "$PLUGIN_TEMPLATE" "$OUTPUT_DIR/community.applications.plg" "$DISPLAY_NAME" "$VERSION" "$MD5" "$BASE_URL/$PACKAGE" "$BASE_URL/community.applications.plg" <<'PY'
 from pathlib import Path
 import re
 import sys
 
-source, destination, version, md5, package_url, plugin_url = sys.argv[1:]
+source, destination, display_name, version, md5, package_url, plugin_url = sys.argv[1:]
 text = Path(source).read_text(encoding="utf-8")
+
+# Keep the canonical `name` entity for install paths and package cleanup, but
+# label the plugin manager entry clearly as an unreleased PR build. The .plg
+# filename remains community.applications.plg so installing a preview replaces
+# the existing CA registration instead of creating a second plugin.
+text, count = re.subn(
+    r'(<!ENTITY\s+name\s+"[^"]*">)',
+    rf'\g<1>\n<!ENTITY displayName "{display_name}">',
+    text,
+    count=1,
+)
+if count != 1:
+    raise SystemExit("could not add displayName entity")
+
 replacements = {
     "version": version,
     "md5": md5,
@@ -65,6 +80,15 @@ for entity, value in replacements.items():
     )
     if count != 1:
         raise SystemExit(f"could not replace {entity} entity")
+
+text, count = re.subn(
+    r'(<PLUGIN\s+name=")&name;(")',
+    r'\g<1>&displayName;\g<2>',
+    text,
+    count=1,
+)
+if count != 1:
+    raise SystemExit("could not replace plugin display name")
 
 text, count = re.subn(
     r'(<FILE Name="/boot/config/plugins/&name;/&name;-&version;-x86_64-1\.txz" Run="upgradepkg --install-new --reinstall">\s*<URL>)[^<]*(</URL>)',
