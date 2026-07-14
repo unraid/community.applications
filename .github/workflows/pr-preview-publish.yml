@@ -20,10 +20,10 @@ jobs:
       github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: pr-previews
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ca-pr-preview
           path: artifact
@@ -49,7 +49,7 @@ jobs:
           git commit -m "preview: publish PR #$PR_NUMBER at ${HEAD_SHA:0:7}"
           git push origin pr-previews
       - name: Add installer link to pull request
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PR_NUMBER: ${{ steps.publish.outputs.pr_number }}
         with:
