@@ -9,6 +9,7 @@ permissions:
   actions: read
   contents: write
   issues: write
+  pull-requests: read
 
 concurrency:
   group: ca-pr-preview-publish
@@ -32,6 +33,7 @@ jobs:
       - name: Publish stable PR installer URL
         id: publish
         env:
+          GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           PR_NUMBER="$(jq -r '.pr' artifact/preview.json)"
@@ -39,9 +41,18 @@ jobs:
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
           test "$ARTIFACT_SHA" = "$HEAD_SHA"
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+          PR_STATE="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state --jq .state)"
+          if [[ "$PR_STATE" != "OPEN" ]]; then
+            echo "PR #$PR_NUMBER is $PR_STATE; skipping preview publication."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "published=true" >> "$GITHUB_OUTPUT"
           rm -rf "pr/$PR_NUMBER"
           mkdir -p "pr/$PR_NUMBER"
-          cp artifact/* "pr/$PR_NUMBER/"
+          cp -a artifact/. "pr/$PR_NUMBER/"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add "pr/$PR_NUMBER"
@@ -49,6 +60,7 @@ jobs:
           git commit -m "preview: publish PR #$PR_NUMBER at ${HEAD_SHA:0:7}"
           git push origin pr-previews
       - name: Add installer link to pull request
+        if: steps.publish.outputs.published == 'true'
         uses: actions/github-script@v9
         env:
           PR_NUMBER: ${{ steps.publish.outputs.pr_number }}

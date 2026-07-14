@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Build installable preview
         run: ./scripts/build-pr-preview.sh "${{ github.event.pull_request.number }}" "${{ github.event.pull_request.head.sha }}"
       - uses: actions/upload-artifact@v7

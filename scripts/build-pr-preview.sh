@@ -50,7 +50,7 @@ import re
 import sys
 
 source, destination, version, md5, package_url, plugin_url = sys.argv[1:]
-text = Path(source).read_text()
+text = Path(source).read_text(encoding="utf-8")
 replacements = {
     "version": version,
     "md5": md5,
@@ -75,7 +75,7 @@ text, count = re.subn(
 if count != 1:
     raise SystemExit("could not replace package URL")
 
-Path(destination).write_text(text)
+Path(destination).write_text(text, encoding="utf-8")
 PY
 
 cat > "$OUTPUT_DIR/preview.json" <<EOF
