@@ -23,7 +23,6 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
-- Added: Pull requests now produce installable preview plugins at a stable per-PR URL for testing
 - Changed: The monthly spotlight banner now ships with the plugin instead of being downloaded, so it appears instantly with no network request
 - Added: New "Use Cloudflare CDN" setting to load the application feed from an alternative source; changing it refreshes the feed automatically
 - Removed: Automatic fallback to the GitHub-hosted backup application feed
