@@ -8,6 +8,7 @@ on:
 permissions:
   actions: read
   contents: write
+  issues: write
 
 concurrency:
   group: ca-pr-preview-publish
@@ -29,6 +30,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish stable PR installer URL
+        id: publish
         env:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
@@ -36,6 +38,7 @@ jobs:
           ARTIFACT_SHA="$(jq -r '.sha' artifact/preview.json)"
           [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
           test "$ARTIFACT_SHA" = "$HEAD_SHA"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           rm -rf "pr/$PR_NUMBER"
           mkdir -p "pr/$PR_NUMBER"
           cp artifact/* "pr/$PR_NUMBER/"
@@ -45,3 +48,47 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "preview: publish PR #$PR_NUMBER at ${HEAD_SHA:0:7}"
           git push origin pr-previews
+      - name: Add installer link to pull request
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.publish.outputs.pr_number }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.PR_NUMBER)
+            if (!Number.isInteger(issueNumber) || issueNumber < 1) {
+              throw new Error(`Invalid pull request number: ${process.env.PR_NUMBER}`)
+            }
+
+            const marker = '<!-- ca-pr-preview -->'
+            const installerUrl = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/pr-previews/pr/${issueNumber}/community.applications.plg`
+            const body = `${marker}
+            ### Community Applications preview
+
+            Install this PR build on a test server:
+
+            \`${installerUrl}\`
+
+            This is an unreleased test build. The same URL updates when new commits are pushed to this pull request.`
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...context.repo,
+              issue_number: issueNumber,
+              per_page: 100
+            })
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            )
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body
+              })
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: issueNumber,
+                body
+              })
+            }
