@@ -2,12 +2,12 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2026.07.14-pr127-4aedffa">
-<!ENTITY md5       "87ee72e5e4b354daafdc9215303682d5">
+<!ENTITY version   "2026.07.15-pr127-896b9c1">
+<!ENTITY md5       "84daed2aef9124a92d08521be82013ad">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/master/plugins/&name;.plg">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications.plg">
 ]>
 
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
@@ -2485,7 +2485,7 @@ if [[ -e /tmp/community.applications/tempFiles/templates.json ]]; then rm /tmp/c
 The 'source' file.
 -->
 <FILE Name="/boot/config/plugins/&name;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
-<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications-2026.07.14-pr127-4aedffa-x86_64-1.txz</URL>
+<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/127/community.applications-2026.07.15-pr127-896b9c1-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
