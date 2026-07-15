@@ -9,7 +9,15 @@ OUTPUT_DIR="${3:-$ROOT/dist/pr-preview}"
 SOURCE_DIR="$ROOT/source/community.applications"
 PLUGIN_TEMPLATE="$ROOT/plugins/community.applications.plg"
 SHORT_SHA="${GIT_SHA:0:7}"
-VERSION="$(date -u +%Y.%m.%d)-pr${PR_NUMBER}-${SHORT_SHA}"
+COMMIT_TIMESTAMP="$(git -C "$ROOT" show -s --format=%ct "$GIT_SHA")"
+VERSION_DATE="$(python3 - "$COMMIT_TIMESTAMP" <<'PY'
+from datetime import datetime, timezone
+import sys
+
+print(datetime.fromtimestamp(int(sys.argv[1]), timezone.utc).strftime("%Y.%m.%d"))
+PY
+)"
+VERSION="${VERSION_DATE}-pr${PR_NUMBER}-${SHORT_SHA}"
 PACKAGE="community.applications-${VERSION}-x86_64-1.txz"
 BASE_URL="https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/${PR_NUMBER}"
 
@@ -35,11 +43,8 @@ find "$STAGING" \( -name '.DS_Store' -o -name '._*' -o -name 'sftp-config.json' 
 find "$STAGING" -name '.claude' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 chmod -R 0755 "$STAGING"
 
-if tar --version 2>/dev/null | grep -q 'GNU tar'; then
-	tar -C "$STAGING" --owner=0 --group=0 --numeric-owner -cJf "$OUTPUT_DIR/$PACKAGE" .
-else
-	COPYFILE_DISABLE=1 tar -C "$STAGING" --uid 0 --gid 0 --uname root --gname root -cJf "$OUTPUT_DIR/$PACKAGE" .
-fi
+python3 "$ROOT/scripts/create-reproducible-tar.py" \
+	"$STAGING" "$OUTPUT_DIR/$PACKAGE" "$COMMIT_TIMESTAMP"
 
 tar -tf "$OUTPUT_DIR/$PACKAGE" > "$STAGING/package-contents.txt"
 if ! grep -Fxq './usr/local/emhttp/plugins/community.applications/Apps.page' "$STAGING/package-contents.txt"; then
