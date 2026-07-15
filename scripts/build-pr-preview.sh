@@ -44,21 +44,22 @@ else
 	MD5="$(md5 -q "$OUTPUT_DIR/$PACKAGE")"
 fi
 
-python3 - "$PLUGIN_TEMPLATE" "$OUTPUT_DIR/community.applications.plg" "$VERSION" "$MD5" "$BASE_URL/$PACKAGE" <<'PY'
+python3 - "$PLUGIN_TEMPLATE" "$OUTPUT_DIR/community.applications.plg" "$VERSION" "$MD5" "$BASE_URL/$PACKAGE" "$BASE_URL/community.applications.plg" <<'PY'
 from pathlib import Path
 import re
 import sys
 
-source, destination, version, md5, package_url = sys.argv[1:]
+source, destination, version, md5, package_url, plugin_url = sys.argv[1:]
 text = Path(source).read_text(encoding="utf-8")
 
-# `name` and `pluginURL` are identity fields. CA's checkInstalledPlugin()
-# requires the installed pluginURL to match the canonical app-feed template,
-# and WebGUI uses name to locate the plugin's UI directory. Keep both exactly
-# as authored in the release manifest; the preview version identifies the PR.
+# Keep `name` canonical because WebGUI uses it to locate the plugin's UI
+# directory. `pluginURL` must point at the stable per-PR installer so WebGUI
+# update checks follow new preview builds; CA recognizes that bounded URL as an
+# alias of its canonical app-feed template.
 replacements = {
     "version": version,
     "md5": md5,
+    "pluginURL": plugin_url,
 }
 for entity, value in replacements.items():
     text, count = re.subn(

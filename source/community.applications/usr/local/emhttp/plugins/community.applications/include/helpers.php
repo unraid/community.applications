@@ -20,6 +20,7 @@
  */
 
 require_once __DIR__ . "/paths.php";
+require_once __DIR__ . "/plugin_identity.php";
 
 /**
  * Emit the hidden + checkbox <input> pair for a boolean settings toggle in the
@@ -1663,7 +1664,10 @@ function checkInstalledPlugin($template) {
 	if ( ! file_exists("/var/log/plugins/$pluginName") ) return false;
 
 	if ( isset($template['hideFromCA']) ) return false;
-	return strtolower(trim(ca_plugin("pluginURL","/var/log/plugins/$pluginName"))) == strtolower(trim($template['PluginURL']));
+	return caPluginUrlMatchesTemplate(
+		(string) ca_plugin("pluginURL", "/var/log/plugins/$pluginName"),
+		(string) $template['PluginURL']
+	);
 }
 
 /**
