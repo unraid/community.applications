@@ -9,7 +9,7 @@ permissions:
   actions: read
   contents: write
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: ca-pr-preview-publish
