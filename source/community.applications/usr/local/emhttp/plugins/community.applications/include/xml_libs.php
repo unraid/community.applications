@@ -585,8 +585,11 @@ class Array2XML {
 		 */
 		public static function &createXML($node_name, $arr=array()) {
 				$xml = self::getXMLRoot();
-				$xml->appendChild(self::convert($node_name, $arr));
-				self::$xml = null;    // clear the xml node in the class for 2nd time use.
+				try {
+					$xml->appendChild(self::convert($node_name, $arr));
+				} finally {
+					self::$xml = null;    // clear the xml node in the class for 2nd time use, even on throw.
+				}
 				return $xml;
 		}
 		/**

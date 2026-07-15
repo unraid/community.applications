@@ -1162,7 +1162,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	$repositories = readJsonFile(CA_PATHS['repositoryList']);
 	$extraBlacklist = readJsonFile(CA_PATHS['extraBlacklist']);
 	$extraDeprecated = readJsonFile(CA_PATHS['extraDeprecated']);
-	$pinnedApps = readJsonFile(CA_PATHS['pinnedV2']);
+	$pinnedApps = (array)readJsonFile(CA_PATHS['pinnedV2']);
 
 	$ct = "";
 	$cardsArray = [];

@@ -1968,7 +1968,7 @@ function pinApp() {
 
 	$repository = getPost("repository","oops");
 	$name = getPost("name","oops");
-	$pinnedApps = readJsonFile(CA_PATHS['pinnedV2']);
+	$pinnedApps = (array)readJsonFile(CA_PATHS['pinnedV2']);
 	if (isset($pinnedApps["$repository&$name"]) )
 		$pinnedApps["$repository&$name"] = false;
 	else
@@ -1985,7 +1985,7 @@ function pinApp() {
  */
 function areAppsPinned() {
 
-	postReturn(['status' => in_array(true,readJsonFile(CA_PATHS['pinnedV2']))]);
+	postReturn(['status' => in_array(true,(array)readJsonFile(CA_PATHS['pinnedV2']))]);
 }
 
 /**
@@ -2016,13 +2016,14 @@ function pinnedApps() {
 
 	$displayed = [];
 	$hideIncompatible = ($GLOBALS['caSettings']['hideIncompatible'] ?? "false") === "true";
+	$hideDeprecated = ($GLOBALS['caSettings']['hideDeprecated'] ?? "false") === "true";
 
 	foreach ($pinnedApps as $pinned) {
 		if (!is_string($pinned) || strpos($pinned, '&') === false) {
 			continue;
 		}
 
-		$template = PinnedAppsHelpers::findPinnedTemplate($templates, $pinned, $hideIncompatible);
+		$template = PinnedAppsHelpers::findPinnedTemplate($templates, $pinned, $hideIncompatible, $hideDeprecated);
 		if ($template !== null) {
 			$displayed[] = $template;
 		}

@@ -295,3 +295,4 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Fixed: On Spotlight app cards, a long application name no longer runs underneath the "Monthly Spotlight" badge
 - Changed: Long application names on app cards now wrap to a second line instead of being cut off with an ellipsis
 - Removed: The category line on app cards (the category is still shown in the app panel)
+- Fixed: Prevented rare Apps page errors and log noise caused by corrupted cache files, malformed application-feed data, or unusual template and settings values; pinned apps now also respect the Hide Deprecated setting
