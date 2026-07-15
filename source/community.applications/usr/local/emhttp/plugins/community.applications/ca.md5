@@ -12,7 +12,8 @@ d3a67ac4ee1d34b4d7a8566461d3c2be  ./include/previous_apps_helpers.php
 c20989527333cfd8854e6f17ee4d9570  ./include/exec.php
 ded36f72268bd8df6705a691b0e2e845  ./include/_ide_stubs.php
 fdc5cd0784fc206c2457e323f9debddf  ./include/populate_autocomplete_helpers.php
-f9759bb5ed3c2df4897613e6c2659300  ./include/helpers.php
+e70568ca8f4f6b964e978426ea6248b7  ./include/helpers.php
+798a9eedc722c96d470ffa171e24344a  ./include/plugin_identity.php
 d0b92f8633ab8e811d8c942f1aec62e8  ./include/pinned_apps_helpers.php
 d7f71ed9145bb9f4bae7a7c17aeb0ca0  ./include/xml_libs.php
 488b71146cccc768ee6fbf847893d157  ./pluginPreAndPostScripts/CA_postHook
