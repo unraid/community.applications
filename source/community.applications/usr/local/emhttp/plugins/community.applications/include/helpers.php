@@ -2033,8 +2033,15 @@ function getAllInfo($force=false) {
 	global $DockerTemplates, $DockerClient;
 
 	$containers = readJsonFile(CA_PATHS['info']);
+	// Normalize a corrupt cache (readJsonFile can decode a scalar) to [] right
+	// here, before the refresh decision. Otherwise a truthy scalar leaves both
+	// empty() and the refresh path false, so we would return [] on every
+	// non-forced call without ever rebuilding from Docker.
+	if ( ! is_array($containers) ) {
+		$containers = [];
+	}
 
-	if ( $force || ! $containers || empty($containers) ) {
+	if ( $force || empty($containers) ) {
 		if ( caIsDockerRunning() ) {
 			$info = $DockerTemplates->getAllInfo(false,true,true);
 			$containers = $DockerClient->getDockerContainers();
@@ -2050,11 +2057,10 @@ function getAllInfo($force=false) {
 	} else {
 		debug("Cached info update");
 	}
-	// Guard so a corrupt CA_PATHS['info'] cache that readJsonFile decodes to a
-	// scalar can never reach the typed array $info params downstream (which
-	// would TypeError). is_array (not an (array) cast) so a scalar becomes an
-	// empty array, not a one-element array wrapping the junk value.
-	return is_array($containers) ? $containers : [];
+	// $containers is guaranteed an array here (normalized above; the refresh
+	// branch reassigns it from getDockerContainers()), so callers with typed
+	// array $info params never receive a scalar.
+	return $containers;
 }
 
 /**
