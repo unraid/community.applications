@@ -64,7 +64,7 @@ function getGlobals() {
 	clearstatcache();
 	if ( is_file(CA_PATHS['community-templates-info']) ) {
 		if ( ! isset($GLOBALS['templates']) ) {
-			$GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info']);
+			$GLOBALS['templates'] = is_array($t = readJsonFile(CA_PATHS['community-templates-info'])) ? $t : [];
 		}
 	} else {
 		$GLOBALS['templates'] = [];
@@ -81,7 +81,7 @@ function getGlobals() {
  * @return void
  */
 function getFullGlobals() {
-	$GLOBALS['templates'] = readJsonFile(CA_PATHS['community-templates-info-full']);
+	$GLOBALS['templates'] = is_array($t = readJsonFile(CA_PATHS['community-templates-info-full'])) ? $t : [];
 	getSettings();
 }
 
@@ -1156,7 +1156,8 @@ function fixTemplates($template) {
  * sanitizes Requires links, and delegates to Array2XML.
  *
  * @param  array<string,mixed>  $template
- * @return string XML document.
+ * @return string|false XML document, or false when the template contains
+ *                       characters invalid in XML tag/attribute names.
  */
 function makeXML($template) {
 	# ensure its a v2 template if the Config entries exist
@@ -1179,7 +1180,12 @@ function makeXML($template) {
 		}
 	}
 	$Array2XML = new Array2XML();
-	$xml = $Array2XML->createXML("Container",$template);
+	try {
+		$xml = $Array2XML->createXML("Container",$template);
+	} catch (Throwable $e) {
+		debug("makeXML: Array2XML failed for ".($template['Name'] ?? 'unknown')." - ".$e->getMessage());
+		return false;
+	}
 	return $xml->saveXML();
 }
 /**
@@ -1341,6 +1347,7 @@ function moderateTemplates() {
 	$templates = &$GLOBALS['templates'];
 
 	if ( ! $templates ) return;
+	$o = [];
 	foreach ($templates as $template) {
 		$template['Compatible'] = versionCheck($template);
 		if ( ($template['MaxVer']??null) && version_compare($template['MaxVer'],$GLOBALS['caSettings']['unRaidVersion']) < 0 )
@@ -1931,6 +1938,12 @@ if ( ! function_exists("tr") ) {
 	 * @return string
 	 */
 	function tr($string,$options=-1) {
+		// dynamix _() runs trim() on its argument immediately, which TypeErrors
+		// on an array and deprecation-warns on null under PHP 8. Coerce scalars
+		// to string and collapse anything else to empty so a stray non-string
+		// (eg. a malformed feed field) can never fatal in the translator.
+		if ( ! is_string($string) )
+			$string = is_scalar($string) ? (string)$string : "";
 		$translated = _($string,$options);
 		if ( ! trim($translated) )
 			$translated = $string;
@@ -1971,7 +1984,7 @@ function languageCheck($template) {
 	$xmlFile = readXmlFile($installedLanguage,true);
 
 	if ( !$xmlFile['Version'] ) return false;
-	return (strcmp($template['Version'],$xmlFile['Version']) > 0) || (strcmp($OSupdates['Version'],$xmlFile['Version']) > 0);
+	return (strcmp((string)($template['Version'] ?? ''),$xmlFile['Version']) > 0) || (strcmp($OSupdates['Version'],$xmlFile['Version']) > 0);
 }
 /**
  * Serialize an associative array (with optional one-level sections) to INI on disk.
@@ -2024,8 +2037,15 @@ function getAllInfo($force=false) {
 	global $DockerTemplates, $DockerClient;
 
 	$containers = readJsonFile(CA_PATHS['info']);
+	// Normalize a corrupt cache (readJsonFile can decode a scalar) to [] right
+	// here, before the refresh decision. Otherwise a truthy scalar leaves both
+	// empty() and the refresh path false, so we would return [] on every
+	// non-forced call without ever rebuilding from Docker.
+	if ( ! is_array($containers) ) {
+		$containers = [];
+	}
 
-	if ( $force || ! $containers || empty($containers) ) {
+	if ( $force || empty($containers) ) {
 		if ( caIsDockerRunning() ) {
 			$info = $DockerTemplates->getAllInfo(false,true,true);
 			$containers = $DockerClient->getDockerContainers();
@@ -2041,6 +2061,9 @@ function getAllInfo($force=false) {
 	} else {
 		debug("Cached info update");
 	}
+	// $containers is guaranteed an array here (normalized above; the refresh
+	// branch reassigns it from getDockerContainers()), so callers with typed
+	// array $info params never receive a scalar.
 	return $containers;
 }
 
