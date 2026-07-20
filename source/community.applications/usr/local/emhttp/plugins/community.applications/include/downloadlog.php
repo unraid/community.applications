@@ -31,11 +31,13 @@
 
 ini_set('display_errors', 'Off');
 
-# Hardcoded so this stays dependency-free (paths.php only resolves after the full
-# exec.php bootstrap). These mirror CA_PATHS['caInfo'], ['logging'], ['PHPErrorLog'].
-$caInfo   = "/tmp/CA_logs/ca.txt";
-$caLog    = "/tmp/CA_logs/ca_log.txt";
-$phpErrorLog = "/var/log/phplog";
+# Log paths come from the shared dependency-free ca_log_paths.php (single source
+# of truth with errorlog.php); NOT paths.php, which only resolves after the full
+# exec.php bootstrap.
+require_once __DIR__ . "/ca_log_paths.php";
+$caInfo      = $CA_LOG_PATHS['caInfo'];
+$caLog       = $CA_LOG_PATHS['caLog'];
+$phpErrorLog = $CA_LOG_PATHS['phpError'];
 
 $stamp   = date("Ymd-Hi");
 $zipName = "CA-Logging-$stamp.zip";

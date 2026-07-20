@@ -776,6 +776,10 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		var onAny = function() {
 			document.removeEventListener("click", onAny, true);
 			document.removeEventListener("keydown", onAny, true);
+			/* If a real exec.php failure has since taken the banner over via
+			   caShowFatalErrorBanner, don't reload out from under its buttons and
+			   error detail — let this click reach those buttons instead. */
+			if (window.ca_fatalErrorActive) return;
 			doHomeReload();
 		};
 		document.addEventListener("click", onAny, true);
@@ -798,7 +802,13 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
  */
 function caShowFatalErrorBanner(message) {
 	try {
-		if (window.ca_reloadPending) return;
+		/* Gate on THIS banner's own flag, NOT the shared ca_reloadPending: a real
+		   failure must be able to take over even if the benign feed-update banner
+		   (caShowFatalReloadBanner) already claimed ca_reloadPending first —
+		   otherwise the failure's buttons and diagnostics are silently dropped.
+		   Setting ca_reloadPending too then suppresses any later feed banner. */
+		if (window.ca_fatalErrorActive) return;
+		window.ca_fatalErrorActive = true;
 		window.ca_reloadPending = true;
 		try {
 			if (typeof closeSidebar === "function") closeSidebar(true, true);
@@ -823,7 +833,7 @@ function caShowFatalErrorBanner(message) {
 		} else {
 			/* Skin markup missing (shouldn't happen): fall back to a confirm. */
 			if (confirm(msg + "\n\n" + tr("Reload the page now?"))) window.location.reload();
-			else window.ca_reloadPending = false;
+			else { window.ca_fatalErrorActive = false; window.ca_reloadPending = false; }
 		}
 	} catch(e) {
 		var $homeBtn = $(".startupButton").first();
@@ -843,6 +853,7 @@ function caDismissFatalReloadBanner() {
 		$(".ca_fatalReloadBanner").addClass("ca_hide").empty();
 		$(".ca_bottomBanner").addClass("ca_hide");
 		$("#caViewportBlocker").addClass("ca_hide").removeClass("caReloadBlur");
+		window.ca_fatalErrorActive = false;
 		window.ca_reloadPending = false;
 	} catch(e) {}
 }
@@ -1118,9 +1129,11 @@ function post(options,callback) {
 		   error banner over the blocked viewport with explicit Ignore / Download
 		   logs / Reload buttons (NOT the click-anywhere feed-update banner) so a
 		   stray click can't discard the page or the error detail we append. */
-		/* Only enrich on the FIRST show — repeated in-flight failures while the
-		   banner is already up must not stack duplicate action / log lines. */
-		var caFirstShow = ! window.ca_reloadPending;
+		/* Only enrich on the error banner's FIRST show — gate on ca_fatalErrorActive
+		   (not ca_reloadPending, which a benign feed banner may already hold) so a
+		   real failure still gets its action / log lines, and repeated in-flight
+		   failures while the error banner is up don't stack duplicates. */
+		var caFirstShow = ! window.ca_fatalErrorActive;
 		caBlockViewportForReload();
 		caShowFatalErrorBanner(tr("Unfortunately something went wrong."));
 		if (caFirstShow) {

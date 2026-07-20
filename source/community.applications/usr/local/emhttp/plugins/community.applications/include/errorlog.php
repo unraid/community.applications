@@ -28,9 +28,11 @@
 ini_set('display_errors', 'Off');
 header('Content-Type: application/json');
 
-# Mirrors CA_PATHS['PHPErrorLog']. Hardcoded so this stays dependency-free:
-# paths.php only resolves after the full exec.php bootstrap sets its globals.
-$logFile = "/var/log/phplog";
+# Log paths come from the shared dependency-free ca_log_paths.php (single source
+# of truth with downloadlog.php); NOT paths.php, which only resolves after the
+# full exec.php bootstrap.
+require_once __DIR__ . "/ca_log_paths.php";
+$logFile = $CA_LOG_PATHS['phpError'];
 
 # How many trailing lines to return. Clamped so a wedged log can never dump more
 # than a couple of lines into the banner.
