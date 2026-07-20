@@ -261,6 +261,12 @@ function tr($string,$ret=false) {
 
 <script>
 const execURL = "/plugins/<?=$plugin?>/include/exec.php";
+/* Standalone read-only tail of /var/log/phplog, fetched over GET when the fatal
+   reload banner appears — kept off exec.php on purpose (see errorlog.php). */
+const errorLogURL = "/plugins/<?=$plugin?>/include/errorlog.php";
+/* Standalone log-bundle download for the fatal banner's "Download logs" button,
+   likewise kept off exec.php (see downloadlog.php). */
+const downloadLogURL = "/plugins/<?=$plugin?>/include/downloadlog.php";
 
 var searchBoxInput;
 var searchBoxAwesomplete;
@@ -1083,7 +1089,7 @@ $(function(){
 		window.caFeedReloadNoticePending = true;
 		var fireReloadNotice = function() {
 			caBlockViewportForReload();
-			caShowFatalReloadBanner(tr("Another browser instance updated the application feed. Click anywhere to reload the page."));
+			caShowFatalReloadBanner(tr("Another browser instance updated the application feed."));
 		};
 		var caInstallDialogOpen = function() {
 			return $("#sb-nav").is(":visible");

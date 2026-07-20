@@ -1085,9 +1085,59 @@ body,
 		text-align: center;
 
 		display: flex;
+		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		gap: 0.75rem;
+	}
+
+	/* Fatal-banner action row: explicit Ignore / Reload buttons replace the old
+	   click-anywhere-to-reload so a stray click can't discard the page. */
+	.ca_fatalReloadButtons {
+		display: flex;
+		gap: 0.75rem;
+		margin-top: 0.4rem;
+		justify-content: center;
+	}
+	.ca_fatalReloadButtons button {
+		font: inherit;
+		font-size: 1.2rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+		padding: 0.55rem 1.4rem;
+		border-radius: 0.5rem;
+		border: 1px solid transparent;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+	}
+	.ca_fatalReloadBtn {
+		background: var(--brand-orange);
+		color: var(--ca-bottomBanner-bg-to);
+	}
+	.ca_fatalReloadBtn:hover {
+		background: color-mix(in srgb, var(--brand-orange) 85%, #fff);
+	}
+	.ca_fatalIgnoreBtn,
+	.ca_fatalDownloadBtn {
+		background: transparent;
+		color: var(--ca-bottomBanner-text);
+		border-color: color-mix(in srgb, var(--ca-bottomBanner-text) 40%, transparent);
+	}
+	.ca_fatalIgnoreBtn:hover,
+	.ca_fatalDownloadBtn:hover {
+		background: color-mix(in srgb, var(--ca-bottomBanner-text) 12%, transparent);
+		border-color: color-mix(in srgb, var(--ca-bottomBanner-text) 60%, transparent);
+	}
+
+	/* "Failed action: <name>" caption under the fatal banner message — names the
+	   exec.php request that broke. Smaller + orange-tinted so it reads as a
+	   caption, distinct from the headline and the mono log block. */
+	.caErrorAction {
+		margin-top: 0.5rem;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 1.15rem;
+		font-weight: 600;
+		color: color-mix(in srgb, var(--brand-orange) 80%, var(--ca-bottomBanner-text));
 	}
 
 	.ca_viewportBlocker {
@@ -1112,6 +1162,27 @@ body,
 		font-size: 1.6rem;
 		font-weight: 700;
 		color: var(--brand-orange);
+	}
+
+	/* Last line(s) of /var/log/phplog shown under the fatal reload banner
+	   message. Muted, monospace and much smaller so it explains the failure
+	   without ever competing with the 2rem headline; scrolls if a line is long. */
+	.caErrorLogDetail {
+		margin-top: 0.85rem;
+		max-width: 80vw;
+		max-height: 8rem;
+		overflow: auto;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 1.1rem;
+		font-weight: 400;
+		line-height: 1.4;
+		text-align: left;
+		white-space: pre-wrap;
+		word-break: break-word;
+		color: color-mix(in srgb, var(--ca-bottomBanner-text) 70%, transparent);
+		background: var(--ca-dark-overlay-color);
+		border-radius: 0.4rem;
+		padding: 0.5rem 0.75rem;
 	}
 
 	/* 2.7) Sidebar Navigation */
