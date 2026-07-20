@@ -737,6 +737,11 @@ function caBlockViewportForReload() {
 /**
  * Non-auto-reloading fatal banner: user must click or keypress to trigger Home or `location.reload()`.
  *
+ * Used for the benign cross-tab "another instance updated the feed" reload — a
+ * stale tab just needs to pick up fresh content. For an actual failed request
+ * (a broken exec.php POST) use caShowFatalErrorBanner instead, which shows
+ * explicit buttons and error detail rather than reloading on any click.
+ *
  * @param {string} [message] Banner text (translated default when empty)
  * @param {*} _unusedDelay Reserved
  */
@@ -771,6 +776,10 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		var onAny = function() {
 			document.removeEventListener("click", onAny, true);
 			document.removeEventListener("keydown", onAny, true);
+			/* If a real exec.php failure has since taken the banner over via
+			   caShowFatalErrorBanner, don't reload out from under its buttons and
+			   error detail — let this click reach those buttons instead. */
+			if (window.ca_fatalErrorActive) return;
 			doHomeReload();
 		};
 		document.addEventListener("click", onAny, true);
@@ -780,6 +789,137 @@ function caShowFatalReloadBanner(message, _unusedDelay) {
 		if ($homeBtn.length) $homeBtn.trigger("click");
 		else window.location.reload();
 	}
+}
+
+/**
+ * Fatal ERROR banner (a failed exec.php request) with explicit Ignore /
+ * Download logs / Reload buttons. Unlike caShowFatalReloadBanner — the
+ * click-anywhere feed-update reload — this one NEVER reloads on a stray click;
+ * the user chooses. Shows `message`, and the caller appends the failed action
+ * and a PHP-log tail beneath it.
+ *
+ * @param {string} [message] Banner text (translated default when empty)
+ */
+function caShowFatalErrorBanner(message) {
+	try {
+		/* Gate on THIS banner's own flag, NOT the shared ca_reloadPending: a real
+		   failure must be able to take over even if the benign feed-update banner
+		   (caShowFatalReloadBanner) already claimed ca_reloadPending first —
+		   otherwise the failure's buttons and diagnostics are silently dropped.
+		   Setting ca_reloadPending too then suppresses any later feed banner. */
+		if (window.ca_fatalErrorActive) return;
+		window.ca_fatalErrorActive = true;
+		window.ca_reloadPending = true;
+		try {
+			if (typeof closeSidebar === "function") closeSidebar(true, true);
+		} catch(e) {}
+		var msg = (typeof message === "string" && message) ? message : tr("Something went wrong.");
+
+		var $banner = $(".ca_bottomBanner");
+		var $msg = $(".ca_fatalReloadBanner");
+		var $buttons = $(".ca_fatalReloadButtons");
+		if ($banner.length && $msg.length && $buttons.length) {
+			$(".ca_pageGeometryChange").addClass("ca_hide");
+			$msg.text(msg).removeClass("ca_hide");
+			/* Namespaced + off-first so re-showing the banner never stacks
+			   duplicate handlers on the buttons. */
+			$(".ca_fatalReloadBtn").off("click.caFatal").on("click.caFatal", function() {
+				window.location.reload();
+			});
+			$(".ca_fatalIgnoreBtn").off("click.caFatal").on("click.caFatal", caDismissFatalReloadBanner);
+			$(".ca_fatalDownloadBtn").off("click.caFatal").on("click.caFatal", caDownloadFatalLogs);
+			$buttons.removeClass("ca_hide");
+			$banner.removeClass("ca_hide");
+		} else {
+			/* Skin markup missing (shouldn't happen): fall back to a confirm. */
+			if (confirm(msg + "\n\n" + tr("Reload the page now?"))) window.location.reload();
+			else { window.ca_fatalErrorActive = false; window.ca_reloadPending = false; }
+		}
+	} catch(e) {
+		var $homeBtn = $(".startupButton").first();
+		if ($homeBtn.length) $homeBtn.trigger("click");
+		else window.location.reload();
+	}
+}
+
+/**
+ * Dismiss the fatal reload banner (the Ignore action): hide the banner and its
+ * buttons, clear the appended message / PHP-log detail, unblock the viewport,
+ * and clear the pending flag so a later failure can raise the banner again.
+ */
+function caDismissFatalReloadBanner() {
+	try {
+		$(".ca_fatalReloadButtons").addClass("ca_hide");
+		$(".ca_fatalReloadBanner").addClass("ca_hide").empty();
+		$(".ca_bottomBanner").addClass("ca_hide");
+		$("#caViewportBlocker").addClass("ca_hide").removeClass("caReloadBlur");
+		window.ca_fatalErrorActive = false;
+		window.ca_reloadPending = false;
+	} catch(e) {}
+}
+
+/**
+ * "Download logs" action on the fatal banner: trigger the standalone
+ * downloadlog.php (a GET that streams a zip of CA's logs). Kept off post() /
+ * exec.php on purpose — the banner is only up because a post() just failed, so
+ * reusing that path would hit the same broken endpoint / stale csrf_token. The
+ * server's Content-Disposition: attachment means the browser downloads without
+ * navigating away, so the banner stays up.
+ */
+function caDownloadFatalLogs() {
+	try {
+		if (typeof downloadLogURL !== "string" || !downloadLogURL) return;
+		var a = document.createElement("a");
+		a.href = downloadLogURL;
+		a.rel = "noopener";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	} catch(e) {
+		try { window.location = downloadLogURL; } catch(e2) {}
+	}
+}
+
+/**
+ * Append the name of the exec.php action that failed under the fatal banner's
+ * message, so the user (and support) sees WHICH request broke — not just that
+ * something did. Best-effort; no-op when the action or banner is absent.
+ */
+function caAppendFatalActionDetail(action) {
+	try {
+		if ( ! action ) return;
+		var $msg = $(".ca_fatalReloadBanner");
+		if ( ! $msg.length ) return;
+		$msg.find(".caErrorAction").remove();
+		/* .text() so the action id can't inject markup into the banner. */
+		$("<div>").addClass("caErrorAction").text(tr("Failed action") + ": " + action).appendTo($msg);
+	} catch(e) {}
+}
+
+/**
+ * Best-effort: fetch the last line or two of the system PHP error log and append
+ * them, as a muted detail block, beneath the fatal reload banner's message so
+ * the user (and support) can see WHY the POST failed without digging through
+ * logs. Any failure — endpoint unreachable, empty log, banner not on the page —
+ * silently leaves the banner as-is.
+ *
+ * A plain GET to errorLogURL, NOT the usual post(): the banner only ever appears
+ * because a post() to exec.php just failed, so reusing that path would hit the
+ * same broken endpoint / stale csrf_token. See include/errorlog.php.
+ */
+function caAppendPhpLogTail() {
+	try {
+		if (typeof errorLogURL !== "string" || !errorLogURL) return;
+		$.get(errorLogURL, {lines: 2}).done(function(result) {
+			var tail = (result && typeof result.log === "string") ? result.log : "";
+			if ( ! tail ) return;
+			var $msg = $(".ca_fatalReloadBanner");
+			if ( ! $msg.length ) return;
+			/* .text() so raw log content (may contain <, &, quotes) is escaped
+			   and can't inject markup into the banner. */
+			$("<div>").addClass("caErrorLogDetail").text(tail).appendTo($msg);
+		});
+	} catch(e) {}
 }
 
 /**
@@ -984,13 +1124,25 @@ function post(options,callback) {
 		   EXIT on the updating-applications popup — the failure is just the
 		   in-flight POST being aborted by the impending history.back() nav. */
 		if (data.quittingUpdate) return;
-		/* Reuse the cross-tab feed-update reload banner instead of a swal: a
-		   failed POST (network glitch, or a stale csrf_token after the server
-		   was reset) leaves this tab unable to talk to the server, and the only
-		   fix is a reload to pick up a fresh page (and csrf_token). The banner
-		   blocks the stale viewport and reloads on the next click/keypress. */
+		/* Failed POST (network glitch, or a stale csrf_token after the server
+		   was reset) leaves this tab unable to talk to the server. Show the
+		   error banner over the blocked viewport with explicit Ignore / Download
+		   logs / Reload buttons (NOT the click-anywhere feed-update banner) so a
+		   stray click can't discard the page or the error detail we append. */
+		/* Only enrich on the error banner's FIRST show — gate on ca_fatalErrorActive
+		   (not ca_reloadPending, which a benign feed banner may already hold) so a
+		   real failure still gets its action / log lines, and repeated in-flight
+		   failures while the error banner is up don't stack duplicates. */
+		var caFirstShow = ! window.ca_fatalErrorActive;
 		caBlockViewportForReload();
-		caShowFatalReloadBanner(tr("Unfortunately something went wrong - click anywhere to reload the page."));
+		caShowFatalErrorBanner(tr("Unfortunately something went wrong."));
+		if (caFirstShow) {
+			/* Name the failed action, then pull in the tail of /var/log/phplog,
+			   so the banner says more than "something went wrong". Both are
+			   best-effort and shown under the message. */
+			caAppendFatalActionDetail(options && options.action);
+			caAppendPhpLogTail();
+		}
 	});
 }
 
