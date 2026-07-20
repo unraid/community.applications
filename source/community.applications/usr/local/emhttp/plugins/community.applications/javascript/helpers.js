@@ -735,16 +735,68 @@ function caBlockViewportForReload() {
 }
 
 /**
- * Fatal banner with explicit Ignore / Reload buttons. Shows `message` (plus any
- * PHP-log tail appended by caAppendPhpLogTail) over a blocked viewport, then
- * waits for the user to choose: Reload reloads the page, Ignore dismisses the
- * banner and unblocks the viewport. No click-anywhere handler — a stray click
- * must not blow the page (and any half-read error detail) away.
+ * Non-auto-reloading fatal banner: user must click or keypress to trigger Home or `location.reload()`.
+ *
+ * Used for the benign cross-tab "another instance updated the feed" reload — a
+ * stale tab just needs to pick up fresh content. For an actual failed request
+ * (a broken exec.php POST) use caShowFatalErrorBanner instead, which shows
+ * explicit buttons and error detail rather than reloading on any click.
  *
  * @param {string} [message] Banner text (translated default when empty)
  * @param {*} _unusedDelay Reserved
  */
 function caShowFatalReloadBanner(message, _unusedDelay) {
+	try {
+		if (window.ca_reloadPending) return;
+		window.ca_reloadPending = true;
+		try {
+			if (typeof closeSidebar === "function") closeSidebar(true, true);
+		} catch(e) {}
+		var msg = (typeof message === "string" && message) ? message : tr("Click anywhere to reload the page.");
+
+		var $banner = $(".ca_bottomBanner");
+		var $msg = $(".ca_fatalReloadBanner");
+		if ($banner.length && $msg.length) {
+			$(".ca_pageGeometryChange").addClass("ca_hide");
+			$msg.text(msg).removeClass("ca_hide");
+			$banner.removeClass("ca_hide");
+		} else {
+			alert(msg);
+		}
+
+		var doHomeReload = function() {
+			window.location.reload();
+		};
+		/* User-driven reload instead of a timer: multiple tabs receiving the
+		   same "feed updated" signal would otherwise all reload simultaneously,
+		   each spawning a new tabId and pile of cache files. Waiting for an
+		   explicit click means tabs only reload when the user actually wants
+		   to reuse them. Capture phase + once: true so the very first input
+		   anywhere triggers it without bubbling into other handlers first. */
+		var onAny = function() {
+			document.removeEventListener("click", onAny, true);
+			document.removeEventListener("keydown", onAny, true);
+			doHomeReload();
+		};
+		document.addEventListener("click", onAny, true);
+		document.addEventListener("keydown", onAny, true);
+	} catch(e) {
+		var $homeBtn = $(".startupButton").first();
+		if ($homeBtn.length) $homeBtn.trigger("click");
+		else window.location.reload();
+	}
+}
+
+/**
+ * Fatal ERROR banner (a failed exec.php request) with explicit Ignore /
+ * Download logs / Reload buttons. Unlike caShowFatalReloadBanner — the
+ * click-anywhere feed-update reload — this one NEVER reloads on a stray click;
+ * the user chooses. Shows `message`, and the caller appends the failed action
+ * and a PHP-log tail beneath it.
+ *
+ * @param {string} [message] Banner text (translated default when empty)
+ */
+function caShowFatalErrorBanner(message) {
 	try {
 		if (window.ca_reloadPending) return;
 		window.ca_reloadPending = true;
@@ -1061,16 +1113,16 @@ function post(options,callback) {
 		   EXIT on the updating-applications popup — the failure is just the
 		   in-flight POST being aborted by the impending history.back() nav. */
 		if (data.quittingUpdate) return;
-		/* Reuse the cross-tab feed-update reload banner instead of a swal: a
-		   failed POST (network glitch, or a stale csrf_token after the server
-		   was reset) leaves this tab unable to talk to the server, and the only
-		   fix is a reload to pick up a fresh page (and csrf_token). The banner
-		   blocks the stale viewport and reloads on the next click/keypress. */
+		/* Failed POST (network glitch, or a stale csrf_token after the server
+		   was reset) leaves this tab unable to talk to the server. Show the
+		   error banner over the blocked viewport with explicit Ignore / Download
+		   logs / Reload buttons (NOT the click-anywhere feed-update banner) so a
+		   stray click can't discard the page or the error detail we append. */
 		/* Only enrich on the FIRST show — repeated in-flight failures while the
 		   banner is already up must not stack duplicate action / log lines. */
 		var caFirstShow = ! window.ca_reloadPending;
 		caBlockViewportForReload();
-		caShowFatalReloadBanner(tr("Unfortunately something went wrong."));
+		caShowFatalErrorBanner(tr("Unfortunately something went wrong."));
 		if (caFirstShow) {
 			/* Name the failed action, then pull in the tail of /var/log/phplog,
 			   so the banner says more than "something went wrong". Both are
