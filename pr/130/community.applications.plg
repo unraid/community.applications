@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2026.07.20-pr130-bdbfe35">
-<!ENTITY md5       "070fac355581008b0a582b19bf5403bc">
+<!ENTITY version   "2026.07.20-pr130-88b96b3">
+<!ENTITY md5       "1d72d2483559c69b0e9d9d19c9b81243">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -2485,7 +2485,7 @@ if [[ -e /tmp/community.applications/tempFiles/templates.json ]]; then rm /tmp/c
 The 'source' file.
 -->
 <FILE Name="/boot/config/plugins/&name;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
-<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/130/community.applications-2026.07.20-pr130-bdbfe35-x86_64-1.txz</URL>
+<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/130/community.applications-2026.07.20-pr130-88b96b3-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
