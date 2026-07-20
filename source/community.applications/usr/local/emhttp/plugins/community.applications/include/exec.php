@@ -1968,7 +1968,7 @@ function pinApp() {
 
 	$repository = getPost("repository","oops");
 	$name = getPost("name","oops");
-	$pinnedApps = (array)readJsonFile(CA_PATHS['pinnedV2']);
+	$pinnedApps = is_array($p = readJsonFile(CA_PATHS['pinnedV2'])) ? $p : [];
 	if (isset($pinnedApps["$repository&$name"]) )
 		$pinnedApps["$repository&$name"] = false;
 	else
@@ -1985,7 +1985,7 @@ function pinApp() {
  */
 function areAppsPinned() {
 
-	postReturn(['status' => in_array(true,(array)readJsonFile(CA_PATHS['pinnedV2']))]);
+	postReturn(['status' => in_array(true, is_array($p = readJsonFile(CA_PATHS['pinnedV2'])) ? $p : [])]);
 }
 
 /**
@@ -2994,6 +2994,10 @@ function createXML() {
 		}
 
 		$xml = makeXML($template);
+		if ( $xml === false ) {
+			postReturn(["error" => tr("Could not build the template XML (invalid characters in the template)")]);
+			return;
+		}
 		@mkdir(dirname($xmlFile),0777,true);
 		ca_file_put_contents($xmlFile,$xml);
 	} elseif ( $type === "user" ) {
@@ -3318,6 +3322,10 @@ function convert_docker() {
 	}
 
 	$dockerXML = makeXML($dockerfile);
+	if ( $dockerXML === false ) {
+		postReturn(["error" => tr("Could not build the container XML (invalid characters in the template)")]);
+		return;
+	}
 
 	/* Per-request output path so two concurrent convert_docker calls (e.g. two
 	   tabs) don't clobber each other's redirect target. Sweeping happens in

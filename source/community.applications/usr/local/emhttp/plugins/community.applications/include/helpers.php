@@ -63,7 +63,7 @@ function getGlobals() {
 	clearstatcache();
 	if ( is_file(CA_PATHS['community-templates-info']) ) {
 		if ( ! isset($GLOBALS['templates']) ) {
-			$GLOBALS['templates'] = (array)readJsonFile(CA_PATHS['community-templates-info']);
+			$GLOBALS['templates'] = is_array($t = readJsonFile(CA_PATHS['community-templates-info'])) ? $t : [];
 		}
 	} else {
 		$GLOBALS['templates'] = [];
@@ -80,7 +80,7 @@ function getGlobals() {
  * @return void
  */
 function getFullGlobals() {
-	$GLOBALS['templates'] = (array)readJsonFile(CA_PATHS['community-templates-info-full']);
+	$GLOBALS['templates'] = is_array($t = readJsonFile(CA_PATHS['community-templates-info-full'])) ? $t : [];
 	getSettings();
 }
 
@@ -1155,7 +1155,8 @@ function fixTemplates($template) {
  * sanitizes Requires links, and delegates to Array2XML.
  *
  * @param  array<string,mixed>  $template
- * @return string XML document.
+ * @return string|false XML document, or false when the template contains
+ *                       characters invalid in XML tag/attribute names.
  */
 function makeXML($template) {
 	# ensure its a v2 template if the Config entries exist
@@ -2049,10 +2050,11 @@ function getAllInfo($force=false) {
 	} else {
 		debug("Cached info update");
 	}
-	// Cast so a corrupt CA_PATHS['info'] cache that readJsonFile decodes to a
+	// Guard so a corrupt CA_PATHS['info'] cache that readJsonFile decodes to a
 	// scalar can never reach the typed array $info params downstream (which
-	// would TypeError). Consumers always get an array, empty at worst.
-	return (array)$containers;
+	// would TypeError). is_array (not an (array) cast) so a scalar becomes an
+	// empty array, not a one-element array wrapping the junk value.
+	return is_array($containers) ? $containers : [];
 }
 
 /**
