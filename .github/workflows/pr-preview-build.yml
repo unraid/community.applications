@@ -9,13 +9,43 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Build installable preview
         run: ./scripts/build-pr-preview.sh "${{ github.event.pull_request.number }}" "${{ github.event.pull_request.head.sha }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ca-pr-preview-${{ runner.os }}
+          path: dist/pr-preview/
+          if-no-files-found: error
+          retention-days: 7
+
+  verify-reproducible:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ca-pr-preview-Linux
+          path: artifacts/linux
+      - uses: actions/download-artifact@v8
+        with:
+          name: ca-pr-preview-macOS
+          path: artifacts/macos
+      - name: Compare Linux and macOS output
+        run: diff -r artifacts/linux artifacts/macos
+      - name: Prepare verified preview
+        run: |
+          mkdir -p dist/pr-preview
+          cp -a artifacts/linux/. dist/pr-preview/
       - uses: actions/upload-artifact@v7
         with:
           name: ca-pr-preview

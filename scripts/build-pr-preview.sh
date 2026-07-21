@@ -9,7 +9,15 @@ OUTPUT_DIR="${3:-$ROOT/dist/pr-preview}"
 SOURCE_DIR="$ROOT/source/community.applications"
 PLUGIN_TEMPLATE="$ROOT/plugins/community.applications.plg"
 SHORT_SHA="${GIT_SHA:0:7}"
-VERSION="$(date -u +%Y.%m.%d)-pr${PR_NUMBER}-${SHORT_SHA}"
+COMMIT_TIMESTAMP="$(git -C "$ROOT" show -s --format=%ct "$GIT_SHA")"
+VERSION_DATE="$(python3 - "$COMMIT_TIMESTAMP" <<'PY'
+from datetime import datetime, timezone
+import sys
+
+print(datetime.fromtimestamp(int(sys.argv[1]), timezone.utc).strftime("%Y.%m.%d"))
+PY
+)"
+VERSION="${VERSION_DATE}-pr${PR_NUMBER}-${SHORT_SHA}"
 PACKAGE="community.applications-${VERSION}-x86_64-1.txz"
 BASE_URL="https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/${PR_NUMBER}"
 
@@ -27,15 +35,21 @@ mkdir -p "$OUTPUT_DIR"
 STAGING="$(mktemp -d -t ca-pr-preview.XXXXXX)"
 trap 'rm -rf "$STAGING"' EXIT
 
-COPYFILE_DISABLE=1 cp -R "$SOURCE_DIR/" "$STAGING/"
+# `source/.` copies the directory contents on both GNU and BSD cp. A trailing
+# slash alone behaves differently on Ubuntu and previously nested the entire
+# package below ./community.applications/ in CI-built previews.
+COPYFILE_DISABLE=1 cp -R "$SOURCE_DIR/." "$STAGING/"
 find "$STAGING" \( -name '.DS_Store' -o -name '._*' -o -name 'sftp-config.json' \) -delete
 find "$STAGING" -name '.claude' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 chmod -R 0755 "$STAGING"
 
-if tar --version 2>/dev/null | grep -q 'GNU tar'; then
-	tar -C "$STAGING" --owner=0 --group=0 --numeric-owner -cJf "$OUTPUT_DIR/$PACKAGE" .
-else
-	COPYFILE_DISABLE=1 tar -C "$STAGING" --uid 0 --gid 0 --uname root --gname root -cJf "$OUTPUT_DIR/$PACKAGE" .
+python3 "$ROOT/scripts/create-reproducible-tar.py" \
+	"$STAGING" "$OUTPUT_DIR/$PACKAGE" "$COMMIT_TIMESTAMP"
+
+tar -tf "$OUTPUT_DIR/$PACKAGE" > "$STAGING/package-contents.txt"
+if ! grep -Fxq './usr/local/emhttp/plugins/community.applications/Apps.page' "$STAGING/package-contents.txt"; then
+	echo "Preview package has an invalid root layout." >&2
+	exit 1
 fi
 
 if command -v md5sum >/dev/null 2>&1; then
@@ -51,6 +65,11 @@ import sys
 
 source, destination, version, md5, package_url, plugin_url = sys.argv[1:]
 text = Path(source).read_text(encoding="utf-8")
+
+# Keep `name` canonical because WebGUI uses it to locate the plugin's UI
+# directory. `pluginURL` must point at the stable per-PR installer so WebGUI
+# update checks follow new preview builds; CA recognizes that bounded URL as an
+# alias of its canonical app-feed template.
 replacements = {
     "version": version,
     "md5": md5,
