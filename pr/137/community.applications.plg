@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "community.applications">
 <!ENTITY author    "Lime Technology">
-<!ENTITY version   "2026.08.28-pr137-76d62f9">
-<!ENTITY md5       "be7f28a8ebbef528de4bfad6614b56cb">
+<!ENTITY version   "2026.08.28-pr137-0327843">
+<!ENTITY md5       "68636f4957496b750e80513761557912">
 <!ENTITY launch    "Apps">
 <!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
 <!ENTITY github    "unraid/community.applications">
@@ -13,9 +13,6 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
-###2026.07.21
-- Added: Support for alternative Cloudflare CDN
-
 ###2026.07.14
 - Changed: Republished the previous 2026.05.15gh release to roll back the 2026.07.11 Community Applications update while reported issues are addressed
 
@@ -2488,7 +2485,7 @@ if [[ -e /tmp/community.applications/tempFiles/templates.json ]]; then rm /tmp/c
 The 'source' file.
 -->
 <FILE Name="/boot/config/plugins/&name;/&name;-&version;-x86_64-1.txz" Run="upgradepkg --install-new --reinstall">
-<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/137/community.applications-2026.08.28-pr137-76d62f9-x86_64-1.txz</URL>
+<URL>https://raw.githubusercontent.com/unraid/community.applications/pr-previews/pr/137/community.applications-2026.08.28-pr137-0327843-x86_64-1.txz</URL>
 <MD5>&md5;</MD5>
 </FILE>
 
