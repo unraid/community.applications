@@ -1,0 +1,472 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "ca.spotlight.editor">
+<!ENTITY author    "Andrew Zawadzki">
+<!ENTITY version   "2026.08.28">
+<!ENTITY launch    "Tools/Spotlight">
+<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
+<!ENTITY github    "unraid/community.applications">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/&github;/master/plugins/&name;.plg">
+]>
+
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" min="6.12.0" icon="star">
+
+<CHANGES>
+###2026.08.28
+- Initial release
+</CHANGES>
+
+<!--
+The 'pre-install' script.
+
+The plugin installer skips any inline file whose target already exists, so
+clear the previous copies first and let the FILE blocks below lay down fresh
+ones on every install. The plg itself lives outside this glob, so installing
+from a copy sitting in the plugin folder stays safe.
+-->
+<FILE Run="/bin/bash">
+<INLINE>
+rm -f &plugdir;/*.page
+rm -f &plugdir;/exec.php
+</INLINE>
+</FILE>
+
+<!--
+The page.
+-->
+<FILE Name="&plugdir;/Spotlight.page" Mode="0644">
+<INLINE>
+<![CDATA[
+Menu="Utilities"
+Title="CA Spotlight Editor"
+Icon="star"
+---
+<?
+########################################
+#                                      #
+# CA Spotlight Editor                  #
+# Quick and dirty spotlight injector   #
+#                                      #
+########################################
+
+/**
+ * Form for injecting a Recommended (spotlight) entry into CA's live
+ * templates cache. All of the work happens in exec.php next to this file.
+ */
+
+$slMonth = (int)date("n");
+$slYear  = (int)date("Y");
+$slMonthOptions = "";
+for ($m = 1; $m <= 12; $m++) {
+	$selected = ($m == $slMonth) ? " selected" : "";
+	$slMonthOptions .= "<option value='$m'$selected>".date("F",mktime(0,0,0,$m,1,2000))."</option>";
+}
+?>
+<style>
+.slResult{margin-top:1em;white-space:pre-wrap;}
+.slOk{color:#4c9c4c;}
+.slErr{color:#c0392b;}
+.slNote{font-size:1.1rem;opacity:.75;}
+#slReason{width:100%;max-width:64rem;height:9rem;}
+#slYear{width:7rem;}
+#slRepo{width:100%;max-width:64rem;}
+#slWho{width:100%;max-width:32rem;}
+</style>
+<div class="title"><span class="left"><i class="fa fa-star title"></i>Spotlight Entry</span></div>
+<dl>
+<dt>Repository:</dt>
+<dd><input type="text" id="slRepo" list="slRepoList" spellcheck="false" autocomplete="off" placeholder="binhex/arch-plex"><datalist id="slRepoList"></datalist></dd>
+</dl>
+<div class="slNote" id="slRepoStatus">Loading repositories...</div>
+<dl>
+<dt>Month:</dt>
+<dd><select id="slMonth"><?=$slMonthOptions?></select></dd>
+</dl>
+<dl>
+<dt>Year:</dt>
+<dd><input type="text" id="slYear" inputmode="numeric" maxlength="4" value="<?=$slYear?>"></dd>
+</dl>
+<dl>
+<dt>Reason:</dt>
+<dd><textarea id="slReason" spellcheck="true" placeholder="Why we picked it"></textarea></dd>
+</dl>
+<dl>
+<dt>Who:</dt>
+<dd><input type="text" id="slWho" spellcheck="false" placeholder="Unraid Staff"></dd>
+</dl>
+<div><input type="button" id="slApply" value="Add Spotlight"></div>
+<div class="slResult" id="slResult"></div>
+<script>
+var slURL = "/plugins/ca.spotlight.editor/exec.php";
+var slExisting = {};
+function slSay(html,cssClass) {
+	$("#slResult").removeClass("slOk slErr").addClass(cssClass || "").html(html);
+}
+function slEscape(text) {
+	return $("<div>").text(text == null ? "" : String(text)).html();
+}
+function slAttr(text) {
+	return String(text == null ? "" : text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function slLoadRepos() {
+	$.post(slURL,{action:"repos"},null,"json").done(function(result) {
+		if ( ! result || ! result.ok ) {
+			$("#slRepoStatus").text(result && result.error ? result.error : "Could not load repositories.").addClass("slErr");
+			return;
+		}
+		var options = "";
+		$.each(result.repos,function(index,repo) {
+			options += "<option value=\"" + slAttr(repo.v) + "\" label=\"" + slAttr(repo.n) + "\"></option>";
+			if ( repo.rec )
+				slExisting[repo.v.toLowerCase()] = repo.rec;
+		});
+		$("#slRepoList").html(options);
+		$("#slRepoStatus").text(result.repos.length + " repositories loaded from templates_new.json");
+	}).fail(function() {
+		$("#slRepoStatus").text("Could not reach exec.php.").addClass("slErr");
+	});
+}
+function slPrefill() {
+	var existing = slExisting[$("#slRepo").val().trim().toLowerCase()];
+	if ( ! existing )
+		return;
+	$("#slMonth").val(existing.month);
+	$("#slYear").val(existing.year);
+	$("#slReason").val(existing.reason);
+	$("#slWho").val(existing.who);
+	slSay("This app already has a spotlight entry - the form was pre-filled with it.","");
+}
+function slApply() {
+	var payload = {
+		action:"apply",
+		repository:$("#slRepo").val().trim(),
+		month:$("#slMonth").val(),
+		year:$("#slYear").val().trim(),
+		reason:$("#slReason").val().trim(),
+		who:$("#slWho").val().trim()
+	};
+	$("#slApply").prop("disabled",true);
+	slSay("Working...","");
+	$.post(slURL,payload,null,"json").done(function(result) {
+		if ( ! result ) {
+			slSay("No response from exec.php.","slErr");
+			return;
+		}
+		if ( ! result.ok ) {
+			var message = slEscape(result.error);
+			if ( result.candidates && result.candidates.length )
+				message += "\n\n" + slEscape(result.candidates.join("\n"));
+			slSay(message,"slErr");
+			return;
+		}
+		slSay("Spotlighted for " + slEscape(result.date) + " by " + slEscape(result.who) + "\n\n" + slEscape(result.applied.join("\n")) + "\n\nRefresh the Apps page to see it.","slOk");
+		slLoadRepos();
+	}).fail(function() {
+		slSay("Could not reach exec.php.","slErr");
+	}).always(function() {
+		$("#slApply").prop("disabled",false);
+	});
+}
+$(function() {
+	slLoadRepos();
+	$("#slRepo").on("change",slPrefill);
+	$("#slApply").on("click",slApply);
+	$("#slYear").on("input",function() {
+		$(this).val($(this).val().replace(/[^0-9]/g,"").slice(0,4));
+	});
+});
+</script>
+]]>
+</INLINE>
+</FILE>
+
+<!--
+The back end.
+-->
+<FILE Name="&plugdir;/exec.php" Mode="0644">
+<INLINE>
+<![CDATA[
+<?PHP
+########################################
+#                                      #
+# CA Spotlight Editor                  #
+# Quick and dirty spotlight injector   #
+#                                      #
+########################################
+
+/**
+ * Back end for the CA Spotlight Editor page.
+ *
+ * Reads CA's live templates cache, finds the template(s) matching a repository,
+ * and writes the Recommended (spotlight) fields into that entry:
+ *
+ *   RecommendedRaw    "August 2026"
+ *   RecommendedDate   strtotime of the above
+ *   RecommendedReason ["en_US" => "why we picked it"]
+ *   RecommendedWho    "Andrew"
+ *
+ * plus " spotlight:" appended to Category so the entry lands in the Spotlight
+ * section, which is exactly what include/exec.php does when the app feed
+ * hands CA a RecommendedRaw of its own.
+ *
+ * The cache is PHP-serialized despite the .json name, matching CA's own
+ * readJsonFile()/writeJsonFile() in include/helpers.php.
+ */
+
+ini_set('display_errors','Off');
+
+$templatesFile = "/tmp/community.applications/tempFiles/templates_new.json";
+$feedReadyFile = "/tmp/ca_haveTemplates";
+
+header("Content-Type: application/json");
+
+function slOut($payload) {
+	echo json_encode($payload);
+	exit;
+}
+
+function slFail($message,$extra = []) {
+	slOut(["ok"=>false,"error"=>$message] + $extra);
+}
+
+function slReadTemplates($file) {
+	if ( ! is_file($file) )
+		return null;
+
+	$contents = @file_get_contents($file);
+	if ( $contents === false )
+		return null;
+
+	// allowed_classes false: never instantiate objects out of a cache file
+	$data = @unserialize($contents,['allowed_classes'=>false]);
+	if ( $data === false && trim((string)$contents) !== 'b:0;' )
+		$data = json_decode($contents,true);
+
+	return is_array($data) ? $data : null;
+}
+
+function slWriteTemplates($file,$data) {
+	$temp = "$file~";
+	if ( @file_put_contents($temp,serialize($data)) === false )
+		return false;
+
+	return @rename($temp,$file);
+}
+
+/**
+ * Drop the tag off a repository, leaving a registry host with a port alone.
+ */
+function slStripTag($repository) {
+	$repository = trim((string)$repository);
+	if ( $repository === "" )
+		return "";
+
+	$colon = strrpos($repository,":");
+	if ( $colon === false )
+		return $repository;
+
+	$tag = substr($repository,$colon + 1);
+	if ( strpos($tag,"/") !== false )
+		return $repository;
+
+	return substr($repository,0,$colon);
+}
+
+/**
+ * The value the user types in the Repository box. Plugins have no Repository,
+ * so they are addressed by their PluginURL instead.
+ */
+function slKeyOf($template) {
+	$repository = trim((string)($template['Repository'] ?? ""));
+	return $repository ?: trim((string)($template['PluginURL'] ?? ""));
+}
+
+function slLabelOf($template) {
+	$name = trim((string)($template['Name'] ?? "")) ?: "unnamed";
+	$repo = trim((string)($template['RepoName'] ?? $template['Repo'] ?? ""));
+	return $repo ? "$name - $repo" : $name;
+}
+
+/**
+ * Progressively looser passes so a typed repository lands on one entry.
+ * Returns ['matches'=>[indexes], 'exact'=>bool].
+ */
+function slFindMatches($templates,$needle) {
+	$needle = trim($needle);
+	if ( $needle === "" )
+		return ["matches"=>[],"exact"=>false];
+
+	$lower      = strtolower($needle);
+	$lowerNoTag = strtolower(slStripTag($needle));
+
+	$exact = [];
+	$noTag = [];
+	$named = [];
+	$loose = [];
+
+	foreach ($templates as $i => $template) {
+		if ( ! is_array($template) )
+			continue;
+
+		$repository = strtolower(trim((string)($template['Repository'] ?? "")));
+		$pluginURL  = strtolower(trim((string)($template['PluginURL'] ?? "")));
+		$name       = strtolower(trim((string)($template['Name'] ?? "")));
+
+		if ( ($repository !== "" && $repository === $lower) || ($pluginURL !== "" && $pluginURL === $lower) ) {
+			$exact[] = $i;
+			continue;
+		}
+		if ( $repository !== "" && strtolower(slStripTag($repository)) === $lowerNoTag ) {
+			$noTag[] = $i;
+			continue;
+		}
+		if ( $name !== "" && $name === $lower ) {
+			$named[] = $i;
+			continue;
+		}
+		if ( ($repository !== "" && strpos($repository,$lower) !== false)
+		  || ($pluginURL  !== "" && strpos($pluginURL,$lower)  !== false)
+		  || ($name       !== "" && strpos($name,$lower)       !== false) ) {
+			$loose[] = $i;
+		}
+	}
+
+	if ( $exact ) return ["matches"=>$exact,"exact"=>true];
+	if ( $noTag ) return ["matches"=>$noTag,"exact"=>true];
+	if ( $named ) return ["matches"=>$named,"exact"=>true];
+
+	return ["matches"=>$loose,"exact"=>false];
+}
+
+$action    = $_POST['action'] ?? "";
+$templates = slReadTemplates($templatesFile);
+
+if ( $templates === null )
+	slFail("Could not read $templatesFile - open the Apps page once so CA downloads the feed.");
+
+switch ($action) {
+
+case "repos":
+	/* Feeds the datalist on the page. Existing spotlight entries come back
+	   with their current values so picking one pre-fills the form. */
+	$repos = [];
+	foreach ($templates as $template) {
+		if ( ! is_array($template) )
+			continue;
+
+		$key = slKeyOf($template);
+		if ( $key === "" )
+			continue;
+
+		$entry = ["v"=>$key,"n"=>slLabelOf($template)];
+
+		if ( ! empty($template['RecommendedDate']) ) {
+			$reason = $template['RecommendedReason'] ?? [];
+			$reason = is_array($reason) ? ($reason['en_US'] ?? reset($reason)) : $reason;
+			$entry['rec'] = [
+				"month"  => (int)date("n",(int)$template['RecommendedDate']),
+				"year"   => (int)date("Y",(int)$template['RecommendedDate']),
+				"reason" => (string)($reason ?: ""),
+				"who"    => (string)($template['RecommendedWho'] ?? "")
+			];
+		}
+
+		$repos[] = $entry;
+	}
+	slOut(["ok"=>true,"repos"=>$repos,"total"=>count($templates)]);
+	break;
+
+case "apply":
+	$repository = trim((string)($_POST['repository'] ?? ""));
+	$month      = (int)($_POST['month'] ?? 0);
+	$year       = (int)($_POST['year'] ?? 0);
+	$reason     = trim((string)($_POST['reason'] ?? ""));
+	$who        = trim((string)($_POST['who'] ?? ""));
+
+	if ( $repository === "" )
+		slFail("Repository is required.");
+	if ( $month < 1 || $month > 12 )
+		slFail("Month must be 1 through 12.");
+	if ( $year < 1970 || $year > 9999 )
+		slFail("Year must be a 4 digit year.");
+	if ( $reason === "" )
+		slFail("Reason is required - CA only renders the spotlight block when a reason is present.");
+
+	$found = slFindMatches($templates,$repository);
+
+	if ( ! $found['matches'] )
+		slFail("No entry in templates_new.json matches \"$repository\".");
+
+	if ( ! $found['exact'] && count($found['matches']) > 1 ) {
+		$candidates = [];
+		foreach (array_slice($found['matches'],0,25) as $i)
+			$candidates[] = slKeyOf($templates[$i])." - ".slLabelOf($templates[$i]);
+
+		slFail("\"$repository\" matches ".count($found['matches'])." entries. Pick one exactly.",["candidates"=>$candidates]);
+	}
+
+	$recommendedRaw  = date("F Y",mktime(0,0,0,$month,1,$year));
+	$recommendedDate = strtotime($recommendedRaw);
+	if ( ! $recommendedDate )
+		slFail("Could not turn \"$recommendedRaw\" into a date.");
+
+	$applied = [];
+	foreach ($found['matches'] as $i) {
+		$templates[$i]['RecommendedRaw']    = $recommendedRaw;
+		$templates[$i]['RecommendedDate']   = $recommendedDate;
+		$templates[$i]['RecommendedReason'] = ["en_US"=>$reason];
+		$templates[$i]['RecommendedWho']    = $who;
+
+		$category = trim((string)($templates[$i]['Category'] ?? ""));
+		if ( stripos($category,"spotlight:") === false )
+			$templates[$i]['Category'] = trim("$category spotlight:");
+
+		$applied[] = slKeyOf($templates[$i])." - ".slLabelOf($templates[$i]);
+	}
+
+	if ( ! slWriteTemplates($templatesFile,$templates) )
+		slFail("Failed writing $templatesFile.");
+
+	/* Same nudge CA gives its own tabs after a feed write, so an open Apps
+	   page reloads its content instead of showing the stale cache. */
+	@touch($feedReadyFile);
+
+	slOut([
+		"ok"      => true,
+		"applied" => $applied,
+		"date"    => $recommendedRaw,
+		"who"     => $who ?: "Unraid Staff (default)"
+	]);
+	break;
+
+default:
+	slFail("Unknown action.");
+}
+]]>
+</INLINE>
+</FILE>
+
+<!--
+The 'post-install' script.
+-->
+<FILE Run="/bin/bash">
+<INLINE>
+echo ""
+echo "----------------------------------------------------"
+echo " &name; has been installed."
+echo " Tools -&gt; CA Spotlight Editor"
+echo " Version: &version;"
+echo "----------------------------------------------------"
+echo ""
+</INLINE>
+</FILE>
+
+<!--
+The 'remove' script.
+-->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+rm -rf &plugdir;
+</INLINE>
+</FILE>
+</PLUGIN>
