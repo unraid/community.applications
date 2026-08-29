@@ -432,10 +432,18 @@ body,
 /* 2.2) Home Templates Section */
 .ca_homeTemplates {
 	display: flex;
-	flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
+	flex-wrap: nowrap;
 	height: 30.5rem;
-	overflow-x: auto; /* Enable horizontal scrolling */
-	overflow-y: hidden; /* Hide vertical scrollbar */
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+/* Home rows pack in as many normal, fixed-width cards as the viewport can
+   hold. Never stretch them to consume leftover space: the narrow trailing
+   Show More card uses that remainder and remains horizontally scrollable. */
+.ca_homeTemplates > .ca_holder {
+	flex: 0 0 36rem;
+	min-width: 36rem;
+	max-width: 36rem;
 }
 .ca_homeTemplatesHeader {
 	font-size: 2rem;
@@ -446,46 +454,48 @@ body,
 	margin-bottom: 1rem;
 }
 
-/* Home page SHOW MORE: the last visible card in a section is left in place but
-   dimmed, with a SHOW MORE label overlaid on it (it opens the full category).
-   The overlay fills the card (.ca_holder is position:relative). The scrim is a
-   separate layer so its opacity dims only the card, not the label on top. */
-.ca_homeMoreOverlay {
-	position: absolute;
-	inset: 0;
+/* Home page SHOW MORE is deliberately a partial card. It follows every full
+   app that fits the row instead of replacing or obscuring the final app. */
+.ca_homeMoreCard {
+	flex: 0 0 8rem;
+	width: 8rem;
+	min-width: 8rem;
+	height: 26.5rem;
+	margin: 0.5rem 2rem 2rem 0.5rem;
+	padding: 1rem;
+	border: 1px solid var(--border-color);
+	border-radius: 1rem;
+	background: var(--mild-background-color);
+	color: var(--text-color);
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	gap: 1rem;
 	cursor: pointer;
-	z-index: 2;
 }
-.ca_homeMoreScrim {
-	position: absolute;
-	inset: 0;
-	background-color: var(--mild-background-color);
-	/* Dark mode (--theme-dark-mode 1) -> 0.8; light mode (0) -> 0.9.
-	   calc drops 0.1 off the 0.9 base only when the dark flag is set. */
-	opacity: calc(0.9 - var(--theme-dark-mode, 0) * 0.1);
-}
-/* On hover the card beneath gets --template-hover-background, but the scrim
-   covers it. Tint the scrim to the same hover colour so the underlying card
-   visibly changes colour like a normal card hover (the orange glow already
-   bleeds past the scrim from .ca_holder:hover). */
-.ca_holder:hover .ca_homeMoreScrim {
+.ca_homeMoreCard:hover,
+.ca_homeMoreCard:focus-visible {
 	background-color: var(--template-hover-background);
+	border-color: var(--brand-orange);
+	box-shadow: 0 0 12px 2px var(--ca-shadow-color);
+	outline: none;
 }
-.ca_homeMoreOverlay .ca_homeMoreText {
-	position: relative;
-	text-align: center;
-	color: var(--text-color);
+.ca_homeMoreArrow::before {
+	content: "\f054";
+	font-family: fontAwesome;
+	font-size: 2.2rem;
+	color: var(--brand-orange);
 }
 .ca_homeMoreTitle {
-	font-size: 2rem;
-	font-weight: bold;
-}
-.ca_homeMoreSection {
-	font-size: 1.5rem;
-	margin-top: 0.25rem;
+	display: flex;
+	flex-direction: column;
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: center;
+	text-transform: uppercase;
+	white-space: normal;
 }
 
 #caAlphaBar {
@@ -2792,6 +2802,7 @@ input[type="button"] {
 	.warningCardBackground,
 	.betaCardBackground,
 	.greenCardBackground,
+	.stoppedCardBackground,
 	.installedCardBackground {
 		padding: 0.35rem 0.75rem;
 		border-radius: 0.4rem;
@@ -2810,21 +2821,29 @@ input[type="button"] {
 		color: var(--ca-installed-badge-text-color);
 	}
 	.LTOfficialCardBackground {
-		/* Unraid brand gradient: Red #e22828 → Orange #f15a2c → Gold #ff8c2f */
-		background: linear-gradient(to right, #e22828 0%, #f15a2c 50%, #ff8c2f 100%);
+		/* Match the Community Apps Worker: official is a solid success badge. */
+		background-color: var(--ca-dark-green-color);
+		color: var(--ca-white-color);
 	}
 	.officialCardBackground,
 	.spotlightCardBackground {
 		background-color: var(--ca-dark-purple-color);
+		color: var(--ca-white-color);
 	}
 	.warningCardBackground {
 		background-color: var(--ca-dark-red-color);
+		color: var(--ca-white-color);
 	}
 	.betaCardBackground {
 		background-color: var(--brand-orange);
 	}
 	.greenCardBackground {
 		background-color: var(--ca-dark-green-color);
+		color: var(--ca-white-color);
+	}
+	.stoppedCardBackground {
+		background-color: var(--brand-orange);
+		color: var(--black);
 	}
 
 	.installedCardText {

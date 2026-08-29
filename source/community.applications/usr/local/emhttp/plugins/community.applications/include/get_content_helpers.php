@@ -144,11 +144,10 @@ class GetContentHelpers {
 				continue;
 
 			$hasMore = (bool)($type['cat'] ?? false);
-			/* Cat sections overlay SHOW MORE on their last card. Render at least
-			   two there (one real card plus the overlaid one) so a genuine app
-			   always shows even when only a single card fits the row - the Show
-			   More then lands on the 2nd card. Other sections just fill the row. */
-			$appsToShow = $hasMore ? max(2, $maxHomeApps) : $maxHomeApps;
+			/* Every slot that fits the row belongs to an application. Sections
+			   with a full-category destination append a separate, narrow Show More
+			   affordance after those cards instead of sacrificing the last app. */
+			$appsToShow = $maxHomeApps;
 
 			for ($i=0;$i<$GLOBALS['caSettings']['maxPerPage'];$i++) {
 				if ( ! isset($appsOfDay[$i])) continue;
@@ -161,27 +160,20 @@ class GetContentHelpers {
 				if ( $homeCount >= $appsToShow ) break;
 			}
 			if ( $displayApplications['community'] ) {
-				/* Sections that link to a full category turn their last visible
-				   card into the Show More affordance: the card still renders (just
-				   dimmed) with a SHOW MORE label overlaid on top. The flag rides on
-				   the template through to displayCard, which draws the overlay. Only
-				   do this when another real card sits beside it, so a section never
-				   shows nothing but a Show More. */
-				if ( $hasMore && count($display) >= 2 ) {
-					$lastIdx = count($display) - 1;
-					$display[$lastIdx]['homeShowMore'] = [
-						'cat'     => $type['cat'],
-						'sortby'  => $type['sortby'],
-						'sortdir' => $type['sortdir'],
-						'des'     => $type['text1'],
-					];
-				}
-
 				$o['display'] .= "<div class='ca_homeTemplatesHeader'>{$type['text1']}</div>";
 				$o['display'] .= "<div class='ca_homeTemplatesLine2'>{$type['text2']}</div>";
 				$homeClass = "caHomeSpotlight";
+				$showMore = "";
+				if ($hasMore) {
+					$des = htmlspecialchars((string)$type['text1'], ENT_QUOTES, "UTF-8");
+					$cat = htmlspecialchars((string)$type['cat'], ENT_QUOTES, "UTF-8");
+					$sby = htmlspecialchars((string)$type['sortby'], ENT_QUOTES, "UTF-8");
+					$sdir = htmlspecialchars((string)$type['sortdir'], ENT_QUOTES, "UTF-8");
+					$label = htmlspecialchars(sprintf(tr("Show more %s"), (string)$type['text1']), ENT_QUOTES, "UTF-8");
+					$showMore = "<button type='button' class='ca_homeMoreCard homeMore' data-des='{$des}' data-category='{$cat}' data-sortby='{$sby}' data-sortdir='{$sdir}' aria-label='{$label}'><span class='ca_homeMoreArrow' aria-hidden='true'></span><span class='ca_homeMoreTitle'><span>".tr("Show")."</span><span>".tr("More")."</span></span></button>";
+				}
 
-				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1",false,false,false,false)."</div>";
+				$o['display'] .= "<div class='ca_homeTemplates home{$type['type']} $homeClass'>".my_display_apps($display,"1",false,false,false,false).$showMore."</div>";
 				$o['script'] = "$('#templateSortButtons,#sortButtons').hide();";
 
 			} else {
