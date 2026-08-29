@@ -565,11 +565,11 @@ function caBuildActionsContext(array &$template, array $info, array $dockerUpdat
 							$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install second"),"action"=>"popupInstallXML('".addslashes($template['Path'])."','second');"];
 						}
 					}
-					if (is_file($info[$name]['template'])) {
+					if (is_file($info[$name]['template'] ?? "")) {
 						$actionsContext[] = ["icon"=>"ca_fa-edit","text"=>tr("Edit"),"action"=>"popupInstallXML('".addslashes($info[$name]['template'])."','edit');"];
 					}
 					$actionsContext[] = ["divider"=>true];
-					if ($info[$name]['template']) {
+					if ($info[$name]['template'] ?? false) {
 						$actionsContext[] = ["icon"=>"ca_fa-delete","text"=>tr("Uninstall"),"action"=>"uninstallDocker('".addslashes($info[$name]['template'])."','{$template['Name']}');"];
 						$template['Installed'] = true;
 					}
@@ -727,7 +727,7 @@ function caBuildLanguageActions(array &$template, ?string $countryCode, array $a
 				$actionsContext[] = ["icon"=>"ca_fa-switchto","text"=>$template['SwitchLanguage'],"action"=>"CAswitchLanguage('$countryCode');"];
 			}
 		} else {
-			$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"installLanguage('{$template['TemplateURL']}','$countryCode');"];
+			$actionsContext[] = ["icon"=>"ca_fa-install","text"=>tr("Install"),"action"=>"installLanguage('".($template['TemplateURL'] ?? '')."','$countryCode');"];
 		}
 
 		if (file_exists("/var/log/plugins/lang-$countryCode.xml")) {
@@ -909,7 +909,7 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 		$template['Installed'] = $selected;
 		if ($selected) {
 			$ind = searchArray($info, "Name", $name);
-			if ($info[$ind]['url'] && $info[$ind]['running']) {
+			if ($ind !== false && ($info[$ind]['url'] ?? false) && ($info[$ind]['running'] ?? false)) {
 				$actionsContext[] = ["icon" => "ca_fa-globe", "text" => tr("WebUI"), "action" => "openNewWindow('{$info[$ind]['url']}','_blank');"];
 				if ($info[$ind]['TSurl'] ?? false) {
 					$actionsContext[] = ["icon" => "ca_fa-globe", "text" => tr("TS WebUI"), "action" => "openNewWindow('{$info[$ind]['TSurl']}','_blank');"];
@@ -941,12 +941,12 @@ function caProcessDockerTemplate(array $template, array $info, array $dockerUpda
 				}
 			}
 
-			if (is_file($info[$ind]['template'])) {
+			if ($ind !== false && is_file($info[$ind]['template'] ?? "")) {
 				$actionsContext[] = ["icon" => "ca_fa-edit", "text" => tr("Edit"), "action" => "popupInstallXML('".addslashes($info[$ind]['template'])."','edit');"];
 			}
 
 			$actionsContext[] = ["divider" => true];
-			if ($info[$ind]['template']) {
+			if ($ind !== false && ($info[$ind]['template'] ?? false)) {
 				$actionsContext[] = ["icon" => "ca_fa-delete", "text" => tr("Uninstall"), "action" => "uninstallDocker('".addslashes($info[$ind]['template'])."','{$template['Name']}');"];
 			}
 		} elseif (! ($template['Blacklist'] ?? false)) {
@@ -1127,7 +1127,7 @@ function caProcessLanguageTemplate(array $template, array $actionsContext): arra
 			$actionsContext[] = ["icon" => "ca_fa-switchto", "text" => $template['SwitchLanguage'], "action" => "CAswitchLanguage('$countryCode');"];
 		}
 	} else {
-		$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "installLanguage('{$template['TemplateURL']}','$countryCode');"];
+		$actionsContext[] = ["icon" => "ca_fa-install", "text" => tr("Install"), "action" => "installLanguage('".($template['TemplateURL'] ?? '')."','$countryCode');"];
 	}
 
 	if (file_exists("/var/log/plugins/lang-$countryCode.xml")) {

@@ -841,18 +841,9 @@ $(function(){
 		caSessRemove("ca_languageSwitch");
 	}
 
-	caPluginUpdateCheck("community.applications.plg",{
-			noDismiss:true,
-			name:"Community Applications",
-			debug:false,
-			priority:true
-		},function() {
-			/* Runs for the update-check side effect only. The CA version used to
-			   be written into the menu's #caInstalledVersion here, but the version
-			   now renders server-side at the top of the Credits panel, so there's
-			   nothing to display from the callback. */
-		}
-	);
+	/* CA self-update check moved to after the first Action Centre response
+	   (see setupActionCentre) so a CA plugin check kicked off here can't leave
+	   enableActionCentre blocking on an update that this same load started. */
 
 
 	searchBoxInput = $("#searchBox").get(0);
@@ -5729,6 +5720,17 @@ function setupActionCentre() {
 			}
 		} else
 			$(".actionCentre").hide();
+
+		/* Kick the CA self update check once, only after the first Action Centre response returns. */
+		if ( ! window.caPluginUpdateChecked ) {
+			window.caPluginUpdateChecked = true;
+			caPluginUpdateCheck("community.applications.plg",{
+				noDismiss:true,
+				name:"Community Applications",
+				debug:false,
+				priority:true
+			},function() {});
+		}
 	});
 }
 

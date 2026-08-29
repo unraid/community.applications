@@ -31,7 +31,7 @@ class PinnedAppsHelpers {
 	 * @param  bool                            $hideIncompatible  When true, skip templates that aren't compatible.
 	 * @return array<string,mixed>|null Matching template, or null when nothing matches.
 	 */
-	public static function findPinnedTemplate(&$templates, $pinned, $hideIncompatible) {
+	public static function findPinnedTemplate(&$templates, $pinned, $hideIncompatible, $hideDeprecated = false) {
 		$search = explode("&", $pinned);
 		if (count($search) < 2) {
 			return null;
@@ -63,6 +63,11 @@ class PinnedAppsHelpers {
 			}
 
 			if ($hideIncompatible && empty($template['Compatible'])) {
+				$startIndex = $index + 1;
+				continue;
+			}
+
+			if ($hideDeprecated && !empty($template['Deprecated'])) {
 				$startIndex = $index + 1;
 				continue;
 			}
