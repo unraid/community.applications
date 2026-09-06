@@ -35,14 +35,20 @@ if ( ! $templates ) {
 
 echo "\n<b>".tr("Updating Support Links")."</b>\n\n";
 foreach ($plugins as $plugin) {
-	$pluginURL = ca_plugin("pluginURL",$plugin);
+	$pluginURL = (string)ca_plugin("pluginURL",$plugin);
+	/* A .plg with no pluginURL attribute must not be searched for: the loose
+	   compare inside searchArray would match null against the first docker
+	   template that also lacks a PluginURL and hand back the wrong entry. */
+	if ( $pluginURL === "" ) {
+		continue;
+	}
 	$pluginEntry = searchArray($templates,"PluginURL",$pluginURL);
 	if ( $pluginEntry === false ) {
 		$pluginEntry = searchArray($templates,"PluginURL",str_replace("https://raw.github.com/","https://raw.githubusercontent.com/",$pluginURL));
 	}
-	if ( $pluginEntry !== false && $templates[$pluginEntry]['PluginURL']) {
+	if ( $pluginEntry !== false && ($templates[$pluginEntry]['PluginURL'] ?? null) ) {
 		$xml = simplexml_load_file($plugin);
-		if ( ! $templates[$pluginEntry]['Support'] ) {
+		if ( ! ($templates[$pluginEntry]['Support'] ?? null) ) {
 			continue;
 		}
 		if ( @ca_plugin("support",$plugin) !== $templates[$pluginEntry]['Support'] ) {

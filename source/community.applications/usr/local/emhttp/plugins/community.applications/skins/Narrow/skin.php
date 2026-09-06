@@ -1172,7 +1172,7 @@ function my_display_apps($file,$pageNumber=1,$selectedApps=false,$startup=false,
 	$displayHeader = "";
 
 	[$selectedApps, $checkedOffApps] = caNormalizeSelectedApps($selectedApps);
-	$displayedTemplates = caSliceDisplayedTemplates($file, $pageNumber);
+	$displayedTemplates = caSliceDisplayedTemplates($file, max(1, (int)$pageNumber));
 
 	foreach ($displayedTemplates as $template) {
 		$template = addMissingVars($template);

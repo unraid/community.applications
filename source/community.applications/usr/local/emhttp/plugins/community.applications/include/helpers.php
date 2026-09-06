@@ -795,22 +795,30 @@ function download_json($url,$path="",$timeout=0,$shared=true) {
 }
 
 /**
+ * Scalar POST value, urldecoded. A field posted with a bracketed name arrives as
+ * an array, which is not a scalar, so it yields $default instead of reaching
+ * urldecode() and throwing a TypeError under PHP 8.
+ *
  * @param string $setting POST key
  * @param mixed $default
  * @return mixed
  */
 function getPost($setting,$default) {
-	return isset($_POST[$setting]) ? urldecode(($_POST[$setting])) : $default;
+	$value = $_POST[$setting] ?? null;
+	return is_scalar($value) ? urldecode((string)$value) : $default;
 }
 
 /**
- * Raw POST value for an array-shaped field (no urldecode).
+ * Raw POST value for an array-shaped field (no urldecode). A missing field or
+ * a scalar where an array was expected yields an empty array so callers can
+ * count() and iterate it without a TypeError.
  *
  * @param string $setting POST key
- * @return mixed
+ * @return array<mixed>
  */
 function getPostArray($setting) {
-	return $_POST[$setting];
+	$value = $_POST[$setting] ?? null;
+	return is_array($value) ? $value : [];
 }
 
 /**
