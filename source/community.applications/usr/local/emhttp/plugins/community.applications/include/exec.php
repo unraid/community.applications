@@ -1273,7 +1273,7 @@ function appOfDay($file) {
 			$sortOrder['sortDir'] = "Down";
 			usort($file,"mySort");
 			foreach($file as $template) {
-				if ( ! isset($template['Featured'] ) )
+				if ( ! ($template['Featured'] ?? false) )
 					break;
 					// Don't show it if the plugin is installed
 

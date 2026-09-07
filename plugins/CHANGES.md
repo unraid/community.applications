@@ -300,3 +300,5 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 - Removed: The category line on app cards (the category is still shown in the app panel)
 - Fixed: A malformed request to the Apps page backend (for example a field sent as a list, a blank page number, or removing apps with nothing selected) could crash the request and trigger the reload banner; these are now handled safely
 - Fixed: Two repeated PHP warnings during every feed refresh (a missing branch tag description, and a plugin on the flash drive with no download URL matching the wrong template)
+
+- Fixed: Apps whose template sets a maximum Unraid version below the running OS no longer appear in the "Featured Applications" block on the home page
