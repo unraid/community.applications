@@ -95,6 +95,15 @@ if ( !is_dir(CA_PATHS['templates-community']) ) {
 	@unlink(CA_PATHS['community-templates-info']);
 }
 
+/* Normalise the action key up front. A missing key (direct GET) or a
+   bracketed, array-valued one would otherwise reach htmlspecialchars() in
+   the default case and throw a TypeError. Everything below can rely on a
+   plain string. */
+if ( ! is_scalar($_POST['action'] ?? null) ) {
+	$_POST['action'] = "";
+}
+$_POST['action'] = (string)$_POST['action'];
+
 debug("POST CALLED ({$_POST['action']})\n".print_r($_POST,true));
 
 $sortOrder = readJsonFile(CA_PATHS['sortOrder']);
@@ -564,7 +573,7 @@ function processApplicationFeed(array $ApplicationFeed, string $currentFeed): bo
 
 				$subBranch['Repository'] = $masterRepository[0].":". ($branch['Tag'] ?? ""); #This takes place before any xml elements are overwritten by additional entries in the branch, so you can actually change the repo the app draws from
 				$subBranch['BranchName'] = $branch['Tag'] ?? "";
-				$subBranch['BranchDescription'] = $branch['TagDescription'] ? $branch['TagDescription'] : $branch['Tag'];
+				$subBranch['BranchDescription'] = ($branch['TagDescription'] ?? "") ?: ($branch['Tag'] ?? "");
 				$subBranch['Path'] = CA_PATHS['templates-community']."/".$i.".xml";
 				$subBranch['Displayable'] = false;
 				$subBranch['ID'] = $i;
@@ -1003,14 +1012,20 @@ function updatePluginSupport($templates) {
 	$plugins = glob("/boot/config/plugins/*.plg");
 
 	foreach ($plugins as $plugin) {
-		$pluginURL = @ca_plugin("pluginURL",$plugin,true);
+		$pluginURL = (string)@ca_plugin("pluginURL",$plugin,true);
+		/* A .plg with no pluginURL attribute must not be searched for: the loose
+		   compare inside searchArray would match null against the first docker
+		   template that also lacks a PluginURL and hand back the wrong entry. */
+		if ( $pluginURL === "" ) {
+			continue;
+		}
 		$pluginEntry = searchArray($templates,"PluginURL",$pluginURL);
 		if ( $pluginEntry === false ) {
 			$pluginEntry = searchArray($templates,"PluginURL",str_replace("https://raw.github.com/","https://raw.githubusercontent.com/",$pluginURL));
 		}
-		if ( $pluginEntry !== false && $templates[$pluginEntry]['PluginURL']) {
+		if ( $pluginEntry !== false && ($templates[$pluginEntry]['PluginURL'] ?? null) ) {
 			$xml = simplexml_load_file($plugin);
-			if ( ! $templates[$pluginEntry]['Support'] ) {
+			if ( ! ($templates[$pluginEntry]['Support'] ?? null) ) {
 				continue;
 			}
 			if ( @ca_plugin("support",$plugin,true) !== $templates[$pluginEntry]['Support'] ) {
@@ -1258,7 +1273,7 @@ function appOfDay($file) {
 			$sortOrder['sortDir'] = "Down";
 			usort($file,"mySort");
 			foreach($file as $template) {
-				if ( ! isset($template['Featured'] ) )
+				if ( ! ($template['Featured'] ?? false) )
 					break;
 					// Don't show it if the plugin is installed
 
@@ -1733,11 +1748,11 @@ function force_update() {
 function display_content() {
 
 
-	$pageNumber = getPost("pageNumber","1");
+	$pageNumber = max(1, (int)getPost("pageNumber","1"));
 
 	changeMax(getPost("maxPerPage",$GLOBALS['caSettings']['maxPerPage']));
 	$startup = getPost("startup",false);
-	$selectedApps = json_decode(getPost("selected",false),true);
+	$selectedApps = json_decode((string)getPost("selected",""),true);
 	$o['display'] = "";
 	clearstatcache();
 	if ( !file_exists(CA_PATHS['community-templates-displayed']) && !file_exists(CA_PATHS['repositoriesDisplayed']) ) {
@@ -3164,6 +3179,10 @@ function changeSortOrder() {
 	require_once __DIR__ . '/get_content_helpers.php';
 
 	$sortOrder = getPostArray("sortOrder");
+	if ( empty($sortOrder['sortBy']) || empty($sortOrder['sortDir']) ) {
+		postReturn(["error"=>"Invalid sort order"]);
+		return;
+	}
 	writeJsonFile(CA_PATHS['sortOrder'],$sortOrder);
 
 	if ( is_file(CA_PATHS['community-templates-displayed']) ) {
