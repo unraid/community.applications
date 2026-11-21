@@ -1465,7 +1465,7 @@ function get_content() {
 		writeJsonFile(CA_PATHS['community-templates-displayed'], $displayApplications);
 		@unlink(CA_PATHS['community-templates-allSearchResults']);
 		@unlink(CA_PATHS['community-templates-catSearchResults']);
-		$o['display_data'] = display_apps(1, false, false, true);
+		$o['display_data'] = display_apps(1, false, false, true, $displayApplications);
 		postReturn($o);
 		return;
 	}
@@ -1552,7 +1552,7 @@ function get_content() {
 
 	GetContentHelpers::cacheDisplayApplications($categoryRegex, $filter, $displayApplications);
 
-	$o['display_data'] = display_apps(1, false, false, true);
+	$o['display_data'] = display_apps(1, false, false, true, $filter ? null : $displayApplications);
 
 	postReturn($o);
 }

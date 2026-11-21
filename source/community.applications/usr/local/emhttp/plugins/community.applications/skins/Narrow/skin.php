@@ -1086,16 +1086,18 @@ function caHumanizeCount($v) {
 	return $s.$u;
 }
 
-function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false) {
+function display_apps($pageNumber=1,$selectedApps=false,$startup=false,$returnArray=false,$displayed=null) {
 
-	$filesToCheck = [
+	// $displayed: the list the caller just wrote to community-templates-displayed.
+	// Re-reading that file while the caller still holds it doubles peak memory (#144).
+	$filesToCheck = $displayed !== null ? [] : [
 		CA_PATHS['repositoriesDisplayed'] ?? null,
 		CA_PATHS['community-templates-catSearchResults'] ?? null,
 		CA_PATHS['community-templates-displayed'] ?? null
 	];
 
-	$file = [];
-	$usedPath = null;
+	$file = $displayed ?? [];
+	$usedPath = $displayed !== null ? (CA_PATHS['community-templates-displayed'] ?? null) : null;
 	foreach ($filesToCheck as $path) {
 		if ($path && is_file($path)) {
 			$file = readJsonFile($path);
