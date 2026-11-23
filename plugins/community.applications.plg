@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" min="6.12.0" support="https://forums.unraid.net/topic/38582-plug-in-community-applications" icon="users">
 
 <CHANGES>
+###2026.11.22
+- Changed: Raised the PHP memory limit to 512M to prevent out of memory errors
+
 ###2026.07.14
 - Changed: Republished the previous 2026.05.15gh release to roll back the 2026.07.11 Community Applications update while reported issues are addressed
 
