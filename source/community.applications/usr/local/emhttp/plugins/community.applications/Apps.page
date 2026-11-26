@@ -1797,7 +1797,7 @@ function getContent(init,category,description,newApp,startupDisplay) {
 	   sticky docker when the user navigates the menu. */
 	caLeaveDockerMode();
 	var initialize;
-	var maxHomeApps = Math.max(1, caCardsPerRow()); // Row capacity; sections with a Show More tile render one fewer app to make room for it (server side), minimum 1
+	var maxHomeApps = Math.max(1, caCardsPerRow()); // Full, fixed-width app cards that fit; Show More is a separate partial card.
 	data.maxPerPage = getMaxPerPage();
 
 	enableSearch();

@@ -23,6 +23,9 @@ the packaged plugin (`pkg_build.sh` only ships `source/community.applications/`)
 
 ## Unreleased
 
+- Changed: Home sections now keep app cards at a fixed width, fill every available card slot, and use a narrow trailing Show More card
+- Changed: App status badges now distinguish pending updates, Unraid-official apps, and upstream-official Docker images without relying on color
+- Fixed: Dark app status badges now use readable high-contrast text, and stopped containers use a distinct warning state
 - Changed: The monthly spotlight banner now ships with the plugin instead of being downloaded, so it appears instantly with no network request
 - Added: New "Use Cloudflare CDN" setting to load the application feed from an alternative source; changing it refreshes the feed automatically
 - Removed: Automatic fallback to the GitHub-hosted backup application feed
